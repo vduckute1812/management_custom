@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: docker.io/library/mysql:8.0
+    container_name: mgmt-mysql
+    restart: unless-stopped
+    command: --skip-host-cache --skip-name-resolve
+    cap_add:
+      - SYS_NICE
+    environment:
+      MYSQL_ROOT_PASSWORD: "root@1345"
+      MYSQL_DATABASE: "rc"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+      TZ: "Asia/Ho_Chi_Minh"
+    ports:
+      # Localhost so the management app on the Pi can reach 127.0.0.1:3306
+      - "127.0.0.1:3306:3306"
+      # LAN IP of the Pi -- target of the router port-forward for remote access
+      - "192.168.1.4:3306:3306"
+    volumes:
+      - mgmt-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mgmt-mysql-data:

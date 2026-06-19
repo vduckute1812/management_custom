@@ -1,0 +1,36 @@
+{
+  "name": "management",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "migrate": "node --env-file=.env --import tsx scripts/migrate.ts up",
+    "migrate:status": "node --env-file=.env --import tsx scripts/migrate.ts status",
+    "migrate:reset": "node --env-file=.env --import tsx scripts/migrate.ts reset",
+    "migrate:auth": "node --env-file=.env --import tsx scripts/migrate-auth.ts",
+    "check:db": "node --env-file=.env --import tsx scripts/check-db.ts"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "bcryptjs": "^3.0.3",
+    "chart.js": "^4.4.0",
+    "dayjs": "^1.11.13",
+    "jsonwebtoken": "^9.0.3",
+    "mysql2": "^3.22.5",
+    "nodemailer": "^9.0.1",
+    "nuxt": "^3.13.0",
+    "tailwindcss": "^4.0.0",
+    "vue": "latest",
+    "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/nodemailer": "^8.0.1",
+    "tsx": "^4.22.4"
+  }
+}

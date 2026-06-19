@@ -1,0 +1,399 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+}
+
+html,
+body,
+#__nuxt {
+  height: 100%;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, "Apple Color Emoji", sans-serif;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* -------------------------------------------------------------------------
+ * Dark theme.
+ *
+ * Strategy: rather than touching every Vue component to add `dark:` variants,
+ * we override the handful of utility classes the codebase actually uses when
+ * `<html data-theme="dark">` is set. This keeps the source markup readable
+ * and lets us iterate on the palette in one place. Status / epic chips get
+ * tinted, never inverted — color-coded semantics must survive the swap.
+ * ----------------------------------------------------------------------- */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] #__nuxt {
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+/* --- Surfaces ----------------------------------------------------------- */
+html[data-theme="dark"] .bg-white { background-color: #111827 !important; }
+html[data-theme="dark"] .bg-slate-50 { background-color: #0f172a !important; }
+html[data-theme="dark"] .bg-slate-100 { background-color: #1e293b !important; }
+html[data-theme="dark"] .bg-slate-200 { background-color: #334155 !important; }
+html[data-theme="dark"] .bg-slate-50\/40 { background-color: rgba(15, 23, 42, 0.4) !important; }
+html[data-theme="dark"] .bg-slate-50\/60 { background-color: rgba(15, 23, 42, 0.6) !important; }
+
+/* --- Brand soft surfaces (calendar today highlight, etc.) -------------- */
+html[data-theme="dark"] .bg-brand-50 { background-color: rgba(99, 102, 241, 0.16) !important; }
+html[data-theme="dark"] .bg-brand-50\/30 { background-color: rgba(99, 102, 241, 0.1) !important; }
+html[data-theme="dark"] .bg-brand-50\/40 { background-color: rgba(99, 102, 241, 0.14) !important; }
+html[data-theme="dark"] .bg-brand-50\/60 { background-color: rgba(99, 102, 241, 0.2) !important; }
+html[data-theme="dark"] .bg-brand-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
+html[data-theme="dark"] .hover\:bg-brand-50\/30:hover { background-color: rgba(99, 102, 241, 0.14) !important; }
+html[data-theme="dark"] .hover\:bg-brand-50:hover { background-color: rgba(99, 102, 241, 0.18) !important; }
+html[data-theme="dark"] .text-brand-600 { color: #a5b4fc !important; }
+html[data-theme="dark"] .text-brand-700 { color: #c7d2fe !important; }
+html[data-theme="dark"] .text-brand-800 { color: #e0e7ff !important; }
+
+/* --- Text --------------------------------------------------------------- */
+html[data-theme="dark"] .text-slate-900 { color: #f1f5f9 !important; }
+html[data-theme="dark"] .text-slate-800 { color: #e2e8f0 !important; }
+html[data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; }
+html[data-theme="dark"] .text-slate-600 { color: #94a3b8 !important; }
+html[data-theme="dark"] .text-slate-500 { color: #94a3b8 !important; }
+html[data-theme="dark"] .text-slate-400 { color: #64748b !important; }
+html[data-theme="dark"] .text-slate-300 { color: #475569 !important; }
+
+/* --- Borders, rings, dividers ------------------------------------------ */
+html[data-theme="dark"] .border-slate-100 { border-color: #1e293b !important; }
+html[data-theme="dark"] .border-slate-200 { border-color: #1e293b !important; }
+html[data-theme="dark"] .border-slate-300 { border-color: #334155 !important; }
+html[data-theme="dark"] .ring-slate-200 { --tw-ring-color: #334155 !important; }
+html[data-theme="dark"] .ring-slate-300 { --tw-ring-color: #475569 !important; }
+html[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b !important;
+}
+
+/* --- Hover states ------------------------------------------------------- */
+html[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
+html[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: #334155 !important; }
+html[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: #475569 !important; }
+html[data-theme="dark"] .hover\:bg-slate-800:hover { background-color: #475569 !important; }
+
+/* --- Form controls ------------------------------------------------------ */
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #475569;
+}
+html[data-theme="dark"] .focus\:border-brand-500:focus {
+  border-color: #818cf8 !important;
+}
+html[data-theme="dark"] .focus\:ring-brand-200:focus {
+  --tw-ring-color: rgba(165, 180, 252, 0.35) !important;
+}
+html[data-theme="dark"] kbd {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] code {
+  background-color: #1e293b !important;
+  color: #cbd5e1 !important;
+}
+
+/* --- Status chip surfaces (kept color-coded, just tinted) -------------- */
+html[data-theme="dark"] .bg-amber-50 { background-color: rgba(245, 158, 11, 0.14) !important; }
+html[data-theme="dark"] .bg-amber-50\/40 { background-color: rgba(245, 158, 11, 0.1) !important; }
+html[data-theme="dark"] .bg-amber-100 { background-color: rgba(245, 158, 11, 0.22) !important; }
+html[data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
+html[data-theme="dark"] .text-amber-700 { color: #fcd34d !important; }
+html[data-theme="dark"] .text-amber-800 { color: #fde68a !important; }
+html[data-theme="dark"] .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
+html[data-theme="dark"] .text-indigo-700 { color: #a5b4fc !important; }
+
+html[data-theme="dark"] .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.14) !important; }
+html[data-theme="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.22) !important; }
+html[data-theme="dark"] .hover\:bg-emerald-100:hover { background-color: rgba(16, 185, 129, 0.32) !important; }
+html[data-theme="dark"] .text-emerald-600 { color: #34d399 !important; }
+html[data-theme="dark"] .text-emerald-700 { color: #6ee7b7 !important; }
+html[data-theme="dark"] .text-emerald-800 { color: #a7f3d0 !important; }
+
+html[data-theme="dark"] .bg-rose-50 { background-color: rgba(244, 63, 94, 0.14) !important; }
+html[data-theme="dark"] .bg-rose-100 { background-color: rgba(244, 63, 94, 0.22) !important; }
+html[data-theme="dark"] .hover\:bg-rose-100:hover { background-color: rgba(244, 63, 94, 0.32) !important; }
+html[data-theme="dark"] .text-rose-500 { color: #fb7185 !important; }
+html[data-theme="dark"] .text-rose-600 { color: #fda4af !important; }
+html[data-theme="dark"] .text-rose-700 { color: #fda4af !important; }
+html[data-theme="dark"] .text-rose-800 { color: #fecdd3 !important; }
+html[data-theme="dark"] .border-rose-200 { border-color: rgba(244, 63, 94, 0.3) !important; }
+html[data-theme="dark"] .ring-rose-300 { --tw-ring-color: rgba(244, 63, 94, 0.4) !important; }
+html[data-theme="dark"] .ring-emerald-300 { --tw-ring-color: rgba(16, 185, 129, 0.4) !important; }
+html[data-theme="dark"] .ring-amber-300 { --tw-ring-color: rgba(245, 158, 11, 0.4) !important; }
+html[data-theme="dark"] .ring-brand-300 { --tw-ring-color: rgba(99, 102, 241, 0.4) !important; }
+
+/* --- Epic accent surfaces (sky, violet, slate) ------------------------- */
+html[data-theme="dark"] .bg-sky-100 { background-color: rgba(14, 165, 233, 0.22) !important; }
+html[data-theme="dark"] .text-sky-700 { color: #7dd3fc !important; }
+html[data-theme="dark"] .text-sky-800 { color: #bae6fd !important; }
+html[data-theme="dark"] .ring-sky-300 { --tw-ring-color: rgba(14, 165, 233, 0.4) !important; }
+
+html[data-theme="dark"] .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22) !important; }
+html[data-theme="dark"] .text-violet-700 { color: #c4b5fd !important; }
+html[data-theme="dark"] .text-violet-800 { color: #ddd6fe !important; }
+html[data-theme="dark"] .ring-violet-300 { --tw-ring-color: rgba(139, 92, 246, 0.4) !important; }
+
+html[data-theme="dark"] .ring-rose-200 { --tw-ring-color: rgba(244, 63, 94, 0.3) !important; }
+html[data-theme="dark"] .bg-rose-50\/40 { background-color: rgba(244, 63, 94, 0.1) !important; }
+
+/* --- Skeleton + miscellany --------------------------------------------- */
+html[data-theme="dark"] .skeleton {
+  background: #1e293b;
+}
+
+/* --- Calendar drag-over highlight -------------------------------------- */
+html[data-theme="dark"] .ring-brand-400 {
+  --tw-ring-color: #818cf8 !important;
+}
+
+/* --- Toast surface stays dark in both modes (good contrast) ----------- */
+/* (no override needed; bg-slate-900 already reads correctly) */
+
+/* --- Scrollbars + selection ------------------------------------------- */
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+html[data-theme="dark"] ::selection {
+  background: rgba(129, 140, 248, 0.35);
+  color: #f1f5f9;
+}
+
+/* --- Make muted month cells still readable ----------------------------- */
+/* Monthly calendar uses .opacity-50 to fade other-month days. On dark
+ * surfaces that drops contrast below readable, so bump it slightly. */
+html[data-theme="dark"] [class*="grid-rows-6"] .opacity-50 {
+  opacity: 0.55;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+/* Always-visible focus ring per accessibility commitment. */
+:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Skip-to-content link is visually hidden until focused. */
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 8px 12px;
+  background: #1e293b;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  transform: translateY(-200%);
+  transition: transform 120ms ease-out;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Epic color class allow-list. These literal strings ensure Tailwind v4's
+ * content scanner picks up every dynamic accent class even when components
+ * compose them through a lookup map.
+ *
+ * bg-brand-100 text-brand-800 ring-brand-300 bg-brand-500 border-brand-500
+ * bg-sky-100 text-sky-800 ring-sky-300 bg-sky-500 border-sky-500
+ * bg-emerald-100 text-emerald-800 ring-emerald-300 bg-emerald-500 border-emerald-500
+ * bg-amber-100 text-amber-800 ring-amber-300 bg-amber-500 border-amber-500
+ * bg-rose-100 text-rose-800 ring-rose-300 bg-rose-500 border-rose-500
+ * bg-violet-100 text-violet-800 ring-violet-300 bg-violet-500 border-violet-500
+ * bg-slate-100 text-slate-700 ring-slate-300 bg-slate-400 border-slate-500
+ *
+ * Role-chip colors (admin dashboard):
+ * bg-indigo-100 text-indigo-700
+ */
+
+/* -------------------------------------------------------------------------
+ * Compact density.
+ *
+ * Strategy mirrors the dark-mode approach: a single override layer keyed on
+ * `html[data-density="compact"]` rescales the high-traffic padding / gap /
+ * min-height utilities the codebase actually uses, so individual components
+ * stay readable. Per spec: ~0.75× scale, font size unchanged.
+ * ----------------------------------------------------------------------- */
+html[data-density="compact"] .p-2 { padding: 0.375rem !important; }
+html[data-density="compact"] .p-3 { padding: 0.5rem !important; }
+html[data-density="compact"] .p-4 { padding: 0.75rem !important; }
+html[data-density="compact"] .p-5 { padding: 0.875rem !important; }
+html[data-density="compact"] .p-6 { padding: 1rem !important; }
+
+html[data-density="compact"] .px-3 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
+html[data-density="compact"] .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+html[data-density="compact"] .px-5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
+html[data-density="compact"] .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+
+html[data-density="compact"] .py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
+html[data-density="compact"] .py-3 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+html[data-density="compact"] .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
+html[data-density="compact"] .py-5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+
+html[data-density="compact"] .gap-2 { gap: 0.375rem !important; }
+html[data-density="compact"] .gap-3 { gap: 0.5rem !important; }
+html[data-density="compact"] .gap-4 { gap: 0.75rem !important; }
+html[data-density="compact"] .gap-6 { gap: 1rem !important; }
+
+html[data-density="compact"] .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.5rem !important;
+}
+html[data-density="compact"] .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.75rem !important;
+}
+html[data-density="compact"] .space-y-5 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 0.875rem !important;
+}
+html[data-density="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 1rem !important;
+}
+
+/* Make calendar day cards shorter in compact mode so more fits on screen. */
+html[data-density="compact"] .min-h-\[400px\] { min-height: 300px !important; }
+html[data-density="compact"] .min-h-\[88px\] { min-height: 64px !important; }
+/* Slim down nav-link padding a hair more — feels right for sidebar density. */
+html[data-density="compact"] aside nav a { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+
+/* Toast slide-in animation, respecting prefers-reduced-motion above. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.toast-in {
+  animation: toast-in 180ms ease-out;
+}
+
+/* Subtle skeleton pulse. */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.skeleton {
+  background: #e2e8f0;
+  border-radius: 6px;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+/* -------------------------------------------------------------------------
+ * Print stylesheet: a clean weekly agenda. Hides chrome, drops backgrounds
+ * for ink-friendly output, and forces calendars to fit a single page when
+ * possible. Add `class="no-print"` to anything you want stripped.
+ * ----------------------------------------------------------------------- */
+@media print {
+  html,
+  body,
+  #__nuxt {
+    background: white !important;
+    color: black !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  .skip-link {
+    display: none !important;
+  }
+
+  /* Buttons that only make sense on-screen. */
+  button[aria-label="Previous"],
+  button[aria-label="Next"],
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+
+  /* Let scroll containers spill onto the printed page. */
+  .scrollbar-thin,
+  .overflow-y-auto,
+  .overflow-hidden {
+    overflow: visible !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+
+  /* Tone down filled backgrounds; print engines render those as solid blocks. */
+  [class*="bg-"] {
+    background: white !important;
+  }
+  [class*="text-white"] {
+    color: black !important;
+  }
+
+  /* Keep the calendar grid lines visible. */
+  [class*="ring-"],
+  [class*="border-"] {
+    box-shadow: none !important;
+  }
+
+  /* Hide hover-only resize handles and toast stack. */
+  [aria-live="polite"] {
+    display: none !important;
+  }
+
+  a[href]::after {
+    content: "" !important;
+  }
+}
