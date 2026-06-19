@@ -1,0 +1,132 @@
+{
+  "epics": [
+    {
+      "id": "epic_c0d2fce0",
+      "title": "Sample · Computer Vision",
+      "description": "A small example project so every view has something to show.",
+      "status": "in-progress",
+      "color": "violet",
+      "dueDate": "2026-06-29",
+      "tags": [
+        "sample",
+        "ml"
+      ],
+      "createdAt": "2026-06-18T16:18:24.018Z",
+      "updatedAt": "2026-06-18T16:18:24.018Z"
+    },
+    {
+      "id": "epic_07bb5ce7",
+      "title": "Sample · Operations",
+      "description": "Recurring upkeep tasks.",
+      "status": "in-progress",
+      "color": "amber",
+      "tags": [
+        "sample"
+      ],
+      "createdAt": "2026-06-18T16:18:24.031Z",
+      "updatedAt": "2026-06-18T16:18:24.031Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_ae9f66d3",
+      "epicId": "epic_c0d2fce0",
+      "title": "Read MLE paper draft",
+      "status": "in-progress",
+      "priority": "high",
+      "dueDate": "2026-06-16",
+      "estimatedHours": 1.5,
+      "progress": 40,
+      "tags": [
+        "reading"
+      ],
+      "timeBlocks": [
+        {
+          "id": "block_3dfa3377",
+          "start": "2026-06-15T02:00:00.000Z",
+          "end": "2026-06-15T03:30:00.000Z",
+          "spentHours": 1
+        }
+      ],
+      "checklist": [],
+      "createdAt": "2026-06-18T16:18:24.039Z",
+      "updatedAt": "2026-06-18T16:18:24.039Z"
+    },
+    {
+      "id": "task_e5dc7299",
+      "epicId": "epic_c0d2fce0",
+      "title": "Image augmentation pipeline",
+      "status": "in-progress",
+      "priority": "normal",
+      "dueDate": "2026-06-19",
+      "estimatedHours": 6,
+      "progress": 35,
+      "tags": [
+        "backend"
+      ],
+      "timeBlocks": [
+        {
+          "id": "block_32cf913d",
+          "start": "2026-06-16T07:00:00.000Z",
+          "end": "2026-06-16T09:30:00.000Z",
+          "spentHours": 2.5
+        },
+        {
+          "id": "block_05fbe922",
+          "start": "2026-06-18T03:00:00.000Z",
+          "end": "2026-06-18T05:00:00.000Z",
+          "spentHours": 2
+        }
+      ],
+      "checklist": [],
+      "createdAt": "2026-06-18T16:18:24.052Z",
+      "updatedAt": "2026-06-18T16:18:24.052Z"
+    },
+    {
+      "id": "task_6f6bf248",
+      "epicId": "epic_07bb5ce7",
+      "title": "Inbox zero",
+      "status": "todo",
+      "priority": "low",
+      "dueDate": "2026-06-17",
+      "estimatedHours": 0.5,
+      "progress": 0,
+      "tags": [
+        "recurring"
+      ],
+      "timeBlocks": [
+        {
+          "id": "block_83fb6a9e",
+          "start": "2026-06-17T01:30:00.000Z",
+          "end": "2026-06-17T02:00:00.000Z"
+        }
+      ],
+      "checklist": [],
+      "createdAt": "2026-06-18T16:18:24.059Z",
+      "updatedAt": "2026-06-18T16:18:24.059Z"
+    },
+    {
+      "id": "task_92b64030",
+      "title": "Plan next sprint",
+      "status": "todo",
+      "priority": "high",
+      "dueDate": "2026-06-19",
+      "estimatedHours": 1,
+      "progress": 0,
+      "tags": [
+        "planning"
+      ],
+      "timeBlocks": [
+        {
+          "id": "block_28eadeaa",
+          "start": "2026-06-19T08:00:00.000Z",
+          "end": "2026-06-19T09:00:00.000Z"
+        }
+      ],
+      "checklist": [],
+      "createdAt": "2026-06-18T16:18:24.065Z",
+      "updatedAt": "2026-06-18T16:18:24.065Z"
+    }
+  ],
+  "activeTimer": null
+}
