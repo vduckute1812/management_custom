@@ -75,3 +75,11 @@ echo "  URL log: journalctl --user -u ${UNIT_NAME} -f"
 echo
 sleep 3
 journalctl --user -u "${UNIT_NAME}" -n 30 --no-pager | grep -E 'trycloudflare|INF|ERR' || journalctl --user -u "${UNIT_NAME}" -n 15 --no-pager
+
+echo
+echo "==> Syncing APP_BASE_URL into docker/.env.prod"
+if bash "${DIR}/sync-tunnel-url.sh" --restart-app; then
+  echo "[tunnel] verification emails will use the Cloudflare URL above"
+else
+  echo "[tunnel] WARNING: could not sync APP_BASE_URL — run: bash docker/sync-tunnel-url.sh --restart-app"
+fi

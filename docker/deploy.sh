@@ -8,6 +8,13 @@ LAN_IP="${LAN_IP:-192.168.1.4}"
 
 cd "$ROOT"
 
+echo "==> Syncing Cloudflare tunnel URL into production env"
+if bash docker/sync-tunnel-url.sh; then
+  echo "[deploy] APP_BASE_URL updated from tunnel logs"
+else
+  echo "[deploy] WARNING: could not sync APP_BASE_URL — verification links may be wrong"
+fi
+
 echo "==> Ensuring TLS certificates exist"
 bash docker/init-ssl.sh
 
