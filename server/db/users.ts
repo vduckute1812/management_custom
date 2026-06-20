@@ -131,3 +131,13 @@ export async function recordUserLogin(id: string): Promise<void> {
     [isoToDB(nowISO()), id]
   );
 }
+
+/** Hard-delete a user row. Related data cascades via FK constraints. */
+export async function deleteUser(id: string): Promise<boolean> {
+  const pool = getPool();
+  const [result] = await pool.query(
+    "DELETE FROM users WHERE id = ?",
+    [id]
+  );
+  return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+}

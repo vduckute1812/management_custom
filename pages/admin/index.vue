@@ -5,6 +5,7 @@ import { UserRole, ROLE_LABELS, type AdminUserSummary, type AuthUser } from "~/t
 
 const { apiFetch } = useApi();
 const { pushToast } = useToasts();
+const { user: currentUser, isSuperAdmin } = useAuth();
 
 interface StatsResponse {
   rangeDays: number;
@@ -22,6 +23,7 @@ interface StatsResponse {
 const days = ref<number>(30);
 const error = ref<string | null>(null);
 const roleBusy = ref<string | null>(null);
+const removeBusy = ref<string | null>(null);
 
 const { data: stats, pending: loading, refresh } = await useAsyncData(
   "admin:stats",
@@ -81,6 +83,40 @@ async function setRole(
   } finally {
     roleBusy.value = null;
   }
+}
+
+async function removeUser(user: AdminUserSummary) {
+  if (
+    !confirm(
+      `Permanently delete ${user.name || user.email}? All of their epics, tasks, and logged time will be removed.`
+    )
+  ) {
+    return;
+  }
+  removeBusy.value = user.id;
+  try {
+    await apiFetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    pushToast("User removed", { tone: "success" });
+    await refresh();
+  } catch (err: unknown) {
+    pushToast(
+      (err as { data?: { statusMessage?: string }; statusMessage?: string })
+        ?.data?.statusMessage ??
+        (err as { statusMessage?: string }).statusMessage ??
+        "Failed to remove user",
+      { tone: "danger" }
+    );
+  } finally {
+    removeBusy.value = null;
+  }
+}
+
+function canRemoveUser(user: AdminUserSummary): boolean {
+  return (
+    isSuperAdmin.value &&
+    user.role !== UserRole.Superadmin &&
+    user.id !== currentUser.value?.id
+  );
 }
 
 // ---- charts ----
@@ -409,29 +445,42 @@ function formatDateTime(iso?: string): string {
                 ></span>
               </td>
               <td class="px-4 py-2.5 text-right">
-                <span
-                  v-if="u.role === UserRole.Superadmin"
-                  class="text-[11px] text-slate-400"
-                  title="The superadmin's role can only be changed by re-running the bootstrap script"
-                >—</span>
-                <button
-                  v-else-if="u.role === UserRole.Normal"
-                  type="button"
-                  class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                  :disabled="roleBusy === u.id"
-                  @click="setRole(u, UserRole.Admin)"
-                >
-                  Promote
-                </button>
-                <button
-                  v-else
-                  type="button"
-                  class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                  :disabled="roleBusy === u.id"
-                  @click="setRole(u, UserRole.Normal)"
-                >
-                  Demote
-                </button>
+                <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                  <span
+                    v-if="u.role === UserRole.Superadmin"
+                    class="text-[11px] text-slate-400"
+                    title="The superadmin's role can only be changed by re-running the bootstrap script"
+                  >—</span>
+                  <template v-else>
+                    <button
+                      v-if="u.role === UserRole.Normal"
+                      type="button"
+                      class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                      :disabled="roleBusy === u.id || removeBusy === u.id"
+                      @click="setRole(u, UserRole.Admin)"
+                    >
+                      Promote
+                    </button>
+                    <button
+                      v-else
+                      type="button"
+                      class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                      :disabled="roleBusy === u.id || removeBusy === u.id"
+                      @click="setRole(u, UserRole.Normal)"
+                    >
+                      Demote
+                    </button>
+                  </template>
+                  <button
+                    v-if="canRemoveUser(u)"
+                    type="button"
+                    class="text-[11px] px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    :disabled="roleBusy === u.id || removeBusy === u.id"
+                    @click="removeUser(u)"
+                  >
+                    Remove
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
