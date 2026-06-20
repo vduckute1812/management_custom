@@ -14,6 +14,7 @@
 import {
   getUserByEmail,
   issueRefreshToken,
+  recordUserLogin,
   toAuthUser,
 } from "~/server/utils/db";
 import {
@@ -74,6 +75,10 @@ export default defineEventHandler(async (event) => {
     userAgent: getRequestHeader(event, "user-agent") ?? undefined,
     ip: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
   });
+
+  // Best-effort: a write failure here must NOT block sign-in. The admin
+  // dashboard simply shows "Never" / a stale value if this UPDATE drops.
+  await recordUserLogin(user.id).catch(() => {});
 
   return {
     user: toAuthUser(user),

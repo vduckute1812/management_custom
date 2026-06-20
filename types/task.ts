@@ -291,7 +291,10 @@ export interface AdminUserSummary extends AuthUser {
   taskCount: number;
   epicCount: number;
   hoursLogged: number;
+  /** Latest `time_blocks.end_at` across this user's tasks. */
   lastActivity?: string;
+  /** Latest successful `POST /api/auth/login` stamp. Undefined = never. */
+  lastLoginAt?: string;
 }
 
 // -------------------------------------------------------------------------

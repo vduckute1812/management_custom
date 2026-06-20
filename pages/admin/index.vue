@@ -203,13 +203,26 @@ async function renderCharts() {
   });
 }
 
+// Two-step chart lifecycle so a freshly-mounted page always paints:
+//
+// 1. On mount, the canvas template refs become real DOM nodes — render once
+//    against whatever `stats` SSR/useAsyncData has already produced.
+// 2. The watcher (intentionally NOT `immediate`) only fires for *subsequent*
+//    `stats` mutations (i.e. when the user changes the date range). Using
+//    `immediate: true` here was the original bug: it ran synchronously during
+//    setup, before the canvases existed, so `renderCharts()` early-returned
+//    and the page stayed empty until the range was poked.
+onMounted(async () => {
+  await nextTick();
+  await renderCharts();
+});
+
 watch(
   () => stats.value,
   async () => {
     await nextTick();
     await renderCharts();
-  },
-  { immediate: true }
+  }
 );
 
 onBeforeUnmount(() => {
@@ -225,6 +238,29 @@ function formatHours(n: number): string {
 function formatDate(iso?: string): string {
   if (!iso) return "—";
   return dayjs(iso).format("MMM D, YYYY");
+}
+
+// Last-login is much more useful with a relative hint than a bare date:
+// admins want to scan for "who hasn't been here in months" at a glance.
+// Falls back to the absolute timestamp for the title so the precise value
+// is one hover away.
+function formatLastLogin(iso?: string): string {
+  if (!iso) return "Never";
+  const then = dayjs(iso);
+  const now = dayjs();
+  const diffMin = now.diff(then, "minute");
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = now.diff(then, "hour");
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = now.diff(then, "day");
+  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+  return then.format("MMM D, YYYY");
+}
+
+function formatDateTime(iso?: string): string {
+  if (!iso) return "Never";
+  return dayjs(iso).format("MMM D, YYYY · HH:mm");
 }
 </script>
 
@@ -340,6 +376,7 @@ function formatDate(iso?: string): string {
               <th class="text-right px-4 py-2 font-medium">Tasks</th>
               <th class="text-right px-4 py-2 font-medium">Hours</th>
               <th class="text-left px-4 py-2 font-medium">Last activity</th>
+              <th class="text-left px-4 py-2 font-medium">Last login</th>
               <th class="text-right px-4 py-2 font-medium">Verified</th>
               <th class="text-right px-4 py-2 font-medium">Actions</th>
             </tr>
@@ -370,6 +407,14 @@ function formatDate(iso?: string): string {
               </td>
               <td class="px-4 py-2.5 text-xs text-slate-500">
                 {{ formatDate(u.lastActivity) }}
+              </td>
+              <td
+                class="px-4 py-2.5 text-xs text-slate-500"
+                :title="formatDateTime(u.lastLoginAt)"
+              >
+                <span :class="u.lastLoginAt ? '' : 'italic text-slate-400'">
+                  {{ formatLastLogin(u.lastLoginAt) }}
+                </span>
               </td>
               <td class="px-4 py-2.5 text-right">
                 <span

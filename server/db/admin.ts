@@ -31,6 +31,7 @@ export interface AdminUserSummaryRow {
   epicCount: number;
   hoursLogged: number;
   lastActivity?: string;
+  lastLoginAt?: string;
 }
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
@@ -38,7 +39,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
        u.id, u.email, u.name, u.role, u.email_verified,
-       u.created_at, u.updated_at,
+       u.created_at, u.updated_at, u.last_login_at,
        (SELECT COUNT(*) FROM tasks t WHERE t.user_id = u.id)       AS task_count,
        (SELECT COUNT(*) FROM epics e WHERE e.user_id = u.id)       AS epic_count,
        COALESCE((
@@ -68,6 +69,7 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
     epicCount: Number(r.epic_count ?? 0),
     hoursLogged: roundHours(Number(r.hours_logged ?? 0)),
     lastActivity: r.last_activity ? dbToISO(String(r.last_activity)) : undefined,
+    lastLoginAt: r.last_login_at ? dbToISO(String(r.last_login_at)) : undefined,
   }));
 }
 

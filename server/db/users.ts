@@ -117,3 +117,17 @@ export async function updateUserPassword(
     [passwordHash, isoToDB(nowISO()), id]
   );
 }
+
+/**
+ * Stamp `last_login_at` to "now". Called from POST /api/auth/login after a
+ * successful credentials + email-verified check. Deliberately does NOT touch
+ * `updated_at` — that field tracks profile / role / verification changes, not
+ * sign-in activity, so the two signals stay independently inspectable.
+ */
+export async function recordUserLogin(id: string): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE users SET last_login_at = ? WHERE id = ?",
+    [isoToDB(nowISO()), id]
+  );
+}
