@@ -20,32 +20,28 @@ interface StatsResponse {
 }
 
 const days = ref<number>(30);
-const stats = ref<StatsResponse | null>(null);
-const loading = ref(false);
 const error = ref<string | null>(null);
 const roleBusy = ref<string | null>(null);
 
-async function load() {
-  loading.value = true;
-  error.value = null;
-  try {
-    stats.value = await apiFetch<StatsResponse>(
-      `/api/admin/stats?days=${days.value}`
-    );
-  } catch (err: unknown) {
-    error.value =
-      (err as { data?: { statusMessage?: string }; statusMessage?: string })
-        ?.data?.statusMessage ??
-      (err as { statusMessage?: string }).statusMessage ??
-      "Failed to load stats";
-  } finally {
-    loading.value = false;
-  }
-}
-
-await useAsyncData("admin:initial", () => load());
-
-watch(days, () => load());
+const { data: stats, pending: loading, refresh } = await useAsyncData(
+  "admin:stats",
+  async () => {
+    error.value = null;
+    try {
+      return await apiFetch<StatsResponse>(
+        `/api/admin/stats?days=${days.value}`
+      );
+    } catch (err: unknown) {
+      error.value =
+        (err as { data?: { statusMessage?: string }; statusMessage?: string })
+          ?.data?.statusMessage ??
+        (err as { statusMessage?: string }).statusMessage ??
+        "Failed to load stats";
+      return null;
+    }
+  },
+  { watch: [days] }
+);
 
 function roleChipClass(role: UserRole): string {
   if (role === UserRole.Superadmin) return "bg-indigo-100 text-indigo-700";
@@ -203,26 +199,16 @@ async function renderCharts() {
   });
 }
 
-// Two-step chart lifecycle so a freshly-mounted page always paints:
-//
-// 1. On mount, the canvas template refs become real DOM nodes — render once
-//    against whatever `stats` SSR/useAsyncData has already produced.
-// 2. The watcher (intentionally NOT `immediate`) only fires for *subsequent*
-//    `stats` mutations (i.e. when the user changes the date range). Using
-//    `immediate: true` here was the original bug: it ran synchronously during
-//    setup, before the canvases existed, so `renderCharts()` early-returned
-//    and the page stayed empty until the range was poked.
-onMounted(async () => {
-  await nextTick();
-  await renderCharts();
-});
-
+// Render once stats and all three canvases are available. Watching the canvas
+// refs (not just stats) covers both orderings: stats may arrive before mount,
+// or canvases may bind after stats was already set during setup. `flush:
+// 'post'` waits until after DOM updates so template refs are populated.
 watch(
-  () => stats.value,
-  async () => {
-    await nextTick();
-    await renderCharts();
-  }
+  [stats, hoursChart, statusChart, usersChart],
+  () => {
+    void renderCharts();
+  },
+  { flush: "post" }
 );
 
 onBeforeUnmount(() => {
