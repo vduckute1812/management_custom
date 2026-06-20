@@ -1,0 +1,59 @@
+services:
+  nginx:
+    image: docker.io/library/nginx:alpine
+    container_name: mgmt-nginx-prod
+    ports:
+      # Router should forward public 27.79.44.74:8080 -> 192.168.1.4:8080
+      - "8080:80"
+    volumes:
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    restart: unless-stopped
+
+  app:
+    image: localhost/mgmt-app-prod:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.prod
+    container_name: mgmt-app-prod
+    ports:
+      - "127.0.0.1:3000:3000"
+      - "192.168.1.4:3000:3000"
+    env_file:
+      - .env.prod
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  mysql:
+    image: docker.io/library/mysql:8.0
+    container_name: mgmt-mysql-prod
+    restart: unless-stopped
+    command: --skip-host-cache --skip-name-resolve
+    cap_add:
+      - SYS_NICE
+    environment:
+      MYSQL_ROOT_PASSWORD: "root@1345"
+      MYSQL_DATABASE: "rc"
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+      TZ: "Asia/Ho_Chi_Minh"
+    expose:
+      - "3306"
+    ports:
+      - "127.0.0.1:3306:3306"
+      - "192.168.1.4:3306:3306"
+    volumes:
+      - mgmt-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  mgmt-mysql-data:
+    external: true
+    name: management_mgmt-mysql-data
