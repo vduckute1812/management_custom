@@ -29,8 +29,5 @@ openssl req -x509 -nodes -days "${DAYS}" -newkey rsa:2048 \
 chmod 600 "${KEY}"
 chmod 644 "${CERT}"
 
-echo "[ssl] wrote ${CERT}"
-echo "[ssl] wrote ${KEY}"
-echo
-echo "Browsers will warn about self-signed certs — expected for IP-only hosting."
-echo "To use a real certificate, replace fullchain.pem and privkey.pem in docker/ssl/"
+echo "[ssl] wrote ${CERT} and ${KEY}"
+echo "[ssl] HTTPS will show a browser warning (self-signed). Use HTTP on port 8080 to avoid it."
