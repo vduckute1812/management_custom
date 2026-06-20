@@ -24,7 +24,11 @@ const DEFAULTS: Settings = {
   timeFormat: "24h",
   theme: "system",
   density: "comfortable",
-  notificationsEnabled: false,
+  // On by default — the in-app toast channel is non-intrusive (no browser
+  // permission required) and surfaces the 5-min pre-task heads-up that the
+  // calendar is otherwise silent about. Desktop OS notifications are still
+  // gated by an explicit Notification permission grant.
+  notificationsEnabled: true,
   notificationLeadMinutes: 5,
 };
 
@@ -45,7 +49,13 @@ function readFromStorage(): Settings {
           ? parsed.theme
           : "system",
       density: parsed.density === "compact" ? "compact" : "comfortable",
-      notificationsEnabled: parsed.notificationsEnabled === true,
+      // Respect a previously-persisted explicit false; fall back to the
+      // default (on) when the field is missing or non-boolean. This keeps
+      // legacy installs that opted out from suddenly getting toasts again.
+      notificationsEnabled:
+        typeof parsed.notificationsEnabled === "boolean"
+          ? parsed.notificationsEnabled
+          : DEFAULTS.notificationsEnabled,
       notificationLeadMinutes:
         Number.isFinite(lead) && lead >= 0 && lead <= 1440
           ? Math.round(lead)

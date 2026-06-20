@@ -20,21 +20,40 @@ if (import.meta.client) {
 
 async function toggleNotifications() {
   const next = !settings.value.notificationsEnabled;
-  if (next) {
-    const result = await requestPermission();
-    if (result !== "granted") {
-      pushToast(
-        result === "denied"
-          ? "Browser denied permission — re-enable in site settings."
-          : "Notifications aren't supported in this browser.",
-        { tone: "danger", duration: 4500 }
-      );
-      return;
-    }
-  }
   update("notificationsEnabled", next);
-  if (next) {
-    pushToast("Notifications on", { tone: "success", duration: 1800 });
+  if (!next) return;
+
+  // In-app toasts always work — flipping the switch is enough. Then
+  // opportunistically ask for OS-notification permission as an upgrade.
+  pushToast("Pre-task alerts on", { tone: "success", duration: 1800 });
+  const result = await requestPermission();
+  if (result === "denied") {
+    pushToast(
+      "Browser blocked desktop notifications — you'll still see in-app alerts.",
+      { tone: "info", duration: 4500 }
+    );
+  } else if (result === "unsupported") {
+    pushToast(
+      "Desktop notifications aren't supported in this browser — in-app alerts will fire instead.",
+      { tone: "info", duration: 4500 }
+    );
+  }
+}
+
+async function requestDesktopPermission() {
+  const result = await requestPermission();
+  if (result === "granted") {
+    pushToast("Desktop notifications enabled", { tone: "success", duration: 1800 });
+  } else if (result === "denied") {
+    pushToast(
+      "Permission denied — re-allow in your browser's site settings.",
+      { tone: "danger", duration: 4500 }
+    );
+  } else if (result === "unsupported") {
+    pushToast("This browser doesn't support desktop notifications.", {
+      tone: "danger",
+      duration: 3500,
+    });
   }
 }
 
@@ -44,31 +63,29 @@ function updateLeadMinutes(value: number) {
 }
 
 function onTestNotification() {
-  if (sendTest()) {
-    pushToast("Sent a test notification", {
-      tone: "success",
-      duration: 1800,
-    });
-  } else {
-    pushToast(
-      "Enable notifications and grant permission first.",
-      { tone: "danger" }
-    );
-  }
+  // sendTest fires a desktop push if it can, and falls back to an in-app
+  // toast otherwise. Either way the user gets feedback.
+  sendTest();
 }
 
 const notifStatusLabel = computed(() => {
   switch (notifPermission.value) {
     case "granted":
-      return "Granted — ready to fire";
+      return "Granted — desktop pop-ups will fire too";
     case "denied":
-      return "Denied — re-allow in your browser's site settings";
+      return "Denied — in-app toasts still fire; re-allow in site settings for desktop pop-ups";
     case "unsupported":
-      return "Unsupported in this browser";
+      return "Desktop pop-ups unsupported in this browser — in-app toasts still fire";
     default:
-      return "Not requested yet";
+      return "Not requested yet — in-app toasts will fire; tap below to enable desktop pop-ups too";
   }
 });
+
+const canRequestDesktop = computed(
+  () =>
+    notifPermission.value === "default" &&
+    settings.value.notificationsEnabled
+);
 
 // Inline SVG icons for the theme picker.
 const SunIcon: Component = () =>
@@ -319,10 +336,12 @@ function doExportICS() {
         <!-- Notifications -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Notifications</h2>
+            <h2 class="text-sm font-semibold text-slate-800">Pre-task alerts</h2>
             <p class="text-[11px] text-slate-500">
-              Browser notifications before scheduled blocks. Local-only —
-              nothing leaves your machine.
+              In-app toasts always work. Granting browser permission adds
+              desktop pop-ups too — both fire <strong>{{ settings.notificationLeadMinutes }}
+              {{ settings.notificationLeadMinutes === 1 ? "minute" : "minutes" }}</strong>
+              before each scheduled block. Local-only — nothing leaves your machine.
             </p>
           </header>
 
@@ -333,7 +352,7 @@ function doExportICS() {
                   Notify me before scheduled blocks
                 </p>
                 <p class="text-[11px] text-slate-500">
-                  Browser permission: <strong>{{ notifStatusLabel }}</strong>
+                  Desktop pop-ups: <strong>{{ notifStatusLabel }}</strong>
                 </p>
               </div>
               <button
@@ -385,17 +404,25 @@ function doExportICS() {
                   @input="updateLeadMinutes(Number(($event.target as HTMLInputElement).value))"
                 />
                 <p class="mt-1 text-[11px] text-slate-500">
-                  Fire this many minutes before each block. 0 = at the start.
+                  Fire this many minutes before each block. Defaults to 5;
+                  set 0 to alert at the start instead.
                 </p>
               </div>
-              <div class="flex items-end">
+              <div class="flex items-end gap-2 flex-wrap">
                 <button
                   type="button"
-                  class="px-3 py-2 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50 transition disabled:opacity-50"
-                  :disabled="!canFireNotifications"
+                  class="px-3 py-2 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50 transition"
                   @click="onTestNotification"
                 >
-                  Send test notification
+                  Send test {{ canFireNotifications() ? "notification" : "toast" }}
+                </button>
+                <button
+                  v-if="canRequestDesktop"
+                  type="button"
+                  class="px-3 py-2 rounded-lg text-xs font-medium bg-brand-600 hover:bg-brand-700 text-white transition"
+                  @click="requestDesktopPermission"
+                >
+                  Enable desktop pop-ups
                 </button>
               </div>
             </div>
@@ -404,11 +431,11 @@ function doExportICS() {
               v-if="
                 notifPermission === 'denied' && settings.notificationsEnabled
               "
-              class="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-3 py-2 leading-relaxed"
+              class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 leading-relaxed"
             >
-              Your browser is currently blocking notifications for this site.
-              Re-enable them in your browser's site permissions, then toggle
-              this back on.
+              Your browser is blocking desktop pop-ups for this site. In-app
+              toasts will keep firing — re-allow notifications in your site
+              permissions if you want OS-level pop-ups too.
             </div>
           </div>
         </section>

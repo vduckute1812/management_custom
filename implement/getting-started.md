@@ -91,13 +91,13 @@ npm run migrate
 
 See [`../server/db/migrations/README.md`](../server/db/migrations/README.md) for the naming convention and the "migrations are immutable once applied" rule.
 
-## Seed the admin account
+## Seed the superadmin account
 
 ```bash
 npm run migrate:auth
 ```
 
-Idempotent. On first run it verifies the schema is current (refuses to run if any migration is pending), then creates a verified `admin` user using `ADMIN_INITIAL_EMAIL` / `ADMIN_INITIAL_PASSWORD`. On subsequent runs the admin row already exists and the script is a no-op.
+Idempotent. On first run it verifies the schema is current (refuses to run if any migration is pending), then creates a verified `superadmin` user using `ADMIN_INITIAL_EMAIL` / `ADMIN_INITIAL_PASSWORD`. On subsequent runs the seed row already exists and the script is a no-op; if the row was originally created by an older version of this script with `role: admin`, it is silently promoted to `superadmin` so the install always has its break-glass owner. See [`auth.md`](./auth.md#bootstrap-superadmin) for what `superadmin` can and can't do compared to `admin`.
 
 ## Running the development server
 
@@ -105,7 +105,7 @@ Idempotent. On first run it verifies the schema is current (refuses to run if an
 npm run dev
 ```
 
-The app boots at `http://localhost:3000` and redirects to `/login`. Sign in with the seed admin (or sign up a new normal user — verification link prints to the server console unless SMTP is configured).
+The app boots at `http://localhost:3000` and redirects to `/login`. Sign in with the seed superadmin (or sign up a new normal user — verification link prints to the server console unless SMTP is configured).
 
 ## Building for production
 

@@ -22,6 +22,7 @@ const { colorOfTask } = useEpics();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
 const { settings, formatTime, formatHourLabel } = useSettings();
+const { now } = useNow();
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Calendar density: compact mode shrinks the row height so a full 24-hour
@@ -133,6 +134,15 @@ const undatedTasks = computed(() =>
     return !hasBlockToday;
   })
 );
+
+// Live "now" indicator — only meaningful when the column actually represents
+// today. Position is pixels-from-day-start = (minutes / 60) * hourHeight.
+const showNowLine = computed(() => now.value.isSame(props.date, "day"));
+const nowTopPx = computed(() => {
+  const minutes = now.value.hour() * 60 + now.value.minute();
+  return (minutes / 60) * HOUR_HEIGHT.value;
+});
+const nowLabel = computed(() => formatTime(now.value));
 
 function onSlotClick(hour: number) {
   if (suppressNextClick.value) {
@@ -350,6 +360,27 @@ onBeforeUnmount(() => {
             :style="{ height: HOUR_HEIGHT + 'px' }"
             @click="onSlotClick(h)"
           />
+
+          <!-- Live "now" line. The badge spills into the gutter via the negative
+               left offset so it's legible even when an event is rendered nearby. -->
+          <div
+            v-if="showNowLine"
+            class="pointer-events-none absolute left-0 right-0 z-30"
+            :style="{ top: nowTopPx + 'px' }"
+            aria-hidden="true"
+          >
+            <div class="relative">
+              <span
+                class="absolute -left-[60px] -top-[9px] inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold tabular-nums bg-rose-600 text-white shadow-sm ring-1 ring-rose-700"
+              >
+                {{ nowLabel }}
+              </span>
+              <span
+                class="absolute -left-1 -top-[5px] w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white"
+              />
+              <span class="block h-px bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]" />
+            </div>
+          </div>
 
           <button
             v-for="entry in dayBlocks"

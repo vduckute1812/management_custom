@@ -13,9 +13,9 @@ import {
 
 dayjs.extend(isoWeek);
 
-const { tasks, fetchAll, isLoading, error } = useTasks();
+const { tasks, fetchAll, isLoading, error, findTask } = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
-const { quickCaptureOpen } = useUiOverlays();
+const { quickCaptureOpen, focusTaskId, clearFocusTask } = useUiOverlays();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
 const { startOfWeek, formatTime } = useSettings();
@@ -32,6 +32,22 @@ await useAsyncData("dashboard:initial", async () => {
   await Promise.all([fetchAll(), fetchEpics()]);
   return { ok: true };
 });
+
+// External "open this task" requests (notification toasts, deep links, etc.)
+// land in `useUiOverlays.focusTaskId`. Watch it once the task list is hydrated
+// and pop the modal; clear the signal so the same id can fire again later.
+watch(
+  [focusTaskId, tasks],
+  ([id, _list]) => {
+    if (!id) return;
+    const task = findTask(id);
+    if (!task) return;
+    editingTask.value = task;
+    taskModalOpen.value = true;
+    clearFocusTask();
+  },
+  { immediate: true }
+);
 
 const headerLabel = computed(() => {
   if (view.value === "daily") return cursor.value.format("dddd, MMMM D, YYYY");

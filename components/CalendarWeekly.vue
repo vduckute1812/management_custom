@@ -22,6 +22,8 @@ const { colorOfTask } = useEpics();
 const { saveTask, findTask } = useTasks();
 const { pushToast } = useToasts();
 const { startOfWeek, formatTime } = useSettings();
+const { now } = useNow();
+const nowLabel = computed(() => formatTime(now.value));
 
 const days = computed(() => {
   const start = startOfWeek(props.date);
@@ -188,16 +190,23 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
     >
       <header
         class="px-3 py-2 border-b border-slate-100 flex items-center justify-between"
-        :class="{ 'bg-brand-50': day.isSame(dayjs(), 'day') }"
+        :class="{ 'bg-brand-50': day.isSame(now, 'day') }"
       >
         <div>
-          <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wide">
-            {{ day.format("ddd") }}
+          <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+            <span>{{ day.format("ddd") }}</span>
+            <span
+              v-if="day.isSame(now, 'day')"
+              class="inline-flex items-center px-1 py-px rounded text-[9px] font-semibold tabular-nums bg-rose-600 text-white tracking-normal"
+              :title="`Current time · ${nowLabel}`"
+            >
+              {{ nowLabel }}
+            </span>
           </div>
           <div
             class="text-lg font-semibold tabular-nums"
             :class="
-              day.isSame(dayjs(), 'day')
+              day.isSame(now, 'day')
                 ? 'text-brand-700'
                 : 'text-slate-900'
             "

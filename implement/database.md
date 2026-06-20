@@ -242,7 +242,7 @@ Tags are free-form strings on both epics and tasks. Modeling them as a separate 
 | `id`          | string   | Yes      | `epic_<random>`                      |
 | `title`       | string   | Yes      | Short display name                   |
 | `description` | string   | No       | Markdown-supported overview          |
-| `status`      | enum     | Yes      | `todo` \| `in-progress` \| `done`    |
+| `status`      | integer  | Yes      | `TaskStatus`: `0` Todo, `1` InProgress, `2` Done |
 | `dueDate`     | ISO date | No       | `YYYY-MM-DD`                         |
 | `tags`        | string[] | No       | Free-form labels                     |
 | `createdAt`   | ISO 8601 | Yes      | Record creation                      |
@@ -258,14 +258,15 @@ Tags are free-form strings on both epics and tasks. Modeling them as a separate 
 | `epicId`         | string   | No       | Parent Epic; omit for standalone             |
 | `title`          | string   | Yes      | Short display name                           |
 | `notes`          | string   | No       | Markdown long-form                           |
-| `status`         | enum     | Yes      | `todo` \| `in-progress` \| `done`            |
+| `status`         | integer  | Yes      | `TaskStatus`: `0` Todo, `1` InProgress, `2` Done |
+| `priority`       | integer  | Yes      | `TaskPriority`: `0` Low, `1` Normal (default), `2` High |
 | `dueDate`        | ISO date | No       | `YYYY-MM-DD`                                 |
 | `estimatedHours` | number   | No       | Planned time budget                          |
 | `progress`       | integer  | No       | `0–100`                                      |
 | `tags`           | string[] | No       | Free-form labels                             |
 | `timeBlocks`     | Block[]  | No       | Scheduled work sessions                      |
 | `checklist`      | Item[]   | No       | Sub-steps `[{ id, text, done }]`             |
-| `recurrence`     | object   | No       | `{ rule: 'daily' \| 'weekly' \| 'monthly', interval, until? }` — see below |
+| `recurrence`     | object   | No       | `{ rule: RecurrenceRule, interval, until? }` — see below |
 | `createdAt`      | ISO 8601 | Yes      | Record creation                              |
 | `updatedAt`      | ISO 8601 | Yes      | Last modification                            |
 
@@ -277,7 +278,7 @@ A recurring task carries its existing `timeBlocks` as **seeds**. The UI never au
 
 | Field      | Type     | Required | Description                                                  |
 | ---------- | -------- | -------- | ------------------------------------------------------------ |
-| `rule`     | enum     | Yes      | `daily` \| `weekly` \| `monthly`                             |
+| `rule`     | integer  | Yes      | `RecurrenceRule`: `0` Daily, `1` Weekly, `2` Monthly         |
 | `interval` | integer  | Yes      | `1` = every; `2` = every other; capped at 365                |
 | `until`    | ISO date | No       | `YYYY-MM-DD`; no further occurrences are projected past this |
 

@@ -14,9 +14,9 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`architecture.md`](./architecture.md)      | Tech stack, runtime topology (browser → Nitro → MySQL), pool & schema ownership, project structure.|
 | [`database.md`](./database.md)              | Full schema DDL, field references, timestamp conventions, migration policy.                 |
 | [`api.md`](./api.md)                        | Every REST endpoint under `/api/*` with request/response shapes.                            |
-| [`auth.md`](./auth.md)                      | Roles, token lifecycle (JWT + refresh), bootstrap admin, email transport.                   |
+| [`auth.md`](./auth.md)                      | Roles (`normal` / `admin` / `superadmin`), token lifecycle (JWT + refresh), bootstrap superadmin, email transport. |
 | [`auth-rbac.md`](./auth-rbac.md)            | Original feature spec for Authentication & RBAC (the "what was asked for" document).        |
-| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress, including the Phase 8 auth pass.                       |
+| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress (Phase 8 auth, Phase 9 superadmin + integer enums end-to-end, Phase 10 live "now" indicator + pre-task alerts). |
 
 ## Feature specs vs. implementation docs
 

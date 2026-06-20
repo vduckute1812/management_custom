@@ -1,8 +1,21 @@
 # API Reference
 
-All routes are handled by Nitro under `/server/api/`. Every route except those under `/api/auth/{signup,login,refresh,verify-email}` requires `Authorization: Bearer <accessToken>` and returns `401` without it. Admin routes additionally require `role: admin` and return `403` otherwise.
+All routes are handled by Nitro under `/server/api/`. Every route except those under `/api/auth/{signup,login,refresh,verify-email}` requires `Authorization: Bearer <accessToken>` and returns `401` without it. Admin routes additionally require `role >= 1` (admin or superadmin) and return `403` otherwise.
 
 See [`auth.md`](./auth.md) for the token model and refresh dance; see [`database.md`](./database.md) for the underlying field types.
+
+## Enum encoding
+
+Every enum-shaped field on this API is a small integer end-to-end (TS code, JSON wire format, MySQL `TINYINT UNSIGNED`). The mapping mirrors `~/types/task.ts`:
+
+| Field             | 0       | 1            | 2            |
+| ----------------- | ------- | ------------ | ------------ |
+| `status`          | `Todo`  | `InProgress` | `Done`       |
+| `priority`        | `Low`   | `Normal`     | `High`       |
+| `recurrence.rule` | `Daily` | `Weekly`     | `Monthly`    |
+| `role`            | `Normal`| `Admin`      | `Superadmin` |
+
+Request bodies that include these fields must send them as numbers; the server rejects string values with `400`. See [`database.md`](./database.md#integer-enums-end-to-end) for the rationale.
 
 ---
 
@@ -17,17 +30,17 @@ See [`auth.md`](./auth.md) for the token model and refresh dance; see [`database
 | `POST` | `/api/auth/verify-email`  | Body `{ token }`. Consumes a one-shot verification link.                    |
 | `GET`  | `/api/auth/me`            | Returns the current user as the server knows them.                          |
 
-**Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; logout revokes them and refresh rotates them.
+**Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; logout revokes them and refresh rotates them.
 
 ---
 
-## Admin (role: admin)
+## Admin (role ≥ 1)
 
 | Method | Endpoint                          | Description                                                              |
 | ------ | --------------------------------- | ------------------------------------------------------------------------ |
 | `GET`  | `/api/admin/users`                | Per-user summary: counts of tasks/epics, hours logged, last activity.    |
 | `GET`  | `/api/admin/stats?days=30`        | System-wide totals + daily-hours series + status mix, for dashboard charts. |
-| `POST` | `/api/admin/users/:id/role`       | Body `{ role: "admin" \| "normal" }`. Refuses to demote the last admin. |
+| `POST` | `/api/admin/users/:id/role`       | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`403`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
 
 ---
 

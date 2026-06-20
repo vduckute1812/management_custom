@@ -14,7 +14,7 @@ interface PaletteItem {
   run: () => void | Promise<void>;
 }
 
-const { paletteOpen, quickCaptureOpen } = useUiOverlays();
+const { paletteOpen, quickCaptureOpen, requestFocusTask } = useUiOverlays();
 const { epics } = useEpics();
 const { tasks } = useTasks();
 const router = useRouter();
@@ -121,11 +121,12 @@ const allItems = computed<PaletteItem[]>(() => {
       searchExtra: extras || undefined,
       accentClass: STATUS_DOTS[task.status],
       icon: "dot",
-      run: () => {
-        // Tasks live on the dashboard; jump there. (A future enhancement
-        // could open the task modal directly.)
+      run: async () => {
         paletteOpen.value = false;
-        router.push("/");
+        requestFocusTask(task.id);
+        if (router.currentRoute.value.path !== "/") {
+          await router.push("/");
+        }
       },
     });
   }

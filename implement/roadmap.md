@@ -138,3 +138,43 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [ ] **Phase 2: SMS sign-up.** `implement/auth-rbac.md` explicitly marks SMS as a later phase. Hook-in point would be a new `auth/signup-sms.post.ts` + a `phone_numbers` table linked to `users`; the rest of the token / role machinery is provider-agnostic.
 - [ ] Password reset / change. Not in the spec; would slot in alongside `verify-email` with the same one-shot opaque-token pattern.
 - [ ] OAuth ("Sign in with Google"). The spec text was ambiguous between SMTP-verified email/password and OAuth; we shipped the former. Adding the latter is additive (a new route that creates/links a user and issues the same JWT/refresh pair).
+
+## Phase 9 — Superadmin role + integer enums end-to-end
+
+A pass that hardens RBAC by introducing a dedicated install-owner role, and that simplifies the type system by collapsing all enum-shaped fields from "string in TS, integer in DB" to **integers everywhere**.
+
+**Superadmin role**
+- [x] `UserRole` extended with a third rank, `Superadmin = 2`, that ranks strictly above `Admin` (1)
+- [x] `npm run migrate:auth` seeds the bootstrap user as `superadmin` (not `admin`) and auto-promotes a pre-existing seed account from earlier versions
+- [x] `POST /api/admin/users/:id/role` refuses to assign `superadmin`, refuses to modify any user whose current role is `superadmin`, and still refuses to demote the last admin-or-superadmin
+- [x] `requireSuperAdmin(event)` route guard added alongside the existing `requireUser` / `requireAdmin` for any future owner-only operations
+- [x] Admin dashboard hides the promote/demote buttons on the superadmin row; the layout chip and role label everywhere render `Superadmin` from `ROLE_LABELS`
+
+**Integer enums end-to-end** (replaces the previous "TS string union ↔ DB integer" boundary)
+- [x] `UserRole`, `TaskStatus`, `TaskPriority`, `RecurrenceRule` rewritten in `~/types/task.ts` as `const` objects with numeric values + derived union types (e.g. `TaskStatus = { Todo: 0, InProgress: 1, Done: 2 } as const`)
+- [x] Removed every `numberToRole` / `roleToNumber` / `numberToStatus` / `statusToNumber` / `priority` / `recurrence` translator from `server/db`; row mappers coerce `unknown` straight to the integer enum with bounded fallbacks
+- [x] Every API endpoint validates incoming enum fields against the numeric constant arrays (`TASK_STATUSES`, `TASK_PRIORITIES`, `RECURRENCE_RULES`, `ASSIGNABLE_USER_ROLES`); string values are rejected
+- [x] JWT `role` claim is now the integer; `verifyAccessToken` checks `typeof role === "number"` and membership in `USER_ROLES`
+- [x] `useAuth.hydrateFromStorage` detects and clears `AuthUser` records persisted with the old string `role`, forcing one refresh-and-rehydrate; users never see a manual re-login
+- [x] All client surfaces (`TaskModal`, `EpicModal`, `QuickCapture`, `StatusPill`, `EpicCard`, `AnalyticsDashboard`, admin dashboard, `pages/epics/[id].vue`) bind selects with `v-model.number` and key `STATUS_*` / `PRIORITY_*` lookup maps by the integer constants
+- [x] CSV export still emits human-readable status / priority via `STATUS_LABELS` / `PRIORITY_LABELS`; iCal still emits RFC-5545 protocol strings; JSON export uses the raw integers (which is the canonical wire shape)
+- [x] `implement/database.md`, `implement/auth.md`, and `implement/api.md` rewritten to describe the integer-everywhere model
+
+## Phase 10 — Live "now" indicator + pre-task alerts
+
+The calendar grew a real sense of time, and the planner picked up a heads-up before each block starts.
+
+**Live "now" indicator**
+- [x] New `composables/useNow.ts` — a shared reactive Dayjs that ticks every 30 s and force-refreshes on `visibilitychange`, so a backgrounded tab catches up instantly when refocused without burning a render per second
+- [x] `CalendarDaily.vue` — renders a horizontal rose-tinted "now" line across the hour grid when the displayed day is today, with a `HH:mm` badge in the time gutter (z-index above blocks but `pointer-events: none`)
+- [x] `CalendarWeekly.vue` — today's column header gains a `Now HH:mm` pill that lives next to the weekday label
+
+**Pre-task alerts (5-min default lead, configurable)**
+- [x] `composables/useNotifications.ts` rebuilt around a dual-channel model: in-app toast always fires when alerts are enabled; desktop pop-up fires *additionally* when browser Notification permission has been granted
+- [x] **Late-join logic** — if the lead window has already passed but the block hasn't started, the alert fires immediately on the next scheduler pass rather than being silently skipped
+- [x] Dedupe key `${taskId}:${blockId}` shared across both channels so a block never alerts twice, even with the page open across multiple tabs or after a settings change
+- [x] Toast carries an **Open** action that sets `useUiOverlays().focusTaskId` and routes to `/`; the dashboard watches `focusTaskId` and pops the matching `TaskModal` so the alert lands the user on the right thing in one tap from any page
+- [x] `CommandPalette.vue` task entries reuse the same `focusTaskId` mechanism so "jump to task" also opens the modal directly
+- [x] `composables/useSettings.ts` — default `notificationsEnabled` is now `true` for fresh installs; explicit `false` in persisted settings still wins so existing users who opted out stay opted out
+- [x] `pages/settings.vue` — copy + UI rewritten to reflect the dual-channel model; "Enable desktop pop-ups" is a separate button shown only after the master toggle is on; "Send test notification" prefers the desktop channel and falls back to the in-app toast
+- [x] `implement/architecture.md` extended with a "Pre-task alerts & live 'now' indicator" section

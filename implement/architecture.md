@@ -114,7 +114,8 @@ server/utils/db.ts  ←→  MySQL 8 (`rc` @ localhost:3306)
 │   ├── useTasks.ts
 │   ├── useTimer.ts
 │   ├── useRecurrence.ts
-│   ├── useNotifications.ts
+│   ├── useNotifications.ts         # Pre-task alerts (in-app toast + optional desktop push)
+│   ├── useNow.ts                   # Shared reactive "current time" ticking every 30s
 │   └── useSettings.ts
 ├── middleware/
 │   └── auth.global.ts              # Redirects unauth users to /login; /admin → admin only
@@ -123,10 +124,44 @@ server/utils/db.ts  ←→  MySQL 8 (`rc` @ localhost:3306)
 ├── plugins/
 │   ├── auth.client.ts              # Hydrates auth state on app boot, refreshes if needed
 │   ├── theme.client.ts             # Mirrors theme + density onto <html>
-│   └── notifications.client.ts     # Schedules block reminders
+│   └── notifications.client.ts     # Schedules block reminders; rolls over every 15 min
 ├── assets/css/main.css             # Tailwind + design tokens + dark/density layers
 ├── types/task.ts                   # Shared TS interfaces (includes AuthUser, AdminUserSummary)
 ├── implement/                      # Technical documentation (you are here)
 ├── .env.example                    # Connection + auth + SMTP settings template
 └── nuxt.config.ts
 ```
+
+## Pre-task alerts & live "now" indicator
+
+Two cross-cutting UI threads share infrastructure for being "always current":
+
+**`useNow`** (`composables/useNow.ts`) — a singleton reactive `Dayjs` ref shared
+via Nuxt's `useState`. A 30-second interval drives ticks, started lazily on
+first consumer mount and torn down when the last unmounts. `visibilitychange`
+forces a tick on focus so the value snaps forward after the user comes back
+from a long break instead of waiting up to 30 s for the next interval.
+
+**Now-line.** `CalendarDaily` reads `useNow().now` and renders a single absolute-
+positioned horizontal line at `(minutes_since_midnight / 60) * hourHeightPx`,
+shown only when the displayed date matches today. A small `bg-rose-600` badge
+to the left of the gutter prints the current `HH:mm` so the line is readable
+even when stacked next to an event. `CalendarWeekly` (no time axis) shows the
+same "Now HH:mm" pill in today's column header.
+
+**Pre-task alerts.** `useNotifications` schedules a single fire per
+`${taskId}:${blockId}` key at `block.start - settings.notificationLeadMinutes`
+(default 5). Two channels fire on the same trigger, deduped by that key:
+
+- **In-app toast** — `useToasts.pushToast` with an "Open" action that sets
+  `useUiOverlays.requestFocusTask(taskId)` and routes to `/`. The dashboard
+  page watches `focusTaskId` and pops the task modal. No browser permission
+  needed; always works.
+- **Desktop pop-up** — `new Notification(...)` when permission is granted.
+  Strictly an upgrade; the toast still fires either way.
+
+`scheduleAll` runs on tasks/settings change and also rolls over every 15 min
+in `plugins/notifications.client.ts` to pick up blocks that have just entered
+the 24-hour `setTimeout` horizon. If the lead window has already elapsed but
+the block hasn't started yet (e.g. you opened the app 2 min before a 5-min
+lead), the alert fires immediately rather than being skipped.

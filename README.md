@@ -70,9 +70,20 @@ Every task carries title, notes, status, due date, estimate, progress, tags — 
 
 | View    | Purpose                                                            |
 | ------- | ------------------------------------------------------------------ |
-| Daily   | Today, hour by hour. Drag, resize, click empty space to capture.   |
-| Weekly  | The classic 7-column plan; a task's Monday and Friday blocks both appear in their respective columns. |
+| Daily   | Today, hour by hour. Drag, resize, click empty space to capture. A live "now" line sweeps across the hour grid with a `HH:mm` badge in the gutter so you always know where you are in the day. |
+| Weekly  | The classic 7-column plan; a task's Monday and Friday blocks both appear in their respective columns. Today's column header shows the same live `Now HH:mm` pill. |
 | Monthly | Coarse density (dots) + deadline markers; click a day to drill in. |
+
+The "now" indicator ticks every 30 seconds and snaps forward when the tab regains focus, so it stays accurate without burning a render every second.
+
+### Pre-task alerts
+
+Five minutes before every scheduled block (configurable in `Settings → Pre-task alerts`), the app fires a heads-up so you don't crash into the next session unprepared. Two channels, deduped by block id so a single block can never alert twice:
+
+- **In-app toast** — always fires, no browser permission required. Appears in the top of the window with the task title, the time window, a "Starts in N min" hint, and an **Open** action that pops the task modal regardless of which page you're on.
+- **Desktop pop-up** — fires *additionally* if you grant the Notification permission. Useful when the tab isn't focused.
+
+In-app toasts are on by default for fresh installs; flip the master switch off in settings if you'd rather not be alerted. The setting persists locally, so an existing user who turned it off stays off after the upgrade.
 
 ### Honest analytics
 
@@ -146,12 +157,13 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 ## Roles & Permissions
 
-| Role     | Sees                                                          | Can do                                                                  |
-| -------- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `normal` | Their own epics, tasks, time blocks, timer.                   | Everything in the app for their own data. Cannot read or modify anyone else's. |
-| `admin`  | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users, view per-user roll-ups & charts.            |
+| Role         | Sees                                                          | Can do                                                                  |
+| ------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `normal`     | Their own epics, tasks, time blocks, timer.                   | Everything in the app for their own data. Cannot read or modify anyone else's. |
+| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts. |
+| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can. The role is **never assignable through the UI**: it's seeded by `npm run migrate:auth` and cannot be modified or demoted by anyone, so the install always has a break-glass owner that admins can't lock each other out of. |
 
-A normal user's experience is identical to a single-user app; the admin role is the only thing that ever surfaces other accounts. The first admin is created once at install time (see [`implement/auth.md`](./implement/auth.md) for the seed flow); after that, admins create more admins through the app.
+A normal user's experience is identical to a single-user app; the admin / superadmin roles are the only things that ever surface other accounts. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md) for the seed flow); after that, the superadmin or any admin promotes new admins through the app.
 
 ---
 
@@ -263,6 +275,13 @@ System font stack only — no web fonts to load. Numerals use `tabular-nums` eve
 - The active timer is persistent: closing the tab and reopening continues from the original start time. Refresh recovers state from the server.
 - Stopping appends a new `TimeBlock` with `start = startedAt`, `end = now`, and a `spentHours` rounded to two decimals.
 - A pulsing `TimerPill` lives in the bottom-right (bottom-center on mobile) with the task name, elapsed `H:MM:SS`, and a one-click Stop. Same surface as the toast stack so it never overlaps page chrome.
+
+### Pre-task alerts
+
+- **Channels.** In-app toast always; desktop pop-up additionally if browser permission has been granted. Both fire from the same trigger and share one dedupe key (`taskId:blockId`) so a block never alerts twice.
+- **Timing.** Fires `notificationLeadMinutes` (default 5) before each block. If the lead window has already passed but the block hasn't started yet — say, you opened the app 3 min before a 5-min lead — the alert fires immediately rather than being silently skipped.
+- **Open action.** The toast carries an **Open** button that sets a shared `focusTaskId` and routes to the dashboard; the dashboard watches the signal and pops the task modal so the user lands on the right thing in one tap, regardless of which page they were on.
+- **Reschedule horizon.** The scheduler holds at most 24 hours of `setTimeout`s at a time; a 15-minute rolling pass picks up blocks as they enter the window. Blocks rescheduled inside the modal trigger a fresh schedule pass on save.
 
 ### Checklist sub-items
 
@@ -412,7 +431,7 @@ A few choices that look opinionated and aren't accidents.
 - **System fonts only.** A productivity tool shouldn't ever wait on Google Fonts.
 - **Skeletons over spinners.** Spinners say "loading"; skeletons say "you're about to see *this much* content," which is calmer.
 - **Three views, not five.** Day, Week, Month. We resisted Quarter and Agenda — they're rarely useful and they add UI weight that costs every user every day.
-- **No notifications by default.** A calm tool doesn't interrupt. Reminders are an explicit opt-in in `Settings → Notifications`; even after the user toggles them on, the browser's permission prompt still has to be accepted before anything fires.
+- **In-app alerts only by default; desktop pop-ups are opt-in.** A calm tool doesn't ambush you with OS pop-ups, but a silent calendar is no better than no calendar. The compromise: a non-intrusive in-app toast fires 5 min before each scheduled block by default (no permission prompt, no system surface — only visible when the app is open). Granting browser Notification permission is an explicit upgrade that adds the matching desktop pop-up; the alert is otherwise identical. The whole feature is one toggle in `Settings → Pre-task alerts`.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
 
