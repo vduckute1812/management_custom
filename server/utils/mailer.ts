@@ -110,6 +110,59 @@ export function buildVerifyUrl(token: string): string {
   return `${appBaseUrl()}/verify-email?token=${encodeURIComponent(token)}`;
 }
 
+export async function sendPublicIpChangeEmail(args: {
+  to: string;
+  oldIp: string;
+  newIp: string;
+  lanIp: string;
+}): Promise<void> {
+  const { to, oldIp, newIp, lanIp } = args;
+  const subject = `Public IP changed: ${oldIp} → ${newIp}`;
+  const text =
+    `Your Viettel router assigned a new public IP.\n\n` +
+    `Previous: ${oldIp}\n` +
+    `Current:  ${newIp}\n\n` +
+    `Update router port forwarding:\n` +
+    `  ${newIp}:8080 -> ${lanIp}:8080\n` +
+    `  ${newIp}:8443 -> ${lanIp}:8443\n\n` +
+    `Direct access:\n` +
+    `  http://${newIp}:8080\n` +
+    `  https://${newIp}:8443\n\n` +
+    `TLS certificates and APP_HOST were updated automatically on the Pi.\n` +
+    `Cloudflare Tunnel URLs are unaffected.`;
+
+  await sendMail({
+    to,
+    subject,
+    text,
+    html: `<!doctype html>
+<html>
+  <body style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;line-height:1.6;color:#0f172a;">
+    <h2 style="margin:0 0 12px;">Public IP changed</h2>
+    <p>Your Viettel router assigned a new public IP.</p>
+    <table style="border-collapse:collapse;margin:12px 0;">
+      <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Previous</td><td><strong>${oldIp}</strong></td></tr>
+      <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Current</td><td><strong>${newIp}</strong></td></tr>
+    </table>
+    <p><strong>Update router port forwarding:</strong></p>
+    <ul>
+      <li><code>${newIp}:8080</code> → <code>${lanIp}:8080</code></li>
+      <li><code>${newIp}:8443</code> → <code>${lanIp}:8443</code></li>
+    </ul>
+    <p><strong>Direct access:</strong></p>
+    <ul>
+      <li><a href="http://${newIp}:8080">http://${newIp}:8080</a></li>
+      <li><a href="https://${newIp}:8443">https://${newIp}:8443</a></li>
+    </ul>
+    <p style="color:#64748b;font-size:14px;">
+      TLS certificates and <code>APP_HOST</code> were updated automatically on the Pi.
+      Cloudflare Tunnel URLs are unaffected.
+    </p>
+  </body>
+</html>`,
+  });
+}
+
 export async function sendVerificationEmail(args: {
   to: string;
   token: string;

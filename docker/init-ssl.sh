@@ -12,9 +12,34 @@ KEY="${SSL_DIR}/privkey.pem"
 
 mkdir -p "${SSL_DIR}"
 
-if [[ -f "${CERT}" && -f "${KEY}" ]]; then
+cert_public_ip() {
+  if [[ ! -f "${CERT}" ]]; then
+    return 1
+  fi
+  openssl x509 -in "${CERT}" -noout -ext subjectAltName 2>/dev/null \
+    | grep -oE 'IP Address:[0-9.]+' \
+    | head -1 \
+    | sed 's/IP Address://'
+}
+
+need_regen=false
+if [[ "${FORCE_SSL:-}" == "1" ]]; then
+  need_regen=true
+elif [[ -f "${CERT}" && -f "${KEY}" ]]; then
+  existing_ip="$(cert_public_ip || true)"
+  if [[ -n "${existing_ip}" && "${existing_ip}" != "${PUBLIC_IP}" ]]; then
+    echo "[ssl] certificate is for ${existing_ip}, need ${PUBLIC_IP}"
+    need_regen=true
+  fi
+fi
+
+if [[ -f "${CERT}" && -f "${KEY}" && "${need_regen}" != true ]]; then
   echo "[ssl] certificates already exist in ${SSL_DIR}"
   exit 0
+fi
+
+if [[ "${need_regen}" == true ]]; then
+  rm -f "${CERT}" "${KEY}"
 fi
 
 echo "[ssl] generating self-signed certificate (${DAYS} days)"
