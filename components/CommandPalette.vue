@@ -35,6 +35,17 @@ watch(paletteOpen, async (open) => {
 const allItems = computed<PaletteItem[]>(() => {
   const items: PaletteItem[] = [
     {
+      id: "view:home",
+      kind: "view",
+      title: "Go to Home",
+      subtitle: "Time management or Feed",
+      icon: "bolt",
+      shortcut: "g h",
+      run: () => {
+        router.push("/");
+      },
+    },
+    {
       id: "view:dashboard",
       kind: "view",
       title: "Go to Dashboard",
@@ -42,7 +53,7 @@ const allItems = computed<PaletteItem[]>(() => {
       icon: "calendar",
       shortcut: "g d",
       run: () => {
-        router.push("/");
+        router.push("/tasks");
       },
     },
     {
@@ -136,7 +147,7 @@ const allItems = computed<PaletteItem[]>(() => {
         paletteOpen.value = false;
         requestFocusTask(task.id);
         if (router.currentRoute.value.path !== "/") {
-          await router.push("/");
+          await router.push("/tasks");
         }
       },
     });

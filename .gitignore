@@ -26,3 +26,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Local upload storage (legacy / unused — files go to Cloudflare R2)
+data/uploads/

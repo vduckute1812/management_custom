@@ -27,11 +27,22 @@ const TOKEN_RE = /^Bearer\s+(.+)$/i;
 
 export function attachUserFromHeader(event: H3Event): void {
   const raw = getRequestHeader(event, "authorization");
-  if (!raw) return;
-  const match = TOKEN_RE.exec(raw.trim());
-  if (!match) return;
+  let token: string | undefined;
+  if (raw) {
+    const match = TOKEN_RE.exec(raw.trim());
+    if (match) token = match[1];
+  }
+  // Allow ?access_token= for media tags (img/video) that cannot set headers.
+  if (!token) {
+    const q = getQuery(event);
+    const fromQuery = q.access_token;
+    if (typeof fromQuery === "string" && fromQuery.trim()) {
+      token = fromQuery.trim();
+    }
+  }
+  if (!token) return;
   try {
-    event.context.user = verifyAccessToken(match[1]);
+    event.context.user = verifyAccessToken(token);
   } catch {
     // Swallow — middleware never blocks; protected routes assert below.
   }

@@ -26,7 +26,9 @@
  *   - refresh-tokens.ts        — Refresh-token lifecycle
  *   - email-verifications.ts   — Email-verification lifecycle
  *   - admin.ts                 — Cross-user aggregations (UNSCOPED)
- *   - posts.ts                 — Shared social feed (posts / likes / comments)
+ *   - posts.ts                 — Shared social feed (posts / reactions / comments)
+ *   - uploads.ts               — Cloudflare R2 uploads for posts/stories
+ *   - stories.ts               — 24h ephemeral stories
  *
  * NOTE: there is no longer an `ensureBootstrap()`. Schema is managed
  * by `npm run migrate`; the server refuses to start if any migration
@@ -46,6 +48,8 @@ export * from "../db/refresh-tokens";
 export * from "../db/email-verifications";
 export * from "../db/admin";
 export * from "../db/posts";
+export * from "../db/uploads";
+export * from "../db/stories";
 // Only the two read-side helpers are exposed through the runtime barrel.
 // `runMigrations` / `resetSchema` / `discoverMigrations` are CLI-only and
 // are imported directly from `~/server/db/migrator` by `scripts/migrate.ts`.

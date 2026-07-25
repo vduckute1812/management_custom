@@ -73,10 +73,16 @@ export const useShortcuts = () => {
     // Two-key "g" navigation sequences.
     if (gPending) {
       const key = e.key.toLowerCase();
-      if (key === "d") {
+      if (key === "h") {
         e.preventDefault();
         consumeG();
         router.push("/");
+        return;
+      }
+      if (key === "d") {
+        e.preventDefault();
+        consumeG();
+        router.push("/tasks");
         return;
       }
       if (key === "e") {
@@ -110,7 +116,12 @@ export const useShortcuts = () => {
     // Quick capture (Tasks section only).
     if (e.key === "n") {
       if (e.shiftKey) return; // Shift+N reserved for the full modal (handled by page).
-      if (router.currentRoute.value.path.startsWith("/feed")) return;
+      if (
+        router.currentRoute.value.path.startsWith("/feed") ||
+        router.currentRoute.value.path === "/"
+      ) {
+        return;
+      }
       e.preventDefault();
       overlays.quickCaptureOpen.value = true;
       return;

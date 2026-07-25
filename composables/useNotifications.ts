@@ -149,8 +149,11 @@ export const useNotifications = () => {
       actionLabel: "Open",
       onAction: async () => {
         requestFocusTask(task.id);
-        if (router.currentRoute.value.path !== "/") {
-          await router.push("/");
+        if (
+          router.currentRoute.value.path !== "/tasks" &&
+          !router.currentRoute.value.path.startsWith("/tasks/")
+        ) {
+          await router.push("/tasks");
         }
       },
     });

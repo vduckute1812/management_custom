@@ -23,6 +23,7 @@ const sections: Section[] = [
   {
     title: "Navigation",
     rows: [
+      { keys: ["g", "h"], label: "Go to Home" },
       { keys: ["g", "d"], label: "Go to Dashboard" },
       { keys: ["g", "e"], label: "Go to Epics" },
       { keys: ["g", "a"], label: "Go to Analytics" },

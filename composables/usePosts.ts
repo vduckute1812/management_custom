@@ -1,4 +1,28 @@
-import type { FeedPage, Post, PostComment } from "~/types/post";
+import type {
+  FeedPage,
+  Post,
+  PostComment,
+  PostReactionType,
+  PostVisibility,
+} from "~/types/post";
+import { POST_REACTION_TYPES } from "~/types/post";
+
+function emptyReactions(): Record<PostReactionType, number> {
+  return {
+    like: 0,
+    love: 0,
+    haha: 0,
+    wow: 0,
+    sad: 0,
+    angry: 0,
+  };
+}
+
+function patchPost(list: Post[], id: string, next: Post): Post[] {
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx < 0) return list;
+  return [...list.slice(0, idx), next, ...list.slice(idx + 1)];
+}
 
 export const usePosts = () => {
   const { apiFetch } = useApi();
@@ -48,10 +72,20 @@ export const usePosts = () => {
     }
   }
 
-  async function createPost(body: string): Promise<Post> {
+  async function createPost(args: {
+    body: string;
+    visibility?: PostVisibility;
+    audienceUserIds?: string[];
+    attachmentIds?: string[];
+  }): Promise<Post> {
     const res = await apiFetch<{ post: Post }>("/api/posts", {
       method: "POST",
-      body: { body },
+      body: {
+        body: args.body,
+        visibility: args.visibility ?? "public",
+        audienceUserIds: args.audienceUserIds ?? [],
+        attachmentIds: args.attachmentIds ?? [],
+      },
     });
     posts.value = [res.post, ...posts.value];
     pushToast("Post shared", { tone: "success", duration: 2500 });
@@ -67,7 +101,6 @@ export const usePosts = () => {
         tone: "info",
         duration: 4000,
         onAction: async () => {
-          // Soft undo isn't supported server-side; just reload.
           await refresh();
         },
         actionLabel: "Reload",
@@ -79,49 +112,90 @@ export const usePosts = () => {
     }
   }
 
-  async function toggleLike(id: string) {
+  async function setReaction(id: string, reaction: PostReactionType) {
     const idx = posts.value.findIndex((p) => p.id === id);
     if (idx < 0) return;
     const prev = posts.value[idx];
+    const reactions = { ...(prev.reactions ?? emptyReactions()) };
+    if (prev.myReaction) {
+      reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
+    }
+    reactions[reaction] = (reactions[reaction] ?? 0) + 1;
+    const reactionCount = POST_REACTION_TYPES.reduce(
+      (sum, k) => sum + (reactions[k] ?? 0),
+      0
+    );
     const optimistic: Post = {
       ...prev,
-      likedByMe: !prev.likedByMe,
-      likeCount: prev.likedByMe
-        ? Math.max(0, prev.likeCount - 1)
-        : prev.likeCount + 1,
+      reactions,
+      reactionCount,
+      myReaction: reaction,
+      likedByMe: reaction === "like",
+      likeCount: reactions.like,
     };
-    posts.value = [
-      ...posts.value.slice(0, idx),
-      optimistic,
-      ...posts.value.slice(idx + 1),
-    ];
+    posts.value = patchPost(posts.value, id, optimistic);
+
     try {
-      const res = await apiFetch<{ liked: boolean; likeCount: number }>(
-        `/api/posts/${id}/like`,
-        { method: "POST" }
-      );
-      const current = posts.value.find((p) => p.id === id);
-      if (!current) return;
-      const nextIdx = posts.value.findIndex((p) => p.id === id);
-      posts.value = [
-        ...posts.value.slice(0, nextIdx),
-        { ...current, likedByMe: res.liked, likeCount: res.likeCount },
-        ...posts.value.slice(nextIdx + 1),
-      ];
+      const res = await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
+        method: "POST",
+        body: { reaction },
+      });
+      posts.value = patchPost(posts.value, id, res.post);
     } catch {
-      posts.value = [
-        ...posts.value.slice(0, idx),
-        prev,
-        ...posts.value.slice(idx + 1),
-      ];
-      pushToast("Could not update like", { tone: "danger" });
+      posts.value = patchPost(posts.value, id, prev);
+      pushToast("Could not update reaction", { tone: "danger" });
     }
   }
 
-  async function sharePost(id: string, note?: string): Promise<Post> {
+  async function clearReaction(id: string) {
+    const idx = posts.value.findIndex((p) => p.id === id);
+    if (idx < 0) return;
+    const prev = posts.value[idx];
+    if (!prev.myReaction) return;
+    const reactions = { ...(prev.reactions ?? emptyReactions()) };
+    reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
+    const reactionCount = POST_REACTION_TYPES.reduce(
+      (sum, k) => sum + (reactions[k] ?? 0),
+      0
+    );
+    const optimistic: Post = {
+      ...prev,
+      reactions,
+      reactionCount,
+      myReaction: null,
+      likedByMe: false,
+      likeCount: reactions.like,
+    };
+    posts.value = patchPost(posts.value, id, optimistic);
+    try {
+      const res = await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
+        method: "DELETE",
+      });
+      posts.value = patchPost(posts.value, id, res.post);
+    } catch {
+      posts.value = patchPost(posts.value, id, prev);
+      pushToast("Could not clear reaction", { tone: "danger" });
+    }
+  }
+
+  async function toggleLike(id: string) {
+    const post = posts.value.find((p) => p.id === id);
+    if (!post) return;
+    if (post.myReaction === "like") {
+      await clearReaction(id);
+    } else {
+      await setReaction(id, "like");
+    }
+  }
+
+  async function sharePost(
+    id: string,
+    note?: string,
+    visibility: PostVisibility = "public"
+  ): Promise<Post> {
     const res = await apiFetch<{ post: Post }>(`/api/posts/${id}/share`, {
       method: "POST",
-      body: { body: note ?? "" },
+      body: { body: note ?? "", visibility },
     });
     posts.value = [res.post, ...posts.value];
     pushToast("Post shared to your feed", { tone: "success", duration: 2500 });
@@ -143,14 +217,12 @@ export const usePosts = () => {
       `/api/posts/${postId}/comments`,
       { method: "POST", body: { body } }
     );
-    const idx = posts.value.findIndex((p) => p.id === postId);
-    if (idx >= 0) {
-      const current = posts.value[idx];
-      posts.value = [
-        ...posts.value.slice(0, idx),
-        { ...current, commentCount: current.commentCount + 1 },
-        ...posts.value.slice(idx + 1),
-      ];
+    const current = posts.value.find((p) => p.id === postId);
+    if (current) {
+      posts.value = patchPost(posts.value, postId, {
+        ...current,
+        commentCount: current.commentCount + 1,
+      });
     }
     return res.comment;
   }
@@ -159,17 +231,12 @@ export const usePosts = () => {
     await apiFetch(`/api/posts/${postId}/comments/${commentId}`, {
       method: "DELETE",
     });
-    const idx = posts.value.findIndex((p) => p.id === postId);
-    if (idx >= 0) {
-      const current = posts.value[idx];
-      posts.value = [
-        ...posts.value.slice(0, idx),
-        {
-          ...current,
-          commentCount: Math.max(0, current.commentCount - 1),
-        },
-        ...posts.value.slice(idx + 1),
-      ];
+    const current = posts.value.find((p) => p.id === postId);
+    if (current) {
+      posts.value = patchPost(posts.value, postId, {
+        ...current,
+        commentCount: Math.max(0, current.commentCount - 1),
+      });
     }
   }
 
@@ -184,6 +251,8 @@ export const usePosts = () => {
     createPost,
     removePost,
     toggleLike,
+    setReaction,
+    clearReaction,
     sharePost,
     loadComments,
     addComment,

@@ -566,7 +566,7 @@ function doExportICS() {
           </header>
           <div class="px-5 py-4 text-xs text-slate-600 leading-relaxed">
             Open the
-            <NuxtLink to="/" class="text-brand-700 hover:underline">
+            <NuxtLink to="/tasks" class="text-brand-700 hover:underline">
               dashboard
             </NuxtLink>
             in weekly view, then press

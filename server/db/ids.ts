@@ -7,7 +7,10 @@ export type IdPrefix =
   | "rtok"
   | "vrfy"
   | "post"
-  | "cmt";
+  | "cmt"
+  | "upl"
+  | "att"
+  | "story";
 
 export function generateId(prefix: IdPrefix = "task"): string {
   const rand = Math.random().toString(16).slice(2, 10);

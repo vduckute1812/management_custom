@@ -1,21 +1,20 @@
 <script setup lang="ts">
-import type { Post, PostComment } from "~/types/post";
+import type { Post, PostComment, PostReactionType } from "~/types/post";
+import { POST_REACTION_TYPES } from "~/types/post";
 
 const props = defineProps<{
   post: Post;
 }>();
 
 const emit = defineEmits<{
-  (e: "like"): void;
+  (e: "react", reaction: PostReactionType): void;
+  (e: "clear-react"): void;
   (e: "delete"): void;
   (e: "share", note: string): void;
 }>();
 
-const {
-  loadComments,
-  addComment,
-  removeComment,
-} = usePosts();
+const { loadComments, addComment, removeComment } = usePosts();
+const { mediaUrl } = useMediaUrl();
 
 const commentsOpen = ref(false);
 const comments = ref<PostComment[]>([]);
@@ -25,6 +24,25 @@ const commentSubmitting = ref(false);
 const shareOpen = ref(false);
 const shareNote = ref("");
 const shareSubmitting = ref(false);
+const pickerOpen = ref(false);
+
+const REACTION_EMOJI: Record<PostReactionType, string> = {
+  like: "👍",
+  love: "❤️",
+  haha: "😄",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+};
+
+const REACTION_LABEL: Record<PostReactionType, string> = {
+  like: "Like",
+  love: "Love",
+  haha: "Haha",
+  wow: "Wow",
+  sad: "Sad",
+  angry: "Angry",
+};
 
 function authorLabel(name: string | null, email: string) {
   return name?.trim() || email;
@@ -54,6 +72,18 @@ function formatWhen(iso: string) {
     return "";
   }
 }
+
+const visibilityBadge = computed(() => {
+  if (props.post.visibility === "private") return "Only you";
+  if (props.post.visibility === "shared") return "Shared";
+  return "Public";
+});
+
+const topReactions = computed(() =>
+  POST_REACTION_TYPES.filter((k) => (props.post.reactions?.[k] ?? 0) > 0).map(
+    (k) => ({ type: k, count: props.post.reactions[k], emoji: REACTION_EMOJI[k] })
+  )
+);
 
 async function toggleComments() {
   commentsOpen.value = !commentsOpen.value;
@@ -97,6 +127,23 @@ function onShare() {
     shareSubmitting.value = false;
   }
 }
+
+function onReactClick() {
+  if (props.post.myReaction) {
+    emit("clear-react");
+  } else {
+    emit("react", "like");
+  }
+}
+
+function pickReaction(r: PostReactionType) {
+  if (props.post.myReaction === r) {
+    emit("clear-react");
+  } else {
+    emit("react", r);
+  }
+  pickerOpen.value = false;
+}
 </script>
 
 <template>
@@ -109,7 +156,7 @@ function onShare() {
         {{ initialOf(post.author.name, post.author.email) }}
       </div>
       <div class="flex-1 min-w-0">
-        <div class="flex items-baseline gap-2 min-w-0">
+        <div class="flex items-baseline gap-2 min-w-0 flex-wrap">
           <p class="text-sm font-semibold text-slate-900 truncate">
             {{ authorLabel(post.author.name, post.author.email) }}
           </p>
@@ -120,6 +167,11 @@ function onShare() {
           >
             {{ formatWhen(post.createdAt) }}
           </time>
+          <span
+            class="text-[10px] font-medium uppercase tracking-wide rounded-full bg-slate-100 text-slate-600 px-1.5 py-0.5"
+          >
+            {{ visibilityBadge }}
+          </span>
         </div>
         <p class="text-[11px] text-slate-400 truncate">
           {{ post.author.email }}
@@ -145,6 +197,45 @@ function onShare() {
       </p>
 
       <div
+        v-if="post.attachments?.length"
+        class="grid gap-2"
+        :class="post.attachments.length > 1 ? 'sm:grid-cols-2' : ''"
+      >
+        <template v-for="att in post.attachments" :key="att.id">
+          <a
+            v-if="att.kind === 'image'"
+            :href="mediaUrl(att.url)"
+            target="_blank"
+            rel="noopener"
+            class="block overflow-hidden rounded-lg border border-slate-200"
+          >
+            <img
+              :src="mediaUrl(att.url)"
+              :alt="att.fileName"
+              width="640"
+              height="360"
+              loading="lazy"
+              class="w-full max-h-72 object-cover bg-slate-100"
+              @error="($event.target as HTMLImageElement).style.display = 'none'"
+            />
+          </a>
+          <a
+            v-else
+            :href="mediaUrl(att.url)"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+          >
+            <span class="text-lg" aria-hidden="true">📄</span>
+            <span class="truncate font-medium">{{ att.fileName }}</span>
+            <span class="text-[11px] text-slate-400 shrink-0">
+              {{ Math.round(att.sizeBytes / 1024) }} KB
+            </span>
+          </a>
+        </template>
+      </div>
+
+      <div
         v-if="post.sharedPost"
         class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-1.5"
       >
@@ -168,60 +259,69 @@ function onShare() {
     <div
       class="px-4 py-1.5 flex items-center justify-between text-[11px] text-slate-500 tabular-nums"
     >
-      <span>{{ post.likeCount }} like{{ post.likeCount === 1 ? "" : "s" }}</span>
+      <span class="inline-flex items-center gap-1">
+        <template v-if="topReactions.length">
+          <span
+            v-for="r in topReactions"
+            :key="r.type"
+            :title="REACTION_LABEL[r.type]"
+          >{{ r.emoji }}</span>
+          <span>{{ post.reactionCount }}</span>
+        </template>
+        <template v-else>0 reactions</template>
+      </span>
       <span>
         {{ post.commentCount }} comment{{ post.commentCount === 1 ? "" : "s" }}
       </span>
     </div>
 
-    <div class="grid grid-cols-3 border-t border-slate-100">
-      <button
-        type="button"
-        class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition"
-        :class="
-          post.likedByMe
-            ? 'text-brand-700 bg-brand-50/40'
-            : 'text-slate-600 hover:bg-slate-50'
-        "
-        :aria-pressed="post.likedByMe"
-        @click="emit('like')"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          :fill="post.likedByMe ? 'currentColor' : 'none'"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-4 h-4"
-          aria-hidden="true"
+    <div class="relative grid grid-cols-3 border-t border-slate-100">
+      <div class="relative">
+        <button
+          type="button"
+          class="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition"
+          :class="
+            post.myReaction
+              ? 'text-brand-700 bg-brand-50/40'
+              : 'text-slate-600 hover:bg-slate-50'
+          "
+          :aria-pressed="Boolean(post.myReaction)"
+          @click="onReactClick"
+          @mouseenter="pickerOpen = true"
+          @focus="pickerOpen = true"
+          @mouseleave="pickerOpen = false"
         >
-          <path
-            d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"
-            stroke-linejoin="round"
-          />
-          <path d="M7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3" />
-        </svg>
-        Like
-      </button>
+          <span aria-hidden="true">
+            {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
+          </span>
+          {{ post.myReaction ? REACTION_LABEL[post.myReaction] : "React" }}
+        </button>
+        <div
+          v-if="pickerOpen"
+          class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md z-10"
+          role="listbox"
+          aria-label="Choose reaction"
+          @mouseenter="pickerOpen = true"
+          @mouseleave="pickerOpen = false"
+        >
+          <button
+            v-for="r in POST_REACTION_TYPES"
+            :key="r"
+            type="button"
+            class="h-8 w-8 rounded-full text-base hover:scale-110 transition motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+            :title="REACTION_LABEL[r]"
+            :aria-label="REACTION_LABEL[r]"
+            @click="pickReaction(r)"
+          >
+            {{ REACTION_EMOJI[r] }}
+          </button>
+        </div>
+      </div>
       <button
         type="button"
         class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
         @click="toggleComments"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-4 h-4"
-          aria-hidden="true"
-        >
-          <path
-            d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"
-            stroke-linejoin="round"
-          />
-        </svg>
         Comment
       </button>
       <button
@@ -229,20 +329,6 @@ function onShare() {
         class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
         @click="shareOpen = !shareOpen"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-4 h-4"
-          aria-hidden="true"
-        >
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-        </svg>
         Share
       </button>
     </div>
@@ -281,8 +367,9 @@ function onShare() {
     </div>
 
     <div v-if="commentsOpen" class="border-t border-slate-100 px-4 py-3 space-y-3">
-      <div v-if="commentsLoading" class="text-xs text-slate-400 py-2">
-        Loading comments…
+      <div v-if="commentsLoading" class="space-y-2" aria-busy="true">
+        <SkeletonBlock height="h-10" rounded="rounded-lg" />
+        <SkeletonBlock height="h-10" rounded="rounded-lg" />
       </div>
       <ul v-else class="space-y-3">
         <li

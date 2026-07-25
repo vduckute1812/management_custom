@@ -27,7 +27,8 @@ watch(
       return;
     }
     if (
-      path === "/" ||
+      path === "/tasks" ||
+      path.startsWith("/tasks/") ||
       path.startsWith("/epics") ||
       path.startsWith("/analytics")
     ) {
@@ -38,6 +39,8 @@ watch(
 );
 
 const isFeedSection = computed(() => activeSection.value === "feed");
+const isHub = computed(() => route.path === "/");
+const showTaskChrome = computed(() => !isFeedSection.value && !isHub.value);
 
 const navItems = computed<NavItem[]>(() => {
   if (isFeedSection.value) {
@@ -52,7 +55,7 @@ const navItems = computed<NavItem[]>(() => {
   }
 
   const base: NavItem[] = [
-    { to: "/", label: "Dashboard", icon: "calendar" },
+    { to: "/tasks", label: "Dashboard", icon: "calendar" },
     { to: "/epics", label: "Epics", icon: "layers" },
     { to: "/analytics", label: "Analytics", icon: "chart" },
     { to: "/settings", label: "Settings", icon: "cog" },
@@ -64,7 +67,10 @@ const navItems = computed<NavItem[]>(() => {
 });
 
 function isActive(to: string) {
-  return to === "/" ? route.path === "/" : route.path.startsWith(to);
+  if (to === "/tasks") {
+    return route.path === "/tasks" || route.path.startsWith("/tasks/");
+  }
+  return route.path === to || route.path.startsWith(`${to}/`);
 }
 
 function goSection(section: AppSection) {
@@ -72,7 +78,7 @@ function goSection(section: AppSection) {
     if (!isFeedSection.value) router.push("/feed");
     return;
   }
-  if (isFeedSection.value) router.push("/");
+  if (isFeedSection.value) router.push("/tasks");
 }
 
 async function onLogout() {
@@ -112,7 +118,7 @@ const themeLabel = computed(() => {
       class="hidden md:flex w-60 shrink-0 bg-white border-r border-slate-200 flex-col no-print"
     >
       <div class="px-5 py-5 border-b border-slate-200 space-y-4">
-        <div class="flex items-center gap-2">
+        <NuxtLink to="/" class="flex items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500">
           <div
             class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold shadow-sm"
           >
@@ -126,7 +132,7 @@ const themeLabel = computed(() => {
               {{ isFeedSection ? "Shared feed" : "Local task analytics" }}
             </p>
           </div>
-        </div>
+        </NuxtLink>
 
         <div
           class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100"
@@ -531,8 +537,8 @@ const themeLabel = computed(() => {
 
     <ToastStack />
     <CommandPalette />
-    <QuickCapture v-if="!isFeedSection" />
+    <QuickCapture v-if="showTaskChrome" />
     <ShortcutsHelp />
-    <TimerPill v-if="!isFeedSection" />
+    <TimerPill v-if="showTaskChrome" />
   </div>
 </template>
