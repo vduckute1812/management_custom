@@ -22,6 +22,7 @@ const { formatTime } = useSettings();
 
 const spent = ref("");
 const saving = ref(false);
+const showCustom = ref(false);
 const inputEl = ref<HTMLInputElement | null>(null);
 const panelEl = ref<HTMLElement | null>(null);
 
@@ -29,13 +30,12 @@ watch(
   () => [props.open, props.block?.id] as const,
   async ([open]) => {
     if (!open || !props.block) return;
+    showCustom.value = false;
     spent.value =
       typeof props.block.spentHours === "number"
         ? String(props.block.spentHours)
         : "";
     await nextTick();
-    inputEl.value?.focus();
-    inputEl.value?.select();
   }
 );
 
@@ -55,6 +55,10 @@ const durationHours = computed(() => {
   return Math.round((end.diff(start, "minute") / 60) * 100) / 100;
 });
 
+const alreadyLogged = computed(
+  () => typeof props.block?.spentHours === "number"
+);
+
 const panelStyle = computed(() => {
   const a = props.anchor;
   if (!a) {
@@ -64,19 +68,12 @@ const panelStyle = computed(() => {
       transform: "translate(-50%, -50%)",
     } as Record<string, string>;
   }
-  // Keep the panel inside the viewport with a small gutter.
-  const left = Math.min(Math.max(12, a.x), window.innerWidth - 280);
-  const top = Math.min(Math.max(12, a.y), window.innerHeight - 220);
+  const left = Math.min(Math.max(12, a.x), window.innerWidth - 300);
+  const top = Math.min(Math.max(12, a.y), window.innerHeight - 260);
   return { top: `${top}px`, left: `${left}px` } as Record<string, string>;
 });
 
-function autoFill() {
-  if (durationHours.value > 0) {
-    spent.value = String(durationHours.value);
-  }
-}
-
-async function onSave() {
+async function persistSpent(nextSpent: number | undefined) {
   if (!props.task || !props.block) return;
   if (props.block.projected) {
     pushToast("Recurring projections can't log time — edit the series.", {
@@ -84,12 +81,6 @@ async function onSave() {
     });
     return;
   }
-  const raw = spent.value.trim();
-  const nextSpent =
-    raw === "" || Number.isNaN(Number(raw))
-      ? undefined
-      : Math.max(0, Math.round(Number(raw) * 100) / 100);
-
   saving.value = true;
   try {
     const updatedBlocks = (props.task.timeBlocks ?? []).map((b) =>
@@ -114,6 +105,30 @@ async function onSave() {
   }
 }
 
+async function logFullBlock() {
+  if (durationHours.value <= 0) return;
+  await persistSpent(durationHours.value);
+}
+
+async function onSaveCustom() {
+  const raw = spent.value.trim();
+  const nextSpent =
+    raw === "" || Number.isNaN(Number(raw))
+      ? undefined
+      : Math.max(0, Math.round(Number(raw) * 100) / 100);
+  await persistSpent(nextSpent);
+}
+
+async function openCustom() {
+  showCustom.value = true;
+  if (!spent.value && durationHours.value > 0) {
+    spent.value = String(durationHours.value);
+  }
+  await nextTick();
+  inputEl.value?.focus();
+  inputEl.value?.select();
+}
+
 function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) emit("close");
 }
@@ -124,10 +139,10 @@ function onKeydown(e: KeyboardEvent) {
     emit("close");
   } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
     e.preventDefault();
-    onSave();
+    if (showCustom.value) onSaveCustom();
+    else logFullBlock();
   }
 }
-
 </script>
 
 <template>
@@ -141,7 +156,7 @@ function onKeydown(e: KeyboardEvent) {
       >
         <div
           ref="panelEl"
-          class="absolute w-[260px] bg-white rounded-xl shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+          class="absolute w-[280px] bg-white rounded-xl shadow-2xl ring-1 ring-slate-200 overflow-hidden"
           :style="panelStyle"
           role="dialog"
           aria-modal="true"
@@ -158,36 +173,71 @@ function onKeydown(e: KeyboardEvent) {
             <p class="text-[11px] text-slate-500 tabular-nums mt-0.5">
               {{ rangeLabel }}
               <span v-if="durationHours"> · {{ durationHours }}h block</span>
+              <span
+                v-if="alreadyLogged"
+                class="ml-1 text-emerald-600"
+              >
+                · logged {{ block.spentHours }}h
+              </span>
             </p>
           </header>
 
           <div class="px-3.5 py-3 space-y-2">
-            <label
-              for="spent-popover-input"
-              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500"
+            <button
+              type="button"
+              :disabled="saving || durationHours <= 0"
+              class="w-full px-3 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm disabled:opacity-50"
+              @click="logFullBlock"
             >
-              Spent (h)
-            </label>
-            <div class="flex items-center gap-1.5">
-              <input
-                id="spent-popover-input"
-                ref="inputEl"
-                v-model="spent"
-                type="number"
-                min="0"
-                step="0.25"
-                placeholder="0.0"
-                class="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                @keydown.enter.prevent="onSave"
-              />
-              <button
-                type="button"
-                class="text-[11px] font-medium text-brand-700 hover:text-brand-800 px-2 py-1.5 rounded-lg hover:bg-brand-50"
-                title="Fill from block duration"
-                @click="autoFill"
+              {{
+                saving
+                  ? "Saving…"
+                  : alreadyLogged
+                  ? `Update to ${durationHours}h`
+                  : `Log ${durationHours}h`
+              }}
+            </button>
+            <p class="text-[11px] text-slate-500 text-center">
+              Uses the full block duration
+            </p>
+
+            <button
+              v-if="!showCustom"
+              type="button"
+              class="w-full text-[11px] font-medium text-slate-600 hover:text-slate-900 py-1"
+              @click="openCustom"
+            >
+              Enter a custom amount…
+            </button>
+
+            <div v-else class="space-y-1.5 pt-1 border-t border-slate-100">
+              <label
+                for="spent-popover-input"
+                class="block text-[10px] uppercase tracking-wide font-medium text-slate-500"
               >
-                auto
-              </button>
+                Spent (h)
+              </label>
+              <div class="flex items-center gap-1.5">
+                <input
+                  id="spent-popover-input"
+                  ref="inputEl"
+                  v-model="spent"
+                  type="number"
+                  min="0"
+                  step="0.25"
+                  placeholder="0.0"
+                  class="flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                  @keydown.enter.prevent="onSaveCustom"
+                />
+                <button
+                  type="button"
+                  :disabled="saving"
+                  class="text-[11px] font-semibold text-brand-700 hover:text-brand-800 px-2 py-1.5 rounded-lg hover:bg-brand-50 disabled:opacity-50"
+                  @click="onSaveCustom"
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
 
@@ -201,23 +251,13 @@ function onKeydown(e: KeyboardEvent) {
             >
               Edit details
             </button>
-            <div class="flex items-center gap-1.5">
-              <button
-                type="button"
-                class="text-[11px] font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-lg hover:bg-slate-100"
-                @click="emit('close')"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                :disabled="saving"
-                class="text-[11px] font-semibold bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 rounded-lg shadow-sm disabled:opacity-50"
-                @click="onSave"
-              >
-                {{ saving ? "Saving…" : "Save" }}
-              </button>
-            </div>
+            <button
+              type="button"
+              class="text-[11px] font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-lg hover:bg-slate-100"
+              @click="emit('close')"
+            >
+              Cancel
+            </button>
           </footer>
         </div>
       </div>

@@ -16,7 +16,7 @@ const sections: Section[] = [
     rows: [
       { keys: ["?"], label: "Show this cheatsheet" },
       { keys: ["⌘", "K"], label: "Open command palette" },
-      { keys: ["n"], label: "Quick capture (schedules next hour)" },
+      { keys: ["n"], label: "Quick capture (@14, tomorrow 9-11, #tag)" },
       { keys: ["⇧", "N"], label: "New task (full editor on Dashboard)" },
       { keys: ["Esc"], label: "Close any overlay" },
     ],
@@ -52,7 +52,7 @@ const sections: Section[] = [
   {
     title: "Mouse & touch",
     rows: [
-      { keys: ["click block"], label: "Log spent hours inline (Daily)" },
+      { keys: ["click block"], label: "Log full block duration (Daily)" },
       { keys: ["double-click"], label: "Open full task editor" },
       { keys: ["drag"], label: "Move a block in Daily (snaps to 15 min)" },
       { keys: ["drag edge"], label: "Resize a block from top or bottom" },

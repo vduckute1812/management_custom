@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import dayjs from "dayjs";
-import { TaskPriority, TaskStatus, type Task, type TimeBlock } from "~/types/task";
+import { TaskPriority, TaskStatus, type Task } from "~/types/task";
+import { parseQuickCapture } from "~/utils/parseQuickCapture";
 
 const { quickCaptureOpen } = useUiOverlays();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
-const { formatTime } = useSettings();
 
 const title = ref("");
 const submitting = ref(false);
@@ -19,37 +18,35 @@ watch(quickCaptureOpen, async (open) => {
   }
 });
 
-/** Next clean hour slot so capture lands on today's calendar immediately. */
-function defaultCaptureBlock(): TimeBlock {
-  const now = dayjs();
-  const start =
-    now.minute() === 0 && now.second() < 5
-      ? now.startOf("hour")
-      : now.add(1, "hour").startOf("hour");
-  const end = start.add(1, "hour");
-  return {
-    id: `block_${Math.random().toString(16).slice(2, 10)}`,
-    start: start.toISOString(),
-    end: end.toISOString(),
-  };
-}
+const preview = computed(() => {
+  const text = title.value.trim();
+  if (!text) return null;
+  try {
+    return parseQuickCapture(text);
+  } catch {
+    return null;
+  }
+});
 
 async function onSubmit() {
   const text = title.value.trim();
   if (!text) return;
   submitting.value = true;
   try {
-    const block = defaultCaptureBlock();
+    const parsed = parseQuickCapture(text);
     const payload: Partial<Task> = {
-      title: text,
+      title: parsed.title,
       status: TaskStatus.Todo,
       priority: TaskPriority.Normal,
-      dueDate: dayjs(block.start).format("YYYY-MM-DD"),
-      timeBlocks: [block],
+      dueDate: parsed.dueDate,
+      tags: parsed.tags,
+      timeBlocks: [parsed.block],
     };
     const saved = await saveTask(payload);
-    const when = `${formatTime(dayjs(block.start))} – ${formatTime(dayjs(block.end))}`;
-    pushToast(`Captured "${saved.title}" · ${when}`, {
+    const tagHint = parsed.tags.length
+      ? ` · #${parsed.tags.join(" #")}`
+      : "";
+    pushToast(`Captured "${saved.title}" · ${parsed.scheduleLabel}${tagHint}`, {
       tone: "success",
       duration: 3500,
     });
@@ -101,7 +98,7 @@ function onBackdrop(e: MouseEvent) {
               ref="inputEl"
               v-model="title"
               type="text"
-              placeholder="What needs to be done today?"
+              placeholder="Read paper @14 · Draft tomorrow 9-11 · #vision notes"
               class="flex-1 px-3 py-4 text-base outline-none bg-transparent placeholder:text-slate-400"
               aria-label="Quick task title"
             />
@@ -114,6 +111,16 @@ function onBackdrop(e: MouseEvent) {
             </button>
           </form>
           <p
+            v-if="preview"
+            class="px-4 pb-1 text-[11px] text-brand-700 tabular-nums"
+          >
+            → {{ preview.title }}
+            <span v-if="preview.tags.length">
+              · #{{ preview.tags.join(" #") }}
+            </span>
+            · {{ preview.scheduleLabel }}
+          </p>
+          <p
             class="px-4 pb-3 text-[11px] text-slate-500 flex items-center gap-3 flex-wrap"
           >
             <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Enter</kbd>
@@ -121,8 +128,7 @@ function onBackdrop(e: MouseEvent) {
             <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Esc</kbd>
             to cancel
             <span class="ml-auto italic">
-              Schedules a 1-hour block at the next free hour. Open the full editor
-              for epic, notes, or more blocks.
+              Try @14, tomorrow 9-11, or #tag. Default is the next hour.
             </span>
           </p>
         </div>
