@@ -5,7 +5,9 @@ export type IdPrefix =
   | "chk"
   | "user"
   | "rtok"
-  | "vrfy";
+  | "vrfy"
+  | "post"
+  | "cmt";
 
 export function generateId(prefix: IdPrefix = "task"): string {
   const rand = Math.random().toString(16).slice(2, 10);

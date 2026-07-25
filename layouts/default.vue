@@ -7,13 +7,50 @@ const { paletteOpen, helpOpen } = useUiOverlays();
 const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
 
+type AppSection = "tasks" | "feed";
+type NavIcon = "calendar" | "layers" | "chart" | "cog" | "shield" | "feed";
+
 interface NavItem {
   to: string;
   label: string;
-  icon: "calendar" | "layers" | "chart" | "cog" | "shield";
+  icon: NavIcon;
 }
 
+/** Sticky across shared routes (Settings / Admin) so those don't bounce the tab. */
+const activeSection = useState<AppSection>("app:section", () => "tasks");
+
+watch(
+  () => route.path,
+  (path) => {
+    if (path === "/feed" || path.startsWith("/feed/")) {
+      activeSection.value = "feed";
+      return;
+    }
+    if (
+      path === "/" ||
+      path.startsWith("/epics") ||
+      path.startsWith("/analytics")
+    ) {
+      activeSection.value = "tasks";
+    }
+  },
+  { immediate: true }
+);
+
+const isFeedSection = computed(() => activeSection.value === "feed");
+
 const navItems = computed<NavItem[]>(() => {
+  if (isFeedSection.value) {
+    const feedNav: NavItem[] = [
+      { to: "/feed", label: "Feed", icon: "feed" },
+      { to: "/settings", label: "Settings", icon: "cog" },
+    ];
+    if (auth.isAdmin.value) {
+      feedNav.splice(1, 0, { to: "/admin", label: "Admin", icon: "shield" });
+    }
+    return feedNav;
+  }
+
   const base: NavItem[] = [
     { to: "/", label: "Dashboard", icon: "calendar" },
     { to: "/epics", label: "Epics", icon: "layers" },
@@ -28,6 +65,14 @@ const navItems = computed<NavItem[]>(() => {
 
 function isActive(to: string) {
   return to === "/" ? route.path === "/" : route.path.startsWith(to);
+}
+
+function goSection(section: AppSection) {
+  if (section === "feed") {
+    if (!isFeedSection.value) router.push("/feed");
+    return;
+  }
+  if (isFeedSection.value) router.push("/");
 }
 
 async function onLogout() {
@@ -66,7 +111,7 @@ const themeLabel = computed(() => {
     <aside
       class="hidden md:flex w-60 shrink-0 bg-white border-r border-slate-200 flex-col no-print"
     >
-      <div class="px-5 py-5 border-b border-slate-200">
+      <div class="px-5 py-5 border-b border-slate-200 space-y-4">
         <div class="flex items-center gap-2">
           <div
             class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white font-bold shadow-sm"
@@ -77,8 +122,45 @@ const themeLabel = computed(() => {
             <p class="text-sm font-semibold text-slate-900 leading-tight">
               Management
             </p>
-            <p class="text-[11px] text-slate-500">Local task analytics</p>
+            <p class="text-[11px] text-slate-500">
+              {{ isFeedSection ? "Shared feed" : "Local task analytics" }}
+            </p>
           </div>
+        </div>
+
+        <div
+          class="grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100"
+          role="tablist"
+          aria-label="App section"
+        >
+          <button
+            type="button"
+            role="tab"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+            :class="
+              !isFeedSection
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            "
+            :aria-selected="!isFeedSection"
+            @click="goSection('tasks')"
+          >
+            Tasks
+          </button>
+          <button
+            type="button"
+            role="tab"
+            class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition"
+            :class="
+              isFeedSection
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-800'
+            "
+            :aria-selected="isFeedSection"
+            @click="goSection('feed')"
+          >
+            Feed
+          </button>
         </div>
       </div>
 
@@ -146,6 +228,22 @@ const themeLabel = computed(() => {
               d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"
               stroke-linejoin="round"
             />
+          </svg>
+          <svg
+            v-else-if="item.icon === 'feed'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-4 h-4"
+          >
+            <path
+              d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"
+              stroke-linejoin="round"
+            />
+            <polyline points="16 6 12 2 8 6" stroke-linejoin="round" />
+            <line x1="12" y1="2" x2="12" y2="15" />
           </svg>
           <svg
             v-else
@@ -290,97 +388,151 @@ const themeLabel = computed(() => {
 
     <main
       id="main-content"
-      class="flex-1 min-w-0 flex flex-col pb-14 md:pb-0"
+      class="flex-1 min-w-0 flex flex-col pb-24 md:pb-0"
       tabindex="-1"
     >
       <slot />
     </main>
 
-    <!-- Mobile bottom nav -->
-    <nav
-      class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 grid grid-flow-col auto-cols-fr no-print"
-      aria-label="Main (mobile)"
+    <!-- Mobile section tabs + bottom nav -->
+    <div
+      class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 no-print"
     >
-      <NuxtLink
-        v-for="item in navItems"
-        :key="item.to"
-        :to="item.to"
-        class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
-        :class="isActive(item.to) ? 'text-brand-700' : 'text-slate-500'"
+      <div
+        class="grid grid-cols-2 gap-1 px-2 pt-2"
+        role="tablist"
+        aria-label="App section"
       >
-        <svg
-          v-if="item.icon === 'calendar'"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-5 h-5"
+        <button
+          type="button"
+          role="tab"
+          class="rounded-lg py-1.5 text-[11px] font-semibold"
+          :class="
+            !isFeedSection
+              ? 'bg-brand-50 text-brand-700'
+              : 'text-slate-500'
+          "
+          :aria-selected="!isFeedSection"
+          @click="goSection('tasks')"
         >
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-          <line x1="16" y1="2" x2="16" y2="6" />
-          <line x1="8" y1="2" x2="8" y2="6" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-        <svg
-          v-else-if="item.icon === 'layers'"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-5 h-5"
+          Tasks
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="rounded-lg py-1.5 text-[11px] font-semibold"
+          :class="
+            isFeedSection
+              ? 'bg-brand-50 text-brand-700'
+              : 'text-slate-500'
+          "
+          :aria-selected="isFeedSection"
+          @click="goSection('feed')"
         >
-          <polygon points="12 2 2 7 12 12 22 7 12 2" stroke-linejoin="round" />
-          <polyline points="2 17 12 22 22 17" stroke-linejoin="round" />
-          <polyline points="2 12 12 17 22 12" stroke-linejoin="round" />
-        </svg>
-        <svg
-          v-else-if="item.icon === 'cog'"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-5 h-5"
+          Feed
+        </button>
+      </div>
+      <nav
+        class="grid grid-flow-col auto-cols-fr"
+        aria-label="Main (mobile)"
+      >
+        <NuxtLink
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+          :class="isActive(item.to) ? 'text-brand-700' : 'text-slate-500'"
         >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
-        </svg>
-        <svg
-          v-else-if="item.icon === 'shield'"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-5 h-5"
-        >
-          <path
-            d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"
-            stroke-linejoin="round"
-          />
-        </svg>
-        <svg
-          v-else
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="w-5 h-5"
-        >
-          <path d="M3 3v18h18" stroke-linecap="round" />
-          <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        {{ item.label }}
-      </NuxtLink>
-    </nav>
+          <svg
+            v-if="item.icon === 'calendar'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          <svg
+            v-else-if="item.icon === 'layers'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <polygon points="12 2 2 7 12 12 22 7 12 2" stroke-linejoin="round" />
+            <polyline points="2 17 12 22 22 17" stroke-linejoin="round" />
+            <polyline points="2 12 12 17 22 12" stroke-linejoin="round" />
+          </svg>
+          <svg
+            v-else-if="item.icon === 'cog'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+          </svg>
+          <svg
+            v-else-if="item.icon === 'shield'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <path
+              d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4z"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <svg
+            v-else-if="item.icon === 'feed'"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <path
+              d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"
+              stroke-linejoin="round"
+            />
+            <polyline points="16 6 12 2 8 6" stroke-linejoin="round" />
+            <line x1="12" y1="2" x2="12" y2="15" />
+          </svg>
+          <svg
+            v-else
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="w-5 h-5"
+          >
+            <path d="M3 3v18h18" stroke-linecap="round" />
+            <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+          {{ item.label }}
+        </NuxtLink>
+      </nav>
+    </div>
 
     <ToastStack />
     <CommandPalette />
-    <QuickCapture />
+    <QuickCapture v-if="!isFeedSection" />
     <ShortcutsHelp />
-    <TimerPill />
+    <TimerPill v-if="!isFeedSection" />
   </div>
 </template>

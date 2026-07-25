@@ -91,6 +91,12 @@ export const useShortcuts = () => {
         router.push("/analytics");
         return;
       }
+      if (key === "f") {
+        e.preventDefault();
+        consumeG();
+        router.push("/feed");
+        return;
+      }
       // Any other key cancels the pending sequence.
       consumeG();
     }
@@ -101,9 +107,10 @@ export const useShortcuts = () => {
       return;
     }
 
-    // Quick capture.
+    // Quick capture (Tasks section only).
     if (e.key === "n") {
       if (e.shiftKey) return; // Shift+N reserved for the full modal (handled by page).
+      if (router.currentRoute.value.path.startsWith("/feed")) return;
       e.preventDefault();
       overlays.quickCaptureOpen.value = true;
       return;
