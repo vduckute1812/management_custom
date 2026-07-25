@@ -2,10 +2,13 @@
 # CI/CD deploy for the Raspberry Pi production stack.
 #
 # Guarantees:
-#   1. If the image *build* fails, the currently running stack is left alone.
-#   2. If the new container fails its health check, we retag the previous
-#      image as :latest and recreate the app — rolling back to the last
-#      known-good release.
+#   1. Syncs ops libs (`uv`) before compose/build.
+#   2. If the image *build* fails, the currently running stack is left alone.
+#   3. Runs DB migrations against MySQL with the *new* image before switching
+#      the live app. Migration failure leaves the running app untouched and
+#      restores the `:previous` image tag.
+#   4. If the new container fails its health check, we retag the previous
+#      image as :latest and recreate the app.
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
@@ -28,12 +31,14 @@ SKIP_TUNNEL_URL=false
 HEALTH_URL="${MGMT_HEALTH_URL:-http://127.0.0.1:3000/}"
 HEALTH_RETRIES="${MGMT_HEALTH_RETRIES:-30}"
 HEALTH_SLEEP="${MGMT_HEALTH_SLEEP:-2}"
+MYSQL_CONTAINER="${MGMT_MYSQL_CONTAINER:-mgmt-mysql-prod}"
+MYSQL_WAIT_RETRIES="${MGMT_MYSQL_WAIT_RETRIES:-60}"
 
 for arg in "$@"; do
   case "${arg}" in
     --skip-tunnel-url|--no-sync-tunnel) SKIP_TUNNEL_URL=true ;;
     --help|-h)
-      sed -n '2,20p' "$0"
+      sed -n '2,22p' "$0"
       exit 0
       ;;
   esac
@@ -61,6 +66,13 @@ tag_image() {
   "${RUNTIME}" tag "${src}" "${dst}"
 }
 
+restore_previous_tag() {
+  if [[ "${HAD_PREVIOUS}" == true ]]; then
+    log "restoring image tag ${PREV_TAG} → ${LATEST_TAG}"
+    tag_image "${PREV_TAG}" "${LATEST_TAG}"
+  fi
+}
+
 health_ok() {
   # Any HTTP response from the app means Nitro is up. 401/302/200 all count —
   # we only care that the new process is answering, not that auth succeeds.
@@ -82,6 +94,74 @@ wait_healthy() {
   return 1
 }
 
+mysql_healthy() {
+  local status
+  status="$("${RUNTIME}" inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+    "${MYSQL_CONTAINER}" 2>/dev/null || true)"
+  [[ "${status}" == "healthy" || "${status}" == "running" ]] || return 1
+  # Prefer the real ping when the container is up.
+  "${RUNTIME}" exec "${MYSQL_CONTAINER}" \
+    mysqladmin ping -h 127.0.0.1 -uroot -p"${MYSQL_ROOT_PASSWORD}" --silent \
+    >/dev/null 2>&1
+}
+
+wait_mysql() {
+  local i
+  log "waiting for MySQL (${MYSQL_CONTAINER})"
+  for i in $(seq 1 "${MYSQL_WAIT_RETRIES}"); do
+    if mysql_healthy; then
+      log "MySQL is ready (attempt ${i}/${MYSQL_WAIT_RETRIES})"
+      return 0
+    fi
+    sleep 2
+  done
+  return 1
+}
+
+read_mysql_root_password() {
+  # Prefer compose service env; fall back to docker/.env.prod DB_PASS.
+  MYSQL_ROOT_PASSWORD="root@1345"
+  if grep -q '^MYSQL_ROOT_PASSWORD=' docker/docker-compose.prod.yml 2>/dev/null; then
+    MYSQL_ROOT_PASSWORD="$(
+      sed -n 's/.*MYSQL_ROOT_PASSWORD: *"\([^"]*\)".*/\1/p' docker/docker-compose.prod.yml | head -n1
+    )"
+  fi
+  if [[ -z "${MYSQL_ROOT_PASSWORD}" && -f docker/.env.prod ]]; then
+    MYSQL_ROOT_PASSWORD="$(grep -E '^DB_PASS=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
+  fi
+  export MYSQL_ROOT_PASSWORD
+}
+
+sync_libs() {
+  log "syncing ops libraries (uv)"
+  command -v uv >/dev/null 2>&1 || die "uv is required — install from https://docs.astral.sh/uv/"
+  if [[ -f uv.lock ]]; then
+    uv sync --frozen
+  else
+    uv sync
+  fi
+
+  # Node app libs are installed inside the image build (`npm ci` in Dockerfile.prod).
+  # Surface lockfile presence here so a missing package-lock fails early.
+  [[ -f package-lock.json ]] || die "package-lock.json missing — cannot sync npm libs in the image build"
+  log "npm libs will sync via Dockerfile \`npm ci\` during image build"
+}
+
+run_migrations() {
+  log "running DB migrations with ${LATEST_TAG}"
+  # One-shot container on the compose network. Args replace the image CMD so
+  # we only migrate (the app entrypoint also migrates on boot — this makes CI
+  # fail before switching traffic if schema apply fails).
+  # Force DB_HOST=mysql: docker/.env.prod may point at 127.0.0.1 for host tools.
+  if ! mgmt_compose run --rm --no-deps \
+    -e DB_HOST=mysql \
+    app \
+    node --import tsx scripts/migrate.ts up; then
+    return 1
+  fi
+  log "migrations applied"
+}
+
 rollback() {
   log "rolling back to ${PREV_TAG}"
   if ! image_exists "${PREV_TAG}"; then
@@ -101,6 +181,10 @@ rollback() {
 [[ -f docker/Dockerfile.prod ]] || die "docker/Dockerfile.prod missing"
 
 log "runtime=${RUNTIME} sha=${GIT_SHA} image=${IMAGE}"
+read_mysql_root_password
+
+# ── Sync libraries (uv ops + npm via upcoming image build) ───────────────
+sync_libs
 
 # ── Side jobs (best-effort; never abort a deploy for tunnel/IP sync) ─────
 log "syncing public IP (best effort)"
@@ -141,12 +225,28 @@ else
 fi
 
 # ── Build (failure here leaves the running stack untouched) ──────────────
-log "building ${NEW_TAG}"
+log "building ${NEW_TAG} (includes npm ci for app libs)"
 if ! "${RUNTIME}" build -f docker/Dockerfile.prod -t "${NEW_TAG}" .; then
   die "image build failed — running stack was not restarted"
 fi
 tag_image "${NEW_TAG}" "${LATEST_TAG}"
 log "build ok; tagged ${LATEST_TAG}"
+
+# ── Ensure MySQL is up, then migrate BEFORE switching the live app ───────
+log "starting MySQL (leave current app running)"
+if ! mgmt_compose up -d mysql; then
+  restore_previous_tag
+  die "could not start MySQL — running app not restarted"
+fi
+if ! wait_mysql; then
+  restore_previous_tag
+  die "MySQL not ready — running app not restarted"
+fi
+
+if ! run_migrations; then
+  restore_previous_tag
+  die "database migration failed — running app not restarted"
+fi
 
 # ── Recreate app + health check ──────────────────────────────────────────
 log "recreating production stack"
@@ -178,3 +278,5 @@ echo "Production stack is healthy."
 echo "  Public: ${PUBLIC_URL:-https://dntechx.com}"
 echo "  LAN:    http://${LAN_IP}:8080"
 echo "  Image:  ${NEW_TAG}"
+echo "  Libs:   uv sync + image npm ci"
+echo "  DB:     migrations applied before app switch"
