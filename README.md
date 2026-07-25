@@ -102,21 +102,21 @@ Concrete journeys, each rated by target friction.
 
 1. Open **Dashboard** (`g d` or Home → Time management) → **Daily** view of tomorrow (`t` then `→`).
 2. From the *Up next* rail, drag tasks onto morning hour slots, or click an empty slot to create there.
-3. Press `n` for quick capture; type "Read MLE paper" + `Enter` — a 1-hour block is scheduled at the next free hour.
+3. Press `n` for quick capture; type `Read MLE paper @9` or `Draft tomorrow 9-11` + `Enter`.
 4. Done. No modal traversal required for routine planning. (`Shift+N` opens the full editor when you need it.)
 
 ### Flow 2 — "Log what I just spent" *(target: ≤ 15 seconds)*
 
 1. While in **Daily** view, click the existing block.
-2. Inline popover: edit *Spent (h)*, or click `auto` to fill from the block's duration.
-3. Save — task `spentHours` and parent Epic's `spentHours` recompute and propagate instantly. Double-click (or *Edit details*) opens the full modal.
+2. Tap **Log Nh** to use the full block duration (or enter a custom amount).
+3. Done — task `spentHours` and parent Epic totals recompute instantly. Double-click (or *Edit details*) opens the full modal.
 
 ### Flow 3 — "Weekly review" *(target: ≤ 5 minutes)*
 
 1. Navigate to **Analytics** with `g a`.
 2. Toggle granularity to **week**; scan velocity bars for outliers (red variance > 1.5h).
-3. Drill into any Epic via the velocity rollup list; review child tasks.
-4. Optional: re-schedule tasks via drag on the weekly canvas (desktop).
+3. In **Rolled over**, move missed tasks to today / tomorrow (or bulk-move all).
+4. Drill into any Epic via the velocity rollup list; optional drag-reschedule on the weekly canvas.
 
 ---
 

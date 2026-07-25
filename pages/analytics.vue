@@ -132,6 +132,8 @@ async function seedSamples() {
           </template>
         </ClientOnly>
 
+        <RolloverReview :tasks="tasks" />
+
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-4 py-3 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">
