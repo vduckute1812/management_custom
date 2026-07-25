@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Copy the active Cloudflare quick-tunnel URL into docker/.env.prod as
-# APP_BASE_URL so verification emails link to the public hostname.
+# Set APP_BASE_URL in docker/.env.prod to the named Cloudflare domain.
 #
 #   bash docker/sync-tunnel-url.sh
 #   bash docker/sync-tunnel-url.sh --restart-app
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 ENV_FILE="${DIR}/.env.prod"
+CF_ENV="${DIR}/cloudflared.env"
 RESTART_APP=false
 
 for arg in "$@"; do
@@ -22,16 +22,15 @@ if [[ ! -f "${ENV_FILE}" ]]; then
   exit 1
 fi
 
-URL="$(
-  journalctl --user -u mgmt-cloudflare-tunnel --no-pager 2>/dev/null \
-    | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' \
-    | tail -1
-)"
-
-if [[ -z "${URL}" ]]; then
-  echo "[sync] no trycloudflare.com URL found — is mgmt-cloudflare-tunnel running?"
+if [[ ! -f "${CF_ENV}" ]]; then
+  echo "[sync] missing ${CF_ENV}"
   exit 1
 fi
+
+# shellcheck disable=SC1090
+source "${CF_ENV}"
+
+URL="${APP_BASE_URL:-https://${TUNNEL_HOSTNAME}}"
 
 if grep -q '^APP_BASE_URL=' "${ENV_FILE}"; then
   sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=${URL}|" "${ENV_FILE}"

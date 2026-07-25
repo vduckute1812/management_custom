@@ -48,10 +48,22 @@ podman build -f docker/Dockerfile.prod -t localhost/mgmt-app-prod:latest .
 echo "==> Starting production stack"
 $COMPOSE up -d --force-recreate
 
+PUBLIC_URL="https://dntechx.com"
+if [[ -f docker/cloudflared.env ]]; then
+  # shellcheck disable=SC1091
+  PUBLIC_URL="$(grep '^APP_BASE_URL=' docker/cloudflared.env | cut -d= -f2-)"
+fi
+
 echo
 echo "Production stack started."
-echo "  HTTP:   http://${PUBLIC_IP}:8080"
-echo "  HTTPS:  https://${PUBLIC_IP}:8443  (self-signed — browser will warn)"
+echo "  Public: ${PUBLIC_URL}  (Cloudflare Tunnel — no modem port-forward)"
+echo "  LAN:    http://${LAN_IP}:8080"
 echo
-echo "Router forwards: ${PUBLIC_IP}:8080 -> ${LAN_IP}:8080, ${PUBLIC_IP}:8443 -> ${LAN_IP}:8443"
+if [[ -f docker/cloudflared/config.yml ]] || [[ -f docker/cloudflared/tunnel.token ]]; then
+  echo "Tunnel:  systemctl --user status mgmt-cloudflare-tunnel"
+else
+  echo "Tunnel not configured yet:"
+  echo "  bash docker/setup-named-tunnel.sh"
+  echo "  bash docker/install-cloudflare-tunnel.sh"
+fi
 echo "Logs: $COMPOSE logs -f app nginx"

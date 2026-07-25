@@ -1,1 +1,6 @@
 .public-ip
+.env.prod
+cloudflared/config.yml
+cloudflared/tunnel.id
+cloudflared/tunnel.token
+cloudflared/*.json

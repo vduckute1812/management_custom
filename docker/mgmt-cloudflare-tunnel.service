@@ -1,12 +1,14 @@
 [Unit]
-Description=Cloudflare Tunnel for management app
+Description=Cloudflare Tunnel for management app (dntechx.com)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/management
-ExecStart=%h/management/docker/bin/cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8080
+WorkingDirectory=%h/Projects/management_custom
+# Prefer named tunnel config (created by setup-named-tunnel.sh).
+# install-cloudflare-tunnel.sh rewrites ExecStart with absolute paths.
+ExecStart=%h/Projects/management_custom/docker/bin/cloudflared tunnel --no-autoupdate --config %h/Projects/management_custom/docker/cloudflared/config.yml run
 Restart=on-failure
 RestartSec=10
 
