@@ -8,8 +8,10 @@
 #
 # Behaviour:
 #   - Checks out the commit into the runner workspace (relative paths only)
-#   - Runs compose via `uv run podman-compose` (see pyproject.toml)
-#   - If the *build* fails → running containers are left untouched
+#   - Syncs ops libs with `uv sync --frozen`
+#   - Builds the app image (`npm ci` inside Dockerfile) via `uv run podman-compose`
+#   - Runs DB migrations with the *new* image before switching the live app
+#   - If build/migrate fails → running containers are left untouched
 #   - If the new container fails health checks → previous image is restored
 
 name: Deploy (Raspberry Pi)
@@ -30,7 +32,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build & deploy on Pi
+    name: Sync, migrate & deploy on Pi
     runs-on: [self-hosted, linux, ARM64, management]
     timeout-minutes: 60
 
@@ -51,10 +53,10 @@ jobs:
           fi
           uv --version
 
-      - name: Sync ops dependencies
+      - name: Sync ops libraries (uv)
         run: uv sync --frozen
 
-      - name: Deploy with automatic rollback
+      - name: Deploy (build, migrate DB, restart, health-check)
         env:
           FULL_SHA: ${{ github.sha }}
           SKIP_TUNNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_tunnel_url || false }}
@@ -66,4 +68,5 @@ jobs:
           if [[ "${SKIP_TUNNEL}" == "true" ]]; then
             EXTRA+=(--skip-tunnel-url)
           fi
+          # ci-deploy.sh also re-runs uv sync, builds (npm ci), migrates, then switches the app.
           bash docker/ci-deploy.sh "${EXTRA[@]}"

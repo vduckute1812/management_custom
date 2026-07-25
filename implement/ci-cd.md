@@ -7,12 +7,14 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 ## What happens on every `master` push
 
 1. The Pi runner checks out the commit into its workspace (`actions/checkout`, `clean: false` so local secrets survive).
-2. `uv sync --frozen` installs ops deps (`podman-compose`).
+2. **Sync libs** — `uv sync --frozen` installs ops deps (`podman-compose`). App npm deps sync inside the image build via `npm ci`.
 3. `docker/ci-deploy.sh` snapshots the current app image as `:previous`.
 4. It builds a new image tagged with the git SHA.
 5. **If the build fails** → the running stack is **not** restarted.
-6. On build success it recreates the compose stack and health-checks `http://127.0.0.1:3000/`.
-7. **If health fails** → it retags `:previous` → `:latest`, recreates the app, and fails the job.
+6. MySQL is ensured up; **DB migrations** run with the *new* image (`scripts/migrate.ts up`) while the old app is still serving.
+7. **If migrate fails** → `:latest` is restored to `:previous` and the live app is **not** restarted.
+8. On success it recreates the compose stack and health-checks `http://127.0.0.1:3000/`.
+9. **If health fails** → it retags `:previous` → `:latest`, recreates the app, and fails the job.
 
 Manual entrypoint: `bash docker/deploy.sh` (same script).
 
@@ -55,11 +57,13 @@ After the first workflow checkout (or a manual clone into the runner work dir), 
 
 ## Rollback behaviour (summary)
 
-| Failure point        | Running site                            |
-| -------------------- | --------------------------------------- |
-| Image build error    | Unchanged (old containers keep running) |
-| Compose / health fail| Restored from `:previous` image         |
-| Success              | New SHA is live as `:latest`            |
+| Failure point           | Running site                            |
+| ----------------------- | --------------------------------------- |
+| `uv sync` / lib error   | Unchanged                               |
+| Image build error       | Unchanged (old containers keep running) |
+| DB migration error      | Unchanged; `:latest` tag restored       |
+| Compose / health fail   | Restored from `:previous` image         |
+| Success                 | New SHA is live as `:latest`            |
 
 Force a manual rollback on the Pi (from the repo root):
 
