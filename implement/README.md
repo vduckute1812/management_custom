@@ -17,6 +17,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`auth.md`](./auth.md)                      | Roles (`normal` / `admin` / `superadmin`), token lifecycle (JWT + refresh), bootstrap superadmin, email transport. |
 | [`auth-rbac.md`](./auth-rbac.md)            | Original feature spec for Authentication & RBAC (the "what was asked for" document).        |
 | [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress (Phase 8 auth, Phase 9 superadmin + integer enums end-to-end, Phase 10 live "now" indicator + pre-task alerts). |
+| [`ci-cd.md`](./ci-cd.md)                    | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.    |
 
 ## Feature specs vs. implementation docs
 

@@ -450,6 +450,7 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 | JWT / refresh model, admin seed, email transport | [`implement/auth.md`](./implement/auth.md)                       |
 | Original Authentication & RBAC feature spec      | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
 | Phase-by-phase engineering progress              | [`implement/roadmap.md`](./implement/roadmap.md)                 |
+| Raspberry Pi CI/CD deploy + rollback             | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |
 
 ---
 
