@@ -7,8 +7,8 @@
 # Full notes:        implement/ci-cd.md
 #
 # Behaviour:
-#   - Pulls the new commit into the Pi deploy directory
-#   - Builds the prod image with podman/docker
+#   - Checks out the commit into the runner workspace (relative paths only)
+#   - Runs compose via `uv run podman-compose` (see pyproject.toml)
 #   - If the *build* fails → running containers are left untouched
 #   - If the new container fails health checks → previous image is restored
 
@@ -35,24 +35,24 @@ jobs:
     timeout-minutes: 60
 
     steps:
-      - name: Sync repository on Pi
-        env:
-          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Keep local-only files on the self-hosted workspace between runs
+          # (docker/.env.prod, docker/ssl/*, tunnel credentials).
+          clean: false
+
+      - name: Ensure uv
         run: |
           set -euo pipefail
-          DEPLOY_DIR="${DEPLOY_DIR:-/home/duc13t3/Projects/management}"
-          echo "DEPLOY_DIR=${DEPLOY_DIR}" >> "${GITHUB_ENV}"
-          if [[ ! -d "${DEPLOY_DIR}/.git" ]]; then
-            echo "DEPLOY_DIR=${DEPLOY_DIR} is not a git checkout."
-            echo "Clone the repo there once, then re-run."
-            exit 1
+          if ! command -v uv >/dev/null 2>&1; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
           fi
-          cd "${DEPLOY_DIR}"
-          git remote get-url origin >/dev/null
-          git fetch --prune origin master
-          git checkout master
-          git reset --hard origin/master
-          echo "Now at $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+          uv --version
+
+      - name: Sync ops dependencies
+        run: uv sync --frozen
 
       - name: Deploy with automatic rollback
         env:
@@ -60,8 +60,8 @@ jobs:
           SKIP_TUNNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_tunnel_url || false }}
         run: |
           set -euo pipefail
-          cd "${DEPLOY_DIR}"
-          export GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
+          export GIT_SHA
+          GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
           EXTRA=()
           if [[ "${SKIP_TUNNEL}" == "true" ]]; then
             EXTRA+=(--skip-tunnel-url)

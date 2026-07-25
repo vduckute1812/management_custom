@@ -9,6 +9,10 @@ dist
 # Node dependencies
 node_modules
 
+# Python ops env (uv / podman-compose)
+.venv
+__pycache__/
+
 # Logs
 logs
 *.log

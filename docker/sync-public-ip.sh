@@ -66,10 +66,10 @@ update_app_host() {
 }
 
 restart_nginx() {
-  local compose="/home/duc13t3/.pyenv/versions/toastmaster-env/bin/podman-compose -f docker/docker-compose.prod.yml"
+  # shellcheck source=docker/lib-compose.sh
+  source "${DIR}/lib-compose.sh"
   if podman ps --format '{{.Names}}' 2>/dev/null | grep -qx 'mgmt-nginx-prod'; then
-    cd "${ROOT}"
-    ${compose} up -d --force-recreate nginx
+    mgmt_compose up -d --force-recreate nginx
     echo "[ip] recreated mgmt-nginx-prod with updated TLS certificate"
   fi
 }

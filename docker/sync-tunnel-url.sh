@@ -41,8 +41,8 @@ fi
 echo "[sync] APP_BASE_URL=${URL}"
 
 if [[ "${RESTART_APP}" == true ]]; then
-  COMPOSE="/home/duc13t3/.pyenv/versions/toastmaster-env/bin/podman-compose -f docker/docker-compose.prod.yml"
-  cd "${DIR}/.."
-  ${COMPOSE} up -d --force-recreate app
+  # shellcheck source=docker/lib-compose.sh
+  source "${DIR}/lib-compose.sh"
+  mgmt_compose up -d --force-recreate app
   echo "[sync] recreated mgmt-app-prod with updated APP_BASE_URL"
 fi

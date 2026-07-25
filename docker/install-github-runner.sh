@@ -115,6 +115,11 @@ echo
 echo "Verify in GitHub → Settings → Actions → Runners (should show Idle)."
 echo "Then push to master (or run the workflow manually) to deploy."
 echo
-echo "Also ensure the deploy checkout exists:"
-echo "  git clone ${REPO_URL} /home/duc13t3/Projects/management"
-echo "  # and that docker/.env.prod + TLS/tunnel files are present there"
+echo "Also ensure uv is installed on this Pi (used instead of Poetry/pyenv):"
+echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
+echo
+echo "After the first checkout on the runner, place local secrets in the"
+echo "workspace (relative paths — not committed):"
+echo "  docker/.env.prod"
+echo "  docker/ssl/…"
+echo "  docker/cloudflared/…"
