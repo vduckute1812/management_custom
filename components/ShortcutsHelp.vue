@@ -16,7 +16,8 @@ const sections: Section[] = [
     rows: [
       { keys: ["?"], label: "Show this cheatsheet" },
       { keys: ["⌘", "K"], label: "Open command palette" },
-      { keys: ["n"], label: "Quick capture task" },
+      { keys: ["n"], label: "Quick capture (schedules next hour)" },
+      { keys: ["⇧", "N"], label: "New task (full editor)" },
       { keys: ["Esc"], label: "Close any overlay" },
     ],
   },
@@ -32,8 +33,8 @@ const sections: Section[] = [
     title: "Calendar (Dashboard)",
     rows: [
       { keys: ["1"], label: "Daily view" },
-      { keys: ["2"], label: "Weekly view" },
-      { keys: ["3"], label: "Monthly view" },
+      { keys: ["2"], label: "Weekly view (desktop)" },
+      { keys: ["3"], label: "Monthly view (desktop)" },
       { keys: ["t"], label: "Jump to today" },
       { keys: ["←"], label: "Previous period" },
       { keys: ["→"], label: "Next period" },
@@ -43,14 +44,17 @@ const sections: Section[] = [
     title: "Modals & forms",
     rows: [
       { keys: ["⌘", "Enter"], label: "Save" },
-      { keys: ["Esc"], label: "Close" },
+      { keys: ["Esc"], label: "Close (asks if unsaved)" },
     ],
   },
   {
     title: "Mouse & touch",
     rows: [
+      { keys: ["click block"], label: "Log spent hours inline (Daily)" },
+      { keys: ["double-click"], label: "Open full task editor" },
       { keys: ["drag"], label: "Move a block in Daily (snaps to 15 min)" },
       { keys: ["drag edge"], label: "Resize a block from top or bottom" },
+      { keys: ["drag Up next"], label: "Drop onto a Daily hour to schedule" },
       { keys: ["drag"], label: "Move a block across days in Weekly" },
     ],
   },
@@ -67,10 +71,14 @@ function onBackdrop(e: MouseEvent) {
       <div
         v-if="helpOpen"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Keyboard shortcuts"
         @mousedown="onBackdrop"
       >
         <div
           class="w-full max-w-xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200"
+          @mousedown.stop
         >
           <header
             class="flex items-center justify-between px-6 py-4 border-b border-slate-200"

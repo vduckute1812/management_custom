@@ -20,19 +20,26 @@ const emit = defineEmits<{
 }>();
 
 const { saveTask } = useTasks();
+const { pushToast } = useToasts();
 const updating = ref(false);
 
 async function onChange(e: Event) {
   // <select> always yields strings; coerce back to the numeric enum.
-  const raw = (e.target as HTMLSelectElement).value;
+  const select = e.target as HTMLSelectElement;
+  const raw = select.value;
   const next = Number(raw) as TaskStatus;
   if (next === props.task.status) return;
   updating.value = true;
   try {
     const saved = await saveTask({ ...props.task, status: next });
     emit("updated", saved);
-  } catch {
-    // Reset on failure — re-bind from prop value happens automatically.
+  } catch (err: unknown) {
+    // Re-bind from prop value; surface the failure so it isn't silent.
+    select.value = String(props.task.status);
+    pushToast(
+      err instanceof Error ? err.message : "Couldn't update status",
+      { tone: "danger" }
+    );
   } finally {
     updating.value = false;
   }

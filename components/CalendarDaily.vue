@@ -16,12 +16,21 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: "select-task", task: Task): void;
   (e: "create-at", date: string): void;
+  (e: "scheduled", task: Task): void;
 }>();
 
 const { colorOfTask } = useEpics();
-const { saveTask } = useTasks();
+const { saveTask, findTask } = useTasks();
 const { pushToast } = useToasts();
 const { settings, formatTime, formatHourLabel } = useSettings();
+
+const TASK_DND_MIME = "application/x-mgmt-task-id";
+
+const spentOpen = ref(false);
+const spentTask = ref<Task | null>(null);
+const spentBlock = ref<TimeBlock | null>(null);
+const spentAnchor = ref<{ x: number; y: number } | null>(null);
+const dropHour = ref<number | null>(null);
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // Calendar density: compact mode shrinks the row height so a full 24-hour
@@ -141,6 +150,108 @@ function onSlotClick(hour: number) {
   }
   const date = props.date.hour(hour).minute(0).second(0);
   emit("create-at", date.toISOString());
+}
+
+function onSlotKeydown(e: KeyboardEvent, hour: number) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    onSlotClick(hour);
+  }
+}
+
+function hasTaskDrag(dt: DataTransfer | null): boolean {
+  if (!dt) return false;
+  const types = Array.from(dt.types ?? []);
+  return types.includes(TASK_DND_MIME) || types.includes("text/plain");
+}
+
+function onSlotDragOver(e: DragEvent, hour: number) {
+  if (!hasTaskDrag(e.dataTransfer)) return;
+  e.preventDefault();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+  dropHour.value = hour;
+}
+
+function onSlotDragLeave(hour: number) {
+  if (dropHour.value === hour) dropHour.value = null;
+}
+
+async function onSlotDrop(e: DragEvent, hour: number) {
+  dropHour.value = null;
+  const taskId =
+    e.dataTransfer?.getData(TASK_DND_MIME) ||
+    e.dataTransfer?.getData("text/plain");
+  if (!taskId) return;
+  e.preventDefault();
+  e.stopPropagation();
+  await scheduleTaskAtHour(taskId, hour);
+}
+
+async function scheduleTaskAtHour(taskId: string, hour: number) {
+  const task = findTask(taskId);
+  if (!task) {
+    pushToast("Couldn't find that task", { tone: "danger" });
+    return;
+  }
+  const start = props.date.hour(hour).minute(0).second(0).millisecond(0);
+  const end = start.add(1, "hour");
+  const blocks = [...(task.timeBlocks ?? [])].filter((b) => !b.projected);
+
+  // Prefer moving an existing block on this day; otherwise append a new one.
+  const todayIdx = blocks.findIndex((b) =>
+    dayjs(b.start).isSame(props.date, "day")
+  );
+  if (todayIdx >= 0) {
+    blocks[todayIdx] = {
+      ...blocks[todayIdx],
+      start: start.toISOString(),
+      end: end.toISOString(),
+    };
+  } else {
+    blocks.push({
+      id: `block_${Math.random().toString(16).slice(2, 10)}`,
+      start: start.toISOString(),
+      end: end.toISOString(),
+    });
+  }
+
+  try {
+    const saved = await saveTask({ ...task, timeBlocks: blocks });
+    pushToast(`Scheduled on ${start.format("ddd")} ${formatTime(start)}`, {
+      tone: "success",
+      duration: 2500,
+    });
+    emit("scheduled", saved);
+  } catch (err: unknown) {
+    pushToast(
+      err instanceof Error ? err.message : "Failed to schedule",
+      { tone: "danger" }
+    );
+  }
+}
+
+function openSpentPopover(e: MouseEvent, entry: PositionedBlock) {
+  if (entry.block.projected) {
+    emit("select-task", entry.task);
+    return;
+  }
+  spentTask.value = entry.task;
+  spentBlock.value = entry.block;
+  spentAnchor.value = { x: e.clientX + 8, y: e.clientY + 8 };
+  spentOpen.value = true;
+}
+
+function closeSpentPopover() {
+  spentOpen.value = false;
+  spentTask.value = null;
+  spentBlock.value = null;
+  spentAnchor.value = null;
+}
+
+function editDetailsFromPopover() {
+  const task = spentTask.value;
+  closeSpentPopover();
+  if (task) emit("select-task", task);
 }
 
 // --- Drag & resize ---------------------------------------------------------
@@ -286,6 +397,13 @@ function onBlockClick(e: MouseEvent, entry: PositionedBlock) {
     suppressNextClick.value = false;
     return;
   }
+  e.stopPropagation();
+  openSpentPopover(e, entry);
+}
+
+function onBlockDblClick(e: MouseEvent, entry: PositionedBlock) {
+  e.stopPropagation();
+  closeSpentPopover();
   emit("select-task", entry.task);
 }
 
@@ -346,14 +464,23 @@ onBeforeUnmount(() => {
           <div
             v-for="h in HOURS"
             :key="`slot-${h}`"
-            class="border-b border-slate-100 hover:bg-brand-50/30 cursor-pointer transition"
+            role="button"
+            tabindex="0"
+            :aria-label="`Create or drop a task at ${formatHourLabel(h)}`"
+            class="border-b border-slate-100 hover:bg-brand-50/30 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
+            :class="dropHour === h ? 'bg-brand-50/60 ring-1 ring-inset ring-brand-300' : ''"
             :style="{ height: HOUR_HEIGHT + 'px' }"
             @click="onSlotClick(h)"
+            @keydown="onSlotKeydown($event, h)"
+            @dragover="onSlotDragOver($event, h)"
+            @dragleave="onSlotDragLeave(h)"
+            @drop="onSlotDrop($event, h)"
           />
 
           <button
             v-for="entry in dayBlocks"
             :key="entry.block.id"
+            type="button"
             :class="[
               'absolute rounded-lg px-2 py-1 text-left text-xs font-medium ring-1 shadow-sm hover:shadow-md transition-shadow overflow-hidden border-l-4 select-none group',
               colorOfTask(entry.task).bg,
@@ -370,10 +497,11 @@ onBeforeUnmount(() => {
             :title="
               entry.block.projected
                 ? `${entry.task.title} · recurring (projection)`
-                : `${entry.task.title} · ${STATUS_LABELS[entry.task.status]}`
+                : `${entry.task.title} · ${STATUS_LABELS[entry.task.status]} · click to log spent`
             "
             @pointerdown="onPointerDown($event, entry, 'move')"
             @click="onBlockClick($event, entry)"
+            @dblclick="onBlockDblClick($event, entry)"
           >
             <!-- Resize handle (top) — hidden for projections. -->
             <span
@@ -438,5 +566,15 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+
+    <BlockSpentPopover
+      :open="spentOpen"
+      :task="spentTask"
+      :block="spentBlock"
+      :anchor="spentAnchor"
+      @close="closeSpentPopover"
+      @edit-details="editDetailsFromPopover"
+      @saved="closeSpentPopover"
+    />
   </div>
 </template>

@@ -13,13 +13,15 @@ import {
 
 dayjs.extend(isoWeek);
 
-const { tasks, fetchAll, isLoading, error } = useTasks();
+const { tasks, fetchAll, isLoading, error, findTask } = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
-const { quickCaptureOpen } = useUiOverlays();
+const { quickCaptureOpen, openTaskId, pendingCreateTask } = useUiOverlays();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
 const { startOfWeek, formatTime } = useSettings();
 const { withProjections } = useRecurrence();
+
+const TASK_DND_MIME = "application/x-mgmt-task-id";
 
 const view = ref<CalendarView>("daily");
 const cursor = ref(dayjs());
@@ -27,6 +29,59 @@ const taskModalOpen = ref(false);
 const editingTask = ref<Task | null>(null);
 const defaultStart = ref<string>("");
 const seeding = ref(false);
+const isNarrow = ref(false);
+
+function syncViewport() {
+  if (!import.meta.client) return;
+  isNarrow.value = window.matchMedia("(max-width: 767px)").matches;
+}
+
+onMounted(() => {
+  syncViewport();
+  window.addEventListener("resize", syncViewport);
+});
+onBeforeUnmount(() => {
+  if (import.meta.client) {
+    window.removeEventListener("resize", syncViewport);
+  }
+});
+
+watch(pendingCreateTask, (pending) => {
+  if (!pending) return;
+  openCreate();
+  pendingCreateTask.value = false;
+});
+
+// Phone: Daily-only planning surface (weekly/monthly stay desk-class).
+watch(isNarrow, (narrow) => {
+  if (narrow && view.value !== "daily") {
+    view.value = "daily";
+  }
+});
+
+watch(
+  openTaskId,
+  async (id) => {
+    if (!id) return;
+    if (!tasks.value.some((t) => t.id === id)) {
+      await fetchAll();
+    }
+    const task = findTask(id);
+    if (task) {
+      // Jump the calendar to the task's next block day when available.
+      const nextBlock = task.timeBlocks?.[0]?.start;
+      if (nextBlock && dayjs(nextBlock).isValid()) {
+        cursor.value = dayjs(nextBlock);
+        view.value = "daily";
+      }
+      openEdit(task);
+    } else {
+      pushToast("Couldn't find that task", { tone: "danger" });
+    }
+    openTaskId.value = null;
+  },
+  { flush: "post", immediate: true }
+);
 
 await useAsyncData("dashboard:initial", async () => {
   await Promise.all([fetchAll(), fetchEpics()]);
@@ -104,14 +159,32 @@ async function seedSamples() {
   }
 }
 
+function setView(next: CalendarView) {
+  if (isNarrow.value && next !== "daily") {
+    pushToast("Weekly and monthly views work best on a larger screen.", {
+      tone: "info",
+      duration: 2800,
+    });
+    return;
+  }
+  view.value = next;
+}
+
 usePageShortcuts([
-  { key: "1", handler: () => (view.value = "daily") },
-  { key: "2", handler: () => (view.value = "weekly") },
-  { key: "3", handler: () => (view.value = "monthly") },
+  { key: "1", handler: () => setView("daily") },
+  { key: "2", handler: () => setView("weekly") },
+  { key: "3", handler: () => setView("monthly") },
   { key: "t", handler: jumpToday },
   { key: "ArrowLeft", handler: () => step(-1) },
   { key: "ArrowRight", handler: () => step(1) },
 ]);
+
+function onUpNextDragStart(e: DragEvent, task: Task) {
+  if (!e.dataTransfer) return;
+  e.dataTransfer.setData(TASK_DND_MIME, task.id);
+  e.dataTransfer.setData("text/plain", task.id);
+  e.dataTransfer.effectAllowed = "move";
+}
 
 const upcoming = computed<Task[]>(() => {
   return [...tasks.value]
@@ -154,18 +227,24 @@ const isEmpty = computed(
         </p>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap justify-end">
         <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
           <button
             v-for="opt in (['daily', 'weekly', 'monthly'] as const)"
             :key="opt"
-            class="px-3 py-1.5 text-xs font-medium capitalize transition"
+            class="px-3 py-1.5 text-xs font-medium capitalize transition disabled:opacity-40 disabled:cursor-not-allowed"
             :class="
               view === opt
                 ? 'bg-brand-600 text-white'
                 : 'bg-white text-slate-600 hover:bg-slate-50'
             "
-            @click="view = opt"
+            :disabled="isNarrow && opt !== 'daily'"
+            :title="
+              isNarrow && opt !== 'daily'
+                ? 'Available on larger screens'
+                : undefined
+            "
+            @click="setView(opt)"
           >
             {{ opt }}
           </button>
@@ -259,10 +338,9 @@ const isEmpty = computed(
 
     <div
       v-else
-      class="flex-1 min-h-0 grid"
-      style="grid-template-columns: 1fr 300px"
+      class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_300px]"
     >
-      <section class="min-h-0 overflow-hidden">
+      <section class="min-h-0 overflow-hidden min-h-[50vh] lg:min-h-0">
         <SkeletonList v-if="isLoading" variant="calendarDay" :rows="6" />
         <CalendarDaily
           v-else-if="view === 'daily'"
@@ -288,11 +366,12 @@ const isEmpty = computed(
       </section>
 
       <aside
-        class="border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin"
+        class="border-t lg:border-t-0 lg:border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin max-h-[40vh] lg:max-h-none"
       >
         <div class="p-4 border-b border-slate-100">
           <h2 class="text-sm font-semibold text-slate-800">Up next</h2>
           <p class="text-[11px] text-slate-500">
+            <span class="hidden lg:inline">Drag onto the day to schedule · </span>
             Open tasks · priority then next block
           </p>
         </div>
@@ -301,7 +380,9 @@ const isEmpty = computed(
           <li
             v-for="t in upcoming"
             :key="t.id"
-            class="p-4 hover:bg-slate-50 cursor-pointer"
+            class="p-4 hover:bg-slate-50 cursor-grab active:cursor-grabbing"
+            draggable="true"
+            @dragstart="onUpNextDragStart($event, t)"
             @click="openEdit(t)"
           >
             <div class="flex items-start justify-between gap-2">

@@ -101,11 +101,17 @@ export const useShortcuts = () => {
       return;
     }
 
-    // Quick capture.
-    if (e.key === "n") {
-      if (e.shiftKey) return; // Shift+N reserved for the full modal (handled by page).
+    // Quick capture (n) or full task modal (Shift+N).
+    if (e.key.toLowerCase() === "n") {
       e.preventDefault();
-      overlays.quickCaptureOpen.value = true;
+      if (e.shiftKey) {
+        overlays.requestCreateTask();
+        if (router.currentRoute.value.path !== "/") {
+          router.push("/");
+        }
+      } else {
+        overlays.quickCaptureOpen.value = true;
+      }
       return;
     }
 

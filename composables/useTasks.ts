@@ -54,18 +54,12 @@ export const useTasks = () => {
   }
 
   async function deleteTask(id: string): Promise<Task | null> {
-    try {
-      const data = await apiFetch<{ ok: boolean; removed: Task }>(
-        `/api/tasks/${id}`,
-        { method: "DELETE" }
-      );
-      tasks.value = tasks.value.filter((t) => t.id !== id);
-      return data.removed;
-    } catch {
-      // Still drop locally; the server may have already removed it.
-      tasks.value = tasks.value.filter((t) => t.id !== id);
-      return null;
-    }
+    const data = await apiFetch<{ ok: boolean; removed: Task }>(
+      `/api/tasks/${id}`,
+      { method: "DELETE" }
+    );
+    tasks.value = tasks.value.filter((t) => t.id !== id);
+    return data.removed ?? null;
   }
 
   const tasksByStatus = computed(() => {

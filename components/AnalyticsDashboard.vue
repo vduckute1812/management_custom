@@ -364,8 +364,11 @@ onBeforeUnmount(() => {
         <li
           v-for="row in epicBreakdown"
           :key="row.epic.id"
-          class="px-4 py-3 flex items-center gap-3"
         >
+          <NuxtLink
+            :to="`/epics/${row.epic.id}`"
+            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
+          >
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-slate-800 truncate">
               {{ row.epic.title }}
@@ -392,6 +395,7 @@ onBeforeUnmount(() => {
               {{ row.variance > 0 ? "+" : "" }}{{ row.variance }}h
             </p>
           </div>
+          </NuxtLink>
         </li>
       </ul>
     </div>
