@@ -97,40 +97,74 @@ mysql_container_running() {
   [[ "${status}" == "running" ]]
 }
 
-mysql_healthy() {
-  # Podman (esp. older Pi builds) does not expose Docker's .State.Health —
-  # it uses .State.Healthcheck, and `podman exec` can briefly fail with
-  # "Transport endpoint is not connected" after restart. Probe readiness
-  # without depending on Docker-only inspect fields.
-  mysql_container_running || return 1
+mysql_port_open() {
+  # Rootless Podman can leave a container "running" while the runtime is wedged
+  # (exec → "Transport endpoint is not connected", published ports refuse).
+  timeout 1 bash -c 'echo > /dev/tcp/127.0.0.1/3306' >/dev/null 2>&1
+}
 
-  # Prefer MYSQL_PWD so passwords with '@' etc. are not mangled by -pFLAG.
+mysql_healthy() {
+  # Prefer a real mysqladmin ping; fall back to TCP so we do not depend on
+  # Docker-only .State.Health (Podman uses .State.Healthcheck instead).
+  mysql_container_running || return 1
+  mysql_port_open || return 1
+
   if "${RUNTIME}" exec -e "MYSQL_PWD=${MYSQL_ROOT_PASSWORD}" "${MYSQL_CONTAINER}" \
     mysqladmin ping -h 127.0.0.1 -uroot --silent >/dev/null 2>&1; then
     return 0
   fi
 
-  # Host-published port fallback when exec is wedged mid-restart.
   if command -v mysqladmin >/dev/null 2>&1; then
     MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysqladmin ping -h 127.0.0.1 -P 3306 -uroot --silent \
       >/dev/null 2>&1 && return 0
   fi
-  timeout 1 bash -c 'echo > /dev/tcp/127.0.0.1/3306' >/dev/null 2>&1
+
+  # Port is open — good enough to proceed with LAN-published migrations.
+  return 0
+}
+
+recreate_mysql() {
+  log "recreating MySQL container (data volume preserved)"
+  # rm -f first: `compose up` will not heal a wedged-but-still-"running" container.
+  "${RUNTIME}" rm -f "${MYSQL_CONTAINER}" >/dev/null 2>&1 || true
+  mgmt_compose up -d mysql
+}
+
+ensure_mysql() {
+  log "starting MySQL (leave current app running)"
+  if ! mgmt_compose up -d mysql; then
+    return 1
+  fi
+  # Detect already-wedged instance left by a previous crash/deploy.
+  sleep 2
+  if mysql_container_running && ! mysql_port_open; then
+    log "MySQL looks wedged (running but :3306 closed) — recreating once"
+    recreate_mysql || return 1
+  fi
+  return 0
 }
 
 wait_mysql() {
-  local i status hc
+  local i status hc recreated=false
   log "waiting for MySQL (${MYSQL_CONTAINER})"
   for i in $(seq 1 "${MYSQL_WAIT_RETRIES}"); do
     if mysql_healthy; then
       log "MySQL is ready (attempt ${i}/${MYSQL_WAIT_RETRIES})"
       return 0
     fi
+    # Mid-wait recovery: Podman sometimes leaves mysqld "running" with dead I/O.
+    if [[ "${recreated}" == false ]] && (( i == 15 )); then
+      if mysql_container_running && ! mysql_port_open; then
+        log "MySQL still not accepting connections — force recreate"
+        recreate_mysql || true
+        recreated=true
+      fi
+    fi
     if (( i % 10 == 0 )); then
       status="$("${RUNTIME}" inspect -f '{{.State.Status}}' "${MYSQL_CONTAINER}" 2>/dev/null || echo missing)"
       hc="$("${RUNTIME}" inspect -f '{{if .State.Healthcheck}}{{.State.Healthcheck.Status}}{{else}}n/a{{end}}' \
         "${MYSQL_CONTAINER}" 2>/dev/null || echo n/a)"
-      log "MySQL not ready yet (attempt ${i}/${MYSQL_WAIT_RETRIES}; status=${status}; healthcheck=${hc})"
+      log "MySQL not ready yet (attempt ${i}/${MYSQL_WAIT_RETRIES}; status=${status}; healthcheck=${hc}; port=$(mysql_port_open && echo open || echo closed))"
     fi
     sleep 2
   done
@@ -259,8 +293,7 @@ tag_image "${NEW_TAG}" "${LATEST_TAG}"
 log "build ok; tagged ${LATEST_TAG}"
 
 # ── Ensure MySQL is up, then migrate BEFORE switching the live app ───────
-log "starting MySQL (leave current app running)"
-if ! mgmt_compose up -d mysql; then
+if ! ensure_mysql; then
   restore_previous_tag
   die "could not start MySQL — running app not restarted"
 fi
