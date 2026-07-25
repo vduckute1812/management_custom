@@ -38,7 +38,15 @@ bash docker/install-github-runner.sh \
   --token <REGISTRATION_TOKEN>
 ```
 
-Labels registered: `self-hosted,linux,ARM64,management` (required by `.github/workflows/deploy-pi.yml`).
+Custom label registered: `management` (workflow uses `runs-on: [self-hosted, management]`).
+
+Confirm the runner shows **Idle** (green) in GitHub → Settings → Actions → Runners. If it shows **Offline**:
+
+```bash
+cd ~/actions-runner   # or the --dir you chose
+./svc.sh start
+./svc.sh status
+```
 
 ### 3. Local secrets in the runner workspace
 
@@ -84,4 +92,26 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 
 ## Workflow file
 
-See [`.github/workflows/deploy-pi.yml`](../.github/workflows/deploy-pi.yml). Concurrency group `deploy-pi-production` ensures only one deploy runs at a time (`cancel-in-progress: false` so an in-flight deploy is never aborted mid-rollback).
+See [`.github/workflows/deploy-pi.yml`](../.github/workflows/deploy-pi.yml). Concurrency group `deploy-pi-production` keeps one deploy at a time; `cancel-in-progress: true` so a newer push cancels an older queued/stuck run.
+
+## Troubleshooting: stuck on Queued
+
+GitHub will wait **forever** for a matching self-hosted runner. Queued almost always means:
+
+1. No runner is registered for this repo, or
+2. The runner is **Offline**, or
+3. The runner is missing the `management` label
+
+Fix:
+
+1. In the Actions UI, **Cancel** the stuck run (it can also block newer deploys until cancelled or replaced).
+2. On the Pi, confirm the runner service is running and GitHub shows **Idle**.
+3. Re-register if needed:
+
+```bash
+bash docker/install-github-runner.sh \
+  --url https://github.com/vduckute1812/management_custom \
+  --token <NEW_REGISTRATION_TOKEN>
+```
+
+4. Re-run the workflow: Actions → Deploy (Raspberry Pi) → Run workflow.
