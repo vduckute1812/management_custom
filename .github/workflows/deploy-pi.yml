@@ -55,6 +55,15 @@ jobs:
       - name: Sync ops libraries (uv)
         run: uv sync --frozen
 
+      - name: Link Pi secrets into workspace
+        env:
+          # Override via repo variable if secrets live elsewhere under $HOME.
+          MGMT_SECRETS_DIR: ${{ vars.MGMT_SECRETS_DIR }}
+        run: |
+          set -euo pipefail
+          export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
+          bash docker/link-secrets.sh
+
       - name: Deploy (build, migrate DB, restart, health-check)
         env:
           FULL_SHA: ${{ github.sha }}

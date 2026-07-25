@@ -48,15 +48,24 @@ cd ~/actions-runner   # or the --dir you chose
 ./svc.sh status
 ```
 
-### 3. Local secrets in the runner workspace
+### 3. Local secrets on the Pi (required)
 
-After the first workflow checkout (or a manual clone into the runner work dir), keep these **relative** files on the Pi (gitignored):
+The Actions checkout does **not** include gitignored files. Keep production
+secrets once under `~/.config/management` (or set repo variable / env
+`MGMT_SECRETS_DIR`). CI runs `docker/link-secrets.sh` to materialize them into
+`docker/` before deploy.
 
-- `docker/.env.prod`
-- `docker/ssl/…`
-- `docker/cloudflared/…`
+```bash
+mkdir -p ~/.config/management
 
-`clean: false` on checkout preserves them between runs.
+# From your existing working deploy tree (adjust the source path):
+cp docker/.env.prod ~/.config/management/.env.prod
+cp -a docker/ssl ~/.config/management/ssl
+cp -a docker/cloudflared ~/.config/management/cloudflared
+cp docker/cloudflared.env ~/.config/management/cloudflared.env   # if you use it
+```
+
+Required at minimum: `~/.config/management/.env.prod`
 
 ### 4. Trigger a deploy
 
@@ -93,6 +102,11 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 ## Workflow file
 
 See [`.github/workflows/deploy-pi.yml`](../.github/workflows/deploy-pi.yml). Concurrency group `deploy-pi-production` keeps one deploy at a time; `cancel-in-progress: true` so a newer push cancels an older queued/stuck run.
+
+## Troubleshooting: `docker/.env.prod missing`
+
+The deploy failed because secrets were not on the Pi yet. Create
+`~/.config/management/.env.prod` (see §3 above), then re-run the workflow.
 
 ## Troubleshooting: stuck on Queued
 

@@ -177,8 +177,11 @@ rollback() {
 }
 
 # ── Preflight ────────────────────────────────────────────────────────────
-[[ -f docker/.env.prod ]] || die "docker/.env.prod missing — create it on the Pi before deploying"
 [[ -f docker/Dockerfile.prod ]] || die "docker/Dockerfile.prod missing"
+
+log "linking Pi-local secrets into docker/"
+bash docker/link-secrets.sh
+[[ -f docker/.env.prod ]] || die "docker/.env.prod still missing after link-secrets"
 
 log "runtime=${RUNTIME} sha=${GIT_SHA} image=${IMAGE}"
 read_mysql_root_password
