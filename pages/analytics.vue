@@ -36,7 +36,8 @@ const taggedBreakdown = computed(() => {
     { count: number; estimated: number; spent: number }
   >();
   for (const t of tasks.value) {
-    for (const tag of t.tags ?? ["untagged"]) {
+    const tags = t.tags?.length ? t.tags : ["untagged"];
+    for (const tag of tags) {
       const entry = map.get(tag) ?? { count: 0, estimated: 0, spent: 0 };
       entry.count += 1;
       entry.estimated += t.estimatedHours ?? 0;
@@ -216,7 +217,14 @@ async function seedSamples() {
                     </div>
                   </td>
                   <td class="px-4 py-2 text-slate-600 text-xs">
-                    {{ findEpic(t.epicId)?.title ?? "—" }}
+                    <NuxtLink
+                      v-if="t.epicId && findEpic(t.epicId)"
+                      :to="`/epics/${t.epicId}`"
+                      class="text-brand-700 hover:underline"
+                    >
+                      {{ findEpic(t.epicId)?.title }}
+                    </NuxtLink>
+                    <span v-else>—</span>
                   </td>
                   <td class="px-4 py-2">
                     <span
@@ -228,7 +236,7 @@ async function seedSamples() {
                   </td>
                   <td class="px-4 py-2">
                     <span
-                      v-if="t.priority"
+                      v-if="t.priority !== undefined"
                       class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
                       :class="PRIORITY_BADGE[t.priority]"
                     >
@@ -236,7 +244,7 @@ async function seedSamples() {
                     </span>
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
-                    {{ t.dueDate || "—" }}
+                    {{ t.dueDate ? dayjs(t.dueDate).format("MMM D, YYYY") : "—" }}
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
                     {{ t.estimatedHours ?? "—" }}

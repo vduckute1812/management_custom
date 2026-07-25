@@ -357,34 +357,38 @@ onBeforeUnmount(() => {
         <li
           v-for="row in epicBreakdown"
           :key="row.epic.id"
-          class="px-4 py-3 flex items-center gap-3"
         >
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-slate-800 truncate">
-              {{ row.epic.title }}
-            </p>
-            <p class="text-[11px] text-slate-500 tabular-nums">
-              {{ row.epic.taskCount }} tasks · {{ row.epic.progress }}% progress
-            </p>
-            <div class="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-              <div
-                class="h-full bg-brand-500"
-                :style="{ width: (row.epic.progress ?? 0) + '%' }"
-              />
+          <NuxtLink
+            :to="`/epics/${row.epic.id}`"
+            class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
+          >
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-slate-800 truncate">
+                {{ row.epic.title }}
+              </p>
+              <p class="text-[11px] text-slate-500 tabular-nums">
+                {{ row.epic.taskCount }} tasks · {{ row.epic.progress }}% progress
+              </p>
+              <div class="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  class="h-full bg-brand-500"
+                  :style="{ width: (row.epic.progress ?? 0) + '%' }"
+                />
+              </div>
             </div>
-          </div>
-          <div class="text-right tabular-nums">
-            <p class="text-sm font-semibold text-slate-900">
-              {{ row.epic.spentHours }}h /
-              <span class="text-slate-400">{{ row.epic.estimatedHours }}h</span>
-            </p>
-            <p
-              class="text-[11px] font-medium"
-              :class="row.variance > 0 ? 'text-rose-600' : 'text-emerald-600'"
-            >
-              {{ row.variance > 0 ? "+" : "" }}{{ row.variance }}h
-            </p>
-          </div>
+            <div class="text-right tabular-nums">
+              <p class="text-sm font-semibold text-slate-900">
+                {{ row.epic.spentHours }}h /
+                <span class="text-slate-400">{{ row.epic.estimatedHours }}h</span>
+              </p>
+              <p
+                class="text-[11px] font-medium"
+                :class="row.variance > 0 ? 'text-rose-600' : 'text-emerald-600'"
+              >
+                {{ row.variance > 0 ? "+" : "" }}{{ row.variance }}h
+              </p>
+            </div>
+          </NuxtLink>
         </li>
       </ul>
     </div>

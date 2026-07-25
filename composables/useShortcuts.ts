@@ -113,15 +113,21 @@ export const useShortcuts = () => {
       return;
     }
 
-    // Quick capture (Tasks section only).
-    if (e.key === "n") {
-      if (e.shiftKey) return; // Shift+N reserved for the full modal (handled by page).
-      if (
-        router.currentRoute.value.path.startsWith("/feed") ||
-        router.currentRoute.value.path === "/"
-      ) {
+    // Quick capture (n) or full task modal (Shift+N). Skip on home/feed
+    // where capture isn't part of the surface — except Shift+N, which jumps
+    // to /tasks and opens the editor.
+    if (e.key.toLowerCase() === "n") {
+      const path = router.currentRoute.value.path;
+      const onHomeOrFeed = path === "/" || path.startsWith("/feed");
+      if (e.shiftKey) {
+        e.preventDefault();
+        overlays.requestCreateTask();
+        if (!path.startsWith("/tasks")) {
+          router.push("/tasks");
+        }
         return;
       }
+      if (onHomeOrFeed) return;
       e.preventDefault();
       overlays.quickCaptureOpen.value = true;
       return;
