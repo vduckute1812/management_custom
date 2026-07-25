@@ -18,6 +18,14 @@
 
 set -euo pipefail
 
+# CRITICAL when run from a GitHub Actions self-hosted runner: the runner kills
+# every process carrying its RUNNER_TRACKING_ID env var when the job ends.
+# Podman's per-container helpers (conmon, slirp4netns, rootlessport) inherit it
+# and get murdered post-job — containers stay "running" but lose all networking
+# (exec fails with "Transport endpoint is not connected", published ports die).
+# Blanking the variable opts our children out of that cleanup.
+export RUNNER_TRACKING_ID=""
+
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # shellcheck source=docker/lib-compose.sh
 source "${ROOT}/docker/lib-compose.sh"
@@ -26,7 +34,8 @@ cd "${ROOT}"
 
 LAN_IP="${LAN_IP:-192.168.1.4}"
 IMAGE="${MGMT_IMAGE:-localhost/mgmt-app-prod}"
-HEALTH_URL="${MGMT_HEALTH_URL:-http://127.0.0.1:3000/}"
+# The app publishes ${LAN_IP}:3000 (not 127.0.0.1), so probe the LAN bind.
+HEALTH_URL="${MGMT_HEALTH_URL:-http://${LAN_IP}:3000/}"
 HEALTH_RETRIES="${MGMT_HEALTH_RETRIES:-30}"
 HEALTH_SLEEP="${MGMT_HEALTH_SLEEP:-2}"
 MYSQL_CONTAINER="${MGMT_MYSQL_CONTAINER:-mgmt-mysql-prod}"
