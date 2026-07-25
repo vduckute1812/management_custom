@@ -91,24 +91,46 @@ wait_healthy() {
   return 1
 }
 
-mysql_healthy() {
+mysql_container_running() {
   local status
-  status="$("${RUNTIME}" inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
-    "${MYSQL_CONTAINER}" 2>/dev/null || true)"
-  [[ "${status}" == "healthy" || "${status}" == "running" ]] || return 1
-  # Prefer the real ping when the container is up.
-  "${RUNTIME}" exec "${MYSQL_CONTAINER}" \
-    mysqladmin ping -h 127.0.0.1 -uroot -p"${MYSQL_ROOT_PASSWORD}" --silent \
-    >/dev/null 2>&1
+  status="$("${RUNTIME}" inspect -f '{{.State.Status}}' "${MYSQL_CONTAINER}" 2>/dev/null || true)"
+  [[ "${status}" == "running" ]]
+}
+
+mysql_healthy() {
+  # Podman (esp. older Pi builds) does not expose Docker's .State.Health —
+  # it uses .State.Healthcheck, and `podman exec` can briefly fail with
+  # "Transport endpoint is not connected" after restart. Probe readiness
+  # without depending on Docker-only inspect fields.
+  mysql_container_running || return 1
+
+  # Prefer MYSQL_PWD so passwords with '@' etc. are not mangled by -pFLAG.
+  if "${RUNTIME}" exec -e "MYSQL_PWD=${MYSQL_ROOT_PASSWORD}" "${MYSQL_CONTAINER}" \
+    mysqladmin ping -h 127.0.0.1 -uroot --silent >/dev/null 2>&1; then
+    return 0
+  fi
+
+  # Host-published port fallback when exec is wedged mid-restart.
+  if command -v mysqladmin >/dev/null 2>&1; then
+    MYSQL_PWD="${MYSQL_ROOT_PASSWORD}" mysqladmin ping -h 127.0.0.1 -P 3306 -uroot --silent \
+      >/dev/null 2>&1 && return 0
+  fi
+  timeout 1 bash -c 'echo > /dev/tcp/127.0.0.1/3306' >/dev/null 2>&1
 }
 
 wait_mysql() {
-  local i
+  local i status hc
   log "waiting for MySQL (${MYSQL_CONTAINER})"
   for i in $(seq 1 "${MYSQL_WAIT_RETRIES}"); do
     if mysql_healthy; then
       log "MySQL is ready (attempt ${i}/${MYSQL_WAIT_RETRIES})"
       return 0
+    fi
+    if (( i % 10 == 0 )); then
+      status="$("${RUNTIME}" inspect -f '{{.State.Status}}' "${MYSQL_CONTAINER}" 2>/dev/null || echo missing)"
+      hc="$("${RUNTIME}" inspect -f '{{if .State.Healthcheck}}{{.State.Healthcheck.Status}}{{else}}n/a{{end}}' \
+        "${MYSQL_CONTAINER}" 2>/dev/null || echo n/a)"
+      log "MySQL not ready yet (attempt ${i}/${MYSQL_WAIT_RETRIES}; status=${status}; healthcheck=${hc})"
     fi
     sleep 2
   done
@@ -116,12 +138,13 @@ wait_mysql() {
 }
 
 read_mysql_root_password() {
-  # Prefer compose service env; fall back to docker/.env.prod DB_PASS.
+  # Prefer compose YAML MYSQL_ROOT_PASSWORD: "..."; fall back to .env.prod DB_PASS.
   MYSQL_ROOT_PASSWORD="root@1345"
-  if grep -q '^MYSQL_ROOT_PASSWORD=' docker/docker-compose.prod.yml 2>/dev/null; then
+  if [[ -f docker/docker-compose.prod.yml ]]; then
     MYSQL_ROOT_PASSWORD="$(
       sed -n 's/.*MYSQL_ROOT_PASSWORD: *"\([^"]*\)".*/\1/p' docker/docker-compose.prod.yml | head -n1
     )"
+    MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-root@1345}"
   fi
   if [[ -z "${MYSQL_ROOT_PASSWORD}" && -f docker/.env.prod ]]; then
     MYSQL_ROOT_PASSWORD="$(grep -E '^DB_PASS=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"

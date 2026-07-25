@@ -45,7 +45,9 @@ services:
     volumes:
       - mgmt-mysql-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      # Use MYSQL_PWD so '@' in the password is not parsed as -p flag noise.
+      # Avoid Docker-only $$ quoting that Podman healthchecks often mishandle.
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
       interval: 10s
       timeout: 5s
       retries: 10
