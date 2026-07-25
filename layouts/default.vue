@@ -83,7 +83,7 @@ function goSection(section: AppSection) {
 
 async function onLogout() {
   await auth.logout();
-  await router.replace("/login");
+  await router.replace("/");
 }
 
 const userInitial = computed(() => {
@@ -268,11 +268,12 @@ const themeLabel = computed(() => {
       </nav>
 
       <div
-        v-if="auth.user.value"
+        v-if="auth.isAuthenticated.value && auth.user.value"
         class="px-3 py-3 border-t border-slate-200 flex items-center gap-2.5"
       >
         <div
           class="w-8 h-8 rounded-full bg-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center"
+          aria-hidden="true"
         >
           {{ userInitial }}
         </div>
@@ -289,12 +290,33 @@ const themeLabel = computed(() => {
         </div>
         <button
           type="button"
-          class="text-[11px] text-slate-500 hover:text-rose-600 px-1.5 py-1 rounded"
+          class="text-[11px] font-medium text-slate-500 hover:text-rose-600 px-1.5 py-1 rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
           title="Sign out"
           @click="onLogout"
         >
-          Sign out
+          Logout
         </button>
+      </div>
+
+      <div
+        v-else
+        class="px-3 py-3 border-t border-slate-200 space-y-2"
+      >
+        <p class="px-1 text-[11px] text-slate-500">
+          Sign in to manage tasks and post to the feed.
+        </p>
+        <NuxtLink
+          to="/login"
+          class="flex w-full items-center justify-center rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        >
+          Login
+        </NuxtLink>
+        <NuxtLink
+          to="/signup"
+          class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition duration-200 ease-out hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        >
+          Register
+        </NuxtLink>
       </div>
 
       <div class="p-3 border-t border-slate-200 space-y-2">
@@ -394,7 +416,7 @@ const themeLabel = computed(() => {
 
     <main
       id="main-content"
-      class="flex-1 min-w-0 flex flex-col pb-24 md:pb-0"
+      class="flex-1 min-w-0 flex flex-col pb-28 md:pb-0"
       tabindex="-1"
     >
       <slot />
@@ -404,6 +426,23 @@ const themeLabel = computed(() => {
     <div
       class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 no-print"
     >
+      <div
+        v-if="!auth.isAuthenticated.value"
+        class="flex items-center gap-2 px-3 pt-2"
+      >
+        <NuxtLink
+          to="/login"
+          class="flex-1 rounded-lg bg-brand-600 py-2 text-center text-xs font-semibold text-white"
+        >
+          Login
+        </NuxtLink>
+        <NuxtLink
+          to="/signup"
+          class="flex-1 rounded-lg border border-slate-200 py-2 text-center text-xs font-semibold text-slate-800"
+        >
+          Register
+        </NuxtLink>
+      </div>
       <div
         class="grid grid-cols-2 gap-1 px-2 pt-2"
         role="tablist"

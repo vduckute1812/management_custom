@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { PostVisibility } from "~/types/post";
 
+const auth = useAuth();
+
 const {
   posts,
   nextCursor,
@@ -43,10 +45,14 @@ useSeoMeta({
 });
 
 onMounted(async () => {
-  await Promise.all([
+  const jobs: Promise<unknown>[] = [
     posts.value.length ? Promise.resolve() : refresh().catch(() => undefined),
-    refreshStories().catch(() => undefined),
-  ]);
+  ];
+  // Stories require auth; skip for guests so we don't spam 401s.
+  if (auth.isAuthenticated.value) {
+    jobs.push(refreshStories().catch(() => undefined));
+  }
+  await Promise.all(jobs);
 });
 
 async function onCreate(payload: {
@@ -55,6 +61,7 @@ async function onCreate(payload: {
   audienceUserIds: string[];
   attachmentIds: string[];
 }) {
+  if (!auth.isAuthenticated.value) return;
   submitting.value = true;
   try {
     await createPost(payload);
@@ -67,6 +74,7 @@ async function onCreate(payload: {
 }
 
 async function onShare(id: string, note: string) {
+  if (!auth.isAuthenticated.value) return;
   try {
     await sharePost(id, note);
   } catch {
@@ -123,13 +131,42 @@ async function submitStory() {
       <div class="max-w-2xl mx-auto">
         <h1 class="text-xl font-semibold text-slate-900">Feed</h1>
         <p class="text-sm text-slate-500 mt-0.5">
-          Documents, stories, reactions, and comments — public, private, or shared.
+          <template v-if="auth.isAuthenticated.value">
+            Documents, stories, reactions, and comments — public, private, or shared.
+          </template>
+          <template v-else>
+            Public posts anyone can read. Sign in to react, comment, or share.
+          </template>
         </p>
       </div>
     </header>
 
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-      <NuxtErrorBoundary>
+      <div
+        v-if="!auth.isAuthenticated.value"
+        class="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+        role="status"
+      >
+        <p class="text-sm text-slate-700">
+          Browsing public posts. Create an account to post and interact.
+        </p>
+        <div class="flex items-center gap-2 shrink-0">
+          <NuxtLink
+            to="/login"
+            class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+          >
+            Login
+          </NuxtLink>
+          <NuxtLink
+            to="/signup"
+            class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
+          >
+            Register
+          </NuxtLink>
+        </div>
+      </div>
+
+      <NuxtErrorBoundary v-if="auth.isAuthenticated.value">
         <StoryTray
           :groups="tray.groups"
           :loading="storiesLoading"
@@ -147,6 +184,7 @@ async function submitStory() {
       </NuxtErrorBoundary>
 
       <PostComposer
+        v-if="auth.isAuthenticated.value"
         ref="composerRef"
         :submitting="submitting"
         @submit="onCreate"
@@ -179,10 +217,18 @@ async function submitStory() {
       <EmptyState
         v-else-if="!loading && !posts.length && !error"
         title="Nothing here yet"
-        description="Be the first to share a document or update."
+        :description="
+          auth.isAuthenticated.value
+            ? 'Be the first to share a document or update.'
+            : 'No public posts yet. Sign in to share the first one.'
+        "
         illustration="spark"
-        primary-label="Write a post"
-        @primary="composerRef?.focus()"
+        :primary-label="auth.isAuthenticated.value ? 'Write a post' : 'Login'"
+        @primary="
+          auth.isAuthenticated.value
+            ? composerRef?.focus()
+            : navigateTo('/login')
+        "
       />
 
       <div v-else class="space-y-4">
@@ -217,7 +263,7 @@ async function submitStory() {
     />
 
     <div
-      v-if="storyComposerOpen"
+      v-if="storyComposerOpen && auth.isAuthenticated.value"
       class="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/50 p-4"
       role="dialog"
       aria-modal="true"

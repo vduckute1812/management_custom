@@ -17,9 +17,32 @@ useSeoMeta({
         Welcome{{ auth.user.value?.name ? `, ${auth.user.value.name}` : "" }}
       </h1>
       <p class="mt-3 text-base text-slate-600">
-        Jump into your calendar and tasks, or open the Feed to share stories and
-        documents with your team.
+        <template v-if="auth.isAuthenticated.value">
+          Jump into your calendar and tasks, or open the Feed to share stories and
+          documents with your team.
+        </template>
+        <template v-else>
+          Browse public posts on the Feed, or sign in to manage tasks and share
+          with your team.
+        </template>
       </p>
+      <div
+        v-if="!auth.isAuthenticated.value"
+        class="mt-5 flex flex-wrap items-center gap-3"
+      >
+        <NuxtLink
+          to="/login"
+          class="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition duration-200 ease-out hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        >
+          Login
+        </NuxtLink>
+        <NuxtLink
+          to="/signup"
+          class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition duration-200 ease-out hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        >
+          Register
+        </NuxtLink>
+      </div>
     </header>
 
     <div class="grid gap-4 sm:grid-cols-2 sm:gap-6">
@@ -41,7 +64,7 @@ useSeoMeta({
           dashboard.
         </p>
         <span class="mt-5 text-sm font-medium text-brand-700 group-hover:underline">
-          Open dashboard →
+          {{ auth.isAuthenticated.value ? "Open dashboard →" : "Sign in to open →" }}
         </span>
       </NuxtLink>
 

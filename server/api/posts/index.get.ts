@@ -1,8 +1,12 @@
 import { listFeedPosts } from "~/server/utils/db";
-import { requireUser } from "~/server/utils/authContext";
+import { getOptionalUser } from "~/server/utils/authContext";
 
+/**
+ * Feed listing. Authenticated users see public + own + shared-with-me posts.
+ * Anonymous visitors only receive posts with `visibility: public`.
+ */
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event);
+  const user = getOptionalUser(event);
   const query = getQuery(event);
   const cursor =
     typeof query.cursor === "string" && query.cursor.trim()
@@ -11,5 +15,5 @@ export default defineEventHandler(async (event) => {
   const limitRaw = Number(query.limit);
   const limit = Number.isFinite(limitRaw) ? limitRaw : 20;
 
-  return listFeedPosts(user.sub, { cursor, limit });
+  return listFeedPosts(user?.sub ?? null, { cursor, limit });
 });

@@ -160,16 +160,32 @@ export async function signedUploadUrl(storageKey: string): Promise<string> {
   return r2SignedGetUrl(storageKey);
 }
 
-/** True if viewer owns the upload or it is attached to a post/story they can see. */
+/**
+ * True if the viewer may fetch this upload.
+ * Anonymous viewers only get uploads attached to public posts.
+ * Authenticated viewers also get own uploads, shared-audience posts, and live stories.
+ */
 export async function canViewerAccessUpload(
-  viewerId: string,
+  viewerId: string | null,
   uploadId: string
 ): Promise<boolean> {
   const row = await getUploadById(uploadId);
   if (!row) return false;
-  if (row.user_id === viewerId) return true;
+  if (viewerId && row.user_id === viewerId) return true;
 
   const pool = getPool();
+  if (!viewerId) {
+    const [publicRows] = await pool.query<RowDataPacket[]>(
+      `SELECT pa.post_id
+       FROM post_attachments pa
+       INNER JOIN posts p ON p.id = pa.post_id
+       WHERE pa.upload_id = ? AND p.visibility = 'public'
+       LIMIT 1`,
+      [uploadId]
+    );
+    return publicRows.length > 0;
+  }
+
   const [postRows] = await pool.query<RowDataPacket[]>(
     `SELECT pa.post_id
      FROM post_attachments pa

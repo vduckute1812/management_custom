@@ -85,6 +85,7 @@ function toAuthor(
   return { id, name, email };
 }
 
+/** ACL for authenticated viewers (public + own + shared-with-me). */
 function visibilityClause(alias = "p"): string {
   return `(
     ${alias}.visibility = 'public'
@@ -97,6 +98,11 @@ function visibilityClause(alias = "p"): string {
       )
     )
   )`;
+}
+
+/** Anonymous visitors may only see explicitly public posts. */
+function publicOnlyClause(alias = "p"): string {
+  return `${alias}.visibility = 'public'`;
 }
 
 const POST_SELECT = `
@@ -275,15 +281,23 @@ async function hydratePosts(
 }
 
 export async function listFeedPosts(
-  viewerId: string,
+  viewerId: string | null,
   options: { cursor?: string | null; limit?: number } = {}
 ): Promise<{ posts: Post[]; nextCursor: string | null }> {
   const pool = getPool();
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor?.trim() || null;
+  const vid = viewerId ?? "";
 
-  const params: unknown[] = [viewerId, viewerId, viewerId];
-  let where = `WHERE ${visibilityClause("p")}`;
+  // POST_SELECT binds viewer id for my_reaction first.
+  const params: unknown[] = [vid];
+  let where: string;
+  if (viewerId) {
+    where = `WHERE ${visibilityClause("p")}`;
+    params.push(viewerId, viewerId);
+  } else {
+    where = `WHERE ${publicOnlyClause("p")}`;
+  }
   if (cursor) {
     where += " AND p.created_at < ?";
     params.push(isoToDB(cursor));
@@ -299,25 +313,34 @@ export async function listFeedPosts(
   );
 
   const pageRows = rows.slice(0, limit);
-  const posts = await hydratePosts(pageRows, viewerId);
+  const posts = await hydratePosts(pageRows, vid);
   const nextCursor =
     rows.length > limit ? posts[posts.length - 1]?.createdAt ?? null : null;
   return { posts, nextCursor };
 }
 
 export async function getPostById(
-  viewerId: string,
+  viewerId: string | null,
   postId: string
 ): Promise<Post | null> {
   const pool = getPool();
+  const vid = viewerId ?? "";
+  const params: unknown[] = [vid, postId];
+  const acl = viewerId
+    ? visibilityClause("p")
+    : publicOnlyClause("p");
+  if (viewerId) {
+    params.push(viewerId, viewerId);
+  }
+
   const [rows] = await pool.query<PostRow[]>(
     `${POST_SELECT}
-     WHERE p.id = ? AND ${visibilityClause("p")}
+     WHERE p.id = ? AND ${acl}
      LIMIT 1`,
-    [viewerId, postId, viewerId, viewerId]
+    params
   );
   if (!rows.length) return null;
-  const [post] = await hydratePosts(rows, viewerId);
+  const [post] = await hydratePosts(rows, vid);
   return post ?? null;
 }
 
@@ -512,7 +535,7 @@ export async function togglePostLike(
 }
 
 export async function listPostComments(
-  viewerId: string,
+  viewerId: string | null,
   postId: string
 ): Promise<PostComment[]> {
   const pool = getPool();
@@ -538,7 +561,7 @@ export async function listPostComments(
     createdAt: dbToISO(r.created_at),
     updatedAt: dbToISO(r.updated_at),
     author: toAuthor(r.user_id, r.author_name, r.author_email),
-    canDelete: r.user_id === viewerId,
+    canDelete: !!viewerId && r.user_id === viewerId,
   }));
 }
 

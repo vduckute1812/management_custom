@@ -15,6 +15,7 @@ const emit = defineEmits<{
 
 const { loadComments, addComment, removeComment } = usePosts();
 const { mediaUrl } = useMediaUrl();
+const auth = useAuth();
 
 const commentsOpen = ref(false);
 const comments = ref<PostComment[]>([]);
@@ -129,6 +130,10 @@ function onShare() {
 }
 
 function onReactClick() {
+  if (!auth.isAuthenticated.value) {
+    navigateTo({ path: "/login", query: { redirect: "/feed" } });
+    return;
+  }
   if (props.post.myReaction) {
     emit("clear-react");
   } else {
@@ -137,12 +142,24 @@ function onReactClick() {
 }
 
 function pickReaction(r: PostReactionType) {
+  if (!auth.isAuthenticated.value) {
+    navigateTo({ path: "/login", query: { redirect: "/feed" } });
+    return;
+  }
   if (props.post.myReaction === r) {
     emit("clear-react");
   } else {
     emit("react", r);
   }
   pickerOpen.value = false;
+}
+
+function onShareClick() {
+  if (!auth.isAuthenticated.value) {
+    navigateTo({ path: "/login", query: { redirect: "/feed" } });
+    return;
+  }
+  shareOpen.value = !shareOpen.value;
 }
 </script>
 
@@ -327,7 +344,7 @@ function pickReaction(r: PostReactionType) {
       <button
         type="button"
         class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
-        @click="shareOpen = !shareOpen"
+        @click="onShareClick"
       >
         Share
       </button>
@@ -407,7 +424,11 @@ function pickReaction(r: PostReactionType) {
         </li>
       </ul>
 
-      <form class="flex gap-2" @submit.prevent="onAddComment">
+      <form
+        v-if="auth.isAuthenticated.value"
+        class="flex gap-2"
+        @submit.prevent="onAddComment"
+      >
         <label class="sr-only" :for="`comment-${post.id}`">Write a comment</label>
         <input
           :id="`comment-${post.id}`"
@@ -426,6 +447,15 @@ function pickReaction(r: PostReactionType) {
           Reply
         </button>
       </form>
+      <p v-else class="text-xs text-slate-500">
+        <NuxtLink
+          to="/login"
+          class="font-medium text-brand-700 hover:underline"
+        >
+          Login
+        </NuxtLink>
+        to leave a comment.
+      </p>
     </div>
   </article>
 </template>

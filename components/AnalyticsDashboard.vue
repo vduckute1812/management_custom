@@ -1,11 +1,4 @@
 <script setup lang="ts">
-import {
-  computed,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import type { Chart as ChartType } from "chart.js";

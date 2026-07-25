@@ -4,7 +4,8 @@
  * If the access token is past its expiry we eagerly call `/auth/refresh` so
  * the very first protected request doesn't take the 401-then-retry path.
  * If both tokens fail to validate, we end up with a clean unauthenticated
- * state and the global middleware will redirect to /login on the next nav.
+ * state. Public routes (/, /feed, …) remain reachable; protected routes are
+ * gated by `middleware/auth.global.ts`.
  */
 export default defineNuxtPlugin(async () => {
   const auth = useAuth();

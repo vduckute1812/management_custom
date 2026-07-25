@@ -4,21 +4,22 @@ import {
   readUploadFile,
   signedUploadUrl,
 } from "~/server/utils/db";
-import { requireUser } from "~/server/utils/authContext";
+import { getOptionalUser } from "~/server/utils/authContext";
 
 /**
  * Auth + ACL gate, then 302 to a short-lived Cloudflare R2 signed URL.
+ * Public-post attachments are readable without a session.
  * Query `?access_token=` is accepted via auth middleware for <img> tags.
  * Query `?redirect=0` streams through the API instead (debugging).
  */
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event);
+  const user = getOptionalUser(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Upload id required" });
   }
 
-  const allowed = await canViewerAccessUpload(user.sub, id);
+  const allowed = await canViewerAccessUpload(user?.sub ?? null, id);
   if (!allowed) {
     throw createError({ statusCode: 404, statusMessage: "Upload not found" });
   }

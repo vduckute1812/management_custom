@@ -3,12 +3,10 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-01",
   devtools: { enabled: false },
-  // SPA mode. This is a single-user, local-first app whose auth tokens live in
-  // localStorage and whose data is per-user. SSR can't read localStorage, so
-  // protected pages would either flash /login on every cold load or render an
-  // empty shell while server-side API calls 401. Turning SSR off lets the
-  // auth plugin populate state once, then the route middleware decides
-  // cleanly between rendering the page or redirecting.
+  // SPA mode. Auth tokens live in localStorage; SSR can't read them, so we
+  // disable SSR via routeRules. Public routes (/, /feed) render for guests;
+  // the auth plugin hydrates once, then route middleware gates protected
+  // sections (tasks, settings, admin) without bouncing home to /login.
   //
   // Implemented via per-route `routeRules` rather than top-level `ssr: false`
   // because Nuxt 3.21.8 has a regression where the top-level toggle trips

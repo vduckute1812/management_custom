@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, type Component } from "vue";
+import type { Component } from "vue";
 
 const { settings, update, effectiveTheme } = useSettings();
 const { exportJSON, exportCSV, exportEpicsCSV, exportICS } = useExport();

@@ -1,15 +1,18 @@
 import { listPostComments } from "~/server/utils/db";
-import { requireUser } from "~/server/utils/authContext";
+import { getOptionalUser } from "~/server/utils/authContext";
 
+/**
+ * List comments on a post the viewer may see (public posts work anonymously).
+ */
 export default defineEventHandler(async (event) => {
-  const user = requireUser(event);
+  const user = getOptionalUser(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Post id required" });
   }
 
   try {
-    const comments = await listPostComments(user.sub, id);
+    const comments = await listPostComments(user?.sub ?? null, id);
     return { comments };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;

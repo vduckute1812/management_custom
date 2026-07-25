@@ -95,8 +95,13 @@ export const useApi = () => {
       if (status !== 401) {
         throw err;
       }
+      // Anonymous callers (no session) must not be bounced to /login — public
+      // pages like / and /feed call optional-auth endpoints that 401 for guests
+      // (e.g. stories). Only clear+redirect when we actually had a session.
       if (!auth.refreshToken.value) {
-        await bounceToLogin();
+        if (auth.accessToken.value || auth.user.value) {
+          await bounceToLogin();
+        }
         throw err;
       }
       try {
