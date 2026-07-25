@@ -1,18 +1,12 @@
 # Deploy to the Raspberry Pi on every push to master.
 #
-# Requires a GitHub Actions *self-hosted* runner on the Pi with labels:
-#   self-hosted, linux, ARM64, management
+# Requires a GitHub Actions *self-hosted* runner on the Pi that is Online/Idle.
+# Register with: bash docker/install-github-runner.sh --url … --token …
+# Full notes:    implement/ci-cd.md
 #
-# One-time Pi setup: bash docker/install-github-runner.sh
-# Full notes:        implement/ci-cd.md
-#
-# Behaviour:
-#   - Checks out the commit into the runner workspace (relative paths only)
-#   - Syncs ops libs with `uv sync --frozen`
-#   - Builds the app image (`npm ci` inside Dockerfile) via `uv run podman-compose`
-#   - Runs DB migrations with the *new* image before switching the live app
-#   - If build/migrate fails → running containers are left untouched
-#   - If the new container fails health checks → previous image is restored
+# If a run stays "Queued", the runner is offline or not registered — GitHub
+# will wait forever for a matching machine. Check:
+#   Repo → Settings → Actions → Runners
 
 name: Deploy (Raspberry Pi)
 
@@ -27,13 +21,18 @@ on:
         default: false
 
 concurrency:
+  # Newest push wins — cancels older queued/in-progress deploys so a stuck
+  # "Queued" run cannot block the pipeline forever.
   group: deploy-pi-production
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     name: Sync, migrate & deploy on Pi
-    runs-on: [self-hosted, linux, ARM64, management]
+    # Only require the custom label. GitHub always adds self-hosted / OS / arch
+    # automatically; requiring ARM64 broke 32-bit Pi images and mismatched
+    # manual registrations that omitted the custom label.
+    runs-on: [self-hosted, management]
     timeout-minutes: 60
 
     steps:

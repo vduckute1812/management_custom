@@ -16,9 +16,9 @@
 #   --dir  ~/actions-runner  Install directory (default: ~/actions-runner)
 #   --name mgmt-pi          Runner name (default: hostname)
 #
-# After install the runner is registered with labels:
-#   self-hosted, linux, ARM64, management
-# which match .github/workflows/deploy-pi.yml.
+# After install the runner is registered with the custom label `management`
+# (plus GitHub's automatic self-hosted / OS / arch labels). The workflow
+# matches on: runs-on: [self-hosted, management]
 
 set -euo pipefail
 
@@ -27,7 +27,8 @@ TOKEN=""
 RUNNER_USER="${USER}"
 RUNNER_DIR="${HOME}/actions-runner"
 RUNNER_NAME="$(hostname -s 2>/dev/null || hostname)"
-LABELS="self-hosted,linux,ARM64,management"
+# Only the custom label — GitHub adds self-hosted / linux|Windows / ARM64|ARM|X64.
+LABELS="management"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -112,10 +113,15 @@ echo "  Dir:    ${RUNNER_DIR}"
 echo "  Name:   ${RUNNER_NAME}"
 echo "  Labels: ${LABELS}"
 echo
-echo "Verify in GitHub → Settings → Actions → Runners (should show Idle)."
-echo "Then push to master (or run the workflow manually) to deploy."
+echo "Verify in GitHub → Settings → Actions → Runners:"
+echo "  Status must be Idle (green). If Offline, start the service:"
+echo "    cd ${RUNNER_DIR} && ./svc.sh start"
+echo "  Labels must include: management"
 echo
-echo "Also ensure uv is installed on this Pi (used instead of Poetry/pyenv):"
+echo "If a workflow is stuck Queued, cancel it in the Actions UI, fix the"
+echo "runner, then re-run the workflow (or push to master)."
+echo
+echo "Also ensure uv is installed on this Pi:"
 echo "  curl -LsSf https://astral.sh/uv/install.sh | sh"
 echo
 echo "After the first checkout on the runner, place local secrets in the"
