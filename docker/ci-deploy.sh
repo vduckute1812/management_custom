@@ -169,12 +169,22 @@ sync_libs() {
 
 run_migrations() {
   log "running DB migrations with ${LATEST_TAG}"
-  # One-shot container on the compose network. Args replace the image CMD so
-  # we only migrate (the app entrypoint also migrates on boot — this makes CI
-  # fail before switching traffic if schema apply fails).
-  # Force DB_HOST=mysql: docker/.env.prod may point at 127.0.0.1 for host tools.
+  # One-shot container: args replace the image CMD so we only migrate (the app
+  # entrypoint also migrates on boot — this fails CI before switching traffic).
+  #
+  # Do NOT force DB_HOST=mysql. On this Pi, podman-compose puts services on the
+  # default `podman` network (no service-name DNS), while .env.prod points at the
+  # published LAN bind (192.168.1.4:3306). Overriding to `mysql` caused
+  # getaddrinfo ENOTFOUND. Only rewrite loopback hosts that cannot work in-container.
+  local db_host
+  db_host="$(grep -E '^DB_HOST=' docker/.env.prod 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]' || true)"
+  case "${db_host}" in
+    ""|127.0.0.1|localhost|mysql) db_host="${LAN_IP}" ;;
+  esac
+  log "migrate DB_HOST=${db_host}"
+
   if ! mgmt_compose run --rm --no-deps \
-    -e DB_HOST=mysql \
+    -e "DB_HOST=${db_host}" \
     app \
     node --import tsx scripts/migrate.ts up; then
     return 1
