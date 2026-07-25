@@ -26,6 +26,7 @@ const sections: Section[] = [
       { keys: ["g", "d"], label: "Go to Dashboard" },
       { keys: ["g", "e"], label: "Go to Epics" },
       { keys: ["g", "a"], label: "Go to Analytics" },
+      { keys: ["g", "f"], label: "Go to Feed" },
     ],
   },
   {

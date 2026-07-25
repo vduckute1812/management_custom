@@ -68,6 +68,17 @@ const allItems = computed<PaletteItem[]>(() => {
       },
     },
     {
+      id: "view:feed",
+      kind: "view",
+      title: "Go to Feed",
+      subtitle: "Share posts, like, comment",
+      icon: "bolt",
+      shortcut: "g f",
+      run: () => {
+        router.push("/feed");
+      },
+    },
+    {
       id: "action:quick-capture",
       kind: "action",
       title: "Quick capture task",
