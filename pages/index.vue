@@ -46,11 +46,15 @@ onBeforeUnmount(() => {
   }
 });
 
-watch(pendingCreateTask, (pending) => {
-  if (!pending) return;
-  openCreate();
-  pendingCreateTask.value = false;
-});
+watch(
+  pendingCreateTask,
+  (pending) => {
+    if (!pending) return;
+    openCreate();
+    pendingCreateTask.value = false;
+  },
+  { immediate: true }
+);
 
 // Phone: Daily-only planning surface (weekly/monthly stay desk-class).
 watch(isNarrow, (narrow) => {
