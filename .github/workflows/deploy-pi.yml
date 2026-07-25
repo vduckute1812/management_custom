@@ -1,0 +1,69 @@
+# Deploy to the Raspberry Pi on every push to master.
+#
+# Requires a GitHub Actions *self-hosted* runner on the Pi with labels:
+#   self-hosted, linux, ARM64, management
+#
+# One-time Pi setup: bash docker/install-github-runner.sh
+# Full notes:        implement/ci-cd.md
+#
+# Behaviour:
+#   - Pulls the new commit into the Pi deploy directory
+#   - Builds the prod image with podman/docker
+#   - If the *build* fails → running containers are left untouched
+#   - If the new container fails health checks → previous image is restored
+
+name: Deploy (Raspberry Pi)
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      skip_tunnel_url:
+        description: "Skip Cloudflare tunnel URL sync"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-pi-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & deploy on Pi
+    runs-on: [self-hosted, linux, ARM64, management]
+    timeout-minutes: 60
+
+    steps:
+      - name: Sync repository on Pi
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+        run: |
+          set -euo pipefail
+          DEPLOY_DIR="${DEPLOY_DIR:-/home/duc13t3/Projects/management}"
+          echo "DEPLOY_DIR=${DEPLOY_DIR}" >> "${GITHUB_ENV}"
+          if [[ ! -d "${DEPLOY_DIR}/.git" ]]; then
+            echo "DEPLOY_DIR=${DEPLOY_DIR} is not a git checkout."
+            echo "Clone the repo there once, then re-run."
+            exit 1
+          fi
+          cd "${DEPLOY_DIR}"
+          git remote get-url origin >/dev/null
+          git fetch --prune origin master
+          git checkout master
+          git reset --hard origin/master
+          echo "Now at $(git rev-parse --short HEAD) — $(git log -1 --pretty=%s)"
+
+      - name: Deploy with automatic rollback
+        env:
+          FULL_SHA: ${{ github.sha }}
+          SKIP_TUNNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_tunnel_url || false }}
+        run: |
+          set -euo pipefail
+          cd "${DEPLOY_DIR}"
+          export GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
+          EXTRA=()
+          if [[ "${SKIP_TUNNEL}" == "true" ]]; then
+            EXTRA+=(--skip-tunnel-url)
+          fi
+          bash docker/ci-deploy.sh "${EXTRA[@]}"
