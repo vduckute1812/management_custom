@@ -73,6 +73,11 @@ write_config() {
 tunnel: ${tunnel_id}
 credentials-file: ${creds}
 
+# This network drops/blocks QUIC (UDP 7844) and has no working IPv6 egress,
+# so pin the edge connection to HTTP/2 over IPv4.
+protocol: http2
+edge-ip-version: "4"
+
 ingress:
   - hostname: ${TUNNEL_HOSTNAME}
     service: ${TUNNEL_UPSTREAM}

@@ -1,5 +1,6 @@
 .public-ip
 .env.prod
+bin/cloudflared
 cloudflared/config.yml
 cloudflared/tunnel.id
 cloudflared/tunnel.token

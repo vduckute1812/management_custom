@@ -92,9 +92,12 @@ if loginctl show-user "$(whoami)" -p Linger 2>/dev/null | grep -q "Linger=no"; t
   fi
 fi
 
-echo "==> Enabling and starting ${UNIT_NAME}"
+echo "==> Enabling and (re)starting ${UNIT_NAME}"
 systemctl --user daemon-reload
-systemctl --user enable --now "${UNIT_NAME}"
+systemctl --user enable "${UNIT_NAME}"
+# Restart, not just start: an already-running instance would keep the old
+# ExecStart (e.g. a previous quick tunnel) and the domain would return 530.
+systemctl --user restart "${UNIT_NAME}"
 
 echo
 echo "Tunnel service started."
