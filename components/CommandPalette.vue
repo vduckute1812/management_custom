@@ -146,7 +146,9 @@ const allItems = computed<PaletteItem[]>(() => {
       run: async () => {
         paletteOpen.value = false;
         requestFocusTask(task.id);
-        if (router.currentRoute.value.path !== "/") {
+        // Always land on the tasks dashboard so the focus watcher can open
+        // the modal (home hub at `/` does not mount TaskModal).
+        if (!router.currentRoute.value.path.startsWith("/tasks")) {
           await router.push("/tasks");
         }
       },
@@ -205,10 +207,14 @@ function onBackdrop(e: MouseEvent) {
       <div
         v-if="paletteOpen"
         class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm pt-24 px-4"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Command palette"
         @mousedown="onBackdrop"
       >
         <div
           class="w-full max-w-xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 overflow-hidden flex flex-col"
+          @mousedown.stop
         >
           <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
             <svg

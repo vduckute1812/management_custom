@@ -70,6 +70,16 @@ const form = ref<FormShape>({ ...empty });
 const submitting = ref(false);
 const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
+const baseline = ref("");
+const discardConfirmOpen = ref(false);
+
+function snapshotForm() {
+  baseline.value = JSON.stringify(form.value);
+}
+
+function isDirty() {
+  return JSON.stringify(form.value) !== baseline.value;
+}
 
 function defaultBlockFromIso(iso?: string): TimeBlock | null {
   if (!iso) return null;
@@ -167,6 +177,8 @@ watch(
       loadFromTask(props.task);
       errorMsg.value = null;
       justSaved.value = false;
+      discardConfirmOpen.value = false;
+      nextTick(() => snapshotForm());
     }
   },
   { immediate: true }
@@ -273,8 +285,22 @@ async function onDelete() {
   }
 }
 
+function requestClose() {
+  if (submitting.value) return;
+  if (justSaved.value || !isDirty()) {
+    emit("close");
+    return;
+  }
+  discardConfirmOpen.value = true;
+}
+
+function confirmDiscard() {
+  discardConfirmOpen.value = false;
+  emit("close");
+}
+
 function onBackdrop(e: MouseEvent) {
-  if (e.target === e.currentTarget) emit("close");
+  if (e.target === e.currentTarget) requestClose();
 }
 
 function onKeydown(e: KeyboardEvent) {
@@ -283,7 +309,11 @@ function onKeydown(e: KeyboardEvent) {
     onSubmit();
   } else if (e.key === "Escape") {
     e.preventDefault();
-    emit("close");
+    if (discardConfirmOpen.value) {
+      discardConfirmOpen.value = false;
+    } else {
+      requestClose();
+    }
   }
 }
 </script>
@@ -298,7 +328,7 @@ function onKeydown(e: KeyboardEvent) {
         @keydown="onKeydown"
       >
         <div
-          class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] flex flex-col"
+          class="relative bg-white w-full max-w-2xl rounded-2xl shadow-2xl ring-1 ring-slate-200 max-h-[90vh] flex flex-col"
           role="dialog"
           aria-modal="true"
           aria-labelledby="task-modal-title"
@@ -322,7 +352,7 @@ function onKeydown(e: KeyboardEvent) {
                 type="button"
                 class="text-slate-400 hover:text-slate-700 transition"
                 aria-label="Close"
-                @click="emit('close')"
+                @click="requestClose"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -387,7 +417,7 @@ function onKeydown(e: KeyboardEvent) {
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Notes (Markdown supported)
+                Notes
               </label>
               <textarea
                 v-model="form.notes"
@@ -679,7 +709,7 @@ function onKeydown(e: KeyboardEvent) {
               <button
                 type="button"
                 class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition"
-                @click="emit('close')"
+                @click="requestClose"
               >
                 Cancel
               </button>
@@ -712,6 +742,42 @@ function onKeydown(e: KeyboardEvent) {
               </button>
             </div>
           </footer>
+
+          <div
+            v-if="discardConfirmOpen"
+            class="absolute inset-0 z-10 flex items-center justify-center bg-slate-900/40 rounded-2xl p-4"
+            role="alertdialog"
+            aria-labelledby="task-discard-title"
+            aria-describedby="task-discard-desc"
+          >
+            <div class="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 p-5 max-w-sm w-full">
+              <h3
+                id="task-discard-title"
+                class="text-sm font-semibold text-slate-900"
+              >
+                Discard unsaved changes?
+              </h3>
+              <p id="task-discard-desc" class="mt-1 text-xs text-slate-500">
+                Your edits to this task haven’t been saved.
+              </p>
+              <div class="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
+                  @click="discardConfirmOpen = false"
+                >
+                  Keep editing
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg"
+                  @click="confirmDiscard"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Transition>

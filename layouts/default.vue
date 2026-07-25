@@ -108,6 +108,12 @@ const themeLabel = computed(() => {
   if (settings.value.theme === "system") return "Auto";
   return settings.value.theme === "dark" ? "Dark" : "Light";
 });
+
+const mobileMoreOpen = ref(false);
+
+function closeMobileMore() {
+  mobileMoreOpen.value = false;
+}
 </script>
 
 <template>
@@ -422,6 +428,55 @@ const themeLabel = computed(() => {
       <slot />
     </main>
 
+    <!-- Mobile utilities sheet -->
+    <Teleport to="body">
+      <Transition name="fade">
+        <div
+          v-if="mobileMoreOpen"
+          class="md:hidden fixed inset-0 z-40 bg-slate-900/40"
+          @click="closeMobileMore"
+        >
+          <div
+            class="absolute inset-x-0 bottom-[7.5rem] mx-3 mb-2 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+            @click.stop
+          >
+            <button
+              type="button"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+              @click="paletteOpen = true; closeMobileMore()"
+            >
+              Quick jump
+              <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">⌘K</kbd>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+              @click="helpOpen = true; closeMobileMore()"
+            >
+              Shortcuts
+              <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">?</kbd>
+            </button>
+            <button
+              type="button"
+              class="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+              @click="cycleTheme()"
+            >
+              <span>Theme</span>
+              <span class="text-[11px] text-slate-400">{{ themeLabel }}</span>
+            </button>
+            <button
+              v-if="auth.user.value"
+              type="button"
+              class="w-full flex items-center gap-3 px-4 py-3 text-sm text-rose-600 hover:bg-rose-50"
+              @click="onLogout(); closeMobileMore()"
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
     <!-- Mobile section tabs + bottom nav -->
     <div
       class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 no-print"
@@ -487,6 +542,7 @@ const themeLabel = computed(() => {
           :to="item.to"
           class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
           :class="isActive(item.to) ? 'text-brand-700' : 'text-slate-500'"
+          @click="closeMobileMore"
         >
           <svg
             v-if="item.icon === 'calendar'"
@@ -571,6 +627,27 @@ const themeLabel = computed(() => {
           </svg>
           {{ item.label }}
         </NuxtLink>
+        <button
+          type="button"
+          class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+          :class="mobileMoreOpen ? 'text-brand-700' : 'text-slate-500'"
+          aria-label="More"
+          :aria-expanded="mobileMoreOpen"
+          @click="mobileMoreOpen = !mobileMoreOpen"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            class="w-5 h-5"
+            aria-hidden="true"
+          >
+            <circle cx="5" cy="12" r="1.75" />
+            <circle cx="12" cy="12" r="1.75" />
+            <circle cx="19" cy="12" r="1.75" />
+          </svg>
+          More
+        </button>
       </nav>
     </div>
 
@@ -581,3 +658,14 @@ const themeLabel = computed(() => {
     <TimerPill v-if="showTaskChrome" />
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>

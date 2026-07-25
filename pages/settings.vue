@@ -6,6 +6,8 @@ const { exportJSON, exportCSV, exportEpicsCSV, exportICS } = useExport();
 const { fetchAll: fetchTasks, tasks } = useTasks();
 const { fetchAll: fetchEpics, epics } = useEpics();
 const { pushToast } = useToasts();
+const auth = useAuth();
+const router = useRouter();
 const {
   permission: notifPermission,
   hydratePermission,
@@ -13,6 +15,11 @@ const {
   sendTest,
   canFire: canFireNotifications,
 } = useNotifications();
+
+async function onLogout() {
+  await auth.logout();
+  await router.replace("/");
+}
 
 if (import.meta.client) {
   hydratePermission();
@@ -200,6 +207,44 @@ function doExportICS() {
 
     <div class="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6">
       <div class="max-w-2xl mx-auto space-y-6">
+        <section
+          v-if="auth.user.value"
+          class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm"
+        >
+          <header class="px-5 py-3 border-b border-slate-100">
+            <h2 class="text-sm font-semibold text-slate-800">Account</h2>
+            <p class="text-[11px] text-slate-500">
+              Signed-in session for this browser.
+            </p>
+          </header>
+          <div class="px-5 py-4 flex items-center gap-3">
+            <div
+              class="w-10 h-10 rounded-full bg-slate-200 text-slate-700 text-sm font-semibold flex items-center justify-center"
+            >
+              {{
+                (auth.user.value.name || auth.user.value.email || "?")
+                  .charAt(0)
+                  .toUpperCase()
+              }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-slate-800 truncate">
+                {{ auth.user.value.name || auth.user.value.email }}
+              </p>
+              <p class="text-[11px] text-slate-500 truncate">
+                {{ auth.user.value.email }}
+              </p>
+            </div>
+            <button
+              type="button"
+              class="text-xs font-medium text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50"
+              @click="onLogout"
+            >
+              Sign out
+            </button>
+          </div>
+        </section>
+
         <!-- Appearance -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
