@@ -128,12 +128,6 @@ fi
 notify_ip_change "${STORED}"
 
 echo
-echo "Update your Viettel router port forwarding to the new public IP:"
-echo "  ${CURRENT}:8080 -> ${LAN_IP}:8080"
-echo "  ${CURRENT}:8443 -> ${LAN_IP}:8443"
-echo
-echo "Direct access:"
-echo "  HTTP:  http://${CURRENT}:8080"
-echo "  HTTPS: https://${CURRENT}:8443  (self-signed — browser will warn)"
-echo
-echo "Cloudflare Tunnel (email links) is unaffected — run sync-tunnel-url.sh if needed."
+echo "Public site is unchanged: https://dntechx.com (Cloudflare Tunnel)."
+echo "LAN:  http://${LAN_IP}:8080"
+echo "TLS cert SANs updated for IP ${CURRENT} (direct-IP HTTPS is optional)."

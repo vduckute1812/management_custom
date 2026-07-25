@@ -196,5 +196,4 @@ echo "    Config:  ${CONF_FILE}"
 echo
 echo "Next: bash docker/install-cloudflare-tunnel.sh"
 echo
-echo "You can remove modem/router port-forwards for 8080/8443 — traffic goes"
-echo "through Cloudflare Tunnel outbound only (no inbound ports needed)."
+echo "Public traffic uses Cloudflare Tunnel outbound only (no modem port-forward)."

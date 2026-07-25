@@ -55,7 +55,6 @@ build_exec_start() {
   fi
   echo "[tunnel] ERROR: named tunnel not configured."
   echo "         Run: bash docker/setup-named-tunnel.sh"
-  echo "         (quick tunnels / trycloudflare.com are no longer used)"
   exit 1
 }
 
@@ -95,8 +94,7 @@ fi
 echo "==> Enabling and (re)starting ${UNIT_NAME}"
 systemctl --user daemon-reload
 systemctl --user enable "${UNIT_NAME}"
-# Restart, not just start: an already-running instance would keep the old
-# ExecStart (e.g. a previous quick tunnel) and the domain would return 530.
+# Restart (not start): picks up a rewritten ExecStart if the unit file changed.
 systemctl --user restart "${UNIT_NAME}"
 
 echo
@@ -109,13 +107,15 @@ sleep 3
 journalctl --user -u "${UNIT_NAME}" -n 30 --no-pager | grep -E 'Registered|connIndex|INF|ERR|error' \
   || journalctl --user -u "${UNIT_NAME}" -n 15 --no-pager
 
-echo
-echo "==> Syncing APP_BASE_URL into docker/.env.prod"
-if bash "${DIR}/sync-tunnel-url.sh" --restart-app; then
-  echo "[tunnel] verification emails will use ${APP_BASE_URL}"
-else
-  echo "[tunnel] WARNING: could not sync APP_BASE_URL — run: bash docker/sync-tunnel-url.sh --restart-app"
+PROD_ENV="${DIR}/.env.prod"
+if [[ -f "${PROD_ENV}" ]]; then
+  if grep -q '^APP_BASE_URL=' "${PROD_ENV}"; then
+    sed -i "s|^APP_BASE_URL=.*|APP_BASE_URL=${APP_BASE_URL}|" "${PROD_ENV}"
+  else
+    printf '\nAPP_BASE_URL=%s\n' "${APP_BASE_URL}" >> "${PROD_ENV}"
+  fi
+  echo "[tunnel] APP_BASE_URL=${APP_BASE_URL} (restart app / redeploy to apply)"
 fi
 
 echo
-echo "No modem port-forward needed. Cloudflare reaches this host via the outbound tunnel."
+echo "Public traffic: ${APP_BASE_URL} (outbound tunnel only — no modem port-forward)."

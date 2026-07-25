@@ -14,11 +14,6 @@ on:
   push:
     branches: [master]
   workflow_dispatch:
-    inputs:
-      skip_tunnel_url:
-        description: "Skip Cloudflare tunnel URL sync"
-        type: boolean
-        default: false
 
 concurrency:
   # Newest push wins — cancels older queued/in-progress deploys so a stuck
@@ -67,14 +62,9 @@ jobs:
       - name: Deploy (build, migrate DB, restart, health-check)
         env:
           FULL_SHA: ${{ github.sha }}
-          SKIP_TUNNEL: ${{ github.event_name == 'workflow_dispatch' && inputs.skip_tunnel_url || false }}
         run: |
           set -euo pipefail
           export GIT_SHA
           GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
-          EXTRA=()
-          if [[ "${SKIP_TUNNEL}" == "true" ]]; then
-            EXTRA+=(--skip-tunnel-url)
-          fi
           # ci-deploy.sh also re-runs uv sync, builds (npm ci), migrates, then switches the app.
-          bash docker/ci-deploy.sh "${EXTRA[@]}"
+          bash docker/ci-deploy.sh

@@ -122,14 +122,9 @@ export async function sendPublicIpChangeEmail(args: {
     `Your Viettel router assigned a new public IP.\n\n` +
     `Previous: ${oldIp}\n` +
     `Current:  ${newIp}\n\n` +
-    `Update router port forwarding:\n` +
-    `  ${newIp}:8080 -> ${lanIp}:8080\n` +
-    `  ${newIp}:8443 -> ${lanIp}:8443\n\n` +
-    `Direct access:\n` +
-    `  http://${newIp}:8080\n` +
-    `  https://${newIp}:8443\n\n` +
-    `TLS certificates and APP_HOST were updated automatically on the Pi.\n` +
-    `Cloudflare Tunnel URLs are unaffected.`;
+    `Public site is unchanged: https://dntechx.com (Cloudflare Tunnel).\n` +
+    `LAN: http://${lanIp}:8080\n\n` +
+    `TLS certificates on the Pi were updated for the new public IP.`;
 
   await sendMail({
     to,
@@ -144,19 +139,12 @@ export async function sendPublicIpChangeEmail(args: {
       <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Previous</td><td><strong>${oldIp}</strong></td></tr>
       <tr><td style="padding:4px 12px 4px 0;color:#64748b;">Current</td><td><strong>${newIp}</strong></td></tr>
     </table>
-    <p><strong>Update router port forwarding:</strong></p>
-    <ul>
-      <li><code>${newIp}:8080</code> → <code>${lanIp}:8080</code></li>
-      <li><code>${newIp}:8443</code> → <code>${lanIp}:8443</code></li>
-    </ul>
-    <p><strong>Direct access:</strong></p>
-    <ul>
-      <li><a href="http://${newIp}:8080">http://${newIp}:8080</a></li>
-      <li><a href="https://${newIp}:8443">https://${newIp}:8443</a></li>
-    </ul>
+    <p>
+      Public site: <a href="https://dntechx.com">https://dntechx.com</a> (Cloudflare Tunnel — unaffected).<br>
+      LAN: <a href="http://${lanIp}:8080">http://${lanIp}:8080</a>
+    </p>
     <p style="color:#64748b;font-size:14px;">
-      TLS certificates and <code>APP_HOST</code> were updated automatically on the Pi.
-      Cloudflare Tunnel URLs are unaffected.
+      TLS certificates on the Pi were updated for the new public IP.
     </p>
   </body>
 </html>`,

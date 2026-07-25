@@ -12,7 +12,6 @@
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
-#   bash docker/ci-deploy.sh --skip-tunnel-url
 #   GIT_SHA=abc1234 bash docker/ci-deploy.sh
 #
 # Env knobs: see docker/lib-compose.sh
@@ -27,7 +26,6 @@ cd "${ROOT}"
 
 LAN_IP="${LAN_IP:-192.168.1.4}"
 IMAGE="${MGMT_IMAGE:-localhost/mgmt-app-prod}"
-SKIP_TUNNEL_URL=false
 HEALTH_URL="${MGMT_HEALTH_URL:-http://127.0.0.1:3000/}"
 HEALTH_RETRIES="${MGMT_HEALTH_RETRIES:-30}"
 HEALTH_SLEEP="${MGMT_HEALTH_SLEEP:-2}"
@@ -36,9 +34,8 @@ MYSQL_WAIT_RETRIES="${MGMT_MYSQL_WAIT_RETRIES:-60}"
 
 for arg in "$@"; do
   case "${arg}" in
-    --skip-tunnel-url|--no-sync-tunnel) SKIP_TUNNEL_URL=true ;;
     --help|-h)
-      sed -n '2,22p' "$0"
+      sed -n '2,20p' "$0"
       exit 0
       ;;
   esac
@@ -189,20 +186,13 @@ read_mysql_root_password
 # ── Sync libraries (uv ops + npm via upcoming image build) ───────────────
 sync_libs
 
-# ── Side jobs (best-effort; never abort a deploy for tunnel/IP sync) ─────
+# ── Side jobs (best-effort; never abort a deploy for IP/SSL sync) ────────
 log "syncing public IP (best effort)"
 if bash docker/sync-public-ip.sh; then
   PUBLIC_IP="$(tr -d '[:space:]' < docker/.public-ip)"
 else
   PUBLIC_IP="${PUBLIC_IP:-$(tr -d '[:space:]' < docker/.public-ip 2>/dev/null || echo 27.79.44.74)}"
   log "WARNING: could not detect public IP — using ${PUBLIC_IP}"
-fi
-
-if [[ "${SKIP_TUNNEL_URL}" == true ]]; then
-  log "skipping Cloudflare tunnel URL sync"
-else
-  log "syncing Cloudflare tunnel URL (best effort)"
-  bash docker/sync-tunnel-url.sh || log "WARNING: tunnel URL sync failed"
 fi
 
 log "ensuring TLS certificates"
