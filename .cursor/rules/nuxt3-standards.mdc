@@ -58,7 +58,11 @@ if (!parsed.success) {
 
 ## i18n
 
-* Use `$t` / `useI18n().t` for user-facing copy. Add keys to **all four** locale files under `i18n/locales/` (`en`, `vi`, `zh-CN`, `zh-TW`).
-* Persist locale via `useSettings().locale`; `@nuxtjs/i18n` strategy is `no_prefix` (see `nuxt.config.ts` + `plugins/i18n-locale.client.ts`).
-* Do **not** invent a parallel i18n stack or hardcode English UI strings in new UI.
-* Prefer `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` from `~/types/task` with `t(...)` for status, role, and priority labels.
+Full as-built flow: [`implement/i18n.md`](../../implement/i18n.md).
+
+* **Locales:** `en` (default), `vi`, `zh-CN`, `zh-TW`. Messages live in `i18n/locales/*.json` (Nuxt i18n v10 `restructureDir`).
+* **Routing:** `strategy: 'no_prefix'` — no `/en/...` paths. Switch with `LanguageSwitcher` (Settings → Language, or header account menu).
+* **Persistence:** `useSettings().locale` in `mgmt:settings:v1`. `plugins/i18n-locale.client.ts` syncs settings ↔ `setLocale` ↔ Day.js locale ↔ `html[lang]`. Cookie `mgmt_locale` is only for first-visit browser detection.
+* **Usage:** `$t` / `useI18n().t` for chrome, toasts, SEO titles. Add every new key to **all four** locale files (`en` first). Escape literal `@` as `{'@'}`.
+* **Labels:** `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` / `RECURRENCE_I18N_KEYS` from `~/types/task` + `t(...)`. Dates: Day.js after locale sync, or `INTL_LOCALE` from `~/types/locale`.
+* Do **not** invent a parallel i18n stack, store locale on the user row, or hardcode English UI strings in new UI. User-authored content stays untranslated.

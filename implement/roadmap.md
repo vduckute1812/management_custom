@@ -178,3 +178,13 @@ The calendar grew a real sense of time, and the planner picked up a heads-up bef
 - [x] `composables/useSettings.ts` — default `notificationsEnabled` is now `true` for fresh installs; explicit `false` in persisted settings still wins so existing users who opted out stay opted out
 - [x] `pages/settings.vue` — copy + UI rewritten to reflect the dual-channel model; "Enable desktop pop-ups" is a separate button shown only after the master toggle is on; "Send test notification" prefers the desktop channel and falls back to the in-app toast
 - [x] `implement/architecture.md` extended with a "Pre-task alerts & live 'now' indicator" section
+
+## Phase 11 — Multi-language UI (i18n)
+
+Full chrome localization with device-local preference (no URL prefixes).
+
+- [x] `@nuxtjs/i18n` with `strategy: 'no_prefix'`; locales `en` / `vi` / `zh-CN` / `zh-TW` under `i18n/locales/`
+- [x] `useSettings.locale` persisted in `mgmt:settings:v1`; `plugins/i18n-locale.client.ts` syncs i18n ↔ Day.js ↔ `html[lang]`
+- [x] `LanguageSwitcher` in Settings → Language and the header account menu
+- [x] Full UI string migration (pages, components, toasts, SEO titles) + `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS`
+- [x] Docs: `implement/i18n.md`, architecture/README/roadmap/product README, `.cursor/rules/nuxt3-standards.mdc`

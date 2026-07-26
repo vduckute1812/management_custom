@@ -107,6 +107,7 @@ npm run dev
 
 The app boots at `http://localhost:3000` and redirects to `/login`. Sign in with the seed superadmin (or sign up a new normal user — verification link prints to the server console unless SMTP is configured).
 
+UI language defaults to English (or a browser match on first visit). Change it anytime under **Settings → Language**, or from the header account menu — preference stays in local storage for that browser. See [`i18n.md`](./i18n.md).
 ## Building for production
 
 ```bash

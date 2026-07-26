@@ -8,11 +8,12 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 | Layer    | Technology                  | Purpose                                                |
 | -------- | --------------------------- | ------------------------------------------------------ |
-| Frontend | Nuxt 3 / Vue 3              | Reactive UI, routing, SSR-optional rendering           |
+| Frontend | Nuxt 3 / Vue 3              | Reactive UI, routing, SPA via `routeRules` `ssr: false` |
 | Styling  | TailwindCSS v4              | Utility-first layout and theming                       |
+| i18n     | `@nuxtjs/i18n`              | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
 | Backend  | Nitro (bundled with Nuxt 3) | Server-side API routes                                 |
 | Storage  | MySQL 8 (`mysql2` driver)   | Persistence — local `rc` database on `localhost:3306`  |
-| Time     | Day.js                      | Date parsing, formatting, diffing                      |
+| Time     | Day.js                      | Date parsing, formatting, diffing (locale packs sync with UI language) |
 | Charts   | Chart.js                    | Velocity and trend visualizations                      |
 | Calendar | FullCalendar *(optional)*   | For future drag-to-reschedule polish                   |
 
@@ -116,7 +117,7 @@ server/utils/db.ts  ←→  MySQL 8 (`rc` @ localhost:3306)
 │   ├── useRecurrence.ts
 │   ├── useNotifications.ts         # Pre-task alerts (in-app toast + optional desktop push)
 │   ├── useNow.ts                   # Shared reactive "current time" ticking every 30s
-│   └── useSettings.ts
+│   └── useSettings.ts              # Theme, density, calendar prefs, locale (localStorage)
 ├── middleware/
 │   └── auth.global.ts              # Redirects unauth users to /login; /admin → admin only
 ├── layouts/
@@ -124,13 +125,25 @@ server/utils/db.ts  ←→  MySQL 8 (`rc` @ localhost:3306)
 ├── plugins/
 │   ├── auth.client.ts              # Hydrates auth state on app boot, refreshes if needed
 │   ├── theme.client.ts             # Mirrors theme + density onto <html>
+│   ├── i18n-locale.client.ts       # Syncs settings.locale ↔ i18n ↔ dayjs ↔ html[lang]
 │   └── notifications.client.ts     # Schedules block reminders; rolls over every 15 min
+├── components/
+│   └── LanguageSwitcher.vue        # Settings buttons + header select
+├── i18n/locales/                   # en.json, vi.json, zh-CN.json, zh-TW.json
 ├── assets/css/main.css             # Tailwind + design tokens + dark/density layers
-├── types/task.ts                   # Shared TS interfaces (includes AuthUser, AdminUserSummary)
+├── types/
+│   ├── task.ts                     # Shared TS interfaces + *_I18N_KEYS for labels
+│   └── locale.ts                   # AppLocale, DAYJS_LOCALE, INTL_LOCALE
 ├── implement/                      # Technical documentation (you are here)
 ├── .env.example                    # Connection + auth + SMTP settings template
-└── nuxt.config.ts
+└── nuxt.config.ts                  # SPA routeRules + @nuxtjs/i18n module
 ```
+
+## UI language (i18n)
+
+The chrome is fully translated; user content is not. Locale is a **device preference** stored next to theme in `mgmt:settings:v1`, not a URL prefix and not a MySQL column.
+
+Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.client.ts` → `setLocale` + Day.js pack + `document.documentElement.lang`. Full detail, namespaces, and contributor rules: [`i18n.md`](./i18n.md).
 
 ## Pre-task alerts & live "now" indicator
 

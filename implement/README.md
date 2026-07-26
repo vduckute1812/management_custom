@@ -15,15 +15,16 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`database.md`](./database.md)              | Full schema DDL, field references, timestamp conventions, migration policy.                 |
 | [`api.md`](./api.md)                        | Every REST endpoint under `/api/*` with request/response shapes.                            |
 | [`auth.md`](./auth.md)                      | Roles (`normal` / `admin` / `superadmin`), token lifecycle (JWT + refresh), bootstrap superadmin, email transport. |
+| [`i18n.md`](./i18n.md)                      | UI languages (`en` / `vi` / `zh-CN` / `zh-TW`), `no_prefix` routing, settings persistence, message namespaces, Day.js / SEO wiring. |
 | [`auth-rbac.md`](./auth-rbac.md)            | Original feature spec for Authentication & RBAC (the "what was asked for" document).        |
-| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress (Phase 8 auth, Phase 9 superadmin + integer enums end-to-end, Phase 10 live "now" indicator + pre-task alerts). |
+| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress (Phase 8 auth, Phase 9 superadmin + integer enums end-to-end, Phase 10 live "now" indicator + pre-task alerts, Phase 11 i18n). |
 | [`ci-cd.md`](./ci-cd.md)                    | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.    |
 
 ## Feature specs vs. implementation docs
 
 Two kinds of file live here side-by-side:
 
-- **Implementation docs** (`architecture.md`, `database.md`, `api.md`, `auth.md`, `getting-started.md`, `roadmap.md`) — the **as-built** reference. Always describes what currently exists in the code.
+- **Implementation docs** (`architecture.md`, `database.md`, `api.md`, `auth.md`, `i18n.md`, `getting-started.md`, `roadmap.md`) — the **as-built** reference. Always describes what currently exists in the code.
 - **Feature specs** (`auth-rbac.md`, plus future per-feature spec files) — the **as-asked** record. Describes what was requested for a given feature, captured before or during implementation. Useful as a paper trail; not edited to track the code.
 
 When a new feature lands, drop its spec in next to `auth-rbac.md` (one file per feature) and update the implementation docs above to match the new shape.

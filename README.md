@@ -76,6 +76,17 @@ Every task carries title, notes, status, due date, estimate, progress, tags — 
 
 The "now" indicator ticks every 30 seconds and snaps forward when the tab regains focus, so it stays accurate without burning a render every second.
 
+### Switch language
+
+The interface is available in **English**, **Vietnamese**, **Simplified Chinese**, and **Traditional Chinese**. Preference is saved on this device only (same store as theme and density) — URLs do not change when you switch.
+
+| Where | What |
+| ----- | ---- |
+| `Settings → Language` | Button group for all four locales |
+| Header → account menu | Compact language select |
+
+Chrome, toasts, calendar weekday names, and status/role labels follow the chosen language. Posts, task titles, and other content you type stay as written.
+
 ### Pre-task alerts
 
 Five minutes before every scheduled block (configurable in `Settings → Pre-task alerts`), the app fires a heads-up so you don't crash into the next session unprepared. Two channels, deduped by block id so a single block can never alert twice:
@@ -117,6 +128,15 @@ Concrete journeys, each rated by target friction.
 2. Toggle granularity to **week**; scan velocity bars for outliers (red variance > 1.5h).
 3. In **Rolled over**, move missed tasks to today / tomorrow (or bulk-move all).
 4. Drill into any Epic via the velocity rollup list; optional drag-reschedule on the weekly canvas.
+
+### Flow 4 — "Switch interface language" *(target: ≤ 10 seconds)*
+
+1. Open **Settings** (account menu → Settings, or sidebar when in Time Management).
+2. Under **Language**, pick English / Tiếng Việt / 简体中文 / 繁體中文.
+3. Nav, forms, toasts, and calendar labels update immediately; the choice persists for next visits on this browser.
+4. Shortcut: open the header account menu and use the language select without leaving the current page.
+
+Engineering detail (message files, sync plugin, key namespaces): [`implement/i18n.md`](./implement/i18n.md).
 
 ---
 
@@ -200,6 +220,8 @@ Three theme modes selectable via the sidebar quick toggle or `Settings → Appea
 | **Dark**   | Forces the dark palette                                                   |
 
 The preference is persisted locally and applied **before any CSS paints**, so dark-OS users opening the app cold see dark mode from the first frame — no flash of light content.
+
+Language preference lives in the same local settings blob (`Settings → Language`). It does not affect the URL and does not travel with the account to another browser.
 
 Status and epic colors are *tinted* in dark mode, never inverted — color-coded semantics must survive the swap.
 
@@ -433,6 +455,7 @@ A few choices that look opinionated and aren't accidents.
 - **Three views, not five.** Day, Week, Month. We resisted Quarter and Agenda — they're rarely useful and they add UI weight that costs every user every day.
 - **In-app alerts only by default; desktop pop-ups are opt-in.** A calm tool doesn't ambush you with OS pop-ups, but a silent calendar is no better than no calendar. The compromise: a non-intrusive in-app toast fires 5 min before each scheduled block by default (no permission prompt, no system surface — only visible when the app is open). Granting browser Notification permission is an explicit upgrade that adds the matching desktop pop-up; the alert is otherwise identical. The whole feature is one toggle in `Settings → Pre-task alerts`.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
+- **Language is a device preference, not a URL.** Same model as theme and density: stored in local settings, no `/en/...` prefixes, no server-side user locale. Switching language rewrites chrome only — user content stays as authored.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
 
 ---
@@ -448,6 +471,7 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 | Database schema (DDL), field references          | [`implement/database.md`](./implement/database.md)               |
 | REST endpoints under `/api/*`                    | [`implement/api.md`](./implement/api.md)                         |
 | JWT / refresh model, admin seed, email transport | [`implement/auth.md`](./implement/auth.md)                       |
+| UI languages, locale sync, message namespaces    | [`implement/i18n.md`](./implement/i18n.md)                       |
 | Original Authentication & RBAC feature spec      | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
 | Phase-by-phase engineering progress              | [`implement/roadmap.md`](./implement/roadmap.md)                 |
 | Raspberry Pi CI/CD deploy + rollback             | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |
