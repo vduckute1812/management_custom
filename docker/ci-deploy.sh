@@ -181,17 +181,17 @@ wait_mysql() {
 }
 
 read_mysql_root_password() {
-  # Prefer compose YAML MYSQL_ROOT_PASSWORD: "..."; fall back to .env.prod DB_PASS.
-  MYSQL_ROOT_PASSWORD="root@1345"
-  if [[ -f docker/docker-compose.prod.yml ]]; then
-    MYSQL_ROOT_PASSWORD="$(
-      sed -n 's/.*MYSQL_ROOT_PASSWORD: *"\([^"]*\)".*/\1/p' docker/docker-compose.prod.yml | head -n1
-    )"
-    MYSQL_ROOT_PASSWORD="${MYSQL_ROOT_PASSWORD:-root@1345}"
+  # Secret lives only in the gitignored docker/.env.prod: prefer an explicit
+  # MYSQL_ROOT_PASSWORD, otherwise reuse DB_PASS (the app connects as root).
+  MYSQL_ROOT_PASSWORD=""
+  if [[ -f docker/.env.prod ]]; then
+    MYSQL_ROOT_PASSWORD="$(grep -E '^MYSQL_ROOT_PASSWORD=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
+    if [[ -z "${MYSQL_ROOT_PASSWORD}" ]]; then
+      MYSQL_ROOT_PASSWORD="$(grep -E '^DB_PASS=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
+    fi
   fi
-  if [[ -z "${MYSQL_ROOT_PASSWORD}" && -f docker/.env.prod ]]; then
-    MYSQL_ROOT_PASSWORD="$(grep -E '^DB_PASS=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
-  fi
+  [[ -n "${MYSQL_ROOT_PASSWORD}" ]] \
+    || die "MYSQL_ROOT_PASSWORD/DB_PASS not found in docker/.env.prod"
   export MYSQL_ROOT_PASSWORD
 }
 

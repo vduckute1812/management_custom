@@ -111,7 +111,6 @@ async function onSubmit() {
           <NuxtLink to="/signup" class="text-brand-600 hover:underline">
             {{ $t("auth.createAccountLink") }}
           </NuxtLink>
-          <span class="text-slate-400">{{ $t("auth.localInstall") }}</span>
         </div>
       </form>
     </div>

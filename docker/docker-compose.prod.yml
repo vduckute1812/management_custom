@@ -33,8 +33,11 @@ services:
     command: --skip-host-cache --skip-name-resolve
     cap_add:
       - SYS_NICE
+    # Secrets (MYSQL_ROOT_PASSWORD) come from the gitignored docker/.env.prod.
+    # Keep MYSQL_ROOT_PASSWORD there in sync with DB_PASS used by the app.
+    env_file:
+      - .env.prod
     environment:
-      MYSQL_ROOT_PASSWORD: "root@1345"
       MYSQL_DATABASE: "rc"
       MYSQL_ROOT_HOST: "%"
       MYSQL_ALLOW_EMPTY_PASSWORD: "no"

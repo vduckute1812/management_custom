@@ -163,30 +163,6 @@ async function submitStory() {
     </header>
 
     <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-      <div
-        v-if="!auth.isAuthenticated.value"
-        class="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-        role="status"
-      >
-        <p class="text-sm text-slate-700">
-          {{ $t("feed.guestBanner") }}
-        </p>
-        <div class="flex items-center gap-2 shrink-0">
-          <NuxtLink
-            to="/login"
-            class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
-          >
-            {{ $t("nav.login") }}
-          </NuxtLink>
-          <NuxtLink
-            to="/signup"
-            class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
-          >
-            {{ $t("nav.register") }}
-          </NuxtLink>
-        </div>
-      </div>
-
       <NuxtErrorBoundary v-if="auth.isAuthenticated.value">
         <StoryTray
           :groups="tray.groups"
