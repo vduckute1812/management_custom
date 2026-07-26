@@ -48,6 +48,7 @@ export * from "../db/refresh-tokens";
 export * from "../db/email-verifications";
 export * from "../db/admin";
 export * from "../db/posts";
+export * from "../db/categories";
 export * from "../db/uploads";
 export * from "../db/stories";
 // Only the two read-side helpers are exposed through the runtime barrel.

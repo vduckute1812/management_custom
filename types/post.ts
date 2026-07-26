@@ -21,7 +21,51 @@ export const POST_REACTION_TYPES: PostReactionType[] = [
   "angry",
 ];
 
+/** Allowed post body fonts (stored as CSS font-family tokens). */
+export const POST_FONT_FAMILIES = [
+  "default",
+  "serif",
+  "mono",
+  "georgia",
+  "comic",
+] as const;
+export type PostFontFamily = (typeof POST_FONT_FAMILIES)[number];
+
+export const POST_FONT_FAMILY_CSS: Record<PostFontFamily, string> = {
+  default: "inherit",
+  serif: "Georgia, 'Times New Roman', serif",
+  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  georgia: "Georgia, serif",
+  comic: "'Comic Sans MS', 'Comic Sans', cursive",
+};
+
+export const POST_TEXT_COLORS = [
+  "default",
+  "slate",
+  "brand",
+  "rose",
+  "emerald",
+  "amber",
+] as const;
+export type PostTextColor = (typeof POST_TEXT_COLORS)[number];
+
+export const POST_TEXT_COLOR_CSS: Record<PostTextColor, string> = {
+  default: "inherit",
+  slate: "#334155",
+  brand: "#1d4ed8",
+  rose: "#e11d48",
+  emerald: "#059669",
+  amber: "#d97706",
+};
+
 export type AttachmentKind = "image" | "document";
+
+export interface PostCategory {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+}
 
 export interface PostAuthor {
   id: string;
@@ -61,6 +105,9 @@ export interface Post {
   id: string;
   body: string;
   visibility: PostVisibility;
+  category: PostCategory | null;
+  fontFamily: PostFontFamily;
+  textColor: PostTextColor;
   createdAt: string;
   updatedAt: string;
   author: PostAuthor;

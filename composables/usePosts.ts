@@ -2,7 +2,9 @@ import type {
   FeedPage,
   Post,
   PostComment,
+  PostFontFamily,
   PostReactionType,
+  PostTextColor,
   PostVisibility,
 } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
@@ -33,13 +35,22 @@ export const usePosts = () => {
   const loading = useState<boolean>("feed:loading", () => false);
   const loadingMore = useState<boolean>("feed:loadingMore", () => false);
   const error = useState<string | null>("feed:error", () => null);
+  const categoryFilter = useState<string | null>(
+    "feed:categoryFilter",
+    () => null
+  );
 
   async function refresh() {
     loading.value = true;
     error.value = null;
     try {
       const page = await apiFetch<FeedPage>("/api/posts", {
-        query: { limit: 20 },
+        query: {
+          limit: 20,
+          ...(categoryFilter.value
+            ? { categoryId: categoryFilter.value }
+            : {}),
+        },
       });
       posts.value = page.posts;
       nextCursor.value = page.nextCursor;
@@ -54,12 +65,23 @@ export const usePosts = () => {
     }
   }
 
+  async function setCategoryFilter(id: string | null) {
+    categoryFilter.value = id;
+    await refresh();
+  }
+
   async function loadMore() {
     if (!nextCursor.value || loadingMore.value) return;
     loadingMore.value = true;
     try {
       const page = await apiFetch<FeedPage>("/api/posts", {
-        query: { limit: 20, cursor: nextCursor.value },
+        query: {
+          limit: 20,
+          cursor: nextCursor.value,
+          ...(categoryFilter.value
+            ? { categoryId: categoryFilter.value }
+            : {}),
+        },
       });
       const seen = new Set(posts.value.map((p) => p.id));
       posts.value = [
@@ -77,6 +99,9 @@ export const usePosts = () => {
     visibility?: PostVisibility;
     audienceUserIds?: string[];
     attachmentIds?: string[];
+    categoryId?: string | null;
+    fontFamily?: PostFontFamily;
+    textColor?: PostTextColor;
   }): Promise<Post> {
     const res = await apiFetch<{ post: Post }>("/api/posts", {
       method: "POST",
@@ -85,9 +110,18 @@ export const usePosts = () => {
         visibility: args.visibility ?? "public",
         audienceUserIds: args.audienceUserIds ?? [],
         attachmentIds: args.attachmentIds ?? [],
+        categoryId: args.categoryId ?? null,
+        fontFamily: args.fontFamily ?? "default",
+        textColor: args.textColor ?? "default",
       },
     });
-    posts.value = [res.post, ...posts.value];
+    // Only prepend if it matches the active category filter (or no filter).
+    if (
+      !categoryFilter.value ||
+      res.post.category?.id === categoryFilter.value
+    ) {
+      posts.value = [res.post, ...posts.value];
+    }
     pushToast("Post shared", { tone: "success", duration: 2500 });
     return res.post;
   }
@@ -246,6 +280,8 @@ export const usePosts = () => {
     loading,
     loadingMore,
     error,
+    categoryFilter,
+    setCategoryFilter,
     refresh,
     loadMore,
     createPost,

@@ -1,4 +1,4 @@
-import type { PostAuthor } from "./post";
+import type { PostAuthor, PostReactionType } from "./post";
 
 export interface Story {
   id: string;
@@ -10,6 +10,12 @@ export interface Story {
   author: PostAuthor;
   viewedByMe: boolean;
   canDelete: boolean;
+  /** Aggregated reaction counts (always present; zeros when none). */
+  reactions: Record<PostReactionType, number>;
+  reactionCount: number;
+  myReaction: PostReactionType | null;
+  /** View count — populated for the story owner; 0 for others. */
+  viewCount: number;
 }
 
 export interface StoryAuthorGroup {
@@ -21,4 +27,23 @@ export interface StoryAuthorGroup {
 
 export interface StoriesTray {
   groups: StoryAuthorGroup[];
+}
+
+export interface StoryViewerEntry {
+  user: PostAuthor;
+  viewedAt: string;
+  reaction: PostReactionType | null;
+}
+
+export interface StoryInsights {
+  storyId: string;
+  viewCount: number;
+  viewers: StoryViewerEntry[];
+  reactions: Record<PostReactionType, number>;
+  reactionCount: number;
+  reactionUsers: Array<{
+    user: PostAuthor;
+    reaction: PostReactionType;
+    createdAt: string;
+  }>;
 }

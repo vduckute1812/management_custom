@@ -12,8 +12,12 @@ export default defineEventHandler(async (event) => {
     typeof query.cursor === "string" && query.cursor.trim()
       ? query.cursor.trim()
       : null;
+  const categoryId =
+    typeof query.categoryId === "string" && query.categoryId.trim()
+      ? query.categoryId.trim()
+      : null;
   const limitRaw = Number(query.limit);
   const limit = Number.isFinite(limitRaw) ? limitRaw : 20;
 
-  return listFeedPosts(user?.sub ?? null, { cursor, limit });
+  return listFeedPosts(user?.sub ?? null, { cursor, limit, categoryId });
 });

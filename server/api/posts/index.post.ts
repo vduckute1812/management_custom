@@ -1,12 +1,22 @@
 import { z } from "zod";
 import { createPost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
 
 const bodySchema = z.object({
   body: z.string().trim().min(1, "Post body is required").max(5000),
   visibility: z.enum(["public", "private", "shared"]).optional().default("public"),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
   attachmentIds: z.array(z.string().min(1)).max(10).optional().default([]),
+  categoryId: z.string().min(1).nullable().optional(),
+  fontFamily: z
+    .enum(POST_FONT_FAMILIES as unknown as [string, ...string[]])
+    .optional()
+    .default("default"),
+  textColor: z
+    .enum(POST_TEXT_COLORS as unknown as [string, ...string[]])
+    .optional()
+    .default("default"),
 });
 
 export default defineEventHandler(async (event) => {
@@ -26,6 +36,9 @@ export default defineEventHandler(async (event) => {
       visibility: parsed.data.visibility,
       audienceUserIds: parsed.data.audienceUserIds,
       attachmentIds: parsed.data.attachmentIds,
+      categoryId: parsed.data.categoryId ?? null,
+      fontFamily: parsed.data.fontFamily as (typeof POST_FONT_FAMILIES)[number],
+      textColor: parsed.data.textColor as (typeof POST_TEXT_COLORS)[number],
     });
     return { post };
   } catch (err: unknown) {

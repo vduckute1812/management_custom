@@ -1,75 +1,57 @@
 ---
-description: Nuxt 3 Architecture, Performance, Security & Senior UI/UX Standards
-globs: **/*.vue, **/*.ts, server/**/*, composables/**/*
+description: Nuxt 3 conventions for this SPA — architecture, API, auth, UI feedback
+globs: "**/*.{vue,ts}"
+alwaysApply: false
 ---
 
-# Nuxt 3 Architecture, Performance & Senior UI/UX Standards
+# Nuxt 3 Project Standards
 
-When generating, refactoring, or reviewing code, strictly adhere to these engineering, performance, type-safety, and UI/UX design standards.
+This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth.
 
----
+## Architecture
 
-## 1. Core Architecture, Memory Safety & Boundaries
+* **`pages/` / `components/`**: UI only. Extract data, multi-step flows, and shared state into `composables/`.
+* **`composables/`**: Vue/Nuxt context (`ref`, `useState`, `useRoute`, `apiFetch`). Always pass an explicit key to `useState('unique-key', factory)`.
+* **`utils/`** (client) / pure helpers: deterministic functions only — no `useNuxtApp()`, `useRoute()`, or `useRuntimeConfig()` at module top level.
+* **`server/api/`**: Thin handlers. Auth → validate → call `server/db` or `server/utils` → return JSON or `createError`.
+* **`server/db/`**: SQL / domain persistence. **`server/utils/`**: auth, mailer, R2, shared server helpers.
+* **`types/`**: Shared DTOs used by both client and server (e.g. `types/post.ts`).
 
-* **`server/` (Backend / Nitro Layer):**
-  * **API Routes (`server/api/` & `server/routes/`):** Thin controllers mapping endpoints to services.
-  * **Services & Repositories:** Keep domain business logic separate from HTTP transport layer.
-* **`composables/` vs `utils/`:**
-  * Place stateful, lifecycle, or Vue/Nuxt context logic (`ref`, `useFetch`, `useState`) in `composables/`.
-  * Place pure, deterministic helper functions (formatting, math, string manipulation) in `utils/`.
-* **Single Responsibility (SRP):** Keep `.vue` files focused strictly on UI rendering. Extract complex state, data manipulation, or multi-step flows into composables.
-* **Context & Memory Safety:**
-  * **Prevent SSR Context Leaks:** Never invoke `useRoute()`, `useNuxtApp()`, or `useRuntimeConfig()` in the global scope of external `.ts` files. Always invoke them within functions or Vue lifecycle bounds.
-  * **Explicit `useState` Keys:** Always supply a explicit, unique key string as the first argument when calling `useState('unique-key', factory)` inside composables.
-  * **Clean Up Effects:** Clean up event listeners, timers, or custom subscriptions using `onUnmounted()` to avoid memory leaks.
+## Data fetching & auth (client)
 
----
+* Authenticated API calls: use `apiFetch` from `useApi()` — not raw `$fetch` (attaches Bearer, refresh-on-401).
+* `$fetch` is OK only for unauthenticated auth endpoints (`login` / `signup` / `refresh`) or one-off public calls.
+* Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, …).
 
-## 2. High-Performance Web Standards (Core Web Vitals)
+## Nitro API handlers
 
-* **Hydration & SSR Optimization:**
-  * Avoid hydration mismatch errors: never reference browser-only globals (`window`, `document`, `localStorage`) during initial SSR without wrapping in `<ClientOnly>` or `import.meta.client` guards.
-  * Use `<Lazy[ComponentName]>` or `defineAsyncComponent()` for below-the-fold or conditional UI (modals, heavy charts, slide-over drawers) to keep initial bundle size minimal.
-* **Asset & Image Optimization:**
-  * Always use `<NuxtImg>` or `<NuxtPicture>` instead of native `<img>` tags for automatic WebP/AVIF formatting, responsive sizing, and optimal compression.
-  * Explicitly set `width` and `height` attributes on all images/media elements to completely eliminate Cumulative Layout Shift (CLS).
-  * Prioritize above-the-fold hero images with `preload` and defer secondary visuals with native `loading="lazy"`.
-* **Data Fetching & Cache Management:**
-  * Use `useFetch` or `useAsyncData` on page components to prevent duplicate client-side requests during SSR hydration.
-  * Leverage Nitro `routeRules` in `nuxt.config.ts` for Hybrid Rendering (SWR, ISR, or static caching).
-  * Use `$fetch` exclusively inside client-side event handlers and user action callbacks.
+```ts
+// ✅ validate → auth → domain
+const user = requireUser(event) // or requireAdmin(event)
+const parsed = bodySchema.safeParse(await readBody(event))
+if (!parsed.success) {
+  throw createError({ statusCode: 400, statusMessage: "Invalid body" })
+}
+```
 
----
+* Validate body/query with **Zod** (`safeParse` or `readValidatedBody` / `getValidatedQuery`).
+* Use `requireUser` / `requireAdmin` from `~/server/utils/authContext` — do not re-parse JWT in each route.
+* Prefer semantic status codes: `400` validation, `401` unauthenticated, `403` forbidden, `404` missing, `500` unexpected.
+* Never log passwords, tokens, or raw Authorization headers.
 
-## 3. Senior UI/UX, SEO & Design System Principles
+## UI / UX (practical)
 
-* **Visual Hierarchy & Layout System:**
-  * Apply systematic spatial rhythm using standard spacing scales (e.g., 4px/8px grid system). Avoid arbitrary pixel margins.
-  * Maintain clear visual weight: primary actions must visually dominate secondary and ghost/tertiary controls.
-  * Enforce strict typographic hierarchy with responsive font scales (`text-sm`, `text-base`, `text-lg`, `text-xl`, etc.).
-* **State Management & Feedback Loops (UX First):**
-  * **Zero Dead Ends:** Every user interaction MUST yield visual feedback within 100ms (INP optimization).
-  * **Loading States:** Never display blank screens or abrupt visual shifts. Use skeleton loaders (`<USkeleton>` or custom pulse blocks) matching the exact dimensions of incoming content.
-  * **Optimistic UI:** For micro-actions (liking, bookmarking, toggling), update UI state immediately before server confirmation, with gracefully handled rollback strategies.
-  * **Error Boundaries:** Wrap dynamic or risky sub-sections in `<NuxtErrorBoundary>` to prevent localized errors from crashing the entire page.
-* **SEO & Head Metadata:**
-  * Use strongly-typed `useSeoMeta()` (instead of plain `useHead()`) for defining page titles, descriptions, and OpenGraph/Twitter social cards.
-* **Micro-Interactions & Motion:**
-  * Design smooth transitions (use `ease-out` for entering elements, `ease-in` for exiting elements).
-  * Keep transition durations between **150ms and 300ms**. Avoid slow, distracting animations.
-  * Respect user accessibility preferences by honoring `prefers-reduced-motion` CSS rules.
-* **Dark Mode & Semantic Color Tokens:**
-  * Use semantic color tokens (e.g., `bg-background`, `text-foreground`, `border-muted`) rather than hardcoded hex codes.
-  * Support automatic dark mode transitions without visual flickering during initial page load.
-* **Accessibility & Form Design (a11y):**
-  * Enforce full keyboard navigation (`tabindex`, `focus-visible` outline rings on active controls).
-  * Ensure all form inputs have associated, visible `<label>` tags, inline validation messages, and `aria-describedby` attributes for error states.
-  * Maintain minimum WCAG AA contrast ratios (4.5:1 for normal text, 3:1 for large text).
+* Loading: use existing `SkeletonBlock` / `SkeletonList` (or matching pulse placeholders) — avoid blank flashes.
+* Mutations: give immediate feedback (toast via `useToasts`, disabled/pending buttons). Optimistic UI + rollback for toggles (like/reaction) when already patterned that way.
+* Risky subtrees: wrap with `<NuxtErrorBoundary>` when isolation matters (see feed).
+* Images: set `width` / `height` (or fixed aspect) to limit CLS. No `@nuxt/image` in this project — native `<img>` / media is fine.
+* Theme: respect `data-theme` + existing slate/brand utilities; do not invent a parallel token system (`bg-background`, etc.).
+* Motion: 150–300ms; honor `prefers-reduced-motion`.
+* a11y: visible labels, keyboard focus rings, meaningful `statusMessage` / inline errors on forms.
+* Page titles: `useSeoMeta({ title })` on pages that need a distinct document title.
 
----
+## Performance (SPA-aware)
 
-## 4. API Design, End-to-End Type Safety & Observability
-
-* **Input Validation:** Enforce Zod schema validation at the top of every Nitro server handler using `readValidatedBody` or `getValidatedQuery` before executing business logic.
-* **End-to-End Type Safety:** Allow Nitro server handlers to implicitly return typed responses so `useFetch` automatically inherits strong return types on the client side without manual interface duplication.
-* **Structured Observability:** Log server execution with structured JSON format containing execution context (Route, User ID, Status Code, Duration). Return semantic HTTP response codes (400 Bad Request, 401 Unauthorized, 422 Unprocessable, 500 Internal Error).
+* Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer.
+* Browser-only APIs (`window`, `localStorage`): safe in this SPA after mount; still avoid running them in shared modules imported by server code.
+* Keep Chart.js and large editors out of the initial critical path when possible.

@@ -206,12 +206,19 @@ function onShareClick() {
     </header>
 
     <div class="px-4 pt-3 pb-2 space-y-3">
-      <p
+      <div v-if="post.category" class="flex flex-wrap gap-1.5">
+        <span
+          class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800"
+        >
+          {{ post.category.name }}
+        </span>
+      </div>
+      <PostBody
         v-if="post.body"
-        class="text-sm text-slate-800 whitespace-pre-wrap break-words"
-      >
-        {{ post.body }}
-      </p>
+        :body="post.body"
+        :font-family="post.fontFamily || 'default'"
+        :text-color="post.textColor || 'default'"
+      />
 
       <div
         v-if="post.attachments?.length"
@@ -267,9 +274,7 @@ function onShareClick() {
             · {{ formatWhen(post.sharedPost.createdAt) }}
           </span>
         </p>
-        <p class="text-sm text-slate-700 whitespace-pre-wrap break-words">
-          {{ post.sharedPost.body }}
-        </p>
+        <PostBody :body="post.sharedPost.body" />
       </div>
     </div>
 

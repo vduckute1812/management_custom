@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import type { PostAuthor, PostVisibility, UploadRecord } from "~/types/post";
+import type {
+  PostAuthor,
+  PostCategory,
+  PostFontFamily,
+  PostTextColor,
+  PostVisibility,
+  UploadRecord,
+} from "~/types/post";
+import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
 
 const props = defineProps<{
   submitting?: boolean;
   placeholder?: string;
   submitLabel?: string;
+  categories?: PostCategory[];
 }>();
 
 const emit = defineEmits<{
@@ -15,6 +24,9 @@ const emit = defineEmits<{
       visibility: PostVisibility;
       audienceUserIds: string[];
       attachmentIds: string[];
+      categoryId: string | null;
+      fontFamily: PostFontFamily;
+      textColor: PostTextColor;
     }
   ): void;
 }>();
@@ -24,6 +36,9 @@ const { results, loading: searching, searchDebounced } = useUserDirectory();
 
 const body = ref("");
 const visibility = ref<PostVisibility>("public");
+const categoryId = ref("");
+const fontFamily = ref<PostFontFamily>("default");
+const textColor = ref<PostTextColor>("default");
 const audience = ref<PostAuthor[]>([]);
 const audienceQuery = ref("");
 const attachments = ref<UploadRecord[]>([]);
@@ -74,6 +89,24 @@ function removeAttachment(id: string) {
   attachments.value = attachments.value.filter((a) => a.id !== id);
 }
 
+function insertLatex(block = false) {
+  const el = textareaEl.value;
+  const snippet = block ? "$$\nE = mc^2\n$$" : "$E = mc^2$";
+  if (!el) {
+    body.value += snippet;
+    return;
+  }
+  const start = el.selectionStart ?? body.value.length;
+  const end = el.selectionEnd ?? start;
+  body.value =
+    body.value.slice(0, start) + snippet + body.value.slice(end);
+  nextTick(() => {
+    const pos = start + snippet.length;
+    el.focus();
+    el.setSelectionRange(pos, pos);
+  });
+}
+
 function onSubmit() {
   if (!canSubmit.value) return;
   emit("submit", {
@@ -81,12 +114,18 @@ function onSubmit() {
     visibility: visibility.value,
     audienceUserIds: audience.value.map((u) => u.id),
     attachmentIds: attachments.value.map((a) => a.id),
+    categoryId: categoryId.value || null,
+    fontFamily: fontFamily.value,
+    textColor: textColor.value,
   });
 }
 
 function clear() {
   body.value = "";
   visibility.value = "public";
+  categoryId.value = "";
+  fontFamily.value = "default";
+  textColor.value = "default";
   audience.value = [];
   audienceQuery.value = "";
   attachments.value = [];
@@ -103,6 +142,23 @@ const visibilityLabel: Record<PostVisibility, string> = {
   private: "Only me",
   shared: "Specific people",
 };
+
+const fontLabels: Record<PostFontFamily, string> = {
+  default: "Default font",
+  serif: "Serif",
+  mono: "Monospace",
+  georgia: "Georgia",
+  comic: "Comic",
+};
+
+const colorLabels: Record<PostTextColor, string> = {
+  default: "Default color",
+  slate: "Slate",
+  brand: "Blue",
+  rose: "Rose",
+  emerald: "Green",
+  amber: "Amber",
+};
 </script>
 
 <template>
@@ -118,11 +174,104 @@ const visibilityLabel: Record<PostVisibility, string> = {
       rows="3"
       maxlength="5000"
       class="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300"
-      :placeholder="placeholder || 'Write a document, share a story…'"
+      :placeholder="
+        placeholder || 'Write a post… Use $E=mc^2$ or $$…$$ for LaTeX'
+      "
       :disabled="submitting"
+      :style="{
+        fontFamily:
+          fontFamily === 'default'
+            ? undefined
+            : fontFamily === 'mono'
+              ? 'ui-monospace, monospace'
+              : fontFamily === 'serif' || fontFamily === 'georgia'
+                ? 'Georgia, serif'
+                : fontFamily === 'comic'
+                  ? 'Comic Sans MS, cursive'
+                  : undefined,
+        color:
+          textColor === 'default'
+            ? undefined
+            : textColor === 'slate'
+              ? '#334155'
+              : textColor === 'brand'
+                ? '#1d4ed8'
+                : textColor === 'rose'
+                  ? '#e11d48'
+                  : textColor === 'emerald'
+                    ? '#059669'
+                    : textColor === 'amber'
+                      ? '#d97706'
+                      : undefined,
+      }"
       @keydown.meta.enter.prevent="onSubmit"
       @keydown.ctrl.enter.prevent="onSubmit"
     />
+
+    <div class="flex flex-wrap items-center gap-2">
+      <label class="sr-only" for="post-category">Category</label>
+      <select
+        id="post-category"
+        v-model="categoryId"
+        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+      >
+        <option value="">No category</option>
+        <option
+          v-for="cat in categories || []"
+          :key="cat.id"
+          :value="cat.id"
+        >
+          {{ cat.name }}
+        </option>
+      </select>
+
+      <label class="sr-only" for="post-font">Font</label>
+      <select
+        id="post-font"
+        v-model="fontFamily"
+        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+      >
+        <option
+          v-for="f in POST_FONT_FAMILIES"
+          :key="f"
+          :value="f"
+        >
+          {{ fontLabels[f] }}
+        </option>
+      </select>
+
+      <label class="sr-only" for="post-color">Text color</label>
+      <select
+        id="post-color"
+        v-model="textColor"
+        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
+      >
+        <option
+          v-for="c in POST_TEXT_COLORS"
+          :key="c"
+          :value="c"
+        >
+          {{ colorLabels[c] }}
+        </option>
+      </select>
+
+      <button
+        type="button"
+        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        title="Insert inline LaTeX"
+        @click="insertLatex(false)"
+      >
+        $ LaTeX
+      </button>
+      <button
+        type="button"
+        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+        title="Insert block LaTeX"
+        @click="insertLatex(true)"
+      >
+        $$ LaTeX
+      </button>
+    </div>
 
     <div
       v-if="attachments.length"

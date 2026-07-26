@@ -1,4 +1,21 @@
-import type { StoriesTray, Story } from "~/types/story";
+import type { PostReactionType } from "~/types/post";
+import type { StoriesTray, Story, StoryInsights } from "~/types/story";
+
+function patchStoryInTray(
+  tray: StoriesTray,
+  id: string,
+  next: Story
+): StoriesTray {
+  return {
+    groups: tray.groups.map((g) => ({
+      ...g,
+      stories: g.stories.map((s) => (s.id === id ? next : s)),
+      hasUnseen: g.stories.some((s) =>
+        s.id === id ? !next.viewedByMe : !s.viewedByMe
+      ),
+    })),
+  };
+}
 
 export const useStories = () => {
   const { apiFetch } = useApi();
@@ -33,7 +50,6 @@ export const useStories = () => {
 
   async function markViewed(id: string) {
     await apiFetch(`/api/stories/${id}/view`, { method: "POST" });
-    // Optimistic local mark
     tray.value = {
       groups: tray.value.groups.map((g) => ({
         ...g,
@@ -51,6 +67,34 @@ export const useStories = () => {
     pushToast("Story deleted", { tone: "info", duration: 2500 });
   }
 
+  async function setReaction(
+    id: string,
+    reaction: PostReactionType
+  ): Promise<Story> {
+    const res = await apiFetch<{ story: Story }>(
+      `/api/stories/${id}/reactions`,
+      { method: "POST", body: { reaction } }
+    );
+    tray.value = patchStoryInTray(tray.value, id, res.story);
+    return res.story;
+  }
+
+  async function clearReaction(id: string): Promise<Story> {
+    const res = await apiFetch<{ story: Story }>(
+      `/api/stories/${id}/reactions`,
+      { method: "DELETE" }
+    );
+    tray.value = patchStoryInTray(tray.value, id, res.story);
+    return res.story;
+  }
+
+  async function fetchInsights(id: string): Promise<StoryInsights> {
+    const res = await apiFetch<{ insights: StoryInsights }>(
+      `/api/stories/${id}/insights`
+    );
+    return res.insights;
+  }
+
   return {
     tray,
     loading,
@@ -58,5 +102,8 @@ export const useStories = () => {
     createStory,
     markViewed,
     removeStory,
+    setReaction,
+    clearReaction,
+    fetchInsights,
   };
 };

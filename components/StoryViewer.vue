@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { StoryAuthorGroup } from "~/types/story";
+import type { PostReactionType } from "~/types/post";
+import { POST_REACTION_TYPES } from "~/types/post";
+import type { StoryAuthorGroup, StoryInsights } from "~/types/story";
 
 const props = defineProps<{
   groups: StoryAuthorGroup[];
@@ -10,7 +12,13 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
-const { markViewed, removeStory } = useStories();
+const {
+  markViewed,
+  removeStory,
+  setReaction,
+  clearReaction,
+  fetchInsights,
+} = useStories();
 const { mediaUrl } = useMediaUrl();
 
 const groupIndex = ref(props.startGroupIndex);
@@ -19,8 +27,23 @@ const progress = ref(0);
 let timer: ReturnType<typeof setInterval> | null = null;
 const STORY_MS = 5000;
 
+const insightsOpen = ref(false);
+const insightsLoading = ref(false);
+const insights = ref<StoryInsights | null>(null);
+const reacting = ref(false);
+
+const REACTION_EMOJI: Record<PostReactionType, string> = {
+  like: "👍",
+  love: "❤️",
+  haha: "😄",
+  wow: "😮",
+  sad: "😢",
+  angry: "😡",
+};
+
 const group = computed(() => props.groups[groupIndex.value] ?? null);
 const story = computed(() => group.value?.stories[storyIndex.value] ?? null);
+const isOwnStory = computed(() => !!story.value?.canDelete);
 
 function clearTimer() {
   if (timer) {
@@ -29,19 +52,41 @@ function clearTimer() {
   }
 }
 
+async function loadInsights() {
+  if (!story.value?.canDelete) {
+    insights.value = null;
+    return;
+  }
+  insightsLoading.value = true;
+  try {
+    insights.value = await fetchInsights(story.value.id);
+  } catch {
+    insights.value = null;
+  } finally {
+    insightsLoading.value = false;
+  }
+}
+
 async function startTimer() {
   clearTimer();
   progress.value = 0;
+  insightsOpen.value = false;
   if (!story.value) return;
-  if (!story.value.viewedByMe) {
+  if (!story.value.viewedByMe && !story.value.canDelete) {
     try {
       await markViewed(story.value.id);
     } catch {
       // non-fatal
     }
   }
+  if (story.value.canDelete) {
+    void loadInsights();
+  } else {
+    insights.value = null;
+  }
   const started = Date.now();
   timer = setInterval(() => {
+    if (insightsOpen.value) return;
     const elapsed = Date.now() - started;
     progress.value = Math.min(100, (elapsed / STORY_MS) * 100);
     if (elapsed >= STORY_MS) {
@@ -92,10 +137,56 @@ async function onDelete() {
   emit("close");
 }
 
+async function onReact(reaction: PostReactionType) {
+  if (!story.value || reacting.value || story.value.canDelete) return;
+  reacting.value = true;
+  try {
+    if (story.value.myReaction === reaction) {
+      await clearReaction(story.value.id);
+    } else {
+      await setReaction(story.value.id, reaction);
+    }
+  } finally {
+    reacting.value = false;
+  }
+}
+
+function openInsights() {
+  if (!isOwnStory.value) return;
+  insightsOpen.value = true;
+  clearTimer();
+  void loadInsights();
+}
+
+function closeInsights() {
+  insightsOpen.value = false;
+  void startTimer();
+}
+
 function onKey(e: KeyboardEvent) {
-  if (e.key === "Escape") emit("close");
+  if (e.key === "Escape") {
+    if (insightsOpen.value) {
+      closeInsights();
+      return;
+    }
+    emit("close");
+  }
+  if (insightsOpen.value) return;
   if (e.key === "ArrowRight") next();
   if (e.key === "ArrowLeft") prev();
+}
+
+function formatWhen(iso: string) {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
 }
 
 onMounted(() => {
@@ -157,18 +248,28 @@ watch(
         </div>
       </div>
 
-      <div class="absolute inset-x-0 top-3 z-10 px-3 pt-3 flex items-center justify-between">
+      <div class="absolute inset-x-0 top-3 z-10 px-3 pt-3 flex items-center justify-between gap-2">
         <p class="text-sm font-semibold truncate">
           {{ group.author.name || group.author.email }}
         </p>
-        <button
-          v-if="story.canDelete"
-          type="button"
-          class="text-xs text-white/70 hover:text-rose-300"
-          @click="onDelete"
-        >
-          Delete
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            v-if="isOwnStory"
+            type="button"
+            class="text-xs text-white/80 hover:text-white rounded px-1.5 py-0.5 bg-white/10"
+            @click="openInsights"
+          >
+            {{ story.viewCount }} view{{ story.viewCount === 1 ? "" : "s" }}
+          </button>
+          <button
+            v-if="story.canDelete"
+            type="button"
+            class="text-xs text-white/70 hover:text-rose-300"
+            @click="onDelete"
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <button
@@ -184,7 +285,7 @@ watch(
         @click="next"
       />
 
-      <div class="absolute inset-0 flex items-center justify-center p-6 pt-14">
+      <div class="absolute inset-0 flex items-center justify-center p-6 pt-14 pb-20">
         <img
           v-if="story.mediaUrl && story.mime?.startsWith('image/')"
           :src="mediaUrl(story.mediaUrl)"
@@ -196,11 +297,190 @@ watch(
         <p
           v-if="story.body"
           class="text-center text-lg font-medium leading-relaxed whitespace-pre-wrap"
-          :class="story.mediaUrl ? 'absolute bottom-8 inset-x-6 drop-shadow' : ''"
+          :class="story.mediaUrl ? 'absolute bottom-20 inset-x-6 drop-shadow' : ''"
         >
           {{ story.body }}
         </p>
       </div>
+
+      <!-- Reactions for others' stories -->
+      <div
+        v-if="!isOwnStory"
+        class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 p-3 bg-gradient-to-t from-black/60 to-transparent"
+      >
+        <button
+          v-for="r in POST_REACTION_TYPES"
+          :key="r"
+          type="button"
+          class="rounded-full px-2 py-1.5 text-lg transition hover:scale-110 motion-reduce:transition-none"
+          :class="
+            story.myReaction === r
+              ? 'bg-white/25 ring-1 ring-white/50'
+              : 'bg-white/10 hover:bg-white/20'
+          "
+          :aria-label="r"
+          :disabled="reacting"
+          @click.stop="onReact(r)"
+        >
+          {{ REACTION_EMOJI[r] }}
+        </button>
+      </div>
+
+      <!-- Own story: open insights sheet -->
+      <button
+        v-else
+        type="button"
+        class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-t from-black/70 to-transparent text-left"
+        @click="openInsights"
+      >
+        <span class="text-xs text-white/90">
+          {{ story.viewCount }} views · {{ story.reactionCount }} reactions
+        </span>
+        <span class="text-xs font-medium text-white/80">Details ↑</span>
+      </button>
     </div>
+
+    <!-- Insights bottom sheet (My Story) -->
+    <Teleport to="body">
+      <Transition name="sheet">
+        <div
+          v-if="insightsOpen && isOwnStory"
+          class="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/50 sm:items-center"
+          @click.self="closeInsights"
+        >
+          <div
+            class="w-full max-w-md max-h-[75vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl flex flex-col"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Story viewers and reactions"
+          >
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+              <div>
+                <p class="text-sm font-semibold text-slate-900">My Story</p>
+                <p class="text-xs text-slate-500">
+                  {{ insights?.viewCount ?? story?.viewCount ?? 0 }} views ·
+                  {{ insights?.reactionCount ?? story?.reactionCount ?? 0 }} reactions
+                </p>
+              </div>
+              <button
+                type="button"
+                class="text-sm text-slate-500 hover:text-slate-800 px-2 py-1"
+                @click="closeInsights"
+              >
+                Close
+              </button>
+            </div>
+
+            <div class="overflow-y-auto flex-1 px-4 py-3 space-y-5">
+              <div v-if="insightsLoading" class="space-y-2" aria-busy="true">
+                <SkeletonBlock height="h-10" rounded="rounded-lg" />
+                <SkeletonBlock height="h-10" rounded="rounded-lg" />
+              </div>
+
+              <template v-else-if="insights">
+                <section>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                    Viewers
+                  </h3>
+                  <ul v-if="insights.viewers.length" class="space-y-2">
+                    <li
+                      v-for="v in insights.viewers"
+                      :key="v.user.id"
+                      class="flex items-center gap-3"
+                    >
+                      <span
+                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700"
+                        aria-hidden="true"
+                      >
+                        {{ (v.user.name || v.user.email).charAt(0).toUpperCase() }}
+                      </span>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-slate-800">
+                          {{ v.user.name || v.user.email }}
+                        </p>
+                        <p class="text-[11px] text-slate-400">
+                          {{ formatWhen(v.viewedAt) }}
+                        </p>
+                      </div>
+                      <span v-if="v.reaction" class="text-base" :title="v.reaction">
+                        {{ REACTION_EMOJI[v.reaction] }}
+                      </span>
+                    </li>
+                  </ul>
+                  <p v-else class="text-sm text-slate-500">No views yet.</p>
+                </section>
+
+                <section>
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                    Reactions
+                  </h3>
+                  <div
+                    v-if="insights.reactionCount"
+                    class="flex flex-wrap gap-2 mb-3"
+                  >
+                    <span
+                      v-for="r in POST_REACTION_TYPES.filter(
+                        (k) => (insights?.reactions[k] ?? 0) > 0
+                      )"
+                      :key="r"
+                      class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
+                    >
+                      {{ REACTION_EMOJI[r] }}
+                      {{ insights.reactions[r] }}
+                    </span>
+                  </div>
+                  <ul v-if="insights.reactionUsers.length" class="space-y-2">
+                    <li
+                      v-for="ru in insights.reactionUsers"
+                      :key="`${ru.user.id}-${ru.reaction}`"
+                      class="flex items-center gap-3"
+                    >
+                      <span class="text-base">{{ REACTION_EMOJI[ru.reaction] }}</span>
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-slate-800">
+                          {{ ru.user.name || ru.user.email }}
+                        </p>
+                        <p class="text-[11px] text-slate-400">
+                          {{ formatWhen(ru.createdAt) }}
+                        </p>
+                      </div>
+                    </li>
+                  </ul>
+                  <p v-else class="text-sm text-slate-500">No reactions yet.</p>
+                </section>
+              </template>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
+
+<style scoped>
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: opacity 0.2s ease;
+}
+.sheet-enter-active > div,
+.sheet-leave-active > div {
+  transition: transform 0.2s ease;
+}
+.sheet-enter-from,
+.sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from > div,
+.sheet-leave-to > div {
+  transform: translateY(1rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-enter-active,
+  .sheet-leave-active,
+  .sheet-enter-active > div,
+  .sheet-leave-active > div {
+    transition: none;
+  }
+}
+</style>

@@ -48,8 +48,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:dashboard",
       kind: "view",
-      title: "Go to Dashboard",
-      subtitle: "Calendar + Up next",
+      title: "Go to Time Management",
+      subtitle: "Calendar, tasks, and schedules",
       icon: "calendar",
       shortcut: "g d",
       run: () => {
@@ -82,11 +82,21 @@ const allItems = computed<PaletteItem[]>(() => {
       id: "view:feed",
       kind: "view",
       title: "Go to Feed",
-      subtitle: "Share posts, like, comment",
+      subtitle: "Share posts, stories, and reactions",
       icon: "bolt",
       shortcut: "g f",
       run: () => {
         router.push("/feed");
+      },
+    },
+    {
+      id: "view:profile",
+      kind: "view",
+      title: "Go to Profile",
+      subtitle: "Account details",
+      icon: "bolt",
+      run: () => {
+        router.push("/profile");
       },
     },
     {

@@ -7,18 +7,29 @@ import type {
   Post,
   PostAttachment,
   PostAuthor,
+  PostCategory,
   PostComment,
+  PostFontFamily,
   PostReactionType,
+  PostTextColor,
   PostVisibility,
   SharedPostPreview,
 } from "../../types/post";
-import { POST_REACTION_TYPES } from "../../types/post";
+import {
+  POST_FONT_FAMILIES,
+  POST_REACTION_TYPES,
+  POST_TEXT_COLORS,
+} from "../../types/post";
+import { getCategoryById } from "./categories";
 
 interface PostRow extends RowDataPacket {
   id: string;
   user_id: string;
   body: string;
   visibility: PostVisibility;
+  category_id: string | null;
+  font_family: string | null;
+  text_color: string | null;
   shared_post_id: string | null;
   created_at: string;
   updated_at: string;
@@ -26,6 +37,9 @@ interface PostRow extends RowDataPacket {
   author_email: string;
   comment_count: number;
   my_reaction: PostReactionType | null;
+  category_slug: string | null;
+  category_name: string | null;
+  category_sort_order: number | null;
   shared_body: string | null;
   shared_created_at: string | null;
   shared_author_id: string | null;
@@ -111,6 +125,9 @@ const POST_SELECT = `
     p.user_id,
     p.body,
     p.visibility,
+    p.category_id,
+    p.font_family,
+    p.text_color,
     p.shared_post_id,
     p.created_at,
     p.updated_at,
@@ -119,6 +136,9 @@ const POST_SELECT = `
     (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.id) AS comment_count,
     (SELECT pr.reaction FROM post_reactions pr
       WHERE pr.post_id = p.id AND pr.user_id = ? LIMIT 1) AS my_reaction,
+    c.slug AS category_slug,
+    c.name AS category_name,
+    c.sort_order AS category_sort_order,
     sp.body AS shared_body,
     sp.created_at AS shared_created_at,
     su.id AS shared_author_id,
@@ -126,9 +146,34 @@ const POST_SELECT = `
     su.email AS shared_author_email
   FROM posts p
   INNER JOIN users u ON u.id = p.user_id
+  LEFT JOIN post_categories c ON c.id = p.category_id
   LEFT JOIN posts sp ON sp.id = p.shared_post_id
   LEFT JOIN users su ON su.id = sp.user_id
 `;
+
+function normalizeFontFamily(value: string | null | undefined): PostFontFamily {
+  if (value && (POST_FONT_FAMILIES as readonly string[]).includes(value)) {
+    return value as PostFontFamily;
+  }
+  return "default";
+}
+
+function normalizeTextColor(value: string | null | undefined): PostTextColor {
+  if (value && (POST_TEXT_COLORS as readonly string[]).includes(value)) {
+    return value as PostTextColor;
+  }
+  return "default";
+}
+
+function categoryFromRow(row: PostRow): PostCategory | null {
+  if (!row.category_id || !row.category_slug || !row.category_name) return null;
+  return {
+    id: row.category_id,
+    slug: row.category_slug,
+    name: row.category_name,
+    sortOrder: Number(row.category_sort_order ?? 0),
+  };
+}
 
 async function loadReactionMaps(
   postIds: string[]
@@ -243,6 +288,9 @@ function rowToPost(
     id: row.id,
     body: row.body,
     visibility: row.visibility,
+    category: categoryFromRow(row),
+    fontFamily: normalizeFontFamily(row.font_family),
+    textColor: normalizeTextColor(row.text_color),
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
     author: toAuthor(row.user_id, row.author_name, row.author_email),
@@ -282,11 +330,16 @@ async function hydratePosts(
 
 export async function listFeedPosts(
   viewerId: string | null,
-  options: { cursor?: string | null; limit?: number } = {}
+  options: {
+    cursor?: string | null;
+    limit?: number;
+    categoryId?: string | null;
+  } = {}
 ): Promise<{ posts: Post[]; nextCursor: string | null }> {
   const pool = getPool();
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor?.trim() || null;
+  const categoryId = options.categoryId?.trim() || null;
   const vid = viewerId ?? "";
 
   // POST_SELECT binds viewer id for my_reaction first.
@@ -297,6 +350,10 @@ export async function listFeedPosts(
     params.push(viewerId, viewerId);
   } else {
     where = `WHERE ${publicOnlyClause("p")}`;
+  }
+  if (categoryId) {
+    where += " AND p.category_id = ?";
+    params.push(categoryId);
   }
   if (cursor) {
     where += " AND p.created_at < ?";
@@ -352,6 +409,9 @@ export async function createPost(
     audienceUserIds?: string[];
     attachmentIds?: string[];
     sharedPostId?: string | null;
+    categoryId?: string | null;
+    fontFamily?: PostFontFamily | null;
+    textColor?: PostTextColor | null;
   }
 ): Promise<Post> {
   const pool = getPool();
@@ -371,6 +431,17 @@ export async function createPost(
     );
   }
 
+  let categoryId: string | null = args.categoryId?.trim() || null;
+  if (categoryId) {
+    const cat = await getCategoryById(categoryId);
+    if (!cat) {
+      throw Object.assign(new Error("Invalid category"), { statusCode: 400 });
+    }
+  }
+
+  const fontFamily = normalizeFontFamily(args.fontFamily);
+  const textColor = normalizeTextColor(args.textColor);
+
   if (args.sharedPostId) {
     const existing = await getPostById(userId, args.sharedPostId);
     if (!existing) {
@@ -387,13 +458,17 @@ export async function createPost(
     await conn.beginTransaction();
     await conn.query(
       `INSERT INTO posts
-         (id, user_id, body, visibility, shared_post_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (id, user_id, body, visibility, category_id, font_family, text_color,
+          shared_post_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
         trimmed,
         visibility,
+        categoryId,
+        fontFamily === "default" ? null : fontFamily,
+        textColor === "default" ? null : textColor,
         args.sharedPostId ?? null,
         isoToDB(now),
         isoToDB(now),
