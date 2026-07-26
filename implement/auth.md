@@ -8,15 +8,26 @@ The original feature spec lives in [`auth-rbac.md`](./auth-rbac.md). This docume
 
 | Role         | Sees                                                          | Can do                                                                  |
 | ------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `normal`     | Their own epics, tasks, time blocks, timer.                   | Everything in the app for their own data. Cannot read or modify anyone else's. |
+| `normal`     | Own epics/tasks/timer; install feed/stories per visibility rules. | Full Time Management for own data. Feed: create/react/comment/share within ACL. |
 | `admin`      | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts. |
-| `superadmin` | Same as `admin`. Exactly one per install (the bootstrap account). | Everything `admin` can. The role itself is **never assignable through the API** — only seeded by `npm run migrate:auth` — and **cannot be modified or demoted** by anyone. It exists as the install's break-glass owner so admins can't lock each other (or the install) out. |
+| `superadmin` | Same as `admin`. Exactly one per install (the bootstrap account). | Everything `admin` can, plus owner-only ops (e.g. `DELETE /api/admin/users/:id`). Role is **never assignable through the API** — only seeded by `npm run migrate:auth` — and **cannot be modified or demoted**. |
 
 The role is enforced in three layers:
 
 1. **Token claim** — `role` is signed into every JWT as the same integer that's persisted in MySQL and re-validated on `GET /api/auth/me`. All three values (`0` / `1` / `2`) are accepted; anything else is rejected as invalid.
-2. **Route guard** — admin-only routes call `requireAdmin(event)` which accepts both `Admin` (1) and `Superadmin` (2) (`isAdminRole(role) ≡ role >= UserRole.Admin`) and returns `403` for `Normal` (0). A stricter `requireSuperAdmin(event)` exists for owner-only operations.
-3. **DB scope** — every CRUD helper in `server/utils/db.ts` takes `userId` as its first argument and filters / asserts ownership in SQL. Even a route bug can't surface another user's data.
+2. **Route guard** — admin-only API routes call `requireAdmin(event)` (`role >= Admin`). Owner-only routes call `requireSuperAdmin(event)` (used today for deleting users). Client-side `middleware/auth.global.ts` mirrors this for `/admin`.
+3. **DB scope** — Time-management helpers take `userId` and filter ownership in SQL. Feed helpers take an optional viewer id (`listFeedPosts(viewerId | null, …)`) so **public** posts are readable without a session; private/shared content stays ACL-gated.
+
+## Client route access
+
+| Paths | Rule |
+| ----- | ---- |
+| `/`, `/feed` (+ nested) | Public |
+| `/login`, `/signup`, `/verify-email` | Public; if already authenticated → `/` (or `?redirect=`) |
+| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, … | Require session → else `/login?redirect=…` |
+| `/admin` | Require admin role → else `/` + toast |
+
+See `middleware/auth.global.ts`.
 
 The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchanged through the row mapper, the API response, and the JWT claim. There are no `numberToRole` / `roleToNumber` translation helpers — the TypeScript type IS the integer. See `~/types/task.ts` for the canonical `UserRole` definition and [`database.md`](./database.md) for the rationale behind integer enums end-to-end.
 
@@ -48,4 +59,4 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 
 `server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail you need an [App Password](https://myaccount.google.com/apppasswords), not your account password.
 
-The verification URL is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.
+The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudflare Tunnel). Otherwise it is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.

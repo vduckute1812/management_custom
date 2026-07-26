@@ -11,13 +11,13 @@ If you came here to **use** the app, start at the root README. If you came here 
 | File                                        | What's in it                                                                                |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | [`getting-started.md`](./getting-started.md)| Prerequisites, env vars, `npm` scripts, dev / prod commands, the first-run experience.      |
-| [`architecture.md`](./architecture.md)      | Tech stack, runtime topology (browser → Nitro → MySQL), pool & schema ownership, project structure.|
-| [`database.md`](./database.md)              | Full schema DDL, field references, timestamp conventions, migration policy.                 |
-| [`api.md`](./api.md)                        | Every REST endpoint under `/api/*` with request/response shapes.                            |
-| [`auth.md`](./auth.md)                      | Roles (`normal` / `admin` / `superadmin`), token lifecycle (JWT + refresh), bootstrap superadmin, email transport. |
+| [`architecture.md`](./architecture.md)      | Tech stack, SPA topology (Feed + Time Management), MySQL + optional R2, project structure. |
+| [`database.md`](./database.md)              | Schema DDL + feed/stories tables, field references, migration policy.                       |
+| [`api.md`](./api.md)                        | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin).                 |
+| [`auth.md`](./auth.md)                      | Roles, public vs protected client routes, JWT/refresh, bootstrap superadmin, email transport. |
 | [`i18n.md`](./i18n.md)                      | UI languages (`en` / `vi` / `zh-CN` / `zh-TW`), `no_prefix` routing, settings persistence, message namespaces, Day.js / SEO wiring. |
 | [`auth-rbac.md`](./auth-rbac.md)            | Original feature spec for Authentication & RBAC (the "what was asked for" document).        |
-| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress (Phase 8 auth, Phase 9 superadmin + integer enums end-to-end, Phase 10 live "now" indicator + pre-task alerts, Phase 11 i18n). |
+| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress through Phase 12 (feed/stories + public hub). |
 | [`ci-cd.md`](./ci-cd.md)                    | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.    |
 
 ## Feature specs vs. implementation docs

@@ -2,7 +2,11 @@
 
 Schema, field references, and the conventions every row obeys. Paired with [`architecture.md`](./architecture.md) (pool & migration runner) and [`auth.md`](./auth.md) (the per-user scoping rules that drive `user_id` everywhere).
 
-All data lives in the local MySQL database `rc`. The schema is owned by a SQL-file migration system rooted at `server/db/migrations/` and applied by `npm run migrate` — the server itself never auto-creates or alters tables. On boot, a Nitro plugin (`server/plugins/db-verify.ts`) calls `verifyMigrationsApplied()` and aborts the process if anything is pending or has drifted, so the app and the schema can never get out of step silently. Every row carrying user data also carries a `user_id` foreign key — the API filters by it on every read and write.
+All relational data lives in the local MySQL database `rc`. The schema is owned by a SQL-file migration system rooted at `server/db/migrations/` and applied by `npm run migrate` — the server itself never auto-creates or alters tables. On boot, a Nitro plugin (`server/plugins/db-verify.ts`) calls `verifyMigrationsApplied()` and aborts the process if anything is pending or has drifted, so the app and the schema can never get out of step silently.
+
+**Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
+
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics`.
 
 ## Migration system
 
@@ -74,9 +78,8 @@ outside the type system. It's stored as `VARCHAR(16)`.
 
 ```sql
 -- Users (auth) --------------------------------------------------------
--- `role` follows the "integer enum at the boundary" pattern documented
--- above (normal=0, admin=1, superadmin=2). See server/db/types.ts for
--- the int↔string helpers.
+-- `role` is the integer enum documented above (normal=0, admin=1,
+-- superadmin=2). `last_login_at` is added by migration 0002.
 CREATE TABLE users (
   id              VARCHAR(64) PRIMARY KEY,
   email           VARCHAR(320) NOT NULL,
@@ -86,6 +89,7 @@ CREATE TABLE users (
   email_verified  TINYINT(1)    NOT NULL DEFAULT 0,
   created_at      DATETIME(3)   NOT NULL,
   updated_at      DATETIME(3)   NOT NULL,
+  last_login_at   DATETIME(3)   NULL,
   UNIQUE KEY uniq_users_email (email),
   INDEX idx_users_role (role)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -302,9 +306,30 @@ When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended
 
 ---
 
-## Proposed schema extensions (Phase 8+)
+## Feed & stories (migrations 0003–0005)
 
-These fields are documented here so the data model is forward-compatible. The current API ignores unknown fields gracefully (round-tripped untouched).
+Canonical DDL lives in the migration files; this section is the as-built map.
+
+| Table | Purpose |
+| ----- | ------- |
+| `posts` | Feed posts: `body`, `visibility` (`public`/`private`/`shared`), optional `category_id`, `font_family`, `text_color`, optional `shared_post_id` |
+| `post_audience` | ACL rows for `visibility = shared` |
+| `post_reactions` | One reaction per `(post_id, user_id)` (`like`/`love`/…) |
+| `post_comments` | Threaded comments on a post |
+| `post_attachments` | Attachment metadata linked to `uploads` |
+| `post_categories` | Install-wide category catalog (seeded; no `user_id`) |
+| `uploads` | Upload metadata + R2 `storage_key` |
+| `stories` | 24h stories (`expires_at`), optional media |
+| `story_views` | Viewer rollup |
+| `story_reactions` | Reactions on stories |
+
+Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
+
+---
+
+## Proposed schema extensions
+
+These fields are documented so the data model stays forward-compatible. The current API ignores unknown fields gracefully (round-tripped untouched).
 
 **TimeBlock:**
 

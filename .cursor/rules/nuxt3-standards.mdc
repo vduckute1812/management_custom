@@ -6,22 +6,25 @@ alwaysApply: false
 
 # Nuxt 3 Project Standards
 
-This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth.
+This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n`. Runtime: **Node ≥ 24**. As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
 
 ## Architecture
 
+* **Modules:** public hub `/`, **Feed** `/feed`, **Time Management** `/tasks` (+ epics/analytics). Do not assume every page requires login.
 * **`pages/` / `components/`**: UI only. Extract data, multi-step flows, and shared state into `composables/`.
 * **`composables/`**: Vue/Nuxt context (`ref`, `useState`, `useRoute`, `apiFetch`). Always pass an explicit key to `useState('unique-key', factory)`.
 * **`utils/`** (client) / pure helpers: deterministic functions only — no `useNuxtApp()`, `useRoute()`, or `useRuntimeConfig()` at module top level.
 * **`server/api/`**: Thin handlers. Auth → validate → call `server/db` or `server/utils` → return JSON or `createError`.
-* **`server/db/`**: SQL / domain persistence. **`server/utils/`**: auth, mailer, R2, shared server helpers.
-* **`types/`**: Shared DTOs used by both client and server (e.g. `types/post.ts`).
+* **`server/db/`**: SQL / domain persistence (barrel via `server/utils/db.ts`). **`server/utils/`**: auth, mailer, R2, shared server helpers.
+* **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/locale.ts`).
 
 ## Data fetching & auth (client)
 
 * Authenticated API calls: use `apiFetch` from `useApi()` — not raw `$fetch` (attaches Bearer, refresh-on-401).
-* `$fetch` is OK only for unauthenticated auth endpoints (`login` / `signup` / `refresh`) or one-off public calls.
-* Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, …).
+* `$fetch` is OK for unauthenticated auth endpoints (`login` / `signup` / `refresh` / `verify-email`) and intentional public GETs (e.g. public feed when logged out).
+* Client guard: `middleware/auth.global.ts` — public `/`, `/feed`, auth forms; protect `/tasks`, settings, admin, …
+* Server: `requireUser` / `requireAdmin` / `requireSuperAdmin`; feed list/detail GETs may use `getOptionalUser`.
+* Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, `usePosts`, …).
 
 ## Nitro API handlers
 

@@ -1,18 +1,19 @@
 # Getting Started
 
-Everything you need to take a fresh checkout from "I just cloned this" to "I'm logged in and looking at the dashboard". Pairs with [`database.md`](./database.md) (schema), [`auth.md`](./auth.md) (admin seed), and [`api.md`](./api.md) (what the running app exposes).
+Everything you need to take a fresh checkout from "I just cloned this" to "I'm logged in and looking at the calendar". Pairs with [`database.md`](./database.md) (schema), [`auth.md`](./auth.md) (admin seed), [`api.md`](./api.md) (routes), and [`i18n.md`](./i18n.md) (languages).
 
 ---
 
 ## Prerequisites
 
-- Node.js ≥ 18
+- **Node.js ≥ 24** (see `.nvmrc` / `package.json` `engines`)
 - npm
-- **MySQL 8** running on `localhost:3306` (or wherever you point the env vars).
+- **MySQL 8** running on `localhost:3306` (or wherever you point the env vars)
+- Optional: **Cloudflare R2** credentials if you want feed/story file attachments
 
 ## Provision the database
 
-The Nitro plugin creates tables automatically, but you have to create the empty database yourself. With a stock local MySQL:
+Create the empty database yourself. Schema is applied only by migrations (`npm run migrate`) — the Nitro boot plugin verifies migrations; it does **not** create tables.
 
 ```sql
 CREATE DATABASE rc DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -52,12 +53,20 @@ SMTP_FROM=
 SMTP_SECURE=false
 
 # Where the app is reachable from the user's browser; used to build the
-# absolute URL inside verification emails. APP_PROTOCOL is optional and
-# defaults to http; the port is omitted from the rendered URL when it
-# matches the protocol default (80/443).
+# absolute URL inside verification emails.
+# Prefer APP_BASE_URL behind a reverse proxy / Cloudflare Tunnel.
+# APP_BASE_URL=https://example.com
 APP_HOST=localhost
 APP_PORT=3000
 # APP_PROTOCOL=http
+
+# Cloudflare R2 (optional) — required for Attach on posts/stories.
+# R2_ACCOUNT_ID=…
+# R2_ACCESS_KEY_ID=…
+# R2_SECRET_ACCESS_KEY=…
+# R2_BUCKET=mgmt-uploads
+# R2_ENDPOINT=…          # optional override
+# R2_SIGNED_URL_TTL=3600 # optional
 ```
 
 The MySQL driver accepts `DB_PASSWORD` as an alias for `DB_PASS` for anyone whose shop standard prefers the long form.
@@ -105,9 +114,12 @@ Idempotent. On first run it verifies the schema is current (refuses to run if an
 npm run dev
 ```
 
-The app boots at `http://localhost:3000` and redirects to `/login`. Sign in with the seed superadmin (or sign up a new normal user — verification link prints to the server console unless SMTP is configured).
+The app boots at `http://localhost:3000` on the **public hub** (`/`). Guests can open **Feed** (`/feed`) without signing in. Protected sections (Time Management `/tasks`, settings, admin, …) bounce unauthenticated users to `/login?redirect=…`.
+
+Sign in with the seed superadmin, or sign up a normal user — the verification link prints to the server console unless SMTP is configured.
 
 UI language defaults to English (or a browser match on first visit). Change it anytime under **Settings → Language**, or from the header account menu — preference stays in local storage for that browser. See [`i18n.md`](./i18n.md).
+
 ## Building for production
 
 ```bash
@@ -121,11 +133,13 @@ node --env-file=.env .output/server/index.mjs
 npm run check:db
 ```
 
-Pings the DB, verifies no migrations are pending or have drifted, confirms every expected table is present, and reports the current user count. Exits non-zero if the schema is incomplete.
+Pings the DB, verifies no migrations are pending or have drifted, confirms expected core tables are present, and reports the current user count. Exits non-zero if the schema is incomplete.
 
 ## First-run experience
 
-After signing in, an empty database dashboard offers two paths:
+After signing in, open **Time Management** (`/tasks`, or `g d`). An empty calendar offers:
 
-1. **Create your first task** — opens a quick-capture single-line input.
-2. **Load sample data** — seeds one Epic ("Sample Project") with three tasks across the current week so all views have something to render.
+1. **Quick capture** — single-line task input (`n`).
+2. **Load sample data** — seeds a sample Epic with tasks across the current week so calendar/analytics have something to render.
+
+The hub (`/`) explains the two modules (Feed vs Time Management) without requiring a session.

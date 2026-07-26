@@ -1,8 +1,8 @@
 # Personal Task & Analytics Manager
 
-A local-first productivity tool that helps a person plan their week, track time across multiple focused sessions, and see — at a glance — where their hours actually went. Built to live on your own machine, with first-class JSON / CSV / iCal export so you can snapshot your data whenever you like.
+A local-first productivity tool with two modules on one install: **Time Management** (plan the week, log sessions, analytics) and **Feed** (posts, stories, reactions). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
 
-> **Design ethos.** Single-user simplicity, multi-user safety. Every account sees only its own epics, tasks, time blocks, and timer — admins additionally see a roll-up dashboard across every user.
+> **Design ethos.** Single-user simplicity for tasks; multi-user safety by default. Epics, tasks, time blocks, and the timer are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Admins additionally see a roll-up dashboard across every user.
 
 > Looking for the engineering side — installation, schema, API, code layout? Head to [`implement/`](./implement/README.md). This document is the **product** description; everything code-shaped lives over there.
 
@@ -32,9 +32,9 @@ A local-first productivity tool that helps a person plan their week, track time 
 
 These five principles are the lens for every product decision. When in doubt, ranking is top-to-bottom.
 
-1. **Local & owned.** Your data lives on your own machine — a database you administer, back up, and dump like any other on your laptop. No cloud, no telemetry, no shared tenants. JSON / CSV / iCal export is one click away in `Settings → Your data`, so taking a snapshot or moving hosts is never blocked on us.
+1. **Local & owned.** Primary data lives in a MySQL database you administer. Optional Cloudflare R2 holds feed/story file bytes when attachments are enabled — still under your account, not a multi-tenant SaaS. No telemetry. JSON / CSV / iCal export for tasks is one click away in `Settings → Your data`.
 2. **Calm by default.** No badges screaming for attention, no dopamine animations, no notifications you didn't ask for. The tool waits patiently and reports faithfully.
-3. **One screen, one job.** Dashboard plans. Epic page contextualizes. Analytics reflects. We resist cramming "everything everywhere."
+3. **One screen, one job.** Hub picks a module. Time Management plans on `/tasks`. Feed shares on `/feed`. Analytics reflects. We resist cramming "everything everywhere."
 4. **Keyboard-first.** Every primary action has a shortcut. The mouse is a fallback, not the contract.
 5. **Honest math.** Aggregates are always computed, never stored. If two views show different numbers, the tool is broken — not "eventually consistent."
 
@@ -76,6 +76,10 @@ Every task carries title, notes, status, due date, estimate, progress, tags — 
 
 The "now" indicator ticks every 30 seconds and snaps forward when the tab regains focus, so it stays accurate without burning a render every second.
 
+### Share on the Feed
+
+Open **Feed** (`g f` or Home → Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author.
+
 ### Switch language
 
 The interface is available in **English**, **Vietnamese**, **Simplified Chinese**, and **Traditional Chinese**. Preference is saved on this device only (same store as theme and density) — URLs do not change when you switch.
@@ -111,7 +115,7 @@ Concrete journeys, each rated by target friction.
 
 ### Flow 1 — "Plan tomorrow morning" *(target: ≤ 90 seconds)*
 
-1. Open **Dashboard** (`g d` or Home → Time management) → **Daily** view of tomorrow (`t` then `→`).
+1. Open **Time Management** (`g d` or Home → Time management) → **Daily** view of tomorrow (`t` then `→`).
 2. From the *Up next* rail, drag tasks onto morning hour slots, or click an empty slot to create there.
 3. Press `n` for quick capture; type `Read MLE paper @9` or `Draft tomorrow 9-11` + `Enter`.
 4. Done. No modal traversal required for routine planning. (`Shift+N` opens the full editor when you need it.)
@@ -179,11 +183,11 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 | Role         | Sees                                                          | Can do                                                                  |
 | ------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `normal`     | Their own epics, tasks, time blocks, timer.                   | Everything in the app for their own data. Cannot read or modify anyone else's. |
+| `normal`     | Own epics/tasks/timer; Feed per visibility rules.             | Full Time Management for own data; create/react/comment on the Feed.    |
 | `admin`      | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts. |
-| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can. The role is **never assignable through the UI**: it's seeded by `npm run migrate:auth` and cannot be modified or demoted by anyone, so the install always has a break-glass owner that admins can't lock each other out of. |
+| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
 
-A normal user's experience is identical to a single-user app; the admin / superadmin roles are the only things that ever surface other accounts. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md) for the seed flow); after that, the superadmin or any admin promotes new admins through the app.
+Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
 
 ---
 
@@ -302,7 +306,7 @@ System font stack only — no web fonts to load. Numerals use `tabular-nums` eve
 
 - **Channels.** In-app toast always; desktop pop-up additionally if browser permission has been granted. Both fire from the same trigger and share one dedupe key (`taskId:blockId`) so a block never alerts twice.
 - **Timing.** Fires `notificationLeadMinutes` (default 5) before each block. If the lead window has already passed but the block hasn't started yet — say, you opened the app 3 min before a 5-min lead — the alert fires immediately rather than being silently skipped.
-- **Open action.** The toast carries an **Open** button that sets a shared `focusTaskId` and routes to the dashboard; the dashboard watches the signal and pops the task modal so the user lands on the right thing in one tap, regardless of which page they were on.
+- **Open action.** The toast carries an **Open** button that sets a shared `focusTaskId` and routes to `/tasks`; the tasks page watches the signal and pops the task modal so the user lands on the right thing in one tap, regardless of which page they were on.
 - **Reschedule horizon.** The scheduler holds at most 24 hours of `setTimeout`s at a time; a 15-minute rolling pass picks up blocks as they enter the window. Blocks rescheduled inside the modal trigger a fresh schedule pass on save.
 
 ### Checklist sub-items
@@ -331,7 +335,7 @@ Every screen has four states. The README — and the code — must specify all f
 
 | Surface          | Empty state                                                                 |
 | ---------------- | --------------------------------------------------------------------------- |
-| Dashboard        | Centered illustration, primary CTA "Create your first task" (`n`), secondary "Load sample data" |
+| Time Management (`/tasks`) | Centered empty state, primary CTA "Create your first task" (`n`), secondary "Load sample data" |
 | Epics index      | Same pattern; CTA "Create your first epic"                                  |
 | Analytics        | Friendly message: "We'll show velocity after you log a few blocks."         |
 | Up next sidebar  | Italic "Nothing scheduled. Create your first task!"                         |
@@ -372,9 +376,11 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 | `n`            | New task (quick capture)                |
 | `Shift + N`    | New task (full modal)                   |
 | `e`            | New epic                                |
-| `g d`          | Go to Dashboard                         |
+| `g h`          | Go to Home (hub)                        |
+| `g d`          | Go to Time Management (`/tasks`)        |
 | `g e`          | Go to Epics                             |
 | `g a`          | Go to Analytics                         |
+| `g f`          | Go to Feed                              |
 
 ### Calendar
 

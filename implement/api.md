@@ -1,8 +1,15 @@
 # API Reference
 
-All routes are handled by Nitro under `/server/api/`. Every route except those under `/api/auth/{signup,login,refresh,verify-email}` requires `Authorization: Bearer <accessToken>` and returns `401` without it. Admin routes additionally require `role >= 1` (admin or superadmin) and return `403` otherwise.
+All routes are handled by Nitro under `/server/api/`.
 
-See [`auth.md`](./auth.md) for the token model and refresh dance; see [`database.md`](./database.md) for the underlying field types.
+**Auth rules (summary):**
+
+- **Public (no Bearer):** `POST /api/auth/{signup,login,refresh,verify-email}`.
+- **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token the viewer also sees private/shared content they own or were granted.
+- **Authenticated:** everything else requires `Authorization: Bearer <accessToken>` (`401` without it). Time-management CRUD is always scoped to the caller.
+- **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
+
+See [`auth.md`](./auth.md) for the token model and client route guard; see [`database.md`](./database.md) for the underlying field types.
 
 ## Enum encoding
 
@@ -41,6 +48,73 @@ Request bodies that include these fields must send them as numbers; the server r
 | `GET`  | `/api/admin/users`                | Per-user summary: counts of tasks/epics, hours logged, last activity.    |
 | `GET`  | `/api/admin/stats?days=30`        | System-wide totals + daily-hours series + status mix, for dashboard charts. |
 | `POST` | `/api/admin/users/:id/role`       | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`403`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
+| `DELETE` | `/api/admin/users/:id`          | **Superadmin only.** Permanently deletes the user and cascaded data.     |
+
+---
+
+## Categories
+
+| Method | Endpoint              | Description                                      |
+| ------ | --------------------- | ------------------------------------------------ |
+| `GET`  | `/api/categories`     | Lists seeded post categories (`requireUser`).    |
+
+---
+
+## Posts / feed
+
+Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.
+
+| Method   | Endpoint                              | Auth        | Description |
+| -------- | ------------------------------------- | ----------- | ----------- |
+| `GET`    | `/api/posts`                          | Optional    | Paginated feed for the viewer (or public-only when anonymous). |
+| `POST`   | `/api/posts`                          | Required    | Create a post (body, visibility, category, style, attachments). |
+| `DELETE` | `/api/posts/:id`                      | Required    | Delete own post. |
+| `GET`    | `/api/posts/:id/comments`             | Optional    | List comments when the post is visible to the viewer. |
+| `POST`   | `/api/posts/:id/comments`             | Required    | Add a comment. |
+| `DELETE` | `/api/posts/:id/comments/:commentId`  | Required    | Delete own comment (or post owner). |
+| `POST`   | `/api/posts/:id/reactions`            | Required    | Set reaction (`like` / `love` / …). |
+| `DELETE` | `/api/posts/:id/reactions`            | Required    | Clear reaction. |
+| `POST`   | `/api/posts/:id/like`                 | Required    | Legacy like helper (maps onto reactions). |
+| `POST`   | `/api/posts/:id/share`                | Required    | Share a post into the caller's feed. |
+
+DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.
+
+---
+
+## Stories
+
+24-hour ephemeral stories with views / reactions / owner insights.
+
+| Method   | Endpoint                              | Auth     | Description |
+| -------- | ------------------------------------- | -------- | ----------- |
+| `GET`    | `/api/stories`                        | Required | Active stories tray for the install. |
+| `POST`   | `/api/stories`                        | Required | Create a story (text and/or media). |
+| `DELETE` | `/api/stories/:id`                    | Required | Delete own story. |
+| `POST`   | `/api/stories/:id/view`               | Required | Record a view. |
+| `POST`   | `/api/stories/:id/reactions`          | Required | Set reaction. |
+| `DELETE` | `/api/stories/:id/reactions`          | Required | Clear reaction. |
+| `GET`    | `/api/stories/:id/insights`           | Required | Owner-only viewers + reactions rollup. |
+
+DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
+
+---
+
+## Uploads (R2)
+
+Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API returns ids / signed URLs — not raw bytes inline.
+
+| Method | Endpoint              | Auth     | Description |
+| ------ | --------------------- | -------- | ----------- |
+| `POST` | `/api/uploads`        | Required | Upload a file; returns upload metadata. |
+| `GET`  | `/api/uploads/:id`    | Optional | Redirect/signed URL when the caller may access the object. |
+
+---
+
+## Users directory
+
+| Method | Endpoint                 | Auth     | Description |
+| ------ | ------------------------ | -------- | ----------- |
+| `GET`  | `/api/users/directory`   | Required | Searchable people list for “share with specific people”. |
 
 ---
 

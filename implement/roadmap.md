@@ -73,7 +73,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `users.role` stored as `TINYINT UNSIGNED` (0 = normal, 1 = admin) — easy to compare with `>=` and extend with new ranks; the TS surface keeps the `"admin" | "normal"` union and translates at the DB boundary
 - [x] Schema is owned by versioned SQL migrations (`server/db/migrations/NNNN_name.sql`) tracked in a `schema_migrations` table by SHA-256 checksum. The boot plugin (`server/plugins/db-verify.ts`) refuses to start if any migration is pending or has drifted — the runtime never mutates schema implicitly
 - [x] `npm run migrate:auth` — idempotent admin seed (`ADMIN_INITIAL_EMAIL` / `ADMIN_INITIAL_PASSWORD`)
-- [x] `npm run check:db` verifies all 8 tables are present and reports the current user count
+- [x] `npm run check:db` verifies core tables are present and reports the current user count (later migrations add feed/stories tables; checker focuses on the original task stack + migrations status)
 
 **Token model**
 - [x] Short-lived JWT access tokens (HS256, 15 min, signed with `JWT_SECRET`, carry `{ sub, email, role }`)
@@ -113,7 +113,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip
 - [x] `useTasks`, `useEpics`, `useTimer` migrated off `$fetch` onto `apiFetch` (so every existing surface now talks to the auth-aware API)
 - [x] `plugins/auth.client.ts` — hydrates session on boot, refreshes the access token if it's near expiry, and falls back to a clean `clearSession()` on any failure
-- [x] `middleware/auth.global.ts` — `/login`, `/signup`, `/verify-email` are public; everything else requires auth; `/admin` requires `role: admin`
+- [x] `middleware/auth.global.ts` — `/`, `/feed`, `/login`, `/signup`, `/verify-email` are public; Time Management / settings / profile require auth; `/admin` requires `role: admin`
 
 **Pages & UI**
 - [x] `/login`, `/signup`, `/verify-email` — minimal forms with explicit error surfacing and a "verification sent" success state
@@ -132,7 +132,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] Two concurrent users can run timers without interference; cross-user `taskId` is rejected
 - [x] Cross-user `POST /api/tasks {id: …}` and `DELETE /api/tasks/:id` both 404 and leave the target row untouched (verified directly against MySQL)
 - [x] Refresh-token rotation: the old refresh token is rejected with 401 once a new pair has been issued; logout also kills the new one
-- [x] `npm run check:db` reports all 8 tables present and the live user count
+- [x] `npm run check:db` reports core tables present and the live user count
 
 **Deferred (per spec)**
 - [ ] **Phase 2: SMS sign-up.** `implement/auth-rbac.md` explicitly marks SMS as a later phase. Hook-in point would be a new `auth/signup-sms.post.ts` + a `phone_numbers` table linked to `users`; the rest of the token / role machinery is provider-agnostic.
@@ -173,7 +173,7 @@ The calendar grew a real sense of time, and the planner picked up a heads-up bef
 - [x] `composables/useNotifications.ts` rebuilt around a dual-channel model: in-app toast always fires when alerts are enabled; desktop pop-up fires *additionally* when browser Notification permission has been granted
 - [x] **Late-join logic** — if the lead window has already passed but the block hasn't started, the alert fires immediately on the next scheduler pass rather than being silently skipped
 - [x] Dedupe key `${taskId}:${blockId}` shared across both channels so a block never alerts twice, even with the page open across multiple tabs or after a settings change
-- [x] Toast carries an **Open** action that sets `useUiOverlays().focusTaskId` and routes to `/`; the dashboard watches `focusTaskId` and pops the matching `TaskModal` so the alert lands the user on the right thing in one tap from any page
+- [x] Toast carries an **Open** action that sets `useUiOverlays().focusTaskId` and routes to `/tasks`; the tasks page watches `focusTaskId` and pops the matching `TaskModal` so the alert lands the user on the right thing in one tap from any page
 - [x] `CommandPalette.vue` task entries reuse the same `focusTaskId` mechanism so "jump to task" also opens the modal directly
 - [x] `composables/useSettings.ts` — default `notificationsEnabled` is now `true` for fresh installs; explicit `false` in persisted settings still wins so existing users who opted out stay opted out
 - [x] `pages/settings.vue` — copy + UI rewritten to reflect the dual-channel model; "Enable desktop pop-ups" is a separate button shown only after the master toggle is on; "Send test notification" prefers the desktop channel and falls back to the in-app toast
@@ -188,3 +188,13 @@ Full chrome localization with device-local preference (no URL prefixes).
 - [x] `LanguageSwitcher` in Settings → Language and the header account menu
 - [x] Full UI string migration (pages, components, toasts, SEO titles) + `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS`
 - [x] Docs: `implement/i18n.md`, architecture/README/roadmap/product README, `.cursor/rules/nuxt3-standards.mdc`
+
+## Phase 12 — Feed / stories / public hub *(landed alongside Time Management)*
+
+Documented here so the roadmap matches the as-built install (migrations `0003`–`0005`, R2 uploads, public `/` + `/feed`).
+
+- [x] Public hub (`/`) + Feed module (`/feed`) with optional-auth public post reads
+- [x] Posts: visibility ACL, categories, reactions, comments, share, LaTeX/styled body
+- [x] Stories: 24h tray, views, reactions, owner insights
+- [x] Uploads via Cloudflare R2 (`server/utils/r2.ts`) when `R2_*` configured
+- [x] Implementation docs synced: architecture / api / auth / database / getting-started

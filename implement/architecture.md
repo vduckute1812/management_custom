@@ -1,6 +1,6 @@
 # Architecture
 
-How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`api.md`](./api.md), and [`auth.md`](./auth.md).
+How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`api.md`](./api.md), [`auth.md`](./auth.md), and [`i18n.md`](./i18n.md).
 
 ---
 
@@ -12,169 +12,149 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Styling  | TailwindCSS v4              | Utility-first layout and theming                       |
 | i18n     | `@nuxtjs/i18n`              | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
 | Backend  | Nitro (bundled with Nuxt 3) | Server-side API routes                                 |
-| Storage  | MySQL 8 (`mysql2` driver)   | Persistence — local `rc` database on `localhost:3306`  |
+| Storage  | MySQL 8 (`mysql2` driver)   | Primary persistence — database `rc` (override via env) |
+| Media    | Cloudflare R2 (S3 API)      | Optional object storage for feed/story uploads (`server/utils/r2.ts`) |
 | Time     | Day.js                      | Date parsing, formatting, diffing (locale packs sync with UI language) |
 | Charts   | Chart.js                    | Velocity and trend visualizations                      |
-| Calendar | FullCalendar *(optional)*   | For future drag-to-reschedule polish                   |
+| Math     | KaTeX                       | Inline/block LaTeX in feed post bodies                 |
 
 ## Project facts
 
 | Property     | Value                                                                |
 | ------------ | -------------------------------------------------------------------- |
-| Project Path | `~/Projects/management`                                              |
-| Runtime      | Node.js ≥ 18                                                         |
-| Framework    | Nuxt 3 (Vue 3)                                                       |
+| Project Path | `~/Projects/management_custom`                                       |
+| Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                          |
+| Framework    | Nuxt 3 (Vue 3), client-only SPA                                      |
 | Styling      | TailwindCSS v4                                                       |
 | Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)  |
-| External DBs | None (MySQL is local-only)                                           |
+| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories)|
 | Telemetry    | None                                                                 |
 
 ---
 
 ## Runtime topology
 
-The app runs entirely locally. The Nuxt frontend communicates with Nitro server routes, which talk to a local MySQL instance through a pooled `mysql2` connection.
+Two product modules share one install: **Feed** (posts/stories) and **Time Management** (tasks/epics/calendar). Auth and admin sit across both.
 
 ```
-Browser (Vue 3)
+Browser (Vue 3 SPA)
     │
     ▼
 Nuxt 3 / Nitro API Routes (/server/api/...)
     │
-    ▼
-server/utils/db.ts  ←→  MySQL 8 (`rc` @ localhost:3306)
+    ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
+    │     tables: users (+ last_login_at), auth_*, epics, tasks,
+    │             time_blocks, checklist_items, active_timer,
+    │             posts, post_*, uploads, stories, story_*,
+    │             post_categories, schema_migrations
     │
-    └── tables: users, auth_refresh_tokens, auth_email_verifications,
-                epics, tasks, time_blocks, checklist_items, active_timer
+    └── server/utils/r2.ts  ←→  Cloudflare R2 (when configured)
 ```
 
-- **Connection pool.** `mysql2/promise` pool, created lazily on the first call to `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (override with `DB_CONNECTION_LIMIT`).
-- **Schema ownership.** The schema is owned by versioned SQL migration files in `server/db/migrations/` and applied by `npm run migrate`. A Nitro server plugin (`server/plugins/db-verify.ts`) calls `verifyMigrationsApplied()` on boot and **aborts the process** if any migration is pending or has drifted — the app and the schema can never get out of step silently. See [`database.md`](./database.md#migration-system) for the full migration workflow.
-- **Transactions.** Any operation that touches more than one table (epic delete with task orphaning, task upsert with its blocks + checklist, timer start that finalizes a prior task) runs inside a single `BEGIN ... COMMIT` block so callers never observe a half-applied state.
-- **Honest math.** Aggregate fields like `epic.spentHours`, `epic.progress`, `task.spentHours`, and `task.checklistProgress` are still **computed on read** in `db.ts`'s pure helpers, never written to disk. Eliminates an entire class of "the sidebar says 5h but the modal says 6h" bugs.
+- **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
+- **Schema ownership.** Versioned SQL in `server/db/migrations/`, applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
+- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `stories`, `uploads`, `categories`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, etc.) run inside `BEGIN … COMMIT`.
+- **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
+- **Auth scoping.** Time-management CRUD is always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
+
+---
+
+## Modules & routes (client)
+
+| Area | Routes | Auth |
+| ---- | ------ | ---- |
+| Hub | `/` | Public |
+| Feed | `/feed` | Public browse; compose/react/comment need login |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated |
+| Account | `/settings`, `/profile` | Authenticated |
+| Admin | `/admin` | Admin / superadmin |
+| Auth forms | `/login`, `/signup`, `/verify-email` | Public; authed users bounce to `/` |
+
+Global guard: `middleware/auth.global.ts`.
 
 ---
 
 ## Project Structure
 
 ```
-~/Projects/management/
+~/Projects/management_custom/
 ├── server/
 │   ├── api/
-│   │   ├── auth/
-│   │   │   ├── signup.post.ts       # POST   /api/auth/signup
-│   │   │   ├── login.post.ts        # POST   /api/auth/login
-│   │   │   ├── refresh.post.ts      # POST   /api/auth/refresh
-│   │   │   ├── logout.post.ts       # POST   /api/auth/logout
-│   │   │   ├── verify-email.post.ts # POST   /api/auth/verify-email
-│   │   │   └── me.get.ts            # GET    /api/auth/me
-│   │   ├── admin/
-│   │   │   ├── users.get.ts         # GET    /api/admin/users         (admin)
-│   │   │   ├── stats.get.ts         # GET    /api/admin/stats?days=…  (admin)
-│   │   │   └── users/[id]/role.post.ts  # POST  /api/admin/users/:id/role (admin)
-│   │   ├── epics/                   # all routes scoped by authenticated user
-│   │   ├── tasks/
-│   │   └── timer/
-│   ├── middleware/
-│   │   └── auth.ts                 # Hydrates event.context.user from Bearer JWT
-│   ├── plugins/
-│   │   └── db-verify.ts            # Refuses boot if a migration is pending
+│   │   ├── auth/                    # signup, login, refresh, logout, verify-email, me
+│   │   ├── admin/                   # users, stats, role, DELETE user (superadmin)
+│   │   ├── epics/                   # caller-scoped
+│   │   ├── tasks/                   # caller-scoped
+│   │   ├── timer/                   # per-user active timer
+│   │   ├── posts/                   # feed CRUD, comments, reactions, share
+│   │   ├── stories/                 # 24h stories, views, reactions, insights
+│   │   ├── uploads/                 # R2 upload + signed GET
+│   │   ├── categories/              # GET post categories
+│   │   └── users/directory.get.ts   # people picker for shared visibility
+│   ├── db/                          # SQL domain modules + migrator + pool
+│   │   └── migrations/              # 0001…0005 SQL files
+│   ├── middleware/auth.ts           # Hydrates event.context.user from Bearer JWT
+│   ├── plugins/db-verify.ts         # Refuses boot if migrations pending/drifted
 │   └── utils/
-│       ├── db.ts                   # mysql2 pool + per-user CRUD + admin rollups
-│       ├── auth.ts                 # JWT / bcrypt / opaque-token helpers
-│       ├── authContext.ts          # requireUser / requireAdmin H3 helpers
-│       └── mailer.ts               # SMTP wrapper with console fallback
+│       ├── db.ts                    # Barrel over server/db/*
+│       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
+│       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
+│       └── r2.ts                    # S3-compatible Cloudflare R2 client
 ├── scripts/
-│   ├── migrate-auth.ts             # Seed initial admin (one-shot, idempotent)
-│   └── check-db.ts                 # `npm run check:db` diagnostic
-├── components/
-│   ├── EpicModal.vue
-│   ├── EpicCard.vue
-│   ├── TaskModal.vue
-│   ├── TimeBlockEditor.vue
-│   ├── CalendarDaily.vue
-│   ├── CalendarWeekly.vue
-│   ├── CalendarMonthly.vue
-│   └── AnalyticsDashboard.vue
+│   ├── migrate.ts                   # CLI for npm run migrate*
+│   ├── migrate-auth.ts              # Seed superadmin
+│   ├── check-db.ts                  # npm run check:db
+│   └── notify-public-ip-change.ts   # Optional ops helper
 ├── pages/
-│   ├── index.vue                   # Dashboard
-│   ├── login.vue
-│   ├── signup.vue
-│   ├── verify-email.vue
-│   ├── admin/
-│   │   └── index.vue               # Admin charts + per-user table
-│   ├── epics/
-│   │   ├── index.vue
-│   │   └── [id].vue
-│   ├── analytics.vue
-│   └── settings.vue
+│   ├── index.vue                    # Public hub (Feed vs Time Management)
+│   ├── feed/index.vue
+│   ├── tasks/index.vue              # Calendar dashboard (Time Management)
+│   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
+│   └── login.vue, signup.vue, verify-email.vue
+├── components/                      # Flat SFC set (calendars, feed, shell, …)
+│   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, …
+│   ├── PostComposer.vue, PostCard.vue, StoryTray.vue, StoryViewer.vue, …
+│   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
 ├── composables/
-│   ├── useAuth.ts                  # Login / signup / refresh / token storage
-│   ├── useApi.ts                   # Bearer-injecting $fetch wrapper with auto-refresh
-│   ├── useEpics.ts
-│   ├── useTasks.ts
-│   ├── useTimer.ts
-│   ├── useRecurrence.ts
-│   ├── useNotifications.ts         # Pre-task alerts (in-app toast + optional desktop push)
-│   ├── useNow.ts                   # Shared reactive "current time" ticking every 30s
-│   └── useSettings.ts              # Theme, density, calendar prefs, locale (localStorage)
-├── middleware/
-│   └── auth.global.ts              # Redirects unauth users to /login; /admin → admin only
-├── layouts/
-│   └── default.vue                 # Sidebar + user chip + admin nav
+│   ├── useAuth.ts, useApi.ts, useSettings.ts, useToasts.ts, useUiOverlays.ts
+│   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
+│   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
+│   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
+│   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
+├── middleware/auth.global.ts
+├── layouts/default.vue
 ├── plugins/
-│   ├── auth.client.ts              # Hydrates auth state on app boot, refreshes if needed
-│   ├── theme.client.ts             # Mirrors theme + density onto <html>
-│   ├── i18n-locale.client.ts       # Syncs settings.locale ↔ i18n ↔ dayjs ↔ html[lang]
-│   └── notifications.client.ts     # Schedules block reminders; rolls over every 15 min
-├── components/
-│   └── LanguageSwitcher.vue        # Settings buttons + header select
-├── i18n/locales/                   # en.json, vi.json, zh-CN.json, zh-TW.json
-├── assets/css/main.css             # Tailwind + design tokens + dark/density layers
-├── types/
-│   ├── task.ts                     # Shared TS interfaces + *_I18N_KEYS for labels
-│   └── locale.ts                   # AppLocale, DAYJS_LOCALE, INTL_LOCALE
-├── implement/                      # Technical documentation (you are here)
-├── .env.example                    # Connection + auth + SMTP settings template
-└── nuxt.config.ts                  # SPA routeRules + @nuxtjs/i18n module
+│   ├── auth.client.ts
+│   ├── theme.client.ts
+│   ├── i18n-locale.client.ts
+│   └── notifications.client.ts
+├── i18n/locales/                    # en, vi, zh-CN, zh-TW
+├── types/                           # task.ts, post.ts, story.ts, locale.ts
+├── utils/                           # parseQuickCapture.ts, renderPostBody.ts, …
+├── implement/                       # Technical documentation (you are here)
+├── .env.example
+└── nuxt.config.ts                   # SPA routeRules + @nuxtjs/i18n
 ```
+
+---
 
 ## UI language (i18n)
 
-The chrome is fully translated; user content is not. Locale is a **device preference** stored next to theme in `mgmt:settings:v1`, not a URL prefix and not a MySQL column.
+The chrome is fully translated; user content is not. Locale is a **device preference** in `mgmt:settings:v1`, not a URL prefix and not a MySQL column.
 
-Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.client.ts` → `setLocale` + Day.js pack + `document.documentElement.lang`. Full detail, namespaces, and contributor rules: [`i18n.md`](./i18n.md).
+Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.client.ts` → `setLocale` + Day.js pack + `document.documentElement.lang`. Details: [`i18n.md`](./i18n.md).
+
+---
 
 ## Pre-task alerts & live "now" indicator
 
-Two cross-cutting UI threads share infrastructure for being "always current":
+**`useNow`** (`composables/useNow.ts`) — shared reactive Dayjs via `useState`, ticks every 30s, force-refreshes on `visibilitychange`.
 
-**`useNow`** (`composables/useNow.ts`) — a singleton reactive `Dayjs` ref shared
-via Nuxt's `useState`. A 30-second interval drives ticks, started lazily on
-first consumer mount and torn down when the last unmounts. `visibilitychange`
-forces a tick on focus so the value snaps forward after the user comes back
-from a long break instead of waiting up to 30 s for the next interval.
+**Now-line.** `CalendarDaily` draws a horizontal line (+ `HH:mm` gutter badge) when the viewed day is today. `CalendarWeekly` shows a `Now HH:mm` pill on today's column header.
 
-**Now-line.** `CalendarDaily` reads `useNow().now` and renders a single absolute-
-positioned horizontal line at `(minutes_since_midnight / 60) * hourHeightPx`,
-shown only when the displayed date matches today. A small `bg-rose-600` badge
-to the left of the gutter prints the current `HH:mm` so the line is readable
-even when stacked next to an event. `CalendarWeekly` (no time axis) shows the
-same "Now HH:mm" pill in today's column header.
+**Pre-task alerts.** `useNotifications` fires once per `${taskId}:${blockId}` at `block.start - settings.notificationLeadMinutes` (default 5):
 
-**Pre-task alerts.** `useNotifications` schedules a single fire per
-`${taskId}:${blockId}` key at `block.start - settings.notificationLeadMinutes`
-(default 5). Two channels fire on the same trigger, deduped by that key:
+- **In-app toast** — `useToasts.pushToast` with an **Open** action that calls `useUiOverlays.requestFocusTask(taskId)` and navigates to **`/tasks`** if needed. The tasks page watches `focusTaskId` and opens `TaskModal`.
+- **Desktop pop-up** — `new Notification(...)` when permission is granted (upgrade; toast still fires).
 
-- **In-app toast** — `useToasts.pushToast` with an "Open" action that sets
-  `useUiOverlays.requestFocusTask(taskId)` and routes to `/`. The dashboard
-  page watches `focusTaskId` and pops the task modal. No browser permission
-  needed; always works.
-- **Desktop pop-up** — `new Notification(...)` when permission is granted.
-  Strictly an upgrade; the toast still fires either way.
-
-`scheduleAll` runs on tasks/settings change and also rolls over every 15 min
-in `plugins/notifications.client.ts` to pick up blocks that have just entered
-the 24-hour `setTimeout` horizon. If the lead window has already elapsed but
-the block hasn't started yet (e.g. you opened the app 2 min before a 5-min
-lead), the alert fires immediately rather than being skipped.
+`scheduleAll` runs on tasks/settings change and every 15 min via `plugins/notifications.client.ts`. If the lead window already elapsed but the block hasn't started, the alert fires immediately on the next pass.
