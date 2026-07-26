@@ -9,6 +9,7 @@ const props = withDefaults(
   { size: "sm" }
 );
 
+const { t } = useI18n();
 const {
   activeTimer,
   isRunningFor,
@@ -38,17 +39,20 @@ async function onClick(e: MouseEvent) {
     if (running.value) {
       const res = await stop();
       if (res.discarded) {
-        pushToast("Timer stopped (too short to log)", {
+        pushToast(t("toasts.timerStoppedTooShort"), {
           tone: "info",
           duration: 2200,
         });
       } else if (res.block) {
         pushToast(
-          `Logged ${res.block.spentHours}h to "${props.task.title}"`,
+          t("toasts.loggedHoursToTask", {
+            hours: res.block.spentHours,
+            title: props.task.title,
+          }),
           { tone: "success", duration: 2400 }
         );
       } else {
-        pushToast("Timer stopped", { tone: "info", duration: 1800 });
+        pushToast(t("toasts.timerStopped"), { tone: "info", duration: 1800 });
       }
     } else {
       const res = await start(props.task.id);
@@ -56,12 +60,12 @@ async function onClick(e: MouseEvent) {
         const prev = findTask(res.finalizedFor);
         pushToast(
           prev
-            ? `Logged previous timer to "${prev.title}"`
-            : "Previous timer logged",
+            ? t("toasts.loggedPreviousTimerTo", { title: prev.title })
+            : t("toasts.previousTimerLogged"),
           { tone: "info", duration: 2400 }
         );
       } else {
-        pushToast(`Tracking "${props.task.title}"`, {
+        pushToast(t("toasts.trackingTask", { title: props.task.title }), {
           tone: "success",
           duration: 1800,
         });
@@ -69,7 +73,7 @@ async function onClick(e: MouseEvent) {
     }
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Timer action failed",
+      err instanceof Error ? err.message : t("toasts.timerActionFailed"),
       { tone: "danger" }
     );
   } finally {
@@ -98,10 +102,10 @@ const dimensions = computed(() =>
     ]"
     :title="
       running
-        ? `Stop tracking (${elapsedLabel})`
+        ? $t('tasks.timer.stopTracking', { elapsed: elapsedLabel })
         : otherRunning
-        ? 'Stop the other timer and start tracking this task'
-        : 'Start tracking this task'
+        ? $t('tasks.timer.switchTracking')
+        : $t('tasks.timer.startTracking')
     "
     :aria-pressed="running"
     :disabled="busy"
@@ -123,8 +127,8 @@ const dimensions = computed(() =>
       <path d="M8 5v14l11-7z" />
     </svg>
     <template v-if="running">{{ elapsedLabel }}</template>
-    <template v-else-if="size === 'md'">Start timer</template>
-    <template v-else>Start</template>
+    <template v-else-if="size === 'md'">{{ $t("tasks.timer.startTimer") }}</template>
+    <template v-else>{{ $t("tasks.timer.start") }}</template>
   </button>
 </template>
 

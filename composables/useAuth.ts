@@ -127,9 +127,10 @@ export const useAuth = () => {
 
   async function refresh(): Promise<AuthSession> {
     if (!refreshToken.value) {
+      const { t } = useI18n();
       throw createError({
         statusCode: 401,
-        statusMessage: "No refresh token available",
+        statusMessage: t("auth.noRefreshToken"),
       });
     }
     const session = await $fetch<AuthSession>("/api/auth/refresh", {

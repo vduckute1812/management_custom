@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ROLE_LABELS } from "~/types/task";
+import { ROLE_I18N_KEYS } from "~/types/task";
+import { INTL_LOCALE, type AppLocale } from "~/types/locale";
 
 const auth = useAuth();
 const router = useRouter();
+const { t } = useI18n();
+const { settings } = useSettings();
 
 useSeoMeta({
-  title: "Profile",
-  description: "Your account details.",
+  title: computed(() => t("seo.profile")),
+  description: computed(() => t("seo.profileDescription")),
 });
 
 const user = computed(() => auth.user.value);
@@ -14,6 +17,13 @@ const user = computed(() => auth.user.value);
 const userInitial = computed(() => {
   const src = user.value?.name || user.value?.email || "";
   return src.charAt(0).toUpperCase() || "?";
+});
+
+const memberSince = computed(() => {
+  if (!user.value) return "";
+  const tag =
+    INTL_LOCALE[settings.value.locale as AppLocale] ?? settings.value.locale;
+  return new Date(user.value.createdAt).toLocaleDateString(tag);
 });
 
 async function onLogout() {
@@ -31,10 +41,10 @@ onMounted(async () => {
 <template>
   <div class="mx-auto max-w-xl px-4 py-8 sm:px-6">
     <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
-      Profile
+      {{ $t("profile.title") }}
     </h1>
     <p class="mt-1 text-sm text-slate-600">
-      Your account information for this workspace.
+      {{ $t("profile.subtitle") }}
     </p>
 
     <div
@@ -50,7 +60,7 @@ onMounted(async () => {
         </div>
         <div class="min-w-0">
           <p class="truncate text-lg font-semibold text-slate-900">
-            {{ user.name || "Unnamed user" }}
+            {{ user.name || $t("profile.unnamedUser") }}
           </p>
           <p class="truncate text-sm text-slate-500">{{ user.email }}</p>
         </div>
@@ -58,21 +68,21 @@ onMounted(async () => {
 
       <dl class="mt-6 space-y-3 text-sm">
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">Role</dt>
+          <dt class="text-slate-500">{{ $t("profile.role") }}</dt>
           <dd class="font-medium text-slate-800">
-            {{ ROLE_LABELS[user.role] ?? "Member" }}
+            {{ t(ROLE_I18N_KEYS[user.role] ?? "roles.normal") }}
           </dd>
         </div>
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">Email verified</dt>
+          <dt class="text-slate-500">{{ $t("profile.emailVerified") }}</dt>
           <dd class="font-medium text-slate-800">
-            {{ user.emailVerified ? "Yes" : "No" }}
+            {{ user.emailVerified ? $t("profile.yes") : $t("profile.no") }}
           </dd>
         </div>
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">Member since</dt>
+          <dt class="text-slate-500">{{ $t("profile.memberSince") }}</dt>
           <dd class="font-medium tabular-nums text-slate-800">
-            {{ new Date(user.createdAt).toLocaleDateString() }}
+            {{ memberSince }}
           </dd>
         </div>
       </dl>
@@ -82,20 +92,20 @@ onMounted(async () => {
           to="/settings"
           class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
         >
-          Settings
+          {{ $t("profile.settings") }}
         </NuxtLink>
         <button
           type="button"
           class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
           @click="onLogout"
         >
-          Logout
+          {{ $t("profile.logout") }}
         </button>
       </div>
     </div>
 
     <p v-else class="mt-8 text-sm text-slate-500">
-      Sign in to view your profile.
+      {{ $t("profile.signInPrompt") }}
     </p>
   </div>
 </template>

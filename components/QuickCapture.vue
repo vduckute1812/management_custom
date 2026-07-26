@@ -2,6 +2,7 @@
 import { TaskPriority, TaskStatus, type Task } from "~/types/task";
 import { parseQuickCapture } from "~/utils/parseQuickCapture";
 
+const { t } = useI18n();
 const { quickCaptureOpen } = useUiOverlays();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
@@ -46,14 +47,21 @@ async function onSubmit() {
     const tagHint = parsed.tags.length
       ? ` · #${parsed.tags.join(" #")}`
       : "";
-    pushToast(`Captured "${saved.title}" · ${parsed.scheduleLabel}${tagHint}`, {
-      tone: "success",
-      duration: 3500,
-    });
+    pushToast(
+      t("toasts.captured", {
+        title: saved.title,
+        schedule: parsed.scheduleLabel,
+        tags: tagHint,
+      }),
+      {
+        tone: "success",
+        duration: 3500,
+      }
+    );
     quickCaptureOpen.value = false;
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to capture",
+      err instanceof Error ? err.message : t("toasts.failedToCapture"),
       { tone: "danger" }
     );
   } finally {
@@ -74,7 +82,7 @@ function onBackdrop(e: MouseEvent) {
         class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm pt-32 px-4"
         role="dialog"
         aria-modal="true"
-        aria-label="Quick capture"
+        :aria-label="$t('tasks.quickCapture.aria')"
         @mousedown="onBackdrop"
       >
         <div
@@ -98,16 +106,20 @@ function onBackdrop(e: MouseEvent) {
               ref="inputEl"
               v-model="title"
               type="text"
-              placeholder="Read paper @14 · Draft tomorrow 9-11 · #vision notes"
+              :placeholder="$t('tasks.quickCapture.placeholder')"
               class="flex-1 px-3 py-4 text-base outline-none bg-transparent placeholder:text-slate-400"
-              aria-label="Quick task title"
+              :aria-label="$t('tasks.quickCapture.titleAria')"
             />
             <button
               type="submit"
               :disabled="submitting || !title.trim()"
               class="m-2 px-4 py-2 text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm disabled:opacity-50"
             >
-              {{ submitting ? "Saving…" : "Add" }}
+              {{
+                submitting
+                  ? $t("tasks.quickCapture.saving")
+                  : $t("tasks.quickCapture.add")
+              }}
             </button>
           </form>
           <p
@@ -124,11 +136,11 @@ function onBackdrop(e: MouseEvent) {
             class="px-4 pb-3 text-[11px] text-slate-500 flex items-center gap-3 flex-wrap"
           >
             <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Enter</kbd>
-            to save
+            {{ $t("tasks.quickCapture.enterToSave") }}
             <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Esc</kbd>
-            to cancel
+            {{ $t("tasks.quickCapture.escToCancel") }}
             <span class="ml-auto italic">
-              Try @14, tomorrow 9-11, or #tag. Default is the next hour.
+              {{ $t("tasks.quickCapture.hint") }}
             </span>
           </p>
         </div>

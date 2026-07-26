@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
 import {
-  PRIORITY_LABELS,
+  PRIORITY_I18N_KEYS,
+  RECURRENCE_I18N_KEYS,
   RecurrenceRule,
+  STATUS_I18N_KEYS,
   TaskPriority,
   TaskStatus,
-  describeRecurrence,
   type ChecklistItem,
   type Recurrence,
   type Task,
@@ -25,6 +26,7 @@ const emit = defineEmits<{
   (e: "deleted", id: string): void;
 }>();
 
+const { t } = useI18n();
 const { saveTask, deleteTask } = useTasks();
 const { epics } = useEpics();
 const { pushToast } = useToasts();
@@ -72,6 +74,16 @@ const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
 const baseline = ref("");
 const discardConfirmOpen = ref(false);
+
+function describeRecurrenceLabel(r?: Recurrence | null): string {
+  if (!r) return t("common.doesNotRepeat");
+  const unit = t(RECURRENCE_I18N_KEYS[r.rule]);
+  const head =
+    r.interval <= 1
+      ? t("common.everyUnit", { unit })
+      : t("common.everyInterval", { count: r.interval, unit });
+  return r.until ? `${head}${t("common.untilDate", { date: r.until })}` : head;
+}
 
 function snapshotForm() {
   baseline.value = JSON.stringify(form.value);
@@ -135,7 +147,7 @@ const recurrenceSummary = computed(() => {
     interval: Math.max(1, Math.round(form.value.recurrenceInterval)),
   };
   if (form.value.recurrenceUntil) r.until = form.value.recurrenceUntil;
-  return describeRecurrence(r);
+  return describeRecurrenceLabel(r);
 });
 
 const hasSeedBlocks = computed(() => form.value.timeBlocks.length > 0);
@@ -194,7 +206,7 @@ const totalSpent = computed(() => {
 
 async function onSubmit() {
   if (!form.value.title.trim()) {
-    errorMsg.value = "Title is required.";
+    errorMsg.value = t("tasks.modal.titleRequired");
     return;
   }
   submitting.value = true;
@@ -232,7 +244,7 @@ async function onSubmit() {
       progress: Number(form.value.progress),
       tags: form.value.tags
         .split(",")
-        .map((t) => t.trim())
+        .map((tag) => tag.trim())
         .filter(Boolean),
       timeBlocks: form.value.timeBlocks,
       checklist: form.value.checklist,
@@ -246,7 +258,8 @@ async function onSubmit() {
       justSaved.value = false;
     }, 320);
   } catch (err: unknown) {
-    errorMsg.value = err instanceof Error ? err.message : "Failed to save task";
+    errorMsg.value =
+      err instanceof Error ? err.message : t("tasks.modal.failedToSave");
   } finally {
     submitting.value = false;
   }
@@ -262,24 +275,28 @@ async function onDelete() {
     emit("deleted", id);
     emit("close");
     if (removed) {
-      pushToast(`Deleted "${titleSnapshot}"`, {
+      pushToast(t("toasts.deletedTask", { title: titleSnapshot }), {
         tone: "info",
         duration: 6000,
+        actionLabel: t("toasts.undo"),
         onAction: async () => {
           try {
             await saveTask(removed);
-            pushToast("Restored", { tone: "success", duration: 2000 });
+            pushToast(t("toasts.restored"), { tone: "success", duration: 2000 });
           } catch {
-            pushToast("Couldn't restore", { tone: "danger" });
+            pushToast(t("toasts.couldNotRestore"), { tone: "danger" });
           }
         },
       });
     } else {
-      pushToast(`Deleted "${titleSnapshot}"`, { tone: "info", duration: 3000 });
+      pushToast(t("toasts.deletedTask", { title: titleSnapshot }), {
+        tone: "info",
+        duration: 3000,
+      });
     }
   } catch (err: unknown) {
     errorMsg.value =
-      err instanceof Error ? err.message : "Failed to delete task";
+      err instanceof Error ? err.message : t("tasks.modal.failedToDelete");
   } finally {
     submitting.value = false;
   }
@@ -340,7 +357,7 @@ function onKeydown(e: KeyboardEvent) {
               id="task-modal-title"
               class="text-lg font-semibold text-slate-900 min-w-0 truncate"
             >
-              {{ form.id ? "Edit task" : "New task" }}
+              {{ form.id ? $t("tasks.modal.editTask") : $t("tasks.modal.newTask") }}
             </h2>
             <div class="flex items-center gap-2 shrink-0">
               <TaskTimerButton
@@ -351,7 +368,7 @@ function onKeydown(e: KeyboardEvent) {
               <button
                 type="button"
                 class="text-slate-400 hover:text-slate-700 transition"
-                aria-label="Close"
+                :aria-label="$t('tasks.modal.close')"
                 @click="requestClose"
               >
                 <svg
@@ -374,13 +391,13 @@ function onKeydown(e: KeyboardEvent) {
           >
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Title
+                {{ $t("tasks.modal.title") }}
               </label>
               <input
                 v-model="form.title"
                 type="text"
                 required
-                placeholder="What needs to be done?"
+                :placeholder="$t('tasks.modal.titlePlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
               />
             </div>
@@ -388,13 +405,13 @@ function onKeydown(e: KeyboardEvent) {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Epic (optional)
+                  {{ $t("tasks.modal.epicOptional") }}
                 </label>
                 <select
                   v-model="form.epicId"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
-                  <option value="">— Standalone task —</option>
+                  <option value="">{{ $t("tasks.modal.standaloneTask") }}</option>
                   <option v-for="epic in epics" :key="epic.id" :value="epic.id">
                     {{ epic.title }}
                   </option>
@@ -402,27 +419,33 @@ function onKeydown(e: KeyboardEvent) {
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Priority
+                  {{ $t("tasks.modal.priority") }}
                 </label>
                 <select
                   v-model.number="form.priority"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
-                  <option :value="TaskPriority.High">{{ PRIORITY_LABELS[TaskPriority.High] }}</option>
-                  <option :value="TaskPriority.Normal">{{ PRIORITY_LABELS[TaskPriority.Normal] }}</option>
-                  <option :value="TaskPriority.Low">{{ PRIORITY_LABELS[TaskPriority.Low] }}</option>
+                  <option :value="TaskPriority.High">
+                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.High]) }}
+                  </option>
+                  <option :value="TaskPriority.Normal">
+                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Normal]) }}
+                  </option>
+                  <option :value="TaskPriority.Low">
+                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Low]) }}
+                  </option>
                 </select>
               </div>
             </div>
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Notes
+                {{ $t("tasks.modal.notes") }}
               </label>
               <textarea
                 v-model="form.notes"
                 rows="3"
-                placeholder="Implementation details, links, blockers…"
+                :placeholder="$t('tasks.modal.notesPlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-y"
               />
             </div>
@@ -430,20 +453,26 @@ function onKeydown(e: KeyboardEvent) {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Status
+                  {{ $t("tasks.modal.status") }}
                 </label>
                 <select
                   v-model.number="form.status"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
-                  <option :value="TaskStatus.Todo">To do</option>
-                  <option :value="TaskStatus.InProgress">In progress</option>
-                  <option :value="TaskStatus.Done">Done</option>
+                  <option :value="TaskStatus.Todo">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Todo]) }}
+                  </option>
+                  <option :value="TaskStatus.InProgress">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.InProgress]) }}
+                  </option>
+                  <option :value="TaskStatus.Done">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Done]) }}
+                  </option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Due date
+                  {{ $t("tasks.modal.dueDate") }}
                 </label>
                 <input
                   v-model="form.dueDate"
@@ -456,27 +485,27 @@ function onKeydown(e: KeyboardEvent) {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Estimated hours
+                  {{ $t("tasks.modal.estimatedHours") }}
                 </label>
                 <input
                   v-model="form.estimatedHours"
                   type="number"
                   min="0"
                   step="0.25"
-                  placeholder="Total planned time"
+                  :placeholder="$t('tasks.modal.estimatedPlaceholder')"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
                 />
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Hours spent (derived)
+                  {{ $t("tasks.modal.hoursSpentDerived") }}
                 </label>
                 <div
                   class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 tabular-nums flex items-center justify-between"
                 >
                   <span>{{ totalSpent }}h</span>
                   <span class="text-[10px] text-slate-400 uppercase">
-                    Sum of blocks
+                    {{ $t("tasks.modal.sumOfBlocks") }}
                   </span>
                 </div>
               </div>
@@ -486,7 +515,7 @@ function onKeydown(e: KeyboardEvent) {
               <label
                 class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1"
               >
-                <span>Progress</span>
+                <span>{{ $t("tasks.modal.progress") }}</span>
                 <span class="text-slate-500">{{ form.progress }}%</span>
               </label>
               <input
@@ -501,12 +530,12 @@ function onKeydown(e: KeyboardEvent) {
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Tags (comma separated)
+                {{ $t("tasks.modal.tags") }}
               </label>
               <input
                 v-model="form.tags"
                 type="text"
-                placeholder="frontend, layout, urgent"
+                :placeholder="$t('tasks.modal.tagsPlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
               />
             </div>
@@ -514,17 +543,22 @@ function onKeydown(e: KeyboardEvent) {
             <div>
               <div class="flex items-center justify-between mb-2">
                 <label class="text-xs font-medium text-slate-600">
-                  Checklist
+                  {{ $t("tasks.modal.checklist") }}
                 </label>
                 <p
                   v-if="checklistSummary"
                   class="text-[11px] text-slate-500 tabular-nums"
                 >
-                  {{ checklistSummary.done }} / {{ checklistSummary.total }} ·
-                  {{ checklistSummary.percent }}%
+                  {{
+                    $t("tasks.modal.checklistSummary", {
+                      done: checklistSummary.done,
+                      total: checklistSummary.total,
+                      percent: checklistSummary.percent,
+                    })
+                  }}
                 </p>
                 <p v-else class="text-[11px] text-slate-500">
-                  Break this task into smaller steps
+                  {{ $t("tasks.modal.checklistHint") }}
                 </p>
               </div>
 
@@ -541,7 +575,7 @@ function onKeydown(e: KeyboardEvent) {
                     type="checkbox"
                     :checked="item.done"
                     class="accent-brand-600 w-4 h-4 shrink-0"
-                    :aria-label="`Toggle ${item.text}`"
+                    :aria-label="$t('tasks.modal.toggleItem', { text: item.text })"
                     @change="toggleChecklistItem(idx)"
                   />
                   <input
@@ -555,7 +589,7 @@ function onKeydown(e: KeyboardEvent) {
                   <button
                     type="button"
                     class="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    :aria-label="`Remove ${item.text}`"
+                    :aria-label="$t('tasks.modal.removeItem', { text: item.text })"
                     @click="removeChecklistItem(idx)"
                   >
                     <svg
@@ -576,7 +610,7 @@ function onKeydown(e: KeyboardEvent) {
                 <input
                   v-model="newChecklistItem"
                   type="text"
-                  placeholder="Add a sub-step…"
+                  :placeholder="$t('tasks.modal.addSubStep')"
                   class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
                   @keydown.enter.prevent="addChecklistItem"
                 />
@@ -586,7 +620,7 @@ function onKeydown(e: KeyboardEvent) {
                   :disabled="!newChecklistItem.trim()"
                   @click="addChecklistItem"
                 >
-                  Add
+                  {{ $t("tasks.modal.add") }}
                 </button>
               </div>
             </div>
@@ -594,10 +628,10 @@ function onKeydown(e: KeyboardEvent) {
             <div>
               <div class="flex items-center justify-between mb-2">
                 <label class="text-xs font-medium text-slate-600">
-                  Time blocks
+                  {{ $t("tasks.modal.timeBlocks") }}
                 </label>
                 <p class="text-[11px] text-slate-500">
-                  Split one task across multiple sessions
+                  {{ $t("tasks.modal.timeBlocksHint") }}
                 </p>
               </div>
               <TimeBlockEditor v-model="form.timeBlocks" />
@@ -612,12 +646,10 @@ function onKeydown(e: KeyboardEvent) {
                 />
                 <div class="min-w-0">
                   <div class="text-xs font-medium text-slate-700">
-                    Repeat this task
+                    {{ $t("tasks.modal.repeat") }}
                   </div>
                   <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    Future occurrences appear as ghost blocks on the calendar.
-                    Logged time still belongs to the original blocks only — run
-                    the timer or add a real block to record an instance.
+                    {{ $t("tasks.modal.repeatHint") }}
                   </p>
                 </div>
               </label>
@@ -627,12 +659,11 @@ function onKeydown(e: KeyboardEvent) {
                   v-if="!hasSeedBlocks"
                   class="text-[11px] text-amber-700 bg-amber-50 ring-1 ring-amber-200 rounded-md px-2.5 py-1.5"
                 >
-                  Add at least one time block above so the recurrence has a
-                  seed to project from.
+                  {{ $t("tasks.modal.needSeedBlock") }}
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap text-xs">
-                  <span class="text-slate-600">Every</span>
+                  <span class="text-slate-600">{{ $t("tasks.modal.every") }}</span>
                   <input
                     v-model.number="form.recurrenceInterval"
                     type="number"
@@ -646,16 +677,16 @@ function onKeydown(e: KeyboardEvent) {
                     class="rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                   >
                     <option :value="RecurrenceRule.Daily">
-                      {{ form.recurrenceInterval > 1 ? "days" : "day" }}
+                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Daily]) }}
                     </option>
                     <option :value="RecurrenceRule.Weekly">
-                      {{ form.recurrenceInterval > 1 ? "weeks" : "week" }}
+                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Weekly]) }}
                     </option>
                     <option :value="RecurrenceRule.Monthly">
-                      {{ form.recurrenceInterval > 1 ? "months" : "month" }}
+                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Monthly]) }}
                     </option>
                   </select>
-                  <span class="text-slate-500">until</span>
+                  <span class="text-slate-500">{{ $t("tasks.modal.until") }}</span>
                   <input
                     v-model="form.recurrenceUntil"
                     type="date"
@@ -667,7 +698,7 @@ function onKeydown(e: KeyboardEvent) {
                     class="text-[11px] text-slate-500 hover:text-slate-700 underline"
                     @click="form.recurrenceUntil = ''"
                   >
-                    no end
+                    {{ $t("tasks.modal.noEnd") }}
                   </button>
                 </div>
 
@@ -698,12 +729,12 @@ function onKeydown(e: KeyboardEvent) {
               class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
               @click="onDelete"
             >
-              Delete
+              {{ $t("tasks.modal.delete") }}
             </button>
             <span v-else class="text-[11px] text-slate-400">
               <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono">⌘</kbd>
               <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1">↵</kbd>
-              to save
+              {{ $t("tasks.modal.toSave") }}
             </span>
             <div class="flex items-center gap-2">
               <button
@@ -711,7 +742,7 @@ function onKeydown(e: KeyboardEvent) {
                 class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition"
                 @click="requestClose"
               >
-                Cancel
+                {{ $t("tasks.modal.cancel") }}
               </button>
               <button
                 type="button"
@@ -732,12 +763,12 @@ function onKeydown(e: KeyboardEvent) {
                 </svg>
                 {{
                   justSaved
-                    ? "Saved"
+                    ? $t("tasks.modal.saved")
                     : submitting
-                    ? "Saving…"
+                    ? $t("tasks.modal.saving")
                     : form.id
-                    ? "Save changes"
-                    : "Create task"
+                    ? $t("tasks.modal.saveChanges")
+                    : $t("tasks.modal.createTask")
                 }}
               </button>
             </div>
@@ -755,10 +786,10 @@ function onKeydown(e: KeyboardEvent) {
                 id="task-discard-title"
                 class="text-sm font-semibold text-slate-900"
               >
-                Discard unsaved changes?
+                {{ $t("tasks.modal.discardTitle") }}
               </h3>
               <p id="task-discard-desc" class="mt-1 text-xs text-slate-500">
-                Your edits to this task haven’t been saved.
+                {{ $t("tasks.modal.discardBody") }}
               </p>
               <div class="mt-4 flex justify-end gap-2">
                 <button
@@ -766,14 +797,14 @@ function onKeydown(e: KeyboardEvent) {
                   class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
                   @click="discardConfirmOpen = false"
                 >
-                  Keep editing
+                  {{ $t("tasks.modal.keepEditing") }}
                 </button>
                 <button
                   type="button"
                   class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg"
                   @click="confirmDiscard"
                 >
-                  Discard
+                  {{ $t("tasks.modal.discard") }}
                 </button>
               </div>
             </div>

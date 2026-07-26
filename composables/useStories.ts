@@ -18,6 +18,7 @@ function patchStoryInTray(
 }
 
 export const useStories = () => {
+  const { t } = useI18n();
   const { apiFetch } = useApi();
   const { pushToast } = useToasts();
 
@@ -44,7 +45,7 @@ export const useStories = () => {
       body: args,
     });
     await refresh();
-    pushToast("Story posted", { tone: "success", duration: 2500 });
+    pushToast(t("toasts.storyPosted"), { tone: "success", duration: 2500 });
     return res.story;
   }
 
@@ -64,7 +65,7 @@ export const useStories = () => {
   async function removeStory(id: string) {
     await apiFetch(`/api/stories/${id}`, { method: "DELETE" });
     await refresh();
-    pushToast("Story deleted", { tone: "info", duration: 2500 });
+    pushToast(t("toasts.storyDeleted"), { tone: "info", duration: 2500 });
   }
 
   async function setReaction(

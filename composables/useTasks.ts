@@ -20,6 +20,7 @@ export type TaskSavePayload = Omit<Partial<Task>, "recurrence"> & {
 };
 
 export const useTasks = () => {
+  const { t } = useI18n();
   const tasks = useState<Task[]>("tasks", () => []);
   const isLoading = useState<boolean>("tasks:loading", () => false);
   const error = useState<string | null>("tasks:error", () => null);
@@ -32,7 +33,8 @@ export const useTasks = () => {
       const data = await apiFetch<TasksApiResponse>("/api/tasks");
       tasks.value = data.tasks ?? [];
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Failed to load tasks";
+      error.value =
+        err instanceof Error ? err.message : t("toasts.failedToLoadTasks");
     } finally {
       isLoading.value = false;
     }

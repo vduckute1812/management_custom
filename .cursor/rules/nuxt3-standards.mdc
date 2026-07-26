@@ -55,3 +55,10 @@ if (!parsed.success) {
 * Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer.
 * Browser-only APIs (`window`, `localStorage`): safe in this SPA after mount; still avoid running them in shared modules imported by server code.
 * Keep Chart.js and large editors out of the initial critical path when possible.
+
+## i18n
+
+* Use `$t` / `useI18n().t` for user-facing copy. Add keys to **all four** locale files under `i18n/locales/` (`en`, `vi`, `zh-CN`, `zh-TW`).
+* Persist locale via `useSettings().locale`; `@nuxtjs/i18n` strategy is `no_prefix` (see `nuxt.config.ts` + `plugins/i18n-locale.client.ts`).
+* Do **not** invent a parallel i18n stack or hardcode English UI strings in new UI.
+* Prefer `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` from `~/types/task` with `t(...)` for status, role, and priority labels.

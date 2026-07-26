@@ -3,6 +3,11 @@ definePageMeta({ layout: false });
 
 const route = useRoute();
 const auth = useAuth();
+const { t } = useI18n();
+
+useSeoMeta({
+  title: computed(() => t("seo.verifyEmail")),
+});
 
 const status = ref<"pending" | "ok" | "error">("pending");
 const error = ref<string | null>(null);
@@ -11,7 +16,7 @@ onMounted(async () => {
   const token = (route.query.token as string) ?? "";
   if (!token) {
     status.value = "error";
-    error.value = "Missing verification token.";
+    error.value = t("auth.missingToken");
     return;
   }
   try {
@@ -23,7 +28,7 @@ onMounted(async () => {
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
       (err as { statusMessage?: string }).statusMessage ??
-      "Verification failed.";
+      t("auth.verificationFailed");
   }
 });
 </script>
@@ -45,24 +50,24 @@ onMounted(async () => {
       >
         {{
           status === "pending"
-            ? "Verifying…"
+            ? $t("auth.verifying")
             : status === "ok"
-            ? "Email verified"
-            : "Couldn't verify"
+            ? $t("auth.emailVerified")
+            : $t("auth.couldNotVerify")
         }}
       </p>
       <p v-if="status === 'pending'" class="text-sm text-slate-500">
-        Hang tight…
+        {{ $t("auth.hangTight") }}
       </p>
       <p v-else-if="status === 'ok'" class="text-sm text-slate-700">
-        You're all set. You can now sign in.
+        {{ $t("auth.verifiedBody") }}
       </p>
       <p v-else class="text-sm text-rose-700">{{ error }}</p>
       <NuxtLink
         to="/login"
         class="block w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 transition"
       >
-        Continue to sign in
+        {{ $t("auth.continueToSignIn") }}
       </NuxtLink>
     </div>
   </div>

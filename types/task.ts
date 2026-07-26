@@ -36,6 +36,14 @@ export const TASK_STATUSES: readonly TaskStatus[] = [
   TaskStatus.Done,
 ];
 
+/** i18n keys under `status.*` — use `t(STATUS_I18N_KEYS[status])`. */
+export const STATUS_I18N_KEYS: Record<TaskStatus, string> = {
+  [TaskStatus.Todo]: "status.todo",
+  [TaskStatus.InProgress]: "status.inProgress",
+  [TaskStatus.Done]: "status.done",
+};
+
+/** @deprecated Prefer STATUS_I18N_KEYS + t(); kept for non-UI fallbacks. */
 export const STATUS_LABELS: Record<TaskStatus, string> = {
   [TaskStatus.Todo]: "To do",
   [TaskStatus.InProgress]: "In progress",
@@ -77,6 +85,14 @@ export const TASK_PRIORITIES: readonly TaskPriority[] = [
   TaskPriority.Low,
 ];
 
+/** i18n keys under `common.priority.*`. */
+export const PRIORITY_I18N_KEYS: Record<TaskPriority, string> = {
+  [TaskPriority.High]: "common.priority.high",
+  [TaskPriority.Normal]: "common.priority.normal",
+  [TaskPriority.Low]: "common.priority.low",
+};
+
+/** @deprecated Prefer PRIORITY_I18N_KEYS + t(). */
 export const PRIORITY_LABELS: Record<TaskPriority, string> = {
   [TaskPriority.High]: "High",
   [TaskPriority.Normal]: "Normal",
@@ -114,6 +130,14 @@ export const RECURRENCE_RULES: readonly RecurrenceRule[] = [
   RecurrenceRule.Monthly,
 ];
 
+/** i18n keys under `common.recurrence*`. */
+export const RECURRENCE_I18N_KEYS: Record<RecurrenceRule, string> = {
+  [RecurrenceRule.Daily]: "common.recurrenceDay",
+  [RecurrenceRule.Weekly]: "common.recurrenceWeek",
+  [RecurrenceRule.Monthly]: "common.recurrenceMonth",
+};
+
+/** @deprecated Prefer RECURRENCE_I18N_KEYS + t(). */
 export const RECURRENCE_UNIT_LABEL: Record<RecurrenceRule, string> = {
   [RecurrenceRule.Daily]: "day",
   [RecurrenceRule.Weekly]: "week",
@@ -147,6 +171,14 @@ export const ASSIGNABLE_USER_ROLES: readonly UserRole[] = [
   UserRole.Normal,
 ];
 
+/** i18n keys under `roles.*`. */
+export const ROLE_I18N_KEYS: Record<UserRole, string> = {
+  [UserRole.Normal]: "roles.normal",
+  [UserRole.Admin]: "roles.admin",
+  [UserRole.Superadmin]: "roles.superadmin",
+};
+
+/** @deprecated Prefer ROLE_I18N_KEYS + t(). */
 export const ROLE_LABELS: Record<UserRole, string> = {
   [UserRole.Normal]: "Member",
   [UserRole.Admin]: "Admin",

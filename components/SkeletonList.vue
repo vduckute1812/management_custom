@@ -15,7 +15,7 @@ const props = withDefaults(
     v-if="props.variant === 'row'"
     class="divide-y divide-slate-100"
     role="status"
-    aria-label="Loading content"
+    :aria-label="$t('common.loading')"
   >
     <div
       v-for="n in props.rows"
@@ -34,7 +34,7 @@ const props = withDefaults(
     v-else-if="props.variant === 'card'"
     class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
     role="status"
-    aria-label="Loading content"
+    :aria-label="$t('common.loading')"
   >
     <div
       v-for="n in props.rows"
@@ -55,7 +55,7 @@ const props = withDefaults(
     v-else-if="props.variant === 'calendarDay'"
     class="p-4 space-y-3"
     role="status"
-    aria-label="Loading calendar"
+    :aria-label="$t('common.loading')"
   >
     <SkeletonBlock width="w-32" height="h-6" />
     <div class="space-y-2">

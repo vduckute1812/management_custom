@@ -46,8 +46,12 @@ export default defineNuxtRouteMiddleware((to) => {
   if (to.path.startsWith("/admin") && !auth.isAdmin.value) {
     if (import.meta.client) {
       const { pushToast } = useToasts();
+      const { t } = useI18n();
       queueMicrotask(() => {
-        pushToast("Admin access required.", { tone: "danger", duration: 3200 });
+        pushToast(t("auth.adminAccessRequired"), {
+          tone: "danger",
+          duration: 3200,
+        });
       });
     }
     return navigateTo("/");

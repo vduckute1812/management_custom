@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const route = useRoute();
+const { t } = useI18n();
 const { paletteOpen, helpOpen } = useUiOverlays();
 const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
@@ -9,7 +10,7 @@ type NavIcon = "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "us
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: NavIcon;
 }
 
@@ -66,24 +67,24 @@ const showModuleSidebar = computed(() => {
 const navItems = computed<NavItem[]>(() => {
   if (isFeedSection.value) {
     const feedNav: NavItem[] = [
-      { to: "/feed", label: "Feed", icon: "feed" },
-      { to: "/settings", label: "Settings", icon: "cog" },
+      { to: "/feed", labelKey: "nav.feed", icon: "feed" },
+      { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdmin.value) {
-      feedNav.splice(1, 0, { to: "/admin", label: "Admin", icon: "shield" });
+      feedNav.splice(1, 0, { to: "/admin", labelKey: "nav.admin", icon: "shield" });
     }
     return feedNav;
   }
 
   if (isTasksSection.value) {
     const base: NavItem[] = [
-      { to: "/tasks", label: "Dashboard", icon: "calendar" },
-      { to: "/epics", label: "Epics", icon: "layers" },
-      { to: "/analytics", label: "Analytics", icon: "chart" },
-      { to: "/settings", label: "Settings", icon: "cog" },
+      { to: "/tasks", labelKey: "nav.dashboard", icon: "calendar" },
+      { to: "/epics", labelKey: "nav.epics", icon: "layers" },
+      { to: "/analytics", labelKey: "nav.analytics", icon: "chart" },
+      { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdmin.value) {
-      base.splice(3, 0, { to: "/admin", label: "Admin", icon: "shield" });
+      base.splice(3, 0, { to: "/admin", labelKey: "nav.admin", icon: "shield" });
     }
     return base;
   }
@@ -92,9 +93,9 @@ const navItems = computed<NavItem[]>(() => {
 });
 
 const sectionLabel = computed(() => {
-  if (isFeedSection.value) return "Feed";
-  if (isTasksSection.value) return "Time Management";
-  return "Management";
+  if (isFeedSection.value) return t("nav.sectionFeed");
+  if (isTasksSection.value) return t("nav.sectionTime");
+  return t("nav.sectionDefault");
 });
 
 function isActive(to: string) {
@@ -118,8 +119,8 @@ function cycleTheme() {
 }
 
 const themeLabel = computed(() => {
-  if (settings.value.theme === "system") return "Auto";
-  return settings.value.theme === "dark" ? "Dark" : "Light";
+  if (settings.value.theme === "system") return t("nav.themeAuto");
+  return settings.value.theme === "dark" ? t("nav.themeDark") : t("nav.themeLight");
 });
 
 const mobileMoreOpen = ref(false);
@@ -131,7 +132,7 @@ function closeMobileMore() {
 
 <template>
   <div class="min-h-screen flex flex-col bg-slate-50">
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <a href="#main-content" class="skip-link">{{ $t("nav.skipToContent") }}</a>
 
     <AppHeader />
 
@@ -147,13 +148,13 @@ function closeMobileMore() {
           <p class="mt-0.5 text-[11px] text-slate-400">
             {{
               isFeedSection
-                ? "Posts, stories, and sharing"
-                : "Tasks, epics, and schedules"
+                ? $t("nav.sectionFeedHint")
+                : $t("nav.sectionTasksHint")
             }}
           </p>
         </div>
 
-        <nav class="flex-1 p-3 space-y-1" aria-label="Module">
+        <nav class="flex-1 p-3 space-y-1" :aria-label="$t('nav.moduleAria')">
           <NuxtLink
             v-for="item in navItems"
             :key="item.to"
@@ -246,7 +247,7 @@ function closeMobileMore() {
               <path d="M3 3v18h18" stroke-linecap="round" />
               <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
-            {{ item.label }}
+            {{ $t(item.labelKey) }}
           </NuxtLink>
         </nav>
 
@@ -268,7 +269,7 @@ function closeMobileMore() {
                 <circle cx="11" cy="11" r="7" />
                 <path d="M21 21l-4.35-4.35" stroke-linecap="round" />
               </svg>
-              Quick jump
+              {{ $t("nav.quickJump") }}
             </span>
             <span class="flex items-center gap-0.5">
               <kbd class="px-1 py-0.5 bg-slate-200 rounded text-[10px] font-mono">⌘</kbd>
@@ -280,17 +281,17 @@ function closeMobileMore() {
             class="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-[11px] text-slate-500 hover:bg-slate-100"
             @click="helpOpen = true"
           >
-            <span>Shortcuts</span>
+            <span>{{ $t("nav.shortcuts") }}</span>
             <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">?</kbd>
           </button>
           <button
             type="button"
             class="w-full flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-[11px] text-slate-500 hover:bg-slate-100"
-            :aria-label="`Theme: ${themeLabel} (click to cycle)`"
+            :aria-label="$t('nav.themeCycleAria', { label: themeLabel })"
             :title="
               settings.theme === 'system'
-                ? `Theme: Auto · currently ${effectiveTheme}`
-                : `Theme: ${themeLabel}`
+                ? $t('nav.themeTitleSystem', { effectiveTheme })
+                : $t('nav.themeTitleFixed', { label: themeLabel })
             "
             @click="cycleTheme"
           >
@@ -336,7 +337,7 @@ function closeMobileMore() {
                   stroke-linejoin="round"
                 />
               </svg>
-              Theme
+              {{ $t("nav.theme") }}
             </span>
             <span class="text-[10px] tabular-nums text-slate-400">
               {{ themeLabel }}
@@ -372,7 +373,7 @@ function closeMobileMore() {
               class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
               @click="paletteOpen = true; closeMobileMore()"
             >
-              Quick jump
+              {{ $t("nav.quickJump") }}
               <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">⌘K</kbd>
             </button>
             <button
@@ -380,7 +381,7 @@ function closeMobileMore() {
               class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
               @click="helpOpen = true; closeMobileMore()"
             >
-              Shortcuts
+              {{ $t("nav.shortcuts") }}
               <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">?</kbd>
             </button>
             <button
@@ -388,7 +389,7 @@ function closeMobileMore() {
               class="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50"
               @click="cycleTheme()"
             >
-              <span>Theme</span>
+              <span>{{ $t("nav.theme") }}</span>
               <span class="text-[11px] text-slate-400">{{ themeLabel }}</span>
             </button>
           </div>
@@ -403,7 +404,7 @@ function closeMobileMore() {
     >
       <nav
         class="grid grid-flow-col auto-cols-fr"
-        aria-label="Module (mobile)"
+        :aria-label="$t('nav.moduleMobileAria')"
       >
         <NuxtLink
           v-for="item in navItems"
@@ -494,13 +495,13 @@ function closeMobileMore() {
             <path d="M3 3v18h18" stroke-linecap="round" />
             <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
-          {{ item.label }}
+          {{ $t(item.labelKey) }}
         </NuxtLink>
         <button
           type="button"
           class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
           :class="mobileMoreOpen ? 'text-brand-700' : 'text-slate-500'"
-          aria-label="More"
+          :aria-label="$t('nav.more')"
           :aria-expanded="mobileMoreOpen"
           @click="mobileMoreOpen = !mobileMoreOpen"
         >
@@ -515,7 +516,7 @@ function closeMobileMore() {
             <circle cx="12" cy="12" r="1.75" />
             <circle cx="19" cy="12" r="1.75" />
           </svg>
-          More
+          {{ $t("nav.more") }}
         </button>
       </nav>
     </div>

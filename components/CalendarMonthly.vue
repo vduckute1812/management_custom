@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: "create-at", date: string): void;
 }>();
 
+const { t } = useI18n();
 const { colorOfTask } = useEpics();
 const { startOfWeek, settings } = useSettings();
 
@@ -21,11 +22,13 @@ const cells = computed(() => {
   return Array.from({ length: 42 }, (_, i) => gridStart.add(i, "day"));
 });
 
-const weekdayLabels = computed(() =>
-  settings.value.weekStart === "mon"
-    ? ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-);
+const weekdayLabels = computed(() => {
+  const prefix =
+    settings.value.weekStart === "mon"
+      ? "calendar.weekdayMon"
+      : "calendar.weekdaySun";
+  return Array.from({ length: 7 }, (_, i) => t(`${prefix}${i}`));
+});
 
 interface DayBreakdown {
   blocks: { task: Task; start: string; projected: boolean }[];
@@ -103,7 +106,11 @@ const DENSITY_OPACITY = [
           <span
             v-if="breakdownFor(day).blocks.length > 0"
             class="inline-flex items-center gap-0.5"
-            :title="`${breakdownFor(day).blocks.length} scheduled blocks`"
+            :title="
+              $t('calendar.scheduledBlocks', {
+                count: breakdownFor(day).blocks.length,
+              })
+            "
           >
             <span
               class="block w-1.5 h-1.5 rounded-full bg-brand-500"
@@ -121,11 +128,7 @@ const DENSITY_OPACITY = [
             :key="entry.task.id + entry.start"
             class="flex items-center gap-1.5 truncate"
             :class="entry.projected ? 'opacity-60' : ''"
-            :title="
-              entry.projected
-                ? `${entry.task.title} · recurring (projection)`
-                : entry.task.title
-            "
+            :title="entry.task.title"
             @click.stop="emit('select-task', entry.task)"
           >
             <span
@@ -146,7 +149,11 @@ const DENSITY_OPACITY = [
             v-if="breakdownFor(day).blocks.length > 3"
             class="text-[10px] text-slate-400 pl-3"
           >
-            +{{ breakdownFor(day).blocks.length - 3 }} more
+            {{
+              $t("calendar.more", {
+                count: breakdownFor(day).blocks.length - 3,
+              })
+            }}
           </div>
         </div>
 
@@ -155,7 +162,7 @@ const DENSITY_OPACITY = [
           class="mt-auto pt-1 flex items-center gap-1"
           :title="
             breakdownFor(day)
-              .deadlines.map((t) => t.title)
+              .deadlines.map((deadline) => deadline.title)
               .join(', ')
           "
         >
@@ -170,7 +177,11 @@ const DENSITY_OPACITY = [
             <path d="M4 4v17M4 4h13l-2 4 2 4H4" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
           <span class="text-[10px] font-medium text-rose-600 tabular-nums">
-            {{ breakdownFor(day).deadlines.length }} due
+            {{
+              $t("calendar.dueCount", {
+                count: breakdownFor(day).deadlines.length,
+              })
+            }}
           </span>
         </div>
       </button>

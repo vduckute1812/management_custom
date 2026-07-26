@@ -16,6 +16,7 @@ const emit = defineEmits<{
   (e: "saved", task: Task): void;
 }>();
 
+const { t } = useI18n();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
 const { formatTime } = useSettings();
@@ -76,7 +77,7 @@ const panelStyle = computed(() => {
 async function persistSpent(nextSpent: number | undefined) {
   if (!props.task || !props.block) return;
   if (props.block.projected) {
-    pushToast("Recurring projections can't log time — edit the series.", {
+    pushToast(t("toasts.recurringCantLog"), {
       tone: "info",
     });
     return;
@@ -90,14 +91,14 @@ async function persistSpent(nextSpent: number | undefined) {
     emit("saved", saved);
     pushToast(
       nextSpent === undefined
-        ? "Cleared spent hours"
-        : `Logged ${nextSpent}h`,
+        ? t("toasts.clearedSpentHours")
+        : t("toasts.loggedHours", { hours: nextSpent }),
       { tone: "success", duration: 2200 }
     );
     emit("close");
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to save spent hours",
+      err instanceof Error ? err.message : t("toasts.failedToSaveSpent"),
       { tone: "danger" }
     );
   } finally {
@@ -172,12 +173,14 @@ function onKeydown(e: KeyboardEvent) {
             </p>
             <p class="text-[11px] text-slate-500 tabular-nums mt-0.5">
               {{ rangeLabel }}
-              <span v-if="durationHours"> · {{ durationHours }}h block</span>
+              <span v-if="durationHours">
+                {{ $t("tasks.spentPopover.blockDuration", { hours: durationHours }) }}
+              </span>
               <span
                 v-if="alreadyLogged"
                 class="ml-1 text-emerald-600"
               >
-                · logged {{ block.spentHours }}h
+                {{ $t("tasks.spentPopover.logged", { hours: block.spentHours }) }}
               </span>
             </p>
           </header>
@@ -191,14 +194,14 @@ function onKeydown(e: KeyboardEvent) {
             >
               {{
                 saving
-                  ? "Saving…"
+                  ? $t("tasks.spentPopover.saving")
                   : alreadyLogged
-                  ? `Update to ${durationHours}h`
-                  : `Log ${durationHours}h`
+                  ? $t("tasks.spentPopover.updateToHours", { hours: durationHours })
+                  : $t("tasks.spentPopover.logHours", { hours: durationHours })
               }}
             </button>
             <p class="text-[11px] text-slate-500 text-center">
-              Uses the full block duration
+              {{ $t("tasks.spentPopover.usesFullDuration") }}
             </p>
 
             <button
@@ -207,7 +210,7 @@ function onKeydown(e: KeyboardEvent) {
               class="w-full text-[11px] font-medium text-slate-600 hover:text-slate-900 py-1"
               @click="openCustom"
             >
-              Enter a custom amount…
+              {{ $t("tasks.spentPopover.enterCustom") }}
             </button>
 
             <div v-else class="space-y-1.5 pt-1 border-t border-slate-100">
@@ -215,7 +218,7 @@ function onKeydown(e: KeyboardEvent) {
                 for="spent-popover-input"
                 class="block text-[10px] uppercase tracking-wide font-medium text-slate-500"
               >
-                Spent (h)
+                {{ $t("tasks.spentPopover.spentLabel") }}
               </label>
               <div class="flex items-center gap-1.5">
                 <input
@@ -235,7 +238,7 @@ function onKeydown(e: KeyboardEvent) {
                   class="text-[11px] font-semibold text-brand-700 hover:text-brand-800 px-2 py-1.5 rounded-lg hover:bg-brand-50 disabled:opacity-50"
                   @click="onSaveCustom"
                 >
-                  Save
+                  {{ $t("tasks.spentPopover.save") }}
                 </button>
               </div>
             </div>
@@ -249,14 +252,14 @@ function onKeydown(e: KeyboardEvent) {
               class="text-[11px] font-medium text-slate-600 hover:text-slate-900 px-1 py-1"
               @click="emit('edit-details')"
             >
-              Edit details
+              {{ $t("tasks.spentPopover.editDetails") }}
             </button>
             <button
               type="button"
               class="text-[11px] font-medium text-slate-500 hover:text-slate-800 px-2 py-1.5 rounded-lg hover:bg-slate-100"
               @click="emit('close')"
             >
-              Cancel
+              {{ $t("tasks.spentPopover.cancel") }}
             </button>
           </footer>
         </div>

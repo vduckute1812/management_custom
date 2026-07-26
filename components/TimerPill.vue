@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { t } = useI18n();
 const {
   activeTimer,
   elapsedSeconds,
@@ -24,13 +25,15 @@ async function onStop() {
   try {
     const res = await stop();
     if (res.discarded) {
-      pushToast("Timer stopped (too short to log)", { tone: "info" });
+      pushToast(t("toasts.timerStoppedTooShort"), { tone: "info" });
     } else if (res.block) {
-      pushToast(`Logged ${res.block.spentHours}h`, { tone: "success" });
+      pushToast(t("toasts.loggedHours", { hours: res.block.spentHours }), {
+        tone: "success",
+      });
     }
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Couldn't stop timer",
+      err instanceof Error ? err.message : t("toasts.couldNotStopTimer"),
       { tone: "danger" }
     );
   } finally {
@@ -57,10 +60,10 @@ async function onStop() {
               aria-hidden="true"
             />
             <span class="text-xs text-slate-300 hidden sm:inline">
-              Tracking
+              {{ $t("tasks.timer.tracking") }}
             </span>
             <span class="text-sm font-medium max-w-[180px] truncate">
-              {{ task?.title ?? "Unknown task" }}
+              {{ task?.title ?? $t("tasks.timer.unknownTask") }}
             </span>
             <span class="text-xs text-slate-300 tabular-nums">
               {{ label }}
@@ -81,7 +84,7 @@ async function onStop() {
             >
               <rect x="6" y="6" width="12" height="12" rx="1" />
             </svg>
-            Stop
+            {{ $t("tasks.timer.stop") }}
           </button>
         </div>
       </div>

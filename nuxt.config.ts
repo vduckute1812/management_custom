@@ -3,6 +3,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-01",
   devtools: { enabled: false },
+  modules: ["@nuxtjs/i18n"],
   // SPA mode. Auth tokens live in localStorage; SSR can't read them, so we
   // disable SSR via routeRules. Public routes (/, /feed) render for guests;
   // the auth plugin hydrates once, then route middleware gates protected
@@ -17,6 +18,22 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   vite: {
     plugins: [tailwindcss()],
+  },
+  i18n: {
+    strategy: "no_prefix",
+    defaultLocale: "en",
+    locales: [
+      { code: "en", language: "en-US", name: "English", file: "en.json" },
+      { code: "vi", language: "vi-VN", name: "Tiếng Việt", file: "vi.json" },
+      { code: "zh-CN", language: "zh-CN", name: "简体中文", file: "zh-CN.json" },
+      { code: "zh-TW", language: "zh-TW", name: "繁體中文", file: "zh-TW.json" },
+    ],
+    detectBrowserLanguage: {
+      useCookie: true,
+      cookieKey: "mgmt_locale",
+      fallbackLocale: "en",
+      alwaysRedirect: false,
+    },
   },
   app: {
     head: {

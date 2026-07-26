@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
+import { isAppLocale, type AppLocale } from "~/types/locale";
 
 dayjs.extend(isoWeek);
 
@@ -8,12 +9,14 @@ export type TimeFormat = "12h" | "24h";
 export type ThemePreference = "system" | "light" | "dark";
 export type EffectiveTheme = "light" | "dark";
 export type Density = "comfortable" | "compact";
+export type { AppLocale };
 
 export interface Settings {
   weekStart: WeekStart;
   timeFormat: TimeFormat;
   theme: ThemePreference;
   density: Density;
+  locale: AppLocale;
   notificationsEnabled: boolean;
   /** Minutes before a block's start time the notification should fire. */
   notificationLeadMinutes: number;
@@ -24,6 +27,7 @@ const DEFAULTS: Settings = {
   timeFormat: "24h",
   theme: "system",
   density: "comfortable",
+  locale: "en",
   // On by default — the in-app toast channel is non-intrusive (no browser
   // permission required) and surfaces the 5-min pre-task heads-up that the
   // calendar is otherwise silent about. Desktop OS notifications are still
@@ -49,6 +53,7 @@ function readFromStorage(): Settings {
           ? parsed.theme
           : "system",
       density: parsed.density === "compact" ? "compact" : "comfortable",
+      locale: isAppLocale(parsed.locale) ? parsed.locale : DEFAULTS.locale,
       // Respect a previously-persisted explicit false; fall back to the
       // default (on) when the field is missing or non-boolean. This keeps
       // legacy installs that opted out from suddenly getting toasts again.

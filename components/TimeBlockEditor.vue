@@ -148,14 +148,14 @@ const totals = computed(() => {
       class="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center"
     >
       <p class="text-xs text-slate-500">
-        No time blocks yet. Add one to schedule this task on the calendar.
+        {{ $t("tasks.timeBlocksEditor.empty") }}
       </p>
       <button
         type="button"
         class="mt-2 text-xs font-medium text-brand-700 hover:text-brand-800"
         @click="addBlock"
       >
-        + Add first time block
+        {{ $t("tasks.timeBlocksEditor.addFirst") }}
       </button>
     </div>
 
@@ -168,7 +168,7 @@ const totals = computed(() => {
         <div class="grid grid-cols-12 gap-2 items-end">
           <div class="col-span-4">
             <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
-              Date
+              {{ $t("tasks.timeBlocksEditor.date") }}
             </label>
             <input
               v-model="d.date"
@@ -179,7 +179,7 @@ const totals = computed(() => {
           </div>
           <div class="col-span-2">
             <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
-              Start
+              {{ $t("tasks.timeBlocksEditor.start") }}
             </label>
             <input
               v-model="d.startTime"
@@ -190,7 +190,7 @@ const totals = computed(() => {
           </div>
           <div class="col-span-2">
             <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
-              End
+              {{ $t("tasks.timeBlocksEditor.end") }}
             </label>
             <input
               v-model="d.endTime"
@@ -201,7 +201,7 @@ const totals = computed(() => {
           </div>
           <div class="col-span-3">
             <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
-              Spent (h)
+              {{ $t("tasks.timeBlocksEditor.spent") }}
             </label>
             <div class="flex items-center gap-1">
               <input
@@ -215,11 +215,11 @@ const totals = computed(() => {
               />
               <button
                 type="button"
-                title="Set to block duration"
+                :title="$t('tasks.timeBlocksEditor.autoTitle')"
                 class="text-[10px] text-brand-700 hover:text-brand-800 px-1"
                 @click="autoFillSpent(idx)"
               >
-                auto
+                {{ $t("tasks.timeBlocksEditor.auto") }}
               </button>
             </div>
           </div>
@@ -227,7 +227,7 @@ const totals = computed(() => {
             <button
               type="button"
               class="text-slate-400 hover:text-rose-600 p-1"
-              aria-label="Remove time block"
+              :aria-label="$t('tasks.timeBlocksEditor.remove')"
               @click="removeBlock(idx)"
             >
               <svg
@@ -263,13 +263,18 @@ const totals = computed(() => {
         >
           <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
-        Add another block
+        {{ $t("tasks.timeBlocksEditor.addAnother") }}
       </button>
       <p
         v-if="drafts.length > 0"
         class="text-[11px] text-slate-500 tabular-nums"
       >
-        {{ totals.scheduled }}h scheduled · {{ totals.spent }}h logged
+        {{
+          $t("tasks.timeBlocksEditor.totals", {
+            scheduled: totals.scheduled,
+            spent: totals.spent,
+          })
+        }}
       </p>
     </div>
   </div>

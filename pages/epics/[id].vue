@@ -3,13 +3,14 @@ import dayjs from "dayjs";
 import {
   epicColorOf,
   PRIORITY_BADGE,
-  PRIORITY_LABELS,
+  PRIORITY_I18N_KEYS,
   STATUS_COLORS,
-  STATUS_LABELS,
+  STATUS_I18N_KEYS,
   TaskPriority,
   type Task,
 } from "~/types/task";
 
+const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const epicId = computed(() => String(route.params.id));
@@ -40,6 +41,11 @@ const totals = computed(() => {
     progress: e.progress ?? 0,
     taskCount: e.taskCount ?? children.value.length,
   };
+});
+
+useSeoMeta({
+  title: () => epic.value?.title ?? t("seo.epics"),
+  description: () => t("seo.epicsDescription"),
 });
 
 function openCreateTask() {
@@ -84,7 +90,7 @@ async function onEpicDeleted() {
           to="/epics"
           class="text-[11px] text-slate-500 hover:text-brand-700"
         >
-          ← All epics
+          {{ $t("epics.allEpics") }}
         </NuxtLink>
         <h1
           v-if="epic"
@@ -100,11 +106,11 @@ async function onEpicDeleted() {
             class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
             :class="STATUS_COLORS[epic.status]"
           >
-            {{ STATUS_LABELS[epic.status] }}
+            {{ $t(STATUS_I18N_KEYS[epic.status]) }}
           </span>
         </h1>
         <h1 v-else class="text-xl font-semibold text-slate-900">
-          Epic not found
+          {{ $t("epics.notFound") }}
         </h1>
         <p v-if="epic?.description" class="text-xs text-slate-500 mt-1 max-w-2xl">
           {{ epic.description }}
@@ -116,7 +122,7 @@ async function onEpicDeleted() {
           class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg ring-1 ring-slate-200"
           @click="editEpicOpen = true"
         >
-          Edit epic
+          {{ $t("epics.editEpic") }}
         </button>
         <button
           class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm"
@@ -132,21 +138,21 @@ async function onEpicDeleted() {
           >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
-          Add task to epic
+          {{ $t("epics.addTaskToEpic") }}
         </button>
       </div>
     </header>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6 space-y-6">
       <div v-if="!epic" class="text-sm text-slate-500">
-        We couldn't find that epic.
+        {{ $t("epics.notFoundBody") }}
       </div>
 
       <template v-else-if="totals">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
-              Tasks
+              {{ $t("epics.tasks") }}
             </p>
             <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
               {{ totals.taskCount }}
@@ -154,7 +160,7 @@ async function onEpicDeleted() {
           </div>
           <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
-              Progress
+              {{ $t("epics.progress") }}
             </p>
             <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
               {{ totals.progress }}%
@@ -169,7 +175,7 @@ async function onEpicDeleted() {
           </div>
           <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
-              Hours
+              {{ $t("epics.hours") }}
             </p>
             <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
               {{ totals.spent }}h /
@@ -178,7 +184,7 @@ async function onEpicDeleted() {
           </div>
           <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4">
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
-              Variance
+              {{ $t("epics.variance") }}
             </p>
             <p
               class="text-2xl font-semibold tabular-nums mt-0.5"
@@ -190,53 +196,55 @@ async function onEpicDeleted() {
               v-if="epic.dueDate"
               class="text-[11px] text-slate-500 mt-0.5"
             >
-              Due {{ dayjs(epic.dueDate).format("MMM D, YYYY") }}
+              {{ $t("epics.due", { date: dayjs(epic.dueDate).format("MMM D, YYYY") }) }}
             </p>
           </div>
         </div>
 
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-slate-800">Child tasks</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("epics.childTasks") }}</h2>
             <span class="text-[11px] text-slate-500 tabular-nums">
-              {{ children.length }} total
+              {{ $t("epics.totalCount", { count: children.length }) }}
             </span>
           </header>
           <div v-if="children.length === 0" class="px-4 py-10">
             <EmptyState
-              title="No tasks in this epic yet"
-              description="Add the first task to start tracking velocity for this project area."
+              :title="$t('empty.noTasksInEpic')"
+              :description="$t('empty.noTasksInEpicDesc')"
               illustration="spark"
-              primary-label="Add task"
+              :primary-label="$t('empty.addTask')"
               @primary="openCreateTask"
             />
           </div>
           <ul v-else class="divide-y divide-slate-100">
             <li
-              v-for="t in children"
-              :key="t.id"
+              v-for="task in children"
+              :key="task.id"
               class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 cursor-pointer"
-              @click="openEditTask(t)"
+              @click="openEditTask(task)"
             >
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-slate-800 truncate">
-                  {{ t.title }}
+                  {{ task.title }}
                 </p>
                 <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums flex flex-wrap gap-2 items-center">
-                  <StatusPill :task="t" @updated="fetchEpics" />
+                  <StatusPill :task="task" @updated="fetchEpics" />
                   <span
-                    v-if="t.priority !== undefined && t.priority !== TaskPriority.Normal"
+                    v-if="task.priority !== undefined && task.priority !== TaskPriority.Normal"
                     class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
-                    :class="PRIORITY_BADGE[t.priority]"
+                    :class="PRIORITY_BADGE[task.priority]"
                   >
-                    {{ PRIORITY_LABELS[t.priority] }}
+                    {{ $t(PRIORITY_I18N_KEYS[task.priority]) }}
                   </span>
-                  <span v-if="t.dueDate">Due {{ dayjs(t.dueDate).format("MMM D") }}</span>
+                  <span v-if="task.dueDate">
+                    {{ $t("epics.due", { date: dayjs(task.dueDate).format("MMM D") }) }}
+                  </span>
                   <span>
-                    {{ t.spentHours ?? 0 }}h /
-                    {{ t.estimatedHours ?? 0 }}h
+                    {{ task.spentHours ?? 0 }}h /
+                    {{ task.estimatedHours ?? 0 }}h
                   </span>
-                  <span>{{ (t.timeBlocks?.length ?? 0) }} blocks</span>
+                  <span>{{ $t("epics.blocks", { count: task.timeBlocks?.length ?? 0 }) }}</span>
                 </p>
               </div>
               <div class="w-24 shrink-0">
@@ -244,11 +252,11 @@ async function onEpicDeleted() {
                   <div
                     class="h-full"
                     :class="accent.solid"
-                    :style="{ width: (t.progress ?? 0) + '%' }"
+                    :style="{ width: (task.progress ?? 0) + '%' }"
                   />
                 </div>
                 <p class="text-[10px] text-slate-500 text-right tabular-nums mt-0.5">
-                  {{ t.progress ?? 0 }}%
+                  {{ task.progress ?? 0 }}%
                 </p>
               </div>
             </li>

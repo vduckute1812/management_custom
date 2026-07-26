@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { helpOpen } = useUiOverlays();
+const { t } = useI18n();
 
 interface Row {
   keys: string[];
@@ -10,57 +11,57 @@ interface Section {
   rows: Row[];
 }
 
-const sections: Section[] = [
+const sections = computed<Section[]>(() => [
   {
-    title: "Global",
+    title: t("shortcuts.sections.global"),
     rows: [
-      { keys: ["?"], label: "Show this cheatsheet" },
-      { keys: ["⌘", "K"], label: "Open command palette" },
-      { keys: ["n"], label: "Quick capture (@14, tomorrow 9-11, #tag)" },
-      { keys: ["⇧", "N"], label: "New task (full editor on Dashboard)" },
-      { keys: ["Esc"], label: "Close any overlay" },
+      { keys: ["?"], label: t("shortcuts.showCheatsheet") },
+      { keys: ["⌘", "K"], label: t("shortcuts.openPalette") },
+      { keys: ["n"], label: t("shortcuts.quickCapture") },
+      { keys: ["⇧", "N"], label: t("shortcuts.newTaskFull") },
+      { keys: ["Esc"], label: t("shortcuts.closeOverlay") },
     ],
   },
   {
-    title: "Navigation",
+    title: t("shortcuts.sections.navigation"),
     rows: [
-      { keys: ["g", "h"], label: "Go to Home" },
-      { keys: ["g", "d"], label: "Go to Dashboard" },
-      { keys: ["g", "e"], label: "Go to Epics" },
-      { keys: ["g", "a"], label: "Go to Analytics" },
-      { keys: ["g", "f"], label: "Go to Feed" },
+      { keys: ["g", "h"], label: t("shortcuts.goHome") },
+      { keys: ["g", "d"], label: t("shortcuts.goDashboard") },
+      { keys: ["g", "e"], label: t("shortcuts.goEpics") },
+      { keys: ["g", "a"], label: t("shortcuts.goAnalytics") },
+      { keys: ["g", "f"], label: t("shortcuts.goFeed") },
     ],
   },
   {
-    title: "Calendar (Dashboard)",
+    title: t("shortcuts.sections.calendar"),
     rows: [
-      { keys: ["1"], label: "Daily view" },
-      { keys: ["2"], label: "Weekly view (desktop)" },
-      { keys: ["3"], label: "Monthly view (desktop)" },
-      { keys: ["t"], label: "Jump to today" },
-      { keys: ["←"], label: "Previous period" },
-      { keys: ["→"], label: "Next period" },
+      { keys: ["1"], label: t("shortcuts.dailyView") },
+      { keys: ["2"], label: t("shortcuts.weeklyView") },
+      { keys: ["3"], label: t("shortcuts.monthlyView") },
+      { keys: ["t"], label: t("shortcuts.jumpToday") },
+      { keys: ["←"], label: t("shortcuts.previousPeriod") },
+      { keys: ["→"], label: t("shortcuts.nextPeriod") },
     ],
   },
   {
-    title: "Modals & forms",
+    title: t("shortcuts.sections.modals"),
     rows: [
-      { keys: ["⌘", "Enter"], label: "Save" },
-      { keys: ["Esc"], label: "Close (asks if unsaved)" },
+      { keys: ["⌘", "Enter"], label: t("shortcuts.save") },
+      { keys: ["Esc"], label: t("shortcuts.closeAsksUnsaved") },
     ],
   },
   {
-    title: "Mouse & touch",
+    title: t("shortcuts.sections.mouse"),
     rows: [
-      { keys: ["click block"], label: "Log full block duration (Daily)" },
-      { keys: ["double-click"], label: "Open full task editor" },
-      { keys: ["drag"], label: "Move a block in Daily (snaps to 15 min)" },
-      { keys: ["drag edge"], label: "Resize a block from top or bottom" },
-      { keys: ["drag Up next"], label: "Drop onto a Daily hour to schedule" },
-      { keys: ["drag"], label: "Move a block across days in Weekly" },
+      { keys: ["click block"], label: t("shortcuts.clickBlockLog") },
+      { keys: ["double-click"], label: t("shortcuts.doubleClickEdit") },
+      { keys: ["drag"], label: t("shortcuts.dragMoveDaily") },
+      { keys: ["drag edge"], label: t("shortcuts.dragEdgeResize") },
+      { keys: ["drag Up next"], label: t("shortcuts.dragUpNext") },
+      { keys: ["drag"], label: t("shortcuts.dragWeekly") },
     ],
   },
-];
+]);
 
 function onBackdrop(e: MouseEvent) {
   if (e.target === e.currentTarget) helpOpen.value = false;
@@ -75,7 +76,7 @@ function onBackdrop(e: MouseEvent) {
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
         role="dialog"
         aria-modal="true"
-        aria-label="Keyboard shortcuts"
+        :aria-label="$t('shortcuts.aria')"
         @mousedown="onBackdrop"
       >
         <div
@@ -86,12 +87,12 @@ function onBackdrop(e: MouseEvent) {
             class="flex items-center justify-between px-6 py-4 border-b border-slate-200"
           >
             <h2 class="text-lg font-semibold text-slate-900">
-              Keyboard shortcuts
+              {{ $t("shortcuts.title") }}
             </h2>
             <button
               type="button"
               class="text-slate-400 hover:text-slate-700"
-              aria-label="Close"
+              :aria-label="$t('shortcuts.close')"
               @click="helpOpen = false"
             >
               <svg
@@ -116,8 +117,8 @@ function onBackdrop(e: MouseEvent) {
               </h3>
               <ul class="space-y-1.5">
                 <li
-                  v-for="row in section.rows"
-                  :key="row.label"
+                  v-for="(row, rowIdx) in section.rows"
+                  :key="`${section.title}-${rowIdx}`"
                   class="flex items-center justify-between gap-3 text-sm"
                 >
                   <span class="text-slate-700">{{ row.label }}</span>

@@ -5,6 +5,7 @@ import type {
   PostVisibility,
 } from "~/types/post";
 
+const { t } = useI18n();
 const auth = useAuth();
 
 const {
@@ -52,8 +53,8 @@ const storyUploadId = ref<string | null>(null);
 const storyFileName = ref("");
 
 useSeoMeta({
-  title: "Feed",
-  description: "Share documents, stories, and updates with your team.",
+  title: () => t("seo.feed"),
+  description: () => t("seo.feedDescription"),
 });
 
 onMounted(async () => {
@@ -149,13 +150,13 @@ async function submitStory() {
       class="border-b border-slate-200 bg-slate-50/90 px-4 sm:px-6 py-4"
     >
       <div class="max-w-2xl mx-auto">
-        <h1 class="text-xl font-semibold text-slate-900">Feed</h1>
+        <h1 class="text-xl font-semibold text-slate-900">{{ $t("feed.title") }}</h1>
         <p class="text-sm text-slate-500 mt-0.5">
           <template v-if="auth.isAuthenticated.value">
-            Documents, stories, reactions, and comments — public, private, or shared.
+            {{ $t("feed.subtitleAuth") }}
           </template>
           <template v-else>
-            Public posts anyone can read. Sign in to react, comment, or share.
+            {{ $t("feed.subtitleGuest") }}
           </template>
         </p>
       </div>
@@ -168,20 +169,20 @@ async function submitStory() {
         role="status"
       >
         <p class="text-sm text-slate-700">
-          Browsing public posts. Create an account to post and interact.
+          {{ $t("feed.guestBanner") }}
         </p>
         <div class="flex items-center gap-2 shrink-0">
           <NuxtLink
             to="/login"
             class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
           >
-            Login
+            {{ $t("nav.login") }}
           </NuxtLink>
           <NuxtLink
             to="/signup"
             class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50"
           >
-            Register
+            {{ $t("nav.register") }}
           </NuxtLink>
         </div>
       </div>
@@ -195,9 +196,9 @@ async function submitStory() {
         />
         <template #error="{ clearError }">
           <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            Stories failed to load.
+            {{ $t("feed.storiesFailed") }}
             <button type="button" class="underline ml-1" @click="clearError(); refreshStories()">
-              Retry
+              {{ $t("feed.retry") }}
             </button>
           </div>
         </template>
@@ -214,9 +215,9 @@ async function submitStory() {
       <div
         class="flex flex-wrap items-center gap-2"
         role="group"
-        aria-label="Filter by category"
+        :aria-label="$t('feed.categoryFilterAria')"
       >
-        <span class="text-xs font-medium text-slate-500">Category</span>
+        <span class="text-xs font-medium text-slate-500">{{ $t("feed.category") }}</span>
         <button
           type="button"
           class="rounded-full px-2.5 py-1 text-xs font-medium transition"
@@ -228,7 +229,7 @@ async function submitStory() {
           :disabled="categoriesLoading"
           @click="onCategoryFilter(null)"
         >
-          All
+          {{ $t("feed.all") }}
         </button>
         <button
           v-for="cat in categories"
@@ -257,7 +258,7 @@ async function submitStory() {
           class="text-xs font-medium underline underline-offset-2"
           @click="refresh"
         >
-          Retry
+          {{ $t("feed.retry") }}
         </button>
       </div>
 
@@ -272,14 +273,16 @@ async function submitStory() {
 
       <EmptyState
         v-else-if="!loading && !posts.length && !error"
-        title="Nothing here yet"
+        :title="$t('empty.feedNothingYet')"
         :description="
           auth.isAuthenticated.value
-            ? 'Be the first to share a document or update.'
-            : 'No public posts yet. Sign in to share the first one.'
+            ? $t('empty.feedBeFirst')
+            : $t('empty.feedNoPublic')
         "
         illustration="spark"
-        :primary-label="auth.isAuthenticated.value ? 'Write a post' : 'Login'"
+        :primary-label="
+          auth.isAuthenticated.value ? $t('empty.writeAPost') : $t('empty.login')
+        "
         @primary="
           auth.isAuthenticated.value
             ? composerRef?.focus()
@@ -305,7 +308,7 @@ async function submitStory() {
             :disabled="loadingMore"
             @click="loadMore"
           >
-            {{ loadingMore ? "Loading…" : "Load more" }}
+            {{ loadingMore ? $t("feed.loading") : $t("feed.loadMore") }}
           </button>
         </div>
       </div>
@@ -331,17 +334,17 @@ async function submitStory() {
         @submit.prevent="submitStory"
       >
         <h2 id="story-composer-title" class="text-base font-semibold text-slate-900">
-          New story
+          {{ $t("feed.stories.newStory") }}
         </h2>
-        <p class="text-xs text-slate-500">Visible for 24 hours.</p>
-        <label class="sr-only" for="story-body">Story text</label>
+        <p class="text-xs text-slate-500">{{ $t("feed.stories.visible24h") }}</p>
+        <label class="sr-only" for="story-body">{{ $t("feed.stories.storyText") }}</label>
         <textarea
           id="story-body"
           v-model="storyBody"
           rows="3"
           maxlength="500"
           class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-          placeholder="Say something…"
+          :placeholder="$t('feed.stories.placeholder')"
         />
         <div class="flex items-center gap-2">
           <button
@@ -350,7 +353,11 @@ async function submitStory() {
             :disabled="storyUploading"
             @click="storyFileInput?.click()"
           >
-            {{ storyUploading ? "Uploading…" : storyFileName || "Add photo" }}
+            {{
+              storyUploading
+                ? $t("feed.stories.uploading")
+                : storyFileName || $t("feed.stories.addPhoto")
+            }}
           </button>
           <input
             ref="storyFileInput"
@@ -366,7 +373,7 @@ async function submitStory() {
             class="text-sm text-slate-500 px-3 py-2"
             @click="storyComposerOpen = false"
           >
-            Cancel
+            {{ $t("feed.stories.cancel") }}
           </button>
           <button
             type="submit"
@@ -377,7 +384,7 @@ async function submitStory() {
               (!storyBody.trim() && !storyUploadId)
             "
           >
-            Share story
+            {{ $t("feed.stories.shareStory") }}
           </button>
         </div>
       </form>

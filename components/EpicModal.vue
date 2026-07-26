@@ -2,6 +2,7 @@
 import {
   EPIC_COLORS,
   EPIC_COLOR_CLASSES,
+  STATUS_I18N_KEYS,
   TaskStatus,
   type Epic,
   type EpicColor,
@@ -18,6 +19,7 @@ const emit = defineEmits<{
   (e: "deleted", id: string): void;
 }>();
 
+const { t } = useI18n();
 const { saveEpic, deleteEpic } = useEpics();
 const { pushToast } = useToasts();
 
@@ -46,6 +48,10 @@ const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
 const baseline = ref("");
 const discardConfirmOpen = ref(false);
+
+function colorLabel(c: EpicColor): string {
+  return t(`epics.colors.${c}`);
+}
 
 function snapshotForm() {
   baseline.value = JSON.stringify(form.value);
@@ -87,7 +93,7 @@ watch(
 
 async function onSubmit() {
   if (!form.value.title.trim()) {
-    errorMsg.value = "Title is required.";
+    errorMsg.value = t("epics.modal.titleRequired");
     return;
   }
   submitting.value = true;
@@ -102,7 +108,7 @@ async function onSubmit() {
       dueDate: form.value.dueDate || undefined,
       tags: form.value.tags
         .split(",")
-        .map((t) => t.trim())
+        .map((tag) => tag.trim())
         .filter(Boolean),
     };
     const saved = await saveEpic(payload);
@@ -113,7 +119,8 @@ async function onSubmit() {
       justSaved.value = false;
     }, 320);
   } catch (err: unknown) {
-    errorMsg.value = err instanceof Error ? err.message : "Failed to save epic";
+    errorMsg.value =
+      err instanceof Error ? err.message : t("epics.modal.failedToSave");
   } finally {
     submitting.value = false;
   }
@@ -122,21 +129,16 @@ async function onSubmit() {
 async function onDelete() {
   if (!form.value.id) return;
   // Epic delete cascades epicId removal; we keep the confirm dialog per spec.
-  if (
-    !confirm(
-      "Delete this epic? Child tasks will be kept but their epic link will be cleared."
-    )
-  )
-    return;
+  if (!confirm(t("epics.modal.deleteConfirm"))) return;
   submitting.value = true;
   try {
     await deleteEpic(form.value.id);
-    pushToast("Epic deleted. Child tasks were preserved.", { tone: "info" });
+    pushToast(t("toasts.epicDeletedPreserved"), { tone: "info" });
     emit("deleted", form.value.id);
     emit("close");
   } catch (err: unknown) {
     errorMsg.value =
-      err instanceof Error ? err.message : "Failed to delete epic";
+      err instanceof Error ? err.message : t("epics.modal.failedToDelete");
   } finally {
     submitting.value = false;
   }
@@ -199,12 +201,12 @@ function onKeydown(e: KeyboardEvent) {
                 :class="EPIC_COLOR_CLASSES[form.color].solid"
                 aria-hidden="true"
               />
-              {{ form.id ? "Edit epic" : "New epic" }}
+              {{ form.id ? $t("epics.modal.editEpic") : $t("epics.modal.newEpic") }}
             </h2>
             <button
               type="button"
               class="text-slate-400 hover:text-slate-700 transition"
-              aria-label="Close"
+              :aria-label="$t('epics.modal.close')"
               @click="requestClose"
             >
               <svg
@@ -226,34 +228,34 @@ function onKeydown(e: KeyboardEvent) {
           >
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Title
+                {{ $t("epics.modal.title") }}
               </label>
               <input
                 v-model="form.title"
                 type="text"
                 required
-                placeholder="A goal or project area"
+                :placeholder="$t('epics.modal.titlePlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
               />
             </div>
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Description
+                {{ $t("epics.modal.description") }}
               </label>
               <textarea
                 v-model="form.description"
                 rows="3"
-                placeholder="High-level summary of the work this epic covers."
+                :placeholder="$t('epics.modal.descriptionPlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-y"
               />
             </div>
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-2">
-                Color identity
+                {{ $t("epics.modal.colorIdentity") }}
                 <span class="text-slate-400 font-normal">
-                  · child task blocks inherit this color
+                  {{ $t("epics.modal.colorHint") }}
                 </span>
               </label>
               <div class="flex flex-wrap gap-2">
@@ -263,8 +265,8 @@ function onKeydown(e: KeyboardEvent) {
                   type="button"
                   class="w-8 h-8 rounded-lg ring-1 ring-slate-200 hover:scale-105 transition flex items-center justify-center"
                   :class="EPIC_COLOR_CLASSES[c].solid"
-                  :title="EPIC_COLOR_CLASSES[c].label"
-                  :aria-label="`Use ${EPIC_COLOR_CLASSES[c].label} color`"
+                  :title="colorLabel(c)"
+                  :aria-label="$t('epics.modal.useColor', { color: colorLabel(c) })"
                   :aria-pressed="form.color === c"
                   @click="form.color = c"
                 >
@@ -286,20 +288,26 @@ function onKeydown(e: KeyboardEvent) {
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Status
+                  {{ $t("epics.modal.status") }}
                 </label>
                 <select
                   v-model.number="form.status"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
-                  <option :value="TaskStatus.Todo">To do</option>
-                  <option :value="TaskStatus.InProgress">In progress</option>
-                  <option :value="TaskStatus.Done">Done</option>
+                  <option :value="TaskStatus.Todo">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Todo]) }}
+                  </option>
+                  <option :value="TaskStatus.InProgress">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.InProgress]) }}
+                  </option>
+                  <option :value="TaskStatus.Done">
+                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Done]) }}
+                  </option>
                 </select>
               </div>
               <div>
                 <label class="block text-xs font-medium text-slate-600 mb-1">
-                  Target completion
+                  {{ $t("epics.modal.targetCompletion") }}
                 </label>
                 <input
                   v-model="form.dueDate"
@@ -311,12 +319,12 @@ function onKeydown(e: KeyboardEvent) {
 
             <div>
               <label class="block text-xs font-medium text-slate-600 mb-1">
-                Tags (comma separated)
+                {{ $t("epics.modal.tags") }}
               </label>
               <input
                 v-model="form.tags"
                 type="text"
-                placeholder="ml, vision, infra"
+                :placeholder="$t('epics.modal.tagsPlaceholder')"
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
               />
             </div>
@@ -339,7 +347,7 @@ function onKeydown(e: KeyboardEvent) {
               class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
               @click="onDelete"
             >
-              Delete epic
+              {{ $t("epics.modal.deleteEpic") }}
             </button>
             <span v-else />
             <div class="flex items-center gap-2">
@@ -348,7 +356,7 @@ function onKeydown(e: KeyboardEvent) {
                 class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition"
                 @click="requestClose"
               >
-                Cancel
+                {{ $t("epics.modal.cancel") }}
               </button>
               <button
                 type="button"
@@ -369,12 +377,12 @@ function onKeydown(e: KeyboardEvent) {
                 </svg>
                 {{
                   justSaved
-                    ? "Saved"
+                    ? $t("epics.modal.saved")
                     : submitting
-                    ? "Saving…"
+                    ? $t("epics.modal.saving")
                     : form.id
-                    ? "Save changes"
-                    : "Create epic"
+                    ? $t("epics.modal.saveChanges")
+                    : $t("epics.modal.createEpic")
                 }}
               </button>
             </div>
@@ -392,10 +400,10 @@ function onKeydown(e: KeyboardEvent) {
                 id="epic-discard-title"
                 class="text-sm font-semibold text-slate-900"
               >
-                Discard unsaved changes?
+                {{ $t("epics.modal.discardTitle") }}
               </h3>
               <p id="epic-discard-desc" class="mt-1 text-xs text-slate-500">
-                Your edits to this epic haven’t been saved.
+                {{ $t("epics.modal.discardBody") }}
               </p>
               <div class="mt-4 flex justify-end gap-2">
                 <button
@@ -403,14 +411,14 @@ function onKeydown(e: KeyboardEvent) {
                   class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
                   @click="discardConfirmOpen = false"
                 >
-                  Keep editing
+                  {{ $t("epics.modal.keepEditing") }}
                 </button>
                 <button
                   type="button"
                   class="px-3 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg"
                   @click="confirmDiscard"
                 >
-                  Discard
+                  {{ $t("epics.modal.discard") }}
                 </button>
               </div>
             </div>

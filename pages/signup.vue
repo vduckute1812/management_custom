@@ -6,6 +6,11 @@ definePageMeta({ layout: false });
 // unauthenticated sign-up flow here.
 const auth = useAuth();
 const router = useRouter();
+const { t } = useI18n();
+
+useSeoMeta({
+  title: computed(() => t("seo.signup")),
+});
 
 const email = ref("");
 const password = ref("");
@@ -30,7 +35,7 @@ async function onSubmit() {
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
       (err as { statusMessage?: string }).statusMessage ??
-      "Sign-up failed";
+      t("auth.signupFailed");
   } finally {
     busy.value = false;
   }
@@ -50,9 +55,9 @@ async function onSubmit() {
         </div>
         <div class="text-left">
           <p class="text-base font-semibold text-slate-900 leading-tight">
-            Create an account
+            {{ $t("auth.signupTitle") }}
           </p>
-          <p class="text-xs text-slate-500">It takes a minute</p>
+          <p class="text-xs text-slate-500">{{ $t("auth.signupSubtitle") }}</p>
         </div>
       </div>
 
@@ -60,19 +65,19 @@ async function onSubmit() {
         v-if="success"
         class="bg-white border border-emerald-200 rounded-xl shadow-sm p-6 space-y-3"
       >
-        <p class="text-sm font-semibold text-emerald-700">Account created</p>
+        <p class="text-sm font-semibold text-emerald-700">{{ $t("auth.accountCreated") }}</p>
         <p class="text-sm text-slate-700">
           {{
             success.verificationSent
-              ? "Check your inbox for a verification link. Once you click it you can sign in."
-              : "The verification email couldn't be sent — check the server console for the link in dry-run mode."
+              ? $t("auth.verificationSent")
+              : $t("auth.verificationDryRun")
           }}
         </p>
         <NuxtLink
           to="/login"
           class="block text-center w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 transition"
         >
-          Go to sign in
+          {{ $t("auth.goToSignIn") }}
         </NuxtLink>
       </div>
 
@@ -85,7 +90,7 @@ async function onSubmit() {
           <label
             for="signup-name"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >Name (optional)</label
+            >{{ $t("auth.nameOptional") }}</label
           >
           <input
             id="signup-name"
@@ -99,7 +104,7 @@ async function onSubmit() {
           <label
             for="signup-email"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >Email</label
+            >{{ $t("auth.email") }}</label
           >
           <input
             id="signup-email"
@@ -114,7 +119,7 @@ async function onSubmit() {
           <label
             for="signup-password"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >Password</label
+            >{{ $t("auth.password") }}</label
           >
           <input
             id="signup-password"
@@ -126,7 +131,7 @@ async function onSubmit() {
             class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
           />
           <p class="text-[11px] text-slate-500 mt-1">
-            Minimum 8 characters.
+            {{ $t("auth.passwordHint") }}
           </p>
         </div>
 
@@ -142,12 +147,12 @@ async function onSubmit() {
           :disabled="busy"
           class="w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          {{ busy ? "Creating account…" : "Create account" }}
+          {{ busy ? $t("auth.creatingAccount") : $t("auth.createAccount") }}
         </button>
 
         <div class="flex items-center justify-between text-xs">
           <NuxtLink to="/login" class="text-brand-600 hover:underline">
-            Already have an account? Sign in
+            {{ $t("auth.alreadyHaveAccount") }}
           </NuxtLink>
         </div>
       </form>

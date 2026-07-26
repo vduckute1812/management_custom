@@ -39,6 +39,7 @@ export type NotificationPermissionState =
  *   `resetFired()` clears it when the tab returns from a long invisibility.
  */
 export const useNotifications = () => {
+  const { t } = useI18n();
   const { settings } = useSettings();
   const { withProjections } = useRecurrence();
   const { pushToast } = useToasts();
@@ -139,24 +140,27 @@ export const useNotifications = () => {
     const when = `${start.format("HH:mm")} – ${dayjs(block.end).format("HH:mm")}`;
     const leadHint =
       minutesAway === 0
-        ? "Starting now"
+        ? t("toasts.startingNow")
         : minutesAway === 1
-        ? "Starts in 1 min"
-        : `Starts in ${minutesAway} min`;
-    pushToast(`${leadHint}: ${task.title} · ${when}`, {
-      tone: "info",
-      duration: Math.max(6000, leadMinutes * 1000),
-      actionLabel: "Open",
-      onAction: async () => {
-        requestFocusTask(task.id);
-        if (
-          router.currentRoute.value.path !== "/tasks" &&
-          !router.currentRoute.value.path.startsWith("/tasks/")
-        ) {
-          await router.push("/tasks");
-        }
-      },
-    });
+        ? t("toasts.startsInOneMin")
+        : t("toasts.startsInMins", { count: minutesAway });
+    pushToast(
+      t("toasts.upcomingBlock", { leadHint, title: task.title, when }),
+      {
+        tone: "info",
+        duration: Math.max(6000, leadMinutes * 1000),
+        actionLabel: t("toasts.open"),
+        onAction: async () => {
+          requestFocusTask(task.id);
+          if (
+            router.currentRoute.value.path !== "/tasks" &&
+            !router.currentRoute.value.path.startsWith("/tasks/")
+          ) {
+            await router.push("/tasks");
+          }
+        },
+      }
+    );
   }
 
   /**
@@ -172,10 +176,11 @@ export const useNotifications = () => {
 
     const start = dayjs(block.start);
     const when = `${start.format("HH:mm")} – ${dayjs(block.end).format("HH:mm")}`;
-    const bodyParts: string[] = [];
-    if (leadMinutes <= 0) bodyParts.push(`Starting now · ${when}`);
-    else bodyParts.push(`Starts in ${leadMinutes} min · ${when}`);
-    firePush(`Up next: ${task.title}`, bodyParts.join("\n"), key);
+    const body =
+      leadMinutes <= 0
+        ? t("toasts.pushStartingNow", { when })
+        : t("toasts.pushStartsIn", { count: leadMinutes, when });
+    firePush(t("toasts.pushUpNext", { title: task.title }), body, key);
   }
 
   /**
@@ -238,15 +243,15 @@ export const useNotifications = () => {
   function sendTest() {
     if (!canPush()) {
       // Still emit an in-app toast so the user gets *some* feedback.
-      pushToast("Test alert — in-app toasts are on", {
+      pushToast(t("toasts.testAlertInApp"), {
         tone: "info",
         duration: 2500,
       });
       return false;
     }
     firePush(
-      "Notifications enabled",
-      "You'll get a heads-up before each scheduled block.",
+      t("toasts.notificationsEnabled"),
+      t("toasts.notificationsEnabledBody"),
       "mgmt:test"
     );
     return true;

@@ -3,13 +3,14 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import {
   PRIORITY_BADGE,
-  PRIORITY_LABELS,
+  PRIORITY_I18N_KEYS,
   STATUS_COLORS,
-  STATUS_LABELS,
+  STATUS_I18N_KEYS,
 } from "~/types/task";
 
 dayjs.extend(isoWeek);
 
+const { t } = useI18n();
 const { tasks, fetchAll, isLoading } = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
 const { pushToast } = useToasts();
@@ -22,7 +23,18 @@ await useAsyncData("analytics:initial", async () => {
   return { ok: true };
 });
 
+useSeoMeta({
+  title: () => t("seo.analytics"),
+  description: () => t("seo.analyticsDescription"),
+});
+
 const granularity = ref<"day" | "week" | "month">("week");
+
+const GRANULARITY_KEYS = {
+  day: "analytics.granularityDay",
+  week: "analytics.granularityWeek",
+  month: "analytics.granularityMonth",
+} as const;
 
 usePageShortcuts([
   { key: "1", handler: () => (granularity.value = "day") },
@@ -35,13 +47,13 @@ const taggedBreakdown = computed(() => {
     string,
     { count: number; estimated: number; spent: number }
   >();
-  for (const t of tasks.value) {
-    const tags = t.tags?.length ? t.tags : ["untagged"];
+  for (const task of tasks.value) {
+    const tags = task.tags?.length ? task.tags : ["untagged"];
     for (const tag of tags) {
       const entry = map.get(tag) ?? { count: 0, estimated: 0, spent: 0 };
       entry.count += 1;
-      entry.estimated += t.estimatedHours ?? 0;
-      entry.spent += t.spentHours ?? 0;
+      entry.estimated += task.estimatedHours ?? 0;
+      entry.spent += task.spentHours ?? 0;
       map.set(tag, entry);
     }
   }
@@ -59,14 +71,18 @@ const isEmpty = computed(
   () => !isLoading.value && tasks.value.length === 0 && epics.value.length === 0
 );
 
+function tagLabel(tag: string): string {
+  return tag === "untagged" ? t("analytics.untagged") : tag;
+}
+
 async function seedSamples() {
   seeding.value = true;
   try {
     await loadSamples();
-    pushToast("Sample data loaded", { tone: "success" });
+    pushToast(t("toasts.sampleDataLoaded"), { tone: "success" });
   } catch (err) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to load samples",
+      err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
       { tone: "danger" }
     );
   } finally {
@@ -81,9 +97,9 @@ async function seedSamples() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Analytics</h1>
+        <h1 class="text-xl font-semibold text-slate-900">{{ $t("analytics.title") }}</h1>
         <p class="text-xs text-slate-500 mt-0.5">
-          Track velocity, accuracy, and completion trends over time
+          {{ $t("analytics.subtitle") }}
         </p>
       </div>
       <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
@@ -98,7 +114,7 @@ async function seedSamples() {
           "
           @click="granularity = opt"
         >
-          {{ opt }}
+          {{ $t(GRANULARITY_KEYS[opt]) }}
         </button>
       </div>
     </header>
@@ -111,10 +127,10 @@ async function seedSamples() {
         class="h-full flex items-center justify-center"
       >
         <EmptyState
-          title="Analytics need data"
-          description="We'll show velocity, completion rate, and variance after you log a few time blocks."
+          :title="$t('empty.analyticsNeedData')"
+          :description="$t('empty.analyticsNeedDataDesc')"
           illustration="chart"
-          secondary-label="Load sample data"
+          :secondary-label="$t('empty.loadSampleData')"
           :secondary-loading="seeding"
           @secondary="seedSamples"
         />
@@ -128,7 +144,7 @@ async function seedSamples() {
             :granularity="granularity"
           />
           <template #fallback>
-            <p class="text-sm text-slate-500">Preparing charts…</p>
+            <p class="text-sm text-slate-500">{{ $t("analytics.preparingCharts") }}</p>
           </template>
         </ClientOnly>
 
@@ -137,21 +153,21 @@ async function seedSamples() {
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-4 py-3 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">
-              Time by tag
+              {{ $t("analytics.timeByTag") }}
             </h3>
             <p class="text-[11px] text-slate-500">
-              Distribution of estimated and actual hours across tags
+              {{ $t("analytics.timeByTagHint") }}
             </p>
           </header>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50">
-                  <th class="px-4 py-2 font-medium">Tag</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Tasks</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Estimated</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Spent</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Variance</th>
+                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colTag") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colTasks") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colEstimated") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colSpent") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colVariance") }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -160,12 +176,16 @@ async function seedSamples() {
                     <span
                       class="inline-block px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700"
                     >
-                      {{ row.tag }}
+                      {{ tagLabel(row.tag) }}
                     </span>
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-700">{{ row.count }}</td>
-                  <td class="px-4 py-2 tabular-nums text-slate-700">{{ row.estimated }}h</td>
-                  <td class="px-4 py-2 tabular-nums text-slate-700">{{ row.spent }}h</td>
+                  <td class="px-4 py-2 tabular-nums text-slate-700">
+                    {{ $t("analytics.hoursUnit", { hours: row.estimated }) }}
+                  </td>
+                  <td class="px-4 py-2 tabular-nums text-slate-700">
+                    {{ $t("analytics.hoursUnit", { hours: row.spent }) }}
+                  </td>
                   <td
                     class="px-4 py-2 tabular-nums font-medium"
                     :class="
@@ -179,7 +199,7 @@ async function seedSamples() {
                 </tr>
                 <tr v-if="taggedBreakdown.length === 0">
                   <td colspan="5" class="px-4 py-8 text-center text-xs text-slate-400 italic">
-                    No tagged tasks yet.
+                    {{ $t("analytics.noTaggedTasks") }}
                   </td>
                 </tr>
               </tbody>
@@ -190,77 +210,81 @@ async function seedSamples() {
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-4 py-3 border-b border-slate-100">
             <h3 class="text-sm font-semibold text-slate-800">
-              All tasks
+              {{ $t("analytics.allTasks") }}
             </h3>
           </header>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50">
-                  <th class="px-4 py-2 font-medium">Title</th>
-                  <th class="px-4 py-2 font-medium">Epic</th>
-                  <th class="px-4 py-2 font-medium">Status</th>
-                  <th class="px-4 py-2 font-medium">Priority</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Due</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Est.</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Spent</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">Progress</th>
+                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colTitle") }}</th>
+                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colEpic") }}</th>
+                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colStatus") }}</th>
+                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colPriority") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colDue") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colEst") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colSpent") }}</th>
+                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colProgress") }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                <tr v-for="t in tasks" :key="t.id">
+                <tr v-for="task in tasks" :key="task.id">
                   <td class="px-4 py-2 text-slate-800 font-medium">
                     <div class="flex items-center gap-2">
                       <span
                         class="w-2 h-2 rounded-full"
-                        :class="colorOfTask(t).solid"
+                        :class="colorOfTask(task).solid"
                       />
-                      {{ t.title }}
+                      {{ task.title }}
                     </div>
                   </td>
                   <td class="px-4 py-2 text-slate-600 text-xs">
                     <NuxtLink
-                      v-if="t.epicId && findEpic(t.epicId)"
-                      :to="`/epics/${t.epicId}`"
+                      v-if="task.epicId && findEpic(task.epicId)"
+                      :to="`/epics/${task.epicId}`"
                       class="text-brand-700 hover:underline"
                     >
-                      {{ findEpic(t.epicId)?.title }}
+                      {{ findEpic(task.epicId)?.title }}
                     </NuxtLink>
-                    <span v-else>—</span>
+                    <span v-else>{{ $t("analytics.emDash") }}</span>
                   </td>
                   <td class="px-4 py-2">
                     <span
                       class="text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                      :class="STATUS_COLORS[t.status]"
+                      :class="STATUS_COLORS[task.status]"
                     >
-                      {{ STATUS_LABELS[t.status] }}
+                      {{ $t(STATUS_I18N_KEYS[task.status]) }}
                     </span>
                   </td>
                   <td class="px-4 py-2">
                     <span
-                      v-if="t.priority !== undefined"
+                      v-if="task.priority !== undefined"
                       class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
-                      :class="PRIORITY_BADGE[t.priority]"
+                      :class="PRIORITY_BADGE[task.priority]"
                     >
-                      {{ PRIORITY_LABELS[t.priority] }}
+                      {{ $t(PRIORITY_I18N_KEYS[task.priority]) }}
                     </span>
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
-                    {{ t.dueDate ? dayjs(t.dueDate).format("MMM D, YYYY") : "—" }}
+                    {{
+                      task.dueDate
+                        ? dayjs(task.dueDate).format("MMM D, YYYY")
+                        : $t("analytics.emDash")
+                    }}
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
-                    {{ t.estimatedHours ?? "—" }}
+                    {{ task.estimatedHours ?? $t("analytics.emDash") }}
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
-                    {{ t.spentHours ?? "—" }}
+                    {{ task.spentHours ?? $t("analytics.emDash") }}
                   </td>
                   <td class="px-4 py-2 tabular-nums text-slate-600">
-                    {{ t.progress ?? 0 }}%
+                    {{ task.progress ?? 0 }}%
                   </td>
                 </tr>
                 <tr v-if="tasks.length === 0">
                   <td colspan="8" class="px-4 py-8 text-center text-xs text-slate-400 italic">
-                    No tasks yet. Head back to the dashboard to add one.
+                    {{ $t("analytics.noTasksYet") }}
                   </td>
                 </tr>
               </tbody>

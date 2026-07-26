@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: "share", note: string): void;
 }>();
 
+const { t } = useI18n();
 const { loadComments, addComment, removeComment } = usePosts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
@@ -36,14 +37,14 @@ const REACTION_EMOJI: Record<PostReactionType, string> = {
   angry: "😡",
 };
 
-const REACTION_LABEL: Record<PostReactionType, string> = {
-  like: "Like",
-  love: "Love",
-  haha: "Haha",
-  wow: "Wow",
-  sad: "Sad",
-  angry: "Angry",
-};
+const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
+  like: t("feed.post.reactionLike"),
+  love: t("feed.post.reactionLove"),
+  haha: t("feed.post.reactionHaha"),
+  wow: t("feed.post.reactionWow"),
+  sad: t("feed.post.reactionSad"),
+  angry: t("feed.post.reactionAngry"),
+}));
 
 function authorLabel(name: string | null, email: string) {
   return name?.trim() || email;
@@ -59,12 +60,12 @@ function formatWhen(iso: string) {
     if (Number.isNaN(d.getTime())) return "";
     const diffMs = Date.now() - d.getTime();
     const mins = Math.floor(diffMs / 60000);
-    if (mins < 1) return "Just now";
-    if (mins < 60) return `${mins}m`;
+    if (mins < 1) return t("feed.post.justNow");
+    if (mins < 60) return t("feed.post.minutesAgo", { count: mins });
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h`;
+    if (hours < 24) return t("feed.post.hoursAgo", { count: hours });
     const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d`;
+    if (days < 7) return t("feed.post.daysAgo", { count: days });
     return d.toLocaleDateString(undefined, {
       month: "short",
       day: "numeric",
@@ -75,9 +76,9 @@ function formatWhen(iso: string) {
 }
 
 const visibilityBadge = computed(() => {
-  if (props.post.visibility === "private") return "Only you";
-  if (props.post.visibility === "shared") return "Shared";
-  return "Public";
+  if (props.post.visibility === "private") return t("feed.post.onlyYou");
+  if (props.post.visibility === "shared") return t("feed.post.shared");
+  return t("feed.post.public");
 });
 
 const topReactions = computed(() =>
@@ -198,10 +199,10 @@ function onShareClick() {
         v-if="post.canDelete"
         type="button"
         class="text-[11px] text-slate-400 hover:text-rose-600 px-1.5 py-1 rounded"
-        title="Delete post"
+        :title="$t('feed.post.deleteTitle')"
         @click="emit('delete')"
       >
-        Delete
+        {{ $t("feed.post.delete") }}
       </button>
     </header>
 
@@ -290,10 +291,10 @@ function onShareClick() {
           >{{ r.emoji }}</span>
           <span>{{ post.reactionCount }}</span>
         </template>
-        <template v-else>0 reactions</template>
+        <template v-else>{{ $t("feed.post.zeroReactions") }}</template>
       </span>
       <span>
-        {{ post.commentCount }} comment{{ post.commentCount === 1 ? "" : "s" }}
+        {{ t("feed.post.comments", post.commentCount, { count: post.commentCount }) }}
       </span>
     </div>
 
@@ -316,13 +317,13 @@ function onShareClick() {
           <span aria-hidden="true">
             {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
           </span>
-          {{ post.myReaction ? REACTION_LABEL[post.myReaction] : "React" }}
+          {{ post.myReaction ? REACTION_LABEL[post.myReaction] : $t("feed.post.react") }}
         </button>
         <div
           v-if="pickerOpen"
           class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md z-10"
           role="listbox"
-          aria-label="Choose reaction"
+          :aria-label="$t('feed.post.chooseReaction')"
           @mouseenter="pickerOpen = true"
           @mouseleave="pickerOpen = false"
         >
@@ -344,14 +345,14 @@ function onShareClick() {
         class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
         @click="toggleComments"
       >
-        Comment
+        {{ $t("feed.post.comment") }}
       </button>
       <button
         type="button"
         class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
         @click="onShareClick"
       >
-        Share
+        {{ $t("feed.post.share") }}
       </button>
     </div>
 
@@ -359,14 +360,14 @@ function onShareClick() {
       v-if="shareOpen"
       class="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/60"
     >
-      <label class="sr-only" :for="`share-${post.id}`">Share note</label>
+      <label class="sr-only" :for="`share-${post.id}`">{{ $t("feed.post.shareNote") }}</label>
       <input
         :id="`share-${post.id}`"
         v-model="shareNote"
         type="text"
         maxlength="5000"
         class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-        placeholder="Add a note (optional)"
+        :placeholder="$t('feed.post.shareNotePlaceholder')"
         @keydown.enter.prevent="onShare"
       />
       <div class="flex justify-end gap-2">
@@ -375,7 +376,7 @@ function onShareClick() {
           class="text-xs text-slate-500 px-2 py-1.5 rounded hover:bg-slate-100"
           @click="shareOpen = false"
         >
-          Cancel
+          {{ $t("feed.post.cancel") }}
         </button>
         <button
           type="button"
@@ -383,7 +384,7 @@ function onShareClick() {
           :disabled="shareSubmitting"
           @click="onShare"
         >
-          Share now
+          {{ $t("feed.post.shareNow") }}
         </button>
       </div>
     </div>
@@ -416,7 +417,7 @@ function onShareClick() {
                 class="text-[10px] text-slate-400 hover:text-rose-600"
                 @click="onDeleteComment(comment)"
               >
-                Delete
+                {{ $t("feed.post.delete") }}
               </button>
             </div>
             <p class="text-sm text-slate-700 whitespace-pre-wrap break-words mt-0.5">
@@ -425,7 +426,7 @@ function onShareClick() {
           </div>
         </li>
         <li v-if="!comments.length" class="text-xs text-slate-400 italic">
-          No comments yet — be the first.
+          {{ $t("feed.post.noCommentsYet") }}
         </li>
       </ul>
 
@@ -434,14 +435,14 @@ function onShareClick() {
         class="flex gap-2"
         @submit.prevent="onAddComment"
       >
-        <label class="sr-only" :for="`comment-${post.id}`">Write a comment</label>
+        <label class="sr-only" :for="`comment-${post.id}`">{{ $t("feed.post.writeComment") }}</label>
         <input
           :id="`comment-${post.id}`"
           v-model="commentBody"
           type="text"
           maxlength="2000"
           class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-          placeholder="Write a comment…"
+          :placeholder="$t('feed.post.writeCommentPlaceholder')"
           :disabled="commentSubmitting"
         />
         <button
@@ -449,7 +450,7 @@ function onShareClick() {
           class="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           :disabled="!commentBody.trim() || commentSubmitting"
         >
-          Reply
+          {{ $t("feed.post.reply") }}
         </button>
       </form>
       <p v-else class="text-xs text-slate-500">
@@ -457,9 +458,10 @@ function onShareClick() {
           to="/login"
           class="font-medium text-brand-700 hover:underline"
         >
-          Login
-        </NuxtLink>
-        to leave a comment.
+          {{ $t("feed.post.loginLink") }}
+        </NuxtLink>{{
+          $t("feed.post.loginToComment").slice($t("feed.post.loginLink").length)
+        }}
       </p>
     </div>
   </article>

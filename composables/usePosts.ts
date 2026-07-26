@@ -27,6 +27,7 @@ function patchPost(list: Post[], id: string, next: Post): Post[] {
 }
 
 export const usePosts = () => {
+  const { t } = useI18n();
   const { apiFetch } = useApi();
   const { pushToast } = useToasts();
 
@@ -57,7 +58,7 @@ export const usePosts = () => {
     } catch (err: unknown) {
       const msg =
         (err as { statusMessage?: string })?.statusMessage ||
-        "Could not load the feed.";
+        t("toasts.couldNotLoadFeed");
       error.value = msg;
       throw err;
     } finally {
@@ -122,7 +123,7 @@ export const usePosts = () => {
     ) {
       posts.value = [res.post, ...posts.value];
     }
-    pushToast("Post shared", { tone: "success", duration: 2500 });
+    pushToast(t("toasts.postShared"), { tone: "success", duration: 2500 });
     return res.post;
   }
 
@@ -131,17 +132,17 @@ export const usePosts = () => {
     posts.value = posts.value.filter((p) => p.id !== id);
     try {
       await apiFetch(`/api/posts/${id}`, { method: "DELETE" });
-      pushToast("Post deleted", {
+      pushToast(t("toasts.postDeleted"), {
         tone: "info",
         duration: 4000,
         onAction: async () => {
           await refresh();
         },
-        actionLabel: "Reload",
+        actionLabel: t("toasts.reload"),
       });
     } catch (err) {
       posts.value = snapshot;
-      pushToast("Could not delete post", { tone: "danger" });
+      pushToast(t("toasts.couldNotDeletePost"), { tone: "danger" });
       throw err;
     }
   }
@@ -177,7 +178,7 @@ export const usePosts = () => {
       posts.value = patchPost(posts.value, id, res.post);
     } catch {
       posts.value = patchPost(posts.value, id, prev);
-      pushToast("Could not update reaction", { tone: "danger" });
+      pushToast(t("toasts.couldNotUpdateReaction"), { tone: "danger" });
     }
   }
 
@@ -208,7 +209,7 @@ export const usePosts = () => {
       posts.value = patchPost(posts.value, id, res.post);
     } catch {
       posts.value = patchPost(posts.value, id, prev);
-      pushToast("Could not clear reaction", { tone: "danger" });
+      pushToast(t("toasts.couldNotClearReaction"), { tone: "danger" });
     }
   }
 
@@ -232,7 +233,7 @@ export const usePosts = () => {
       body: { body: note ?? "", visibility },
     });
     posts.value = [res.post, ...posts.value];
-    pushToast("Post shared to your feed", { tone: "success", duration: 2500 });
+    pushToast(t("toasts.postSharedToFeed"), { tone: "success", duration: 2500 });
     return res.post;
   }
 

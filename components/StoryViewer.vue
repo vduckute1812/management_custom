@@ -12,6 +12,7 @@ const emit = defineEmits<{
   (e: "close"): void;
 }>();
 
+const { t } = useI18n();
 const {
   markViewed,
   removeStory,
@@ -214,14 +215,14 @@ watch(
     class="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
-    aria-label="Story viewer"
+    :aria-label="$t('feed.stories.viewerAria')"
   >
     <button
       type="button"
       class="absolute top-4 right-4 text-white/80 hover:text-white text-sm"
       @click="emit('close')"
     >
-      Close
+      {{ $t("feed.stories.close") }}
     </button>
 
     <div
@@ -259,7 +260,7 @@ watch(
             class="text-xs text-white/80 hover:text-white rounded px-1.5 py-0.5 bg-white/10"
             @click="openInsights"
           >
-            {{ story.viewCount }} view{{ story.viewCount === 1 ? "" : "s" }}
+            {{ t("feed.stories.views", story.viewCount, { count: story.viewCount }) }}
           </button>
           <button
             v-if="story.canDelete"
@@ -267,7 +268,7 @@ watch(
             class="text-xs text-white/70 hover:text-rose-300"
             @click="onDelete"
           >
-            Delete
+            {{ $t("feed.stories.delete") }}
           </button>
         </div>
       </div>
@@ -275,13 +276,13 @@ watch(
       <button
         type="button"
         class="absolute inset-y-0 left-0 w-1/3 z-[5]"
-        aria-label="Previous"
+        :aria-label="$t('feed.stories.previous')"
         @click="prev"
       />
       <button
         type="button"
         class="absolute inset-y-0 right-0 w-1/3 z-[5]"
-        aria-label="Next"
+        :aria-label="$t('feed.stories.next')"
         @click="next"
       />
 
@@ -289,7 +290,7 @@ watch(
         <img
           v-if="story.mediaUrl && story.mime?.startsWith('image/')"
           :src="mediaUrl(story.mediaUrl)"
-          :alt="story.body || 'Story media'"
+          :alt="story.body || $t('feed.stories.storyMediaAlt')"
           width="400"
           height="711"
           class="max-h-full max-w-full object-contain"
@@ -334,9 +335,14 @@ watch(
         @click="openInsights"
       >
         <span class="text-xs text-white/90">
-          {{ story.viewCount }} views · {{ story.reactionCount }} reactions
+          {{
+            $t("feed.stories.viewsReactions", {
+              views: story.viewCount,
+              reactions: story.reactionCount,
+            })
+          }}
         </span>
-        <span class="text-xs font-medium text-white/80">Details ↑</span>
+        <span class="text-xs font-medium text-white/80">{{ $t("feed.stories.details") }}</span>
       </button>
     </div>
 
@@ -352,14 +358,19 @@ watch(
             class="w-full max-w-md max-h-[75vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl flex flex-col"
             role="dialog"
             aria-modal="true"
-            aria-label="Story viewers and reactions"
+            :aria-label="$t('feed.stories.insightsAria')"
           >
             <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
-                <p class="text-sm font-semibold text-slate-900">My Story</p>
+                <p class="text-sm font-semibold text-slate-900">{{ $t("feed.stories.myStory") }}</p>
                 <p class="text-xs text-slate-500">
-                  {{ insights?.viewCount ?? story?.viewCount ?? 0 }} views ·
-                  {{ insights?.reactionCount ?? story?.reactionCount ?? 0 }} reactions
+                  {{
+                    $t("feed.stories.viewsReactions", {
+                      views: insights?.viewCount ?? story?.viewCount ?? 0,
+                      reactions:
+                        insights?.reactionCount ?? story?.reactionCount ?? 0,
+                    })
+                  }}
                 </p>
               </div>
               <button
@@ -367,7 +378,7 @@ watch(
                 class="text-sm text-slate-500 hover:text-slate-800 px-2 py-1"
                 @click="closeInsights"
               >
-                Close
+                {{ $t("feed.stories.close") }}
               </button>
             </div>
 
@@ -380,7 +391,7 @@ watch(
               <template v-else-if="insights">
                 <section>
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                    Viewers
+                    {{ $t("feed.stories.viewers") }}
                   </h3>
                   <ul v-if="insights.viewers.length" class="space-y-2">
                     <li
@@ -407,12 +418,12 @@ watch(
                       </span>
                     </li>
                   </ul>
-                  <p v-else class="text-sm text-slate-500">No views yet.</p>
+                  <p v-else class="text-sm text-slate-500">{{ $t("feed.stories.noViewsYet") }}</p>
                 </section>
 
                 <section>
                   <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-                    Reactions
+                    {{ $t("feed.stories.reactions") }}
                   </h3>
                   <div
                     v-if="insights.reactionCount"
@@ -446,7 +457,7 @@ watch(
                       </div>
                     </li>
                   </ul>
-                  <p v-else class="text-sm text-slate-500">No reactions yet.</p>
+                  <p v-else class="text-sm text-slate-500">{{ $t("feed.stories.noReactionsYet") }}</p>
                 </section>
               </template>
             </div>

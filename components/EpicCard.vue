@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import {
   epicColorOf,
   STATUS_COLORS,
-  STATUS_LABELS,
+  STATUS_I18N_KEYS,
   TaskStatus,
   type Epic,
 } from "~/types/task";
@@ -62,14 +62,14 @@ const isOverdue = computed(() => {
           class="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0"
           :class="STATUS_COLORS[epic.status]"
         >
-          {{ STATUS_LABELS[epic.status] }}
+          {{ $t(STATUS_I18N_KEYS[epic.status]) }}
         </span>
       </header>
 
       <div class="flex items-center gap-3 text-[11px] text-slate-500 tabular-nums">
         <span>
           <strong class="font-semibold text-slate-700">{{ epic.taskCount ?? 0 }}</strong>
-          tasks
+          {{ $t("epics.card.tasks") }}
         </span>
         <span>
           {{ epic.spentHours ?? 0 }}h /
@@ -96,10 +96,10 @@ const isOverdue = computed(() => {
           v-if="epic.dueDate"
           :class="isOverdue ? 'text-rose-600 font-medium' : 'text-slate-500'"
         >
-          Due {{ dayjs(epic.dueDate).format("MMM D, YYYY") }}
-          <span v-if="isOverdue">· overdue</span>
+          {{ $t("epics.due", { date: dayjs(epic.dueDate).format("MMM D, YYYY") }) }}
+          <span v-if="isOverdue">{{ $t("epics.card.overdue") }}</span>
         </span>
-        <span v-else class="text-slate-400 italic">No deadline</span>
+        <span v-else class="text-slate-400 italic">{{ $t("epics.card.noDeadline") }}</span>
 
         <button
           type="button"
@@ -122,7 +122,7 @@ const isOverdue = computed(() => {
               stroke-linejoin="round"
             />
           </svg>
-          Edit
+          {{ $t("epics.card.edit") }}
         </button>
       </footer>
 

@@ -1,6 +1,7 @@
 import type { UploadRecord } from "~/types/post";
 
 export const useUploads = () => {
+  const { t } = useI18n();
   const { pushToast } = useToasts();
   const auth = useAuth();
 
@@ -23,7 +24,7 @@ export const useUploads = () => {
         (err as { data?: { statusMessage?: string }; statusMessage?: string })
           ?.data?.statusMessage ||
         (err as { statusMessage?: string })?.statusMessage ||
-        "Upload failed";
+        t("toasts.uploadFailed");
       pushToast(msg, { tone: "danger" });
       throw err;
     }

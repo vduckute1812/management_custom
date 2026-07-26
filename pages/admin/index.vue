@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
 import type { Chart as ChartType } from "chart.js";
-import { UserRole, ROLE_LABELS, type AdminUserSummary, type AuthUser } from "~/types/task";
+import {
+  UserRole,
+  ROLE_I18N_KEYS,
+  STATUS_I18N_KEYS,
+  TaskStatus,
+  type AdminUserSummary,
+  type AuthUser,
+} from "~/types/task";
 
+const { t, locale } = useI18n();
 const { apiFetch } = useApi();
 const { pushToast } = useToasts();
 const { user: currentUser, isSuperAdmin } = useAuth();
@@ -17,13 +25,18 @@ interface StatsResponse {
   };
   users: AdminUserSummary[];
   daily: { date: string; hours: number }[];
-  statuses: { status: "todo" | "in-progress" | "done"; count: number }[];
+  statuses: { status: TaskStatus; count: number }[];
 }
 
 const days = ref<number>(30);
 const error = ref<string | null>(null);
 const roleBusy = ref<string | null>(null);
 const removeBusy = ref<string | null>(null);
+
+useSeoMeta({
+  title: () => t("seo.admin"),
+  description: () => t("seo.adminDescription"),
+});
 
 const { data: stats, pending: loading, refresh } = await useAsyncData(
   "admin:stats",
@@ -38,7 +51,7 @@ const { data: stats, pending: loading, refresh } = await useAsyncData(
         (err as { data?: { statusMessage?: string }; statusMessage?: string })
           ?.data?.statusMessage ??
         (err as { statusMessage?: string }).statusMessage ??
-        "Failed to load stats";
+        t("admin.failedToLoadStats");
       return null;
     }
   },
@@ -52,7 +65,7 @@ function roleChipClass(role: UserRole): string {
 }
 
 function roleLabel(role: UserRole): string {
-  return ROLE_LABELS[role] ?? String(role);
+  return t(ROLE_I18N_KEYS[role] ?? "roles.normal");
 }
 
 async function setRole(
@@ -71,13 +84,15 @@ async function setRole(
         u.id === updated.id ? { ...u, role: updated.role } : u
       );
     }
-    pushToast(`Role set to ${roleLabel(role)}`, { tone: "success" });
+    pushToast(t("toasts.roleSetTo", { role: roleLabel(role) }), {
+      tone: "success",
+    });
   } catch (err: unknown) {
     pushToast(
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
         (err as { statusMessage?: string }).statusMessage ??
-        "Failed to update role",
+        t("admin.failedToUpdateRole"),
       { tone: "danger" }
     );
   } finally {
@@ -88,7 +103,7 @@ async function setRole(
 async function removeUser(user: AdminUserSummary) {
   if (
     !confirm(
-      `Permanently delete ${user.name || user.email}? All of their epics, tasks, and logged time will be removed.`
+      t("admin.deleteConfirm", { name: user.name || user.email })
     )
   ) {
     return;
@@ -96,14 +111,14 @@ async function removeUser(user: AdminUserSummary) {
   removeBusy.value = user.id;
   try {
     await apiFetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
-    pushToast("User removed", { tone: "success" });
+    pushToast(t("toasts.userRemoved"), { tone: "success" });
     await refresh();
   } catch (err: unknown) {
     pushToast(
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
         (err as { statusMessage?: string }).statusMessage ??
-        "Failed to remove user",
+        t("admin.failedToRemoveUser"),
       { tone: "danger" }
     );
   } finally {
@@ -161,7 +176,7 @@ async function renderCharts() {
       labels: stats.value.daily.map((d) => dayjs(d.date).format("MMM D")),
       datasets: [
         {
-          label: "Hours logged",
+          label: t("admin.chartHoursLogged"),
           data: stats.value.daily.map((d) => d.hours),
           borderColor: "#6366f1",
           backgroundColor: "rgba(99, 102, 241, 0.18)",
@@ -186,7 +201,9 @@ async function renderCharts() {
   statusInst = new Chart(statusChart.value, {
     type: "doughnut",
     data: {
-      labels: ["To do", "In progress", "Done"],
+      labels: stats.value.statuses.map((s) =>
+        t(STATUS_I18N_KEYS[s.status] ?? "status.todo")
+      ),
       datasets: [
         {
           data: stats.value.statuses.map((s) => s.count),
@@ -210,13 +227,13 @@ async function renderCharts() {
       labels: stats.value.users.map((u) => u.name || u.email),
       datasets: [
         {
-          label: "Hours logged",
+          label: t("admin.chartHoursLogged"),
           data: stats.value.users.map((u) => u.hoursLogged),
           backgroundColor: "rgba(99, 102, 241, 0.6)",
           borderRadius: 6,
         },
         {
-          label: "Tasks",
+          label: t("admin.chartTasks"),
           data: stats.value.users.map((u) => u.taskCount),
           backgroundColor: "rgba(16, 185, 129, 0.6)",
           borderRadius: 6,
@@ -240,7 +257,7 @@ async function renderCharts() {
 // or canvases may bind after stats was already set during setup. `flush:
 // 'post'` waits until after DOM updates so template refs are populated.
 watch(
-  [stats, hoursChart, statusChart, usersChart],
+  [stats, hoursChart, statusChart, usersChart, locale],
   () => {
     void renderCharts();
   },
@@ -254,11 +271,11 @@ onBeforeUnmount(() => {
 });
 
 function formatHours(n: number): string {
-  return `${Math.round(n * 10) / 10}h`;
+  return t("admin.hoursUnit", { hours: Math.round(n * 10) / 10 });
 }
 
 function formatDate(iso?: string): string {
-  if (!iso) return "—";
+  if (!iso) return t("common.emDash");
   return dayjs(iso).format("MMM D, YYYY");
 }
 
@@ -267,21 +284,21 @@ function formatDate(iso?: string): string {
 // Falls back to the absolute timestamp for the title so the precise value
 // is one hover away.
 function formatLastLogin(iso?: string): string {
-  if (!iso) return "Never";
+  if (!iso) return t("admin.never");
   const then = dayjs(iso);
   const now = dayjs();
   const diffMin = now.diff(then, "minute");
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin} min ago`;
+  if (diffMin < 1) return t("admin.justNow");
+  if (diffMin < 60) return t("admin.minAgo", { count: diffMin });
   const diffHr = now.diff(then, "hour");
-  if (diffHr < 24) return `${diffHr} hr ago`;
+  if (diffHr < 24) return t("admin.hrAgo", { count: diffHr });
   const diffDay = now.diff(then, "day");
-  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+  if (diffDay < 7) return t("admin.dayAgo", diffDay);
   return then.format("MMM D, YYYY");
 }
 
 function formatDateTime(iso?: string): string {
-  if (!iso) return "Never";
+  if (!iso) return t("admin.never");
   return dayjs(iso).format("MMM D, YYYY · HH:mm");
 }
 </script>
@@ -292,22 +309,22 @@ function formatDateTime(iso?: string): string {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
     >
       <div>
-        <h1 class="text-lg font-semibold text-slate-900">Admin dashboard</h1>
+        <h1 class="text-lg font-semibold text-slate-900">{{ $t("admin.title") }}</h1>
         <p class="text-xs text-slate-500">
-          System-wide rollups across every user.
+          {{ $t("admin.subtitle") }}
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <label class="text-xs text-slate-500" for="admin-range">Range</label>
+        <label class="text-xs text-slate-500" for="admin-range">{{ $t("admin.range") }}</label>
         <select
           id="admin-range"
           v-model.number="days"
           class="text-xs border border-slate-300 rounded-md px-2 py-1.5 bg-white"
         >
-          <option :value="7">Last 7 days</option>
-          <option :value="14">Last 14 days</option>
-          <option :value="30">Last 30 days</option>
-          <option :value="90">Last 90 days</option>
+          <option :value="7">{{ $t("admin.last7Days") }}</option>
+          <option :value="14">{{ $t("admin.last14Days") }}</option>
+          <option :value="30">{{ $t("admin.last30Days") }}</option>
+          <option :value="90">{{ $t("admin.last90Days") }}</option>
         </select>
       </div>
     </header>
@@ -323,7 +340,7 @@ function formatDateTime(iso?: string): string {
       <div v-if="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">
-            Users
+            {{ $t("admin.users") }}
           </p>
           <p class="text-2xl font-semibold tabular-nums">
             {{ stats.totals.userCount }}
@@ -331,7 +348,7 @@ function formatDateTime(iso?: string): string {
         </div>
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">
-            Epics
+            {{ $t("admin.epics") }}
           </p>
           <p class="text-2xl font-semibold tabular-nums">
             {{ stats.totals.epicCount }}
@@ -339,7 +356,7 @@ function formatDateTime(iso?: string): string {
         </div>
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">
-            Tasks
+            {{ $t("admin.tasks") }}
           </p>
           <p class="text-2xl font-semibold tabular-nums">
             {{ stats.totals.taskCount }}
@@ -347,7 +364,7 @@ function formatDateTime(iso?: string): string {
         </div>
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">
-            Hours logged
+            {{ $t("admin.hoursLogged") }}
           </p>
           <p class="text-2xl font-semibold tabular-nums">
             {{ formatHours(stats.totals.hoursLogged) }}
@@ -360,7 +377,7 @@ function formatDateTime(iso?: string): string {
           class="lg:col-span-2 bg-white border border-slate-200 rounded-xl p-4"
         >
           <h2 class="text-sm font-semibold text-slate-800 mb-2">
-            Hours logged per day
+            {{ $t("admin.hoursLoggedPerDay") }}
           </h2>
           <div class="h-56">
             <canvas ref="hoursChart"></canvas>
@@ -368,7 +385,7 @@ function formatDateTime(iso?: string): string {
         </div>
         <div class="bg-white border border-slate-200 rounded-xl p-4">
           <h2 class="text-sm font-semibold text-slate-800 mb-2">
-            Task status mix
+            {{ $t("admin.taskStatusMix") }}
           </h2>
           <div class="h-56">
             <canvas ref="statusChart"></canvas>
@@ -378,7 +395,7 @@ function formatDateTime(iso?: string): string {
 
       <div class="bg-white border border-slate-200 rounded-xl p-4">
         <h2 class="text-sm font-semibold text-slate-800 mb-2">
-          Per-user activity
+          {{ $t("admin.perUserActivity") }}
         </h2>
         <div class="h-72">
           <canvas ref="usersChart"></canvas>
@@ -392,22 +409,22 @@ function formatDateTime(iso?: string): string {
         <table class="min-w-full text-sm">
           <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
             <tr>
-              <th class="text-left px-4 py-2 font-medium">User</th>
-              <th class="text-left px-4 py-2 font-medium">Role</th>
-              <th class="text-right px-4 py-2 font-medium">Epics</th>
-              <th class="text-right px-4 py-2 font-medium">Tasks</th>
-              <th class="text-right px-4 py-2 font-medium">Hours</th>
-              <th class="text-left px-4 py-2 font-medium">Last activity</th>
-              <th class="text-left px-4 py-2 font-medium">Last login</th>
-              <th class="text-right px-4 py-2 font-medium">Verified</th>
-              <th class="text-right px-4 py-2 font-medium">Actions</th>
+              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colUser") }}</th>
+              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colRole") }}</th>
+              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colEpics") }}</th>
+              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colTasks") }}</th>
+              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colHours") }}</th>
+              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colLastActivity") }}</th>
+              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colLastLogin") }}</th>
+              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colVerified") }}</th>
+              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colActions") }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
             <tr v-for="u in stats.users" :key="u.id">
               <td class="px-4 py-2.5">
                 <div class="font-medium text-slate-800">
-                  {{ u.name || "—" }}
+                  {{ u.name || $t("common.emDash") }}
                 </div>
                 <div class="text-xs text-slate-500">{{ u.email }}</div>
               </td>
@@ -449,8 +466,8 @@ function formatDateTime(iso?: string): string {
                   <span
                     v-if="u.role === UserRole.Superadmin"
                     class="text-[11px] text-slate-400"
-                    title="The superadmin's role can only be changed by re-running the bootstrap script"
-                  >—</span>
+                    :title="$t('admin.superadminLocked')"
+                  >{{ $t("common.emDash") }}</span>
                   <template v-else>
                     <button
                       v-if="u.role === UserRole.Normal"
@@ -459,7 +476,7 @@ function formatDateTime(iso?: string): string {
                       :disabled="roleBusy === u.id || removeBusy === u.id"
                       @click="setRole(u, UserRole.Admin)"
                     >
-                      Promote
+                      {{ $t("admin.promote") }}
                     </button>
                     <button
                       v-else
@@ -468,7 +485,7 @@ function formatDateTime(iso?: string): string {
                       :disabled="roleBusy === u.id || removeBusy === u.id"
                       @click="setRole(u, UserRole.Normal)"
                     >
-                      Demote
+                      {{ $t("admin.demote") }}
                     </button>
                   </template>
                   <button
@@ -478,7 +495,7 @@ function formatDateTime(iso?: string): string {
                     :disabled="roleBusy === u.id || removeBusy === u.id"
                     @click="removeUser(u)"
                   >
-                    Remove
+                    {{ $t("admin.remove") }}
                   </button>
                 </div>
               </td>
@@ -487,7 +504,7 @@ function formatDateTime(iso?: string): string {
         </table>
       </div>
 
-      <p v-if="loading" class="text-xs text-slate-500">Loading…</p>
+      <p v-if="loading" class="text-xs text-slate-500">{{ $t("admin.loading") }}</p>
     </div>
   </div>
 </template>

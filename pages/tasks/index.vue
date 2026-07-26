@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import {
   PRIORITY_BADGE,
-  PRIORITY_LABELS,
+  PRIORITY_I18N_KEYS,
   PRIORITY_RANK,
   TaskPriority,
   TaskStatus,
@@ -13,6 +13,7 @@ import {
 
 dayjs.extend(isoWeek);
 
+const { t } = useI18n();
 const { tasks, fetchAll, isLoading, error, findTask } = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
 const {
@@ -35,6 +36,12 @@ const editingTask = ref<Task | null>(null);
 const defaultStart = ref<string>("");
 const seeding = ref(false);
 const isNarrow = ref(false);
+
+const VIEW_I18N_KEYS: Record<CalendarView, string> = {
+  daily: "tasks.viewDaily",
+  weekly: "tasks.viewWeekly",
+  monthly: "tasks.viewMonthly",
+};
 
 function syncViewport() {
   if (!import.meta.client) return;
@@ -63,8 +70,8 @@ await useAsyncData("dashboard:initial", async () => {
 });
 
 useSeoMeta({
-  title: "Dashboard",
-  description: "Calendar, tasks, and up next.",
+  title: () => t("seo.dashboard"),
+  description: () => t("seo.dashboardDescription"),
 });
 
 // External "open this task" requests (notification toasts, command palette).
@@ -156,10 +163,10 @@ async function seedSamples() {
   seeding.value = true;
   try {
     await loadSamples();
-    pushToast("Sample data loaded — explore!", { tone: "success" });
+    pushToast(t("toasts.sampleDataLoadedExplore"), { tone: "success" });
   } catch (err) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to load samples",
+      err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
       { tone: "danger" }
     );
   } finally {
@@ -169,7 +176,7 @@ async function seedSamples() {
 
 function setView(next: CalendarView) {
   if (isNarrow.value && next !== "daily") {
-    pushToast("Weekly and monthly views work best on a larger screen.", {
+    pushToast(t("toasts.weeklyMonthlyDesktopOnly"), {
       tone: "info",
       duration: 2800,
     });
@@ -196,7 +203,7 @@ function onUpNextDragStart(e: DragEvent, task: Task) {
 
 const upcoming = computed<Task[]>(() => {
   return [...tasks.value]
-    .filter((t) => t.status !== TaskStatus.Done)
+    .filter((task) => task.status !== TaskStatus.Done)
     .sort((a, b) => {
       const pa = PRIORITY_RANK[a.priority ?? TaskPriority.Normal];
       const pb = PRIORITY_RANK[b.priority ?? TaskPriority.Normal];
@@ -210,9 +217,9 @@ const upcoming = computed<Task[]>(() => {
 
 const stats = computed(() => {
   const total = tasks.value.length;
-  const done = tasks.value.filter((t) => t.status === TaskStatus.Done).length;
+  const done = tasks.value.filter((task) => task.status === TaskStatus.Done).length;
   const inProgress = tasks.value.filter(
-    (t) => t.status === TaskStatus.InProgress
+    (task) => task.status === TaskStatus.InProgress
   ).length;
   return { total, done, inProgress };
 });
@@ -230,8 +237,14 @@ const isEmpty = computed(
       <div>
         <h1 class="text-xl font-semibold text-slate-900">{{ headerLabel }}</h1>
         <p class="text-xs text-slate-500 mt-0.5">
-          {{ stats.total }} total · {{ stats.inProgress }} in progress ·
-          {{ stats.done }} done · {{ epics.length }} epics
+          {{
+            $t("tasks.statsLine", {
+              total: stats.total,
+              inProgress: stats.inProgress,
+              done: stats.done,
+              epics: epics.length,
+            })
+          }}
         </p>
       </div>
 
@@ -249,19 +262,19 @@ const isEmpty = computed(
             :disabled="isNarrow && opt !== 'daily'"
             :title="
               isNarrow && opt !== 'daily'
-                ? 'Available on larger screens'
+                ? $t('tasks.availableOnLargerScreens')
                 : undefined
             "
             @click="setView(opt)"
           >
-            {{ opt }}
+            {{ $t(VIEW_I18N_KEYS[opt]) }}
           </button>
         </div>
 
         <div class="inline-flex items-center gap-1 ml-1">
           <button
             class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600"
-            aria-label="Previous"
+            :aria-label="$t('tasks.previous')"
             @click="step(-1)"
           >
             <svg
@@ -279,11 +292,11 @@ const isEmpty = computed(
             class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100"
             @click="jumpToday"
           >
-            Today
+            {{ $t("tasks.today") }}
           </button>
           <button
             class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600"
-            aria-label="Next"
+            :aria-label="$t('tasks.next')"
             @click="step(1)"
           >
             <svg
@@ -313,7 +326,7 @@ const isEmpty = computed(
           >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
-          Quick capture
+          {{ $t("tasks.quickCapture") }}
           <kbd class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono">n</kbd>
         </button>
       </div>
@@ -332,12 +345,12 @@ const isEmpty = computed(
       class="flex-1 flex items-center justify-center p-6"
     >
       <EmptyState
-        title="Plan your first focused day"
-        description="Capture a task or load a small sample so every view has something to render."
+        :title="$t('empty.planFirstDay')"
+        :description="$t('empty.planFirstDayDesc')"
         illustration="calendar"
-        primary-label="Quick capture"
+        :primary-label="$t('empty.quickCapture')"
         primary-shortcut="n"
-        secondary-label="Load sample data"
+        :secondary-label="$t('empty.loadSampleData')"
         :secondary-loading="seeding"
         @primary="quickCaptureOpen = true"
         @secondary="seedSamples"
@@ -377,68 +390,80 @@ const isEmpty = computed(
         class="border-t lg:border-t-0 lg:border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin max-h-[40vh] lg:max-h-none"
       >
         <div class="p-4 border-b border-slate-100">
-          <h2 class="text-sm font-semibold text-slate-800">Up next</h2>
+          <h2 class="text-sm font-semibold text-slate-800">{{ $t("tasks.upNext") }}</h2>
           <p class="text-[11px] text-slate-500">
-            <span class="hidden lg:inline">Drag onto the day to schedule · </span>
-            Open tasks · priority then next block
+            <span class="lg:hidden">{{ $t("tasks.upNextHint") }}</span>
+            <span class="hidden lg:inline">{{ $t("tasks.upNextHintDesktop") }}</span>
           </p>
         </div>
         <SkeletonList v-if="isLoading" variant="row" :rows="3" />
         <ul v-else class="divide-y divide-slate-100">
           <li
-            v-for="t in upcoming"
-            :key="t.id"
+            v-for="task in upcoming"
+            :key="task.id"
             class="p-4 hover:bg-slate-50 cursor-grab active:cursor-grabbing"
             draggable="true"
-            @dragstart="onUpNextDragStart($event, t)"
-            @click="openEdit(t)"
+            @dragstart="onUpNextDragStart($event, task)"
+            @click="openEdit(task)"
           >
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex items-center gap-2">
                 <span
                   class="w-2 h-2 rounded-full shrink-0"
-                  :class="colorOfTask(t).solid"
-                  :title="findEpic(t.epicId)?.title ?? 'Standalone'"
+                  :class="colorOfTask(task).solid"
+                  :title="findEpic(task.epicId)?.title ?? $t('tasks.standalone')"
                 />
                 <p class="text-sm font-medium text-slate-900 truncate">
-                  {{ t.title }}
+                  {{ task.title }}
                 </p>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
-                <TaskTimerButton :task="t" />
-                <StatusPill :task="t" />
+                <TaskTimerButton :task="task" />
+                <StatusPill :task="task" />
               </div>
             </div>
             <p
-              v-if="findEpic(t.epicId)"
+              v-if="findEpic(task.epicId)"
               class="mt-0.5 text-[11px] text-slate-500 truncate ml-4"
             >
-              {{ findEpic(t.epicId)?.title }}
+              {{ findEpic(task.epicId)?.title }}
             </p>
             <div class="mt-1 ml-4 flex items-center gap-2 text-[11px] text-slate-500 tabular-nums flex-wrap">
               <span
-                v-if="t.priority !== undefined && t.priority !== TaskPriority.Normal"
+                v-if="task.priority !== undefined && task.priority !== TaskPriority.Normal"
                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
-                :class="PRIORITY_BADGE[t.priority]"
+                :class="PRIORITY_BADGE[task.priority]"
               >
-                {{ PRIORITY_LABELS[t.priority] }}
+                {{ $t(PRIORITY_I18N_KEYS[task.priority]) }}
               </span>
-              <span v-if="t.timeBlocks?.[0]">
-                Next
-                {{ dayjs(t.timeBlocks[0].start).format("MMM D") }}
-                {{ formatTime(dayjs(t.timeBlocks[0].start)) }}
+              <span v-if="task.timeBlocks?.[0]">
+                {{
+                  $t("tasks.nextBlock", {
+                    date: dayjs(task.timeBlocks[0].start).format("MMM D"),
+                    time: formatTime(dayjs(task.timeBlocks[0].start)),
+                  })
+                }}
               </span>
-              <span v-else-if="t.dueDate">
-                Due {{ dayjs(t.dueDate).format("MMM D") }}
+              <span v-else-if="task.dueDate">
+                {{ $t("tasks.due", { date: dayjs(task.dueDate).format("MMM D") }) }}
               </span>
-              <span v-if="t.estimatedHours !== undefined">
-                · {{ (t.spentHours ?? 0) }}h /
-                {{ t.estimatedHours }}h
+              <span v-if="task.estimatedHours !== undefined">
+                {{
+                  $t("tasks.hoursRatio", {
+                    spent: task.spentHours ?? 0,
+                    estimated: task.estimatedHours,
+                  })
+                }}
               </span>
               <span
-                v-if="t.checklist && t.checklist.length"
+                v-if="task.checklist && task.checklist.length"
                 class="inline-flex items-center gap-0.5"
-                :title="`${t.checklist.filter((c) => c.done).length} of ${t.checklist.length} checklist items done`"
+                :title="
+                  $t('tasks.checklistTitle', {
+                    done: task.checklist.filter((c) => c.done).length,
+                    total: task.checklist.length,
+                  })
+                "
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -450,17 +475,17 @@ const isEmpty = computed(
                 >
                   <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                {{ t.checklist.filter((c) => c.done).length }}/{{ t.checklist.length }}
+                {{ task.checklist.filter((c) => c.done).length }}/{{ task.checklist.length }}
               </span>
             </div>
             <div
-              v-if="t.progress !== undefined"
+              v-if="task.progress !== undefined"
               class="mt-2 ml-4 h-1 rounded-full bg-slate-100 overflow-hidden"
             >
               <div
                 class="h-full"
-                :class="colorOfTask(t).solid"
-                :style="{ width: t.progress + '%' }"
+                :class="colorOfTask(task).solid"
+                :style="{ width: task.progress + '%' }"
               />
             </div>
           </li>
@@ -468,7 +493,7 @@ const isEmpty = computed(
             v-if="upcoming.length === 0"
             class="p-6 text-center text-xs text-slate-400 italic"
           >
-            All clear — nothing scheduled.
+            {{ $t("tasks.allClear") }}
           </li>
         </ul>
       </aside>

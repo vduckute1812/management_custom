@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ROLE_LABELS } from "~/types/task";
+import { ROLE_I18N_KEYS } from "~/types/task";
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
+const { t } = useI18n();
 
 const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
@@ -14,7 +15,7 @@ const userInitial = computed(() => {
 });
 
 const displayName = computed(
-  () => auth.user.value?.name || auth.user.value?.email || "Account"
+  () => auth.user.value?.name || auth.user.value?.email || t("nav.account")
 );
 
 function isMainActive(to: string) {
@@ -87,13 +88,13 @@ watch(
           M
         </div>
         <span class="hidden text-sm font-semibold text-slate-900 sm:inline">
-          Management
+          {{ $t("nav.brand") }}
         </span>
       </NuxtLink>
 
       <nav
         class="flex min-w-0 flex-1 items-center gap-0.5 sm:gap-1"
-        aria-label="Primary"
+        :aria-label="$t('nav.primaryAria')"
       >
         <NuxtLink
           to="/"
@@ -104,7 +105,7 @@ watch(
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           "
         >
-          Home
+          {{ $t("nav.home") }}
         </NuxtLink>
         <NuxtLink
           to="/feed"
@@ -115,7 +116,7 @@ watch(
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           "
         >
-          Feed
+          {{ $t("nav.feed") }}
         </NuxtLink>
         <NuxtLink
           to="/tasks"
@@ -126,8 +127,8 @@ watch(
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           "
         >
-          <span class="sm:hidden">Time</span>
-          <span class="hidden sm:inline">Time Management</span>
+          <span class="sm:hidden">{{ $t("nav.timeShort") }}</span>
+          <span class="hidden sm:inline">{{ $t("nav.timeManagement") }}</span>
         </NuxtLink>
       </nav>
 
@@ -141,7 +142,7 @@ watch(
           class="flex max-w-[12rem] items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 sm:max-w-xs"
           :aria-expanded="menuOpen"
           aria-haspopup="menu"
-          aria-label="Account menu"
+          :aria-label="$t('nav.accountMenuAria')"
           @click="toggleMenu"
         >
           <span
@@ -155,7 +156,7 @@ watch(
               {{ displayName }}
             </span>
             <span class="block text-[10px] uppercase tracking-wider text-slate-400">
-              {{ ROLE_LABELS[auth.user.value.role] ?? "Member" }}
+              {{ t(ROLE_I18N_KEYS[auth.user.value.role] ?? "roles.normal") }}
             </span>
           </span>
           <svg
@@ -184,7 +185,7 @@ watch(
             class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             @click="closeMenu"
           >
-            Profile
+            {{ $t("nav.profile") }}
           </NuxtLink>
           <NuxtLink
             to="/settings"
@@ -192,15 +193,18 @@ watch(
             class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
             @click="closeMenu"
           >
-            Settings
+            {{ $t("nav.settings") }}
           </NuxtLink>
+          <div class="border-t border-slate-100 px-3 py-2" role="none">
+            <LanguageSwitcher variant="select" id="header-language" />
+          </div>
           <button
             type="button"
             role="menuitem"
             class="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
             @click="onLogout"
           >
-            Logout
+            {{ $t("nav.logout") }}
           </button>
         </div>
       </div>
@@ -210,13 +214,13 @@ watch(
           to="/login"
           class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 sm:text-sm"
         >
-          Login
+          {{ $t("nav.login") }}
         </NuxtLink>
         <NuxtLink
           to="/signup"
           class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 sm:text-sm"
         >
-          Register
+          {{ $t("nav.register") }}
         </NuxtLink>
       </div>
     </div>

@@ -3,7 +3,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import {
   STATUS_BORDER,
   STATUS_DOTS,
-  STATUS_LABELS,
+  STATUS_I18N_KEYS,
   type Task,
   type TimeBlock,
 } from "~/types/task";
@@ -19,11 +19,21 @@ const emit = defineEmits<{
   (e: "scheduled", task: Task): void;
 }>();
 
+const { t } = useI18n();
 const { colorOfTask } = useEpics();
 const { saveTask, findTask } = useTasks();
 const { pushToast } = useToasts();
 const { settings, formatTime, formatHourLabel } = useSettings();
 const { now } = useNow();
+
+function weekdayShort(d: Dayjs): string {
+  const sunIndex = d.day(); // 0 = Sun
+  if (settings.value.weekStart === "mon") {
+    const monIndex = sunIndex === 0 ? 6 : sunIndex - 1;
+    return t(`calendar.weekdayMon${monIndex}`);
+  }
+  return t(`calendar.weekdaySun${sunIndex}`);
+}
 
 const TASK_DND_MIME = "application/x-mgmt-task-id";
 
@@ -200,7 +210,7 @@ async function onSlotDrop(e: DragEvent, hour: number) {
 async function scheduleTaskAtHour(taskId: string, hour: number) {
   const task = findTask(taskId);
   if (!task) {
-    pushToast("Couldn't find that task", { tone: "danger" });
+    pushToast(t("toasts.couldNotFindTask"), { tone: "danger" });
     return;
   }
   const start = props.date.hour(hour).minute(0).second(0).millisecond(0);
@@ -226,14 +236,20 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
 
   try {
     const saved = await saveTask({ ...task, timeBlocks: blocks });
-    pushToast(`Scheduled on ${start.format("ddd")} ${formatTime(start)}`, {
-      tone: "success",
-      duration: 2500,
-    });
+    pushToast(
+      t("toasts.scheduledOn", {
+        day: weekdayShort(start),
+        time: formatTime(start),
+      }),
+      {
+        tone: "success",
+        duration: 2500,
+      }
+    );
     emit("scheduled", saved);
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to schedule",
+      err instanceof Error ? err.message : t("toasts.failedToSchedule"),
       { tone: "danger" }
     );
   }
@@ -384,7 +400,7 @@ async function onPointerUp() {
     await saveTask({ ...task, timeBlocks: updatedBlocks });
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to reschedule",
+      err instanceof Error ? err.message : t("toasts.failedToReschedule"),
       { tone: "danger" }
     );
   } finally {
@@ -440,7 +456,7 @@ onBeforeUnmount(() => {
       class="px-4 py-3 border-b border-slate-200 bg-amber-50/40"
     >
       <p class="text-xs font-medium text-slate-600 mb-2">
-        Due today (no scheduled block)
+        {{ $t("calendar.dueToday") }}
       </p>
       <div class="flex flex-wrap gap-2">
         <button
@@ -475,7 +491,9 @@ onBeforeUnmount(() => {
             :key="`slot-${h}`"
             role="button"
             tabindex="0"
-            :aria-label="`Create or drop a task at ${formatHourLabel(h)}`"
+            :aria-label="
+              $t('calendar.createOrDropAt', { hour: formatHourLabel(h) })
+            "
             class="border-b border-slate-100 hover:bg-brand-50/30 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
             :class="dropHour === h ? 'bg-brand-50/60 ring-1 ring-inset ring-brand-300' : ''"
             :style="{ height: HOUR_HEIGHT + 'px' }"
@@ -526,8 +544,8 @@ onBeforeUnmount(() => {
             :style="blockStyle(entry)"
             :title="
               entry.block.projected
-                ? `${entry.task.title} · recurring (projection)`
-                : `${entry.task.title} · ${STATUS_LABELS[entry.task.status]} · click to log spent`
+                ? entry.task.title
+                : `${entry.task.title} · ${$t(STATUS_I18N_KEYS[entry.task.status])}`
             "
             @pointerdown="onPointerDown($event, entry, 'move')"
             @click="onBlockClick($event, entry)"
@@ -573,7 +591,7 @@ onBeforeUnmount(() => {
                   v-if="entry.block.projected"
                   class="ml-1 italic opacity-80"
                 >
-                  · recurring
+                  · {{ $t("calendar.recurring") }}
                 </span>
                 <span
                   v-else-if="typeof entry.block.spentHours === 'number'"

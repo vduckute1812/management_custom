@@ -23,15 +23,15 @@ function labelOf(name: string | null, email: string) {
 </script>
 
 <template>
-  <section aria-label="Stories" class="space-y-2">
+  <section :aria-label="$t('feed.stories.sectionAria')" class="space-y-2">
     <div class="flex items-center justify-between px-0.5">
-      <h2 class="text-sm font-semibold text-slate-800">Stories</h2>
+      <h2 class="text-sm font-semibold text-slate-800">{{ $t("feed.stories.title") }}</h2>
       <button
         type="button"
         class="text-xs font-medium text-brand-700 hover:underline"
         @click="emit('create')"
       >
-        Add yours
+        {{ $t("feed.stories.addYours") }}
       </button>
     </div>
 
@@ -67,7 +67,7 @@ function labelOf(name: string | null, email: string) {
           +
         </span>
         <span class="text-[10px] text-slate-500 truncate w-full text-center">
-          You
+          {{ $t("feed.stories.you") }}
         </span>
       </button>
 

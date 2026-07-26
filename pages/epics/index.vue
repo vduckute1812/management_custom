@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Epic } from "~/types/task";
 
+const { t } = useI18n();
 const { epics, fetchAll, isLoading, error } = useEpics();
 const { fetchAll: fetchTasks } = useTasks();
 const { pushToast } = useToasts();
@@ -13,6 +14,11 @@ const seeding = ref(false);
 await useAsyncData("epics:initial", async () => {
   await Promise.all([fetchAll(), fetchTasks()]);
   return { ok: true };
+});
+
+useSeoMeta({
+  title: () => t("seo.epics"),
+  description: () => t("seo.epicsDescription"),
 });
 
 usePageShortcuts([
@@ -43,10 +49,10 @@ async function seedSamples() {
   seeding.value = true;
   try {
     await loadSamples();
-    pushToast("Sample data loaded", { tone: "success" });
+    pushToast(t("toasts.sampleDataLoaded"), { tone: "success" });
   } catch (err) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to load samples",
+      err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
       { tone: "danger" }
     );
   } finally {
@@ -61,9 +67,9 @@ async function seedSamples() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Epics</h1>
+        <h1 class="text-xl font-semibold text-slate-900">{{ $t("epics.title") }}</h1>
         <p class="text-xs text-slate-500 mt-0.5">
-          High-level containers that aggregate hours from their child tasks
+          {{ $t("epics.subtitle") }}
         </p>
       </div>
       <button
@@ -80,7 +86,7 @@ async function seedSamples() {
         >
           <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
-        New epic
+        {{ $t("epics.newEpic") }}
         <kbd class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono">e</kbd>
       </button>
     </header>
@@ -100,12 +106,12 @@ async function seedSamples() {
         class="h-full flex items-center justify-center"
       >
         <EmptyState
-          title="Group related work under an Epic"
-          description="An Epic stores no hours itself — totals roll up from child tasks. Try a sample or create one now."
+          :title="$t('empty.groupUnderEpic')"
+          :description="$t('empty.groupUnderEpicDesc')"
           illustration="layers"
-          primary-label="Create epic"
+          :primary-label="$t('empty.createEpic')"
           primary-shortcut="e"
-          secondary-label="Load sample data"
+          :secondary-label="$t('empty.loadSampleData')"
           :secondary-loading="seeding"
           @primary="openCreate"
           @secondary="seedSamples"

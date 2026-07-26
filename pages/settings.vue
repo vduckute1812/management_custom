@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Component } from "vue";
 
+const { t } = useI18n();
 const { settings, update, effectiveTheme } = useSettings();
 const { exportJSON, exportCSV, exportEpicsCSV, exportICS } = useExport();
 const { fetchAll: fetchTasks, tasks } = useTasks();
@@ -15,6 +16,11 @@ const {
   sendTest,
   canFire: canFireNotifications,
 } = useNotifications();
+
+useSeoMeta({
+  title: computed(() => t("seo.settings")),
+  description: computed(() => t("seo.settingsDescription")),
+});
 
 async function onLogout() {
   await auth.logout();
@@ -32,32 +38,32 @@ async function toggleNotifications() {
 
   // In-app toasts always work — flipping the switch is enough. Then
   // opportunistically ask for OS-notification permission as an upgrade.
-  pushToast("Pre-task alerts on", { tone: "success", duration: 1800 });
+  pushToast(t("toasts.preTaskAlertsOn"), { tone: "success", duration: 1800 });
   const result = await requestPermission();
   if (result === "denied") {
-    pushToast(
-      "Browser blocked desktop notifications — you'll still see in-app alerts.",
-      { tone: "info", duration: 4500 }
-    );
+    pushToast(t("toasts.browserBlockedDesktop"), {
+      tone: "info",
+      duration: 4500,
+    });
   } else if (result === "unsupported") {
-    pushToast(
-      "Desktop notifications aren't supported in this browser — in-app alerts will fire instead.",
-      { tone: "info", duration: 4500 }
-    );
+    pushToast(t("toasts.desktopUnsupported"), {
+      tone: "info",
+      duration: 4500,
+    });
   }
 }
 
 async function requestDesktopPermission() {
   const result = await requestPermission();
   if (result === "granted") {
-    pushToast("Desktop notifications enabled", { tone: "success", duration: 1800 });
+    pushToast(t("toasts.desktopEnabled"), { tone: "success", duration: 1800 });
   } else if (result === "denied") {
-    pushToast(
-      "Permission denied — re-allow in your browser's site settings.",
-      { tone: "danger", duration: 4500 }
-    );
+    pushToast(t("toasts.permissionDenied"), {
+      tone: "danger",
+      duration: 4500,
+    });
   } else if (result === "unsupported") {
-    pushToast("This browser doesn't support desktop notifications.", {
+    pushToast(t("toasts.browserNoDesktop"), {
       tone: "danger",
       duration: 3500,
     });
@@ -78,13 +84,13 @@ function onTestNotification() {
 const notifStatusLabel = computed(() => {
   switch (notifPermission.value) {
     case "granted":
-      return "Granted — desktop pop-ups will fire too";
+      return t("settings.notifications.statusGranted");
     case "denied":
-      return "Denied — in-app toasts still fire; re-allow in site settings for desktop pop-ups";
+      return t("settings.notifications.statusDenied");
     case "unsupported":
-      return "Desktop pop-ups unsupported in this browser — in-app toasts still fire";
+      return t("settings.notifications.statusUnsupported");
     default:
-      return "Not requested yet — in-app toasts will fire; tap below to enable desktop pop-ups too";
+      return t("settings.notifications.statusDefault");
   }
 });
 
@@ -93,6 +99,16 @@ const canRequestDesktop = computed(
     notifPermission.value === "default" &&
     settings.value.notificationsEnabled
 );
+
+const dataCountsLabel = computed(() => {
+  const epicCount = epics.value.length;
+  const taskCount = tasks.value.length;
+  const key =
+    epicCount === 1 && taskCount === 1
+      ? "settings.data.counts"
+      : "settings.data.countsPlural";
+  return t(key, { epicCount, taskCount });
+});
 
 // Inline SVG icons for the theme picker.
 const SunIcon: Component = () =>
@@ -155,11 +171,11 @@ const SystemIcon: Component = () =>
     ]
   );
 
-const themeOptions = [
-  { value: "system" as const, label: "System", icon: SystemIcon },
-  { value: "light" as const, label: "Light", icon: SunIcon },
-  { value: "dark" as const, label: "Dark", icon: MoonIcon },
-];
+const themeOptions = computed(() => [
+  { value: "system" as const, label: t("settings.appearance.system"), icon: SystemIcon },
+  { value: "light" as const, label: t("settings.appearance.light"), icon: SunIcon },
+  { value: "dark" as const, label: t("settings.appearance.dark"), icon: MoonIcon },
+]);
 
 // Make sure the export has fresh data even if the user came here cold.
 await useAsyncData("settings:hydrate", async () => {
@@ -173,22 +189,22 @@ function announce(message: string) {
 
 function doExportJSON() {
   exportJSON();
-  announce("Downloaded JSON");
+  announce(t("toasts.downloadedJson"));
 }
 
 function doExportCSV() {
   exportCSV();
-  announce("Downloaded tasks CSV");
+  announce(t("toasts.downloadedTasksCsv"));
 }
 
 function doExportEpics() {
   exportEpicsCSV();
-  announce("Downloaded epics CSV");
+  announce(t("toasts.downloadedEpicsCsv"));
 }
 
 function doExportICS() {
   exportICS();
-  announce("Downloaded iCal feed");
+  announce(t("toasts.downloadedIcal"));
 }
 </script>
 
@@ -198,9 +214,9 @@ function doExportICS() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">Settings</h1>
+        <h1 class="text-xl font-semibold text-slate-900">{{ $t("settings.title") }}</h1>
         <p class="text-xs text-slate-500 mt-0.5">
-          Preferences are saved on this device only.
+          {{ $t("settings.subtitle") }}
         </p>
       </div>
     </header>
@@ -212,9 +228,9 @@ function doExportICS() {
           class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm"
         >
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Account</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.account.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              Signed-in session for this browser.
+              {{ $t("settings.account.subtitle") }}
             </p>
           </header>
           <div class="px-5 py-4 flex items-center gap-3">
@@ -240,24 +256,45 @@ function doExportICS() {
               class="text-xs font-medium text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50"
               @click="onLogout"
             >
-              Sign out
+              {{ $t("settings.account.signOut") }}
             </button>
+          </div>
+        </section>
+
+        <!-- Language -->
+        <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
+          <header class="px-5 py-3 border-b border-slate-100">
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.language.title") }}
+            </h2>
+            <p class="text-[11px] text-slate-500">
+              {{ $t("settings.language.subtitle") }}
+            </p>
+          </header>
+          <div class="px-5 py-4">
+            <p
+              id="settings-language-label"
+              class="text-sm font-medium text-slate-800 mb-2"
+            >
+              {{ $t("settings.language.label") }}
+            </p>
+            <LanguageSwitcher variant="buttons" id="settings-language-label" />
           </div>
         </section>
 
         <!-- Appearance -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Appearance</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.appearance.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              Light, dark, or follow your operating system.
+              {{ $t("settings.appearance.subtitle") }}
             </p>
           </header>
           <div class="px-5 py-4">
             <div
               class="grid grid-cols-3 gap-2"
               role="radiogroup"
-              aria-label="Theme"
+              :aria-label="$t('settings.appearance.themeAria')"
             >
               <button
                 v-for="opt in themeOptions"
@@ -278,19 +315,18 @@ function doExportICS() {
               </button>
             </div>
             <p class="mt-3 text-[11px] text-slate-500">
-              Currently painted: <strong>{{ effectiveTheme }}</strong>
+              {{ $t("settings.appearance.currentlyPainted", { theme: effectiveTheme }) }}
               <template v-if="settings.theme === 'system'">
-                · following your OS preference
+                {{ $t("settings.appearance.followingOs") }}
               </template>
             </p>
 
             <div class="mt-5 pt-4 border-t border-slate-100">
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-sm font-medium text-slate-800">Density</p>
+                  <p class="text-sm font-medium text-slate-800">{{ $t("settings.appearance.density") }}</p>
                   <p class="text-[11px] text-slate-500">
-                    Compact shrinks padding by ~25% so more fits per screen.
-                    Font sizes stay the same.
+                    {{ $t("settings.appearance.densityHint") }}
                   </p>
                 </div>
                 <div
@@ -300,7 +336,7 @@ function doExportICS() {
                     v-for="opt in (['comfortable', 'compact'] as const)"
                     :key="opt"
                     type="button"
-                    class="px-3 py-1.5 text-xs font-medium capitalize transition"
+                    class="px-3 py-1.5 text-xs font-medium transition"
                     :class="
                       settings.density === opt
                         ? 'bg-brand-600 text-white'
@@ -308,7 +344,11 @@ function doExportICS() {
                     "
                     @click="update('density', opt)"
                   >
-                    {{ opt }}
+                    {{
+                      opt === "comfortable"
+                        ? $t("settings.appearance.comfortable")
+                        : $t("settings.appearance.compact")
+                    }}
                   </button>
                 </div>
               </div>
@@ -319,18 +359,18 @@ function doExportICS() {
         <!-- Calendar preferences -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Calendar</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.calendar.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              Used by the weekly and monthly views.
+              {{ $t("settings.calendar.subtitle") }}
             </p>
           </header>
 
           <div class="px-5 py-4 space-y-5">
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm font-medium text-slate-800">Week starts on</p>
+                <p class="text-sm font-medium text-slate-800">{{ $t("settings.calendar.weekStartsOn") }}</p>
                 <p class="text-[11px] text-slate-500">
-                  Shifts column order on the weekly grid and the first row of the monthly grid.
+                  {{ $t("settings.calendar.weekStartsHint") }}
                 </p>
               </div>
               <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0">
@@ -338,7 +378,7 @@ function doExportICS() {
                   v-for="opt in (['sun', 'mon'] as const)"
                   :key="opt"
                   type="button"
-                  class="px-3 py-1.5 text-xs font-medium capitalize transition"
+                  class="px-3 py-1.5 text-xs font-medium transition"
                   :class="
                     settings.weekStart === opt
                       ? 'bg-brand-600 text-white'
@@ -346,16 +386,20 @@ function doExportICS() {
                   "
                   @click="update('weekStart', opt)"
                 >
-                  {{ opt === "sun" ? "Sunday" : "Monday" }}
+                  {{
+                    opt === "sun"
+                      ? $t("settings.calendar.sunday")
+                      : $t("settings.calendar.monday")
+                  }}
                 </button>
               </div>
             </div>
 
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm font-medium text-slate-800">Time format</p>
+                <p class="text-sm font-medium text-slate-800">{{ $t("settings.calendar.timeFormat") }}</p>
                 <p class="text-[11px] text-slate-500">
-                  Affects time labels in calendars and the "Up next" sidebar.
+                  {{ $t("settings.calendar.timeFormatHint") }}
                 </p>
               </div>
               <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0">
@@ -371,7 +415,11 @@ function doExportICS() {
                   "
                   @click="update('timeFormat', opt)"
                 >
-                  {{ opt === "24h" ? "24-hour" : "12-hour" }}
+                  {{
+                    opt === "24h"
+                      ? $t("settings.calendar.format24h")
+                      : $t("settings.calendar.format12h")
+                  }}
                 </button>
               </div>
             </div>
@@ -381,12 +429,17 @@ function doExportICS() {
         <!-- Notifications -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Pre-task alerts</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.notifications.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              In-app toasts always work. Granting browser permission adds
-              desktop pop-ups too — both fire <strong>{{ settings.notificationLeadMinutes }}
-              {{ settings.notificationLeadMinutes === 1 ? "minute" : "minutes" }}</strong>
-              before each scheduled block. Local-only — nothing leaves your machine.
+              {{
+                $t("settings.notifications.subtitle", {
+                  count: settings.notificationLeadMinutes,
+                  unit:
+                    settings.notificationLeadMinutes === 1
+                      ? $t("settings.notifications.minute")
+                      : $t("settings.notifications.minutes"),
+                })
+              }}
             </p>
           </header>
 
@@ -394,10 +447,14 @@ function doExportICS() {
             <div class="flex items-center justify-between gap-4">
               <div class="min-w-0">
                 <p class="text-sm font-medium text-slate-800">
-                  Notify me before scheduled blocks
+                  {{ $t("settings.notifications.toggleLabel") }}
                 </p>
                 <p class="text-[11px] text-slate-500">
-                  Desktop pop-ups: <strong>{{ notifStatusLabel }}</strong>
+                  {{
+                    $t("settings.notifications.desktopPopups", {
+                      status: notifStatusLabel,
+                    })
+                  }}
                 </p>
               </div>
               <button
@@ -436,7 +493,7 @@ function doExportICS() {
                   for="notif-lead"
                   class="block text-xs font-medium text-slate-600 mb-1"
                 >
-                  Lead time (minutes)
+                  {{ $t("settings.notifications.leadTime") }}
                 </label>
                 <input
                   id="notif-lead"
@@ -449,8 +506,7 @@ function doExportICS() {
                   @input="updateLeadMinutes(Number(($event.target as HTMLInputElement).value))"
                 />
                 <p class="mt-1 text-[11px] text-slate-500">
-                  Fire this many minutes before each block. Defaults to 5;
-                  set 0 to alert at the start instead.
+                  {{ $t("settings.notifications.leadHint") }}
                 </p>
               </div>
               <div class="flex items-end gap-2 flex-wrap">
@@ -459,7 +515,11 @@ function doExportICS() {
                   class="px-3 py-2 rounded-lg text-xs font-medium bg-white ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50 transition"
                   @click="onTestNotification"
                 >
-                  Send test {{ canFireNotifications() ? "notification" : "toast" }}
+                  {{
+                    canFireNotifications()
+                      ? $t("settings.notifications.sendTestNotification")
+                      : $t("settings.notifications.sendTestToast")
+                  }}
                 </button>
                 <button
                   v-if="canRequestDesktop"
@@ -467,7 +527,7 @@ function doExportICS() {
                   class="px-3 py-2 rounded-lg text-xs font-medium bg-brand-600 hover:bg-brand-700 text-white transition"
                   @click="requestDesktopPermission"
                 >
-                  Enable desktop pop-ups
+                  {{ $t("settings.notifications.enableDesktop") }}
                 </button>
               </div>
             </div>
@@ -478,9 +538,7 @@ function doExportICS() {
               "
               class="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2 leading-relaxed"
             >
-              Your browser is blocking desktop pop-ups for this site. In-app
-              toasts will keep firing — re-allow notifications in your site
-              permissions if you want OS-level pop-ups too.
+              {{ $t("settings.notifications.deniedBanner") }}
             </div>
           </div>
         </section>
@@ -488,10 +546,9 @@ function doExportICS() {
         <!-- Data ownership -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Your data</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.data.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              {{ epics.length }} epic{{ epics.length === 1 ? "" : "s" }} ·
-              {{ tasks.length }} task{{ tasks.length === 1 ? "" : "s" }}
+              {{ dataCountsLabel }}
             </p>
           </header>
 
@@ -512,7 +569,7 @@ function doExportICS() {
                 >
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                JSON snapshot
+                {{ $t("settings.data.jsonSnapshot") }}
               </button>
               <button
                 type="button"
@@ -529,7 +586,7 @@ function doExportICS() {
                 >
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                Tasks CSV
+                {{ $t("settings.data.tasksCsv") }}
               </button>
               <button
                 type="button"
@@ -546,7 +603,7 @@ function doExportICS() {
                 >
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-                Epics CSV
+                {{ $t("settings.data.epicsCsv") }}
               </button>
               <button
                 type="button"
@@ -566,36 +623,19 @@ function doExportICS() {
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                Calendar (.ics)
+                {{ $t("settings.data.calendarIcs") }}
               </button>
             </div>
 
             <details class="text-xs">
               <summary class="cursor-pointer text-slate-600 hover:text-slate-800 select-none">
-                Export format reference
+                {{ $t("settings.data.formatReference") }}
               </summary>
               <ul class="mt-2 pl-5 list-disc text-slate-500 space-y-1">
-                <li>
-                  <strong>JSON</strong> mirrors the API shape, including derived
-                  fields (<code>spentHours</code>,
-                  <code>estimatedHours</code>, <code>progress</code>).
-                </li>
-                <li>
-                  <strong>Tasks CSV</strong> is one row per <em>time block</em> —
-                  tasks with multiple sessions get multiple rows. Tags are
-                  pipe-separated.
-                </li>
-                <li>
-                  <strong>Epics CSV</strong> is one row per epic with rolled-up
-                  totals.
-                </li>
-                <li>
-                  <strong>Calendar (.ics)</strong> emits one
-                  <code>VEVENT</code> per scheduled time block and one
-                  <code>VTODO</code> per task with a due date — drop the file
-                  into Apple Calendar, Google Calendar, or Outlook for a
-                  read-only mirror.
-                </li>
+                <li>{{ $t("settings.data.formatJson") }}</li>
+                <li>{{ $t("settings.data.formatTasksCsv") }}</li>
+                <li>{{ $t("settings.data.formatEpicsCsv") }}</li>
+                <li>{{ $t("settings.data.formatIcs") }}</li>
               </ul>
             </details>
           </div>
@@ -604,21 +644,17 @@ function doExportICS() {
         <!-- Print -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">Print</h2>
+            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.print.title") }}</h2>
             <p class="text-[11px] text-slate-500">
-              The dashboard has a print stylesheet for a clean weekly agenda.
+              {{ $t("settings.print.subtitle") }}
             </p>
           </header>
           <div class="px-5 py-4 text-xs text-slate-600 leading-relaxed">
-            Open the
-            <NuxtLink to="/tasks" class="text-brand-700 hover:underline">
-              dashboard
-            </NuxtLink>
-            in weekly view, then press
-            <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono">⌘</kbd>
-            <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1">P</kbd>
-            to preview the agenda. Sidebar, navigation, and color-coded
-            backgrounds are stripped automatically.
+            {{ $t("settings.print.body") }}
+            <NuxtLink
+              to="/tasks"
+              class="ml-1 text-brand-700 hover:underline"
+            >{{ $t("settings.print.dashboardLink") }}</NuxtLink>
           </div>
         </section>
       </div>

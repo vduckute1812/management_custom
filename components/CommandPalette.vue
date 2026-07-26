@@ -14,6 +14,7 @@ interface PaletteItem {
   run: () => void | Promise<void>;
 }
 
+const { t } = useI18n();
 const { paletteOpen, quickCaptureOpen, requestFocusTask } = useUiOverlays();
 const { epics } = useEpics();
 const { tasks } = useTasks();
@@ -37,8 +38,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:home",
       kind: "view",
-      title: "Go to Home",
-      subtitle: "Time management or Feed",
+      title: t("commandPalette.goHome"),
+      subtitle: t("commandPalette.goHomeSub"),
       icon: "bolt",
       shortcut: "g h",
       run: () => {
@@ -48,8 +49,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:dashboard",
       kind: "view",
-      title: "Go to Time Management",
-      subtitle: "Calendar, tasks, and schedules",
+      title: t("commandPalette.goTime"),
+      subtitle: t("commandPalette.goTimeSub"),
       icon: "calendar",
       shortcut: "g d",
       run: () => {
@@ -59,8 +60,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:epics",
       kind: "view",
-      title: "Go to Epics",
-      subtitle: "Project groupings",
+      title: t("commandPalette.goEpics"),
+      subtitle: t("commandPalette.goEpicsSub"),
       icon: "layers",
       shortcut: "g e",
       run: () => {
@@ -70,8 +71,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:analytics",
       kind: "view",
-      title: "Go to Analytics",
-      subtitle: "Velocity, completion, variance",
+      title: t("commandPalette.goAnalytics"),
+      subtitle: t("commandPalette.goAnalyticsSub"),
       icon: "chart",
       shortcut: "g a",
       run: () => {
@@ -81,8 +82,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:feed",
       kind: "view",
-      title: "Go to Feed",
-      subtitle: "Share posts, stories, and reactions",
+      title: t("commandPalette.goFeed"),
+      subtitle: t("commandPalette.goFeedSub"),
       icon: "bolt",
       shortcut: "g f",
       run: () => {
@@ -92,8 +93,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "view:profile",
       kind: "view",
-      title: "Go to Profile",
-      subtitle: "Account details",
+      title: t("commandPalette.goProfile"),
+      subtitle: t("commandPalette.goProfileSub"),
       icon: "bolt",
       run: () => {
         router.push("/profile");
@@ -102,8 +103,8 @@ const allItems = computed<PaletteItem[]>(() => {
     {
       id: "action:quick-capture",
       kind: "action",
-      title: "Quick capture task",
-      subtitle: "Single-line input",
+      title: t("commandPalette.quickCapture"),
+      subtitle: t("commandPalette.quickCaptureSub"),
       icon: "bolt",
       shortcut: "n",
       run: () => {
@@ -116,7 +117,7 @@ const allItems = computed<PaletteItem[]>(() => {
   for (const epic of epics.value as Epic[]) {
     const extras = [
       epic.description,
-      (epic.tags ?? []).map((t) => `#${t}`).join(" "),
+      (epic.tags ?? []).map((tag) => `#${tag}`).join(" "),
     ]
       .filter(Boolean)
       .join(" ");
@@ -124,7 +125,11 @@ const allItems = computed<PaletteItem[]>(() => {
       id: `epic:${epic.id}`,
       kind: "epic",
       title: epic.title,
-      subtitle: `Epic · ${epic.taskCount ?? 0} tasks · ${epic.spentHours ?? 0}h / ${epic.estimatedHours ?? 0}h`,
+      subtitle: t("commandPalette.epicSubtitle", {
+        taskCount: epic.taskCount ?? 0,
+        spent: epic.spentHours ?? 0,
+        estimated: epic.estimatedHours ?? 0,
+      }),
       searchExtra: extras || undefined,
       icon: "dot",
       accentClass: epicColorOf(epic.color).solid,
@@ -140,7 +145,7 @@ const allItems = computed<PaletteItem[]>(() => {
       : undefined;
     const extras = [
       task.notes,
-      (task.tags ?? []).map((t) => `#${t}`).join(" "),
+      (task.tags ?? []).map((tag) => `#${tag}`).join(" "),
       parent?.title,
     ]
       .filter(Boolean)
@@ -149,7 +154,9 @@ const allItems = computed<PaletteItem[]>(() => {
       id: `task:${task.id}`,
       kind: "task",
       title: task.title,
-      subtitle: `Task${parent ? ` · ${parent.title}` : ""}`,
+      subtitle: parent
+        ? t("commandPalette.taskSubtitleWithEpic", { epic: parent.title })
+        : t("commandPalette.taskSubtitle"),
       searchExtra: extras || undefined,
       accentClass: STATUS_DOTS[task.status],
       icon: "dot",
@@ -219,7 +226,7 @@ function onBackdrop(e: MouseEvent) {
         class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm pt-24 px-4"
         role="dialog"
         aria-modal="true"
-        aria-label="Command palette"
+        :aria-label="$t('commandPalette.aria')"
         @mousedown="onBackdrop"
       >
         <div
@@ -243,9 +250,9 @@ function onBackdrop(e: MouseEvent) {
               ref="inputEl"
               v-model="query"
               type="text"
-              placeholder="Jump to an epic, task, or view…"
+              :placeholder="$t('commandPalette.placeholder')"
               class="flex-1 text-sm outline-none bg-transparent"
-              aria-label="Command palette search"
+              :aria-label="$t('commandPalette.searchAria')"
               @keydown="onKey"
             />
             <kbd class="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-mono">
@@ -256,13 +263,13 @@ function onBackdrop(e: MouseEvent) {
           <ul
             class="max-h-80 overflow-y-auto scrollbar-thin"
             role="listbox"
-            aria-label="Command palette results"
+            :aria-label="$t('commandPalette.resultsAria')"
           >
             <li
               v-if="filtered.length === 0"
               class="px-4 py-6 text-sm text-slate-400 italic text-center"
             >
-              No matches.
+              {{ $t("commandPalette.noMatches") }}
             </li>
             <li
               v-for="(item, idx) in filtered"
@@ -350,14 +357,14 @@ function onBackdrop(e: MouseEvent) {
           <div class="px-3 py-2 border-t border-slate-100 flex items-center gap-3 text-[11px] text-slate-400">
             <span>
               <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono">↑↓</kbd>
-              navigate
+              {{ $t("commandPalette.navigate") }}
             </span>
             <span>
               <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono">↵</kbd>
-              open
+              {{ $t("commandPalette.open") }}
             </span>
             <span class="ml-auto">
-              {{ filtered.length }} of {{ allItems.length }}
+              {{ $t("commandPalette.countOf", { filtered: filtered.length, total: allItems.length }) }}
             </span>
           </div>
         </div>

@@ -3,7 +3,7 @@ import dayjs, { type Dayjs } from "dayjs";
 import {
   STATUS_BORDER,
   STATUS_DOTS,
-  STATUS_LABELS,
+  STATUS_I18N_KEYS,
   type Task,
   type TimeBlock,
 } from "~/types/task";
@@ -18,10 +18,11 @@ const emit = defineEmits<{
   (e: "create-at", date: string): void;
 }>();
 
+const { t } = useI18n();
 const { colorOfTask } = useEpics();
 const { saveTask, findTask } = useTasks();
 const { pushToast } = useToasts();
-const { startOfWeek, formatTime } = useSettings();
+const { settings, startOfWeek, formatTime } = useSettings();
 const { now } = useNow();
 const nowLabel = computed(() => formatTime(now.value));
 
@@ -29,6 +30,14 @@ const days = computed(() => {
   const start = startOfWeek(props.date);
   return Array.from({ length: 7 }, (_, i) => start.add(i, "day"));
 });
+
+function weekdayLabel(index: number): string {
+  const prefix =
+    settings.value.weekStart === "mon"
+      ? "calendar.weekdayMon"
+      : "calendar.weekdaySun";
+  return t(`${prefix}${index}`);
+}
 
 interface DayEntry {
   key: string;
@@ -160,13 +169,18 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
 
   try {
     await saveTask({ ...task, timeBlocks: updatedBlocks });
-    pushToast(`Moved to ${day.format("ddd D MMM")}`, {
+    const dayIndex = days.value.findIndex((d) => d.isSame(day, "day"));
+    const dayLabel =
+      dayIndex >= 0
+        ? `${weekdayLabel(dayIndex)} ${day.format("D MMM")}`
+        : day.format("D MMM");
+    pushToast(t("toasts.movedToDay", { day: dayLabel }), {
       tone: "success",
       duration: 2200,
     });
   } catch (err: unknown) {
     pushToast(
-      err instanceof Error ? err.message : "Failed to move block",
+      err instanceof Error ? err.message : t("toasts.failedToMoveBlock"),
       { tone: "danger" }
     );
   }
@@ -176,7 +190,7 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
 <template>
   <div class="grid grid-cols-7 gap-2 p-4 h-full overflow-y-auto scrollbar-thin">
     <div
-      v-for="day in days"
+      v-for="(day, dayIndex) in days"
       :key="day.toString()"
       class="bg-white rounded-xl ring-1 flex flex-col min-h-[400px] transition"
       :class="
@@ -194,11 +208,11 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
       >
         <div>
           <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
-            <span>{{ day.format("ddd") }}</span>
+            <span>{{ weekdayLabel(dayIndex) }}</span>
             <span
               v-if="day.isSame(now, 'day')"
               class="inline-flex items-center px-1 py-px rounded text-[9px] font-semibold tabular-nums bg-rose-600 text-white tracking-normal"
-              :title="`Current time · ${nowLabel}`"
+              :title="$t('calendar.currentTime', { time: nowLabel })"
             >
               {{ nowLabel }}
             </span>
@@ -216,7 +230,11 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
         </div>
         <button
           class="text-slate-400 hover:text-brand-600 transition"
-          :aria-label="`Add task on ${day.format('ddd D')}`"
+          :aria-label="
+            $t('calendar.addTaskOn', {
+              day: `${weekdayLabel(dayIndex)} ${day.format('D')}`,
+            })
+          "
           @click="emit('create-at', day.hour(9).toISOString())"
         >
           <svg
@@ -254,8 +272,8 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
           :draggable="!!entry.block && !entry.block.projected"
           :title="
             entry.block?.projected
-              ? `${entry.task.title} · recurring (projection)`
-              : `${entry.task.title} · ${STATUS_LABELS[entry.task.status]}`
+              ? entry.task.title
+              : `${entry.task.title} · ${$t(STATUS_I18N_KEYS[entry.task.status])}`
           "
           @dragstart="onDragStart($event, entry)"
           @dragend="onDragEnd"
@@ -288,7 +306,7 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
                 v-if="entry.block.projected"
                 class="ml-1 italic opacity-80"
               >
-                · recurring
+                · {{ $t("calendar.recurring") }}
               </span>
               <span
                 v-else-if="typeof entry.block.spentHours === 'number'"
@@ -297,14 +315,14 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
                 · {{ entry.block.spentHours }}h
               </span>
             </template>
-            <template v-else>Due today</template>
+            <template v-else>{{ $t("calendar.dueToday") }}</template>
           </div>
         </button>
         <p
           v-if="entriesForDay(day).length === 0"
           class="text-[11px] text-slate-400 italic px-1 pt-2"
         >
-          No tasks
+          {{ $t("tasks.allClear") }}
         </p>
       </div>
     </div>

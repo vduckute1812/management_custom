@@ -36,7 +36,7 @@ const TONE_CLASSES: Record<ToastTone, string> = {
         <button
           type="button"
           class="text-white/70 hover:text-white"
-          aria-label="Dismiss"
+          :aria-label="$t('common.dismiss')"
           @click="dismiss(toast.id)"
         >
           <svg

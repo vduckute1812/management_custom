@@ -31,6 +31,7 @@ const emit = defineEmits<{
   ): void;
 }>();
 
+const { t } = useI18n();
 const { uploadFile } = useUploads();
 const { results, loading: searching, searchDebounced } = useUserDirectory();
 
@@ -137,28 +138,28 @@ function focus() {
 
 defineExpose({ clear, focus });
 
-const visibilityLabel: Record<PostVisibility, string> = {
-  public: "Public",
-  private: "Only me",
-  shared: "Specific people",
-};
+const visibilityLabel = computed<Record<PostVisibility, string>>(() => ({
+  public: t("feed.composer.public"),
+  private: t("feed.composer.onlyMe"),
+  shared: t("feed.composer.specificPeople"),
+}));
 
-const fontLabels: Record<PostFontFamily, string> = {
-  default: "Default font",
-  serif: "Serif",
-  mono: "Monospace",
-  georgia: "Georgia",
-  comic: "Comic",
-};
+const fontLabels = computed<Record<PostFontFamily, string>>(() => ({
+  default: t("feed.composer.fontDefault"),
+  serif: t("feed.composer.fontSerif"),
+  mono: t("feed.composer.fontMono"),
+  georgia: t("feed.composer.fontGeorgia"),
+  comic: t("feed.composer.fontComic"),
+}));
 
-const colorLabels: Record<PostTextColor, string> = {
-  default: "Default color",
-  slate: "Slate",
-  brand: "Blue",
-  rose: "Rose",
-  emerald: "Green",
-  amber: "Amber",
-};
+const colorLabels = computed<Record<PostTextColor, string>>(() => ({
+  default: t("feed.composer.colorDefault"),
+  slate: t("feed.composer.colorSlate"),
+  brand: t("feed.composer.colorBlue"),
+  rose: t("feed.composer.colorRose"),
+  emerald: t("feed.composer.colorGreen"),
+  amber: t("feed.composer.colorAmber"),
+}));
 </script>
 
 <template>
@@ -166,7 +167,7 @@ const colorLabels: Record<PostTextColor, string> = {
     class="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
     @submit.prevent="onSubmit"
   >
-    <label class="sr-only" for="post-composer">Write a post</label>
+    <label class="sr-only" for="post-composer">{{ $t("feed.composer.writeAPost") }}</label>
     <textarea
       id="post-composer"
       ref="textareaEl"
@@ -174,9 +175,7 @@ const colorLabels: Record<PostTextColor, string> = {
       rows="3"
       maxlength="5000"
       class="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-300"
-      :placeholder="
-        placeholder || 'Write a post… Use $E=mc^2$ or $$…$$ for LaTeX'
-      "
+      :placeholder="placeholder || $t('feed.composer.placeholder')"
       :disabled="submitting"
       :style="{
         fontFamily:
@@ -209,13 +208,13 @@ const colorLabels: Record<PostTextColor, string> = {
     />
 
     <div class="flex flex-wrap items-center gap-2">
-      <label class="sr-only" for="post-category">Category</label>
+      <label class="sr-only" for="post-category">{{ $t("feed.composer.category") }}</label>
       <select
         id="post-category"
         v-model="categoryId"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
       >
-        <option value="">No category</option>
+        <option value="">{{ $t("feed.composer.noCategory") }}</option>
         <option
           v-for="cat in categories || []"
           :key="cat.id"
@@ -225,7 +224,7 @@ const colorLabels: Record<PostTextColor, string> = {
         </option>
       </select>
 
-      <label class="sr-only" for="post-font">Font</label>
+      <label class="sr-only" for="post-font">{{ $t("feed.composer.font") }}</label>
       <select
         id="post-font"
         v-model="fontFamily"
@@ -240,7 +239,7 @@ const colorLabels: Record<PostTextColor, string> = {
         </option>
       </select>
 
-      <label class="sr-only" for="post-color">Text color</label>
+      <label class="sr-only" for="post-color">{{ $t("feed.composer.textColor") }}</label>
       <select
         id="post-color"
         v-model="textColor"
@@ -258,18 +257,18 @@ const colorLabels: Record<PostTextColor, string> = {
       <button
         type="button"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-        title="Insert inline LaTeX"
+        :title="$t('feed.composer.insertInlineLatex')"
         @click="insertLatex(false)"
       >
-        $ LaTeX
+        {{ $t("feed.composer.latexInline") }}
       </button>
       <button
         type="button"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-        title="Insert block LaTeX"
+        :title="$t('feed.composer.insertBlockLatex')"
         @click="insertLatex(true)"
       >
-        $$ LaTeX
+        {{ $t("feed.composer.latexBlock") }}
       </button>
     </div>
 
@@ -286,7 +285,7 @@ const colorLabels: Record<PostTextColor, string> = {
         <button
           type="button"
           class="text-slate-400 hover:text-rose-600"
-          :aria-label="`Remove ${att.fileName}`"
+          :aria-label="$t('feed.composer.removeAttachment', { name: att.fileName })"
           @click="removeAttachment(att.id)"
         >
           ×
@@ -296,7 +295,7 @@ const colorLabels: Record<PostTextColor, string> = {
 
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-wrap items-center gap-2">
-        <label class="sr-only" for="post-visibility">Visibility</label>
+        <label class="sr-only" for="post-visibility">{{ $t("feed.composer.visibility") }}</label>
         <select
           id="post-visibility"
           v-model="visibility"
@@ -317,7 +316,7 @@ const colorLabels: Record<PostTextColor, string> = {
           :disabled="uploading || attachments.length >= 10"
           @click="fileInput?.click()"
         >
-          {{ uploading ? "Uploading…" : "Attach" }}
+          {{ uploading ? $t("feed.composer.uploading") : $t("feed.composer.attach") }}
         </button>
         <input
           ref="fileInput"
@@ -334,13 +333,13 @@ const colorLabels: Record<PostTextColor, string> = {
         class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:pointer-events-none transition"
         :disabled="!canSubmit"
       >
-        {{ submitLabel || "Post" }}
+        {{ submitLabel || $t("feed.composer.post") }}
       </button>
     </div>
 
     <div v-if="visibility === 'shared'" class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3">
       <label class="block text-xs font-medium text-slate-600" for="audience-search">
-        Share with
+        {{ $t("feed.composer.shareWith") }}
       </label>
       <div v-if="audience.length" class="flex flex-wrap gap-1.5">
         <span
@@ -352,7 +351,7 @@ const colorLabels: Record<PostTextColor, string> = {
           <button
             type="button"
             class="text-brand-600 hover:text-rose-600"
-            :aria-label="`Remove ${u.name || u.email}`"
+            :aria-label="$t('feed.composer.removePerson', { name: u.name || u.email })"
             @click="removeAudience(u.id)"
           >
             ×
@@ -365,11 +364,11 @@ const colorLabels: Record<PostTextColor, string> = {
         type="search"
         autocomplete="off"
         class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-        placeholder="Search by name or email…"
+        :placeholder="$t('feed.composer.searchPeople')"
         aria-describedby="audience-hint"
       />
       <p id="audience-hint" class="sr-only">
-        Type to find people on this install to share with.
+        {{ $t("feed.composer.audienceHint") }}
       </p>
       <ul
         v-if="audienceQuery.trim() && (searching || results.length)"
@@ -377,7 +376,7 @@ const colorLabels: Record<PostTextColor, string> = {
         role="listbox"
       >
         <li v-if="searching" class="px-3 py-2 text-xs text-slate-400">
-          Searching…
+          {{ $t("feed.composer.searching") }}
         </li>
         <li
           v-for="u in results.filter((r) => !audience.some((a) => a.id === r.id))"
@@ -397,7 +396,7 @@ const colorLabels: Record<PostTextColor, string> = {
     </div>
 
     <p class="text-[11px] text-slate-400 tabular-nums">
-      {{ body.length }}/5000 · ⌘/Ctrl+Enter to post
+      {{ $t("feed.composer.charCount", { count: body.length }) }}
     </p>
   </form>
 </template>

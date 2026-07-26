@@ -1,8 +1,8 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import {
-  PRIORITY_LABELS,
-  STATUS_LABELS,
+  PRIORITY_I18N_KEYS,
+  STATUS_I18N_KEYS,
   TaskPriority,
   TaskStatus,
   type Epic,
@@ -37,11 +37,20 @@ function csvRow(values: unknown[]): string {
 }
 
 export const useExport = () => {
+  const { t } = useI18n();
   const { tasks } = useTasks();
   const { epics, findEpic } = useEpics();
 
   function timestamp(): string {
     return dayjs().format("YYYY-MM-DD-HHmm");
+  }
+
+  function statusLabel(status: TaskStatus): string {
+    return t(STATUS_I18N_KEYS[status] ?? "status.todo");
+  }
+
+  function priorityLabel(priority: TaskPriority): string {
+    return t(PRIORITY_I18N_KEYS[priority] ?? "common.priority.normal");
   }
 
   /** Snapshot the full DB as-served by the API (with computed fields). */
@@ -65,7 +74,7 @@ export const useExport = () => {
       "task_title",
       "epic_id",
       "epic_title",
-      "status",
+      t("export.status"),
       "priority",
       "due_date",
       "estimated_hours",
@@ -79,24 +88,24 @@ export const useExport = () => {
 
     const rows: string[] = [header.join(",")];
 
-    for (const t of tasks.value as Task[]) {
-      const epic = findEpic(t.epicId);
+    for (const task of tasks.value as Task[]) {
+      const epic = findEpic(task.epicId);
       // CSV is for humans — emit the labels rather than raw enum ints so a
       // spreadsheet open of the file is immediately readable.
       const base = [
-        t.id,
-        t.title,
-        t.epicId ?? "",
+        task.id,
+        task.title,
+        task.epicId ?? "",
         epic?.title ?? "",
-        STATUS_LABELS[t.status] ?? t.status,
-        PRIORITY_LABELS[t.priority ?? TaskPriority.Normal],
-        t.dueDate ?? "",
-        t.estimatedHours ?? "",
-        t.progress ?? "",
-        (t.tags ?? []).join("|"),
+        statusLabel(task.status),
+        priorityLabel(task.priority ?? TaskPriority.Normal),
+        task.dueDate ?? "",
+        task.estimatedHours ?? "",
+        task.progress ?? "",
+        (task.tags ?? []).join("|"),
       ];
 
-      const blocks = t.timeBlocks ?? [];
+      const blocks = task.timeBlocks ?? [];
       if (blocks.length === 0) {
         rows.push(csvRow([...base, "", "", "", ""]));
       } else {
@@ -161,22 +170,22 @@ export const useExport = () => {
       "METHOD:PUBLISH",
     ];
 
-    for (const t of tasks.value as Task[]) {
-      const epic = findEpic(t.epicId);
-      const summaryBase = `${epic ? `[${epic.title}] ` : ""}${t.title}`;
+    for (const task of tasks.value as Task[]) {
+      const epic = findEpic(task.epicId);
+      const summaryBase = `${epic ? `[${epic.title}] ` : ""}${task.title}`;
       const desc = [
-        t.notes,
-        (t.tags ?? []).length
-          ? `Tags: ${(t.tags ?? []).map((x) => `#${x}`).join(" ")}`
+        task.notes,
+        (task.tags ?? []).length
+          ? `Tags: ${(task.tags ?? []).map((x) => `#${x}`).join(" ")}`
           : "",
-        t.priority !== undefined && t.priority !== TaskPriority.Normal
-          ? `Priority: ${PRIORITY_LABELS[t.priority]}`
+        task.priority !== undefined && task.priority !== TaskPriority.Normal
+          ? `Priority: ${priorityLabel(task.priority)}`
           : "",
       ]
         .filter(Boolean)
         .join("\n");
 
-      for (const b of t.timeBlocks ?? []) {
+      for (const b of task.timeBlocks ?? []) {
         lines.push("BEGIN:VEVENT");
         lines.push(foldLine(`UID:${b.id}@management.local`));
         lines.push(`DTSTAMP:${stamp}`);
@@ -187,24 +196,24 @@ export const useExport = () => {
         lines.push("END:VEVENT");
       }
 
-      if (t.dueDate) {
+      if (task.dueDate) {
         lines.push("BEGIN:VTODO");
-        lines.push(foldLine(`UID:${t.id}@management.local`));
+        lines.push(foldLine(`UID:${task.id}@management.local`));
         lines.push(`DTSTAMP:${stamp}`);
-        lines.push(`DUE;VALUE=DATE:${icsDateOnly(t.dueDate)}`);
+        lines.push(`DUE;VALUE=DATE:${icsDateOnly(task.dueDate)}`);
         lines.push(foldLine(`SUMMARY:${icsEscape(summaryBase)}`));
         if (desc) lines.push(foldLine(`DESCRIPTION:${icsEscape(desc)}`));
         lines.push(
           `STATUS:${
-            t.status === TaskStatus.Done
+            task.status === TaskStatus.Done
               ? "COMPLETED"
-              : t.status === TaskStatus.InProgress
+              : task.status === TaskStatus.InProgress
               ? "IN-PROCESS"
               : "NEEDS-ACTION"
           }`
         );
-        if (typeof t.progress === "number") {
-          lines.push(`PERCENT-COMPLETE:${Math.round(t.progress)}`);
+        if (typeof task.progress === "number") {
+          lines.push(`PERCENT-COMPLETE:${Math.round(task.progress)}`);
         }
         lines.push("END:VTODO");
       }
@@ -223,7 +232,7 @@ export const useExport = () => {
     const header = [
       "epic_id",
       "title",
-      "status",
+      t("export.status"),
       "color",
       "due_date",
       "task_count",
@@ -238,7 +247,7 @@ export const useExport = () => {
         csvRow([
           e.id,
           e.title,
-          STATUS_LABELS[e.status] ?? e.status,
+          statusLabel(e.status),
           e.color ?? "brand",
           e.dueDate ?? "",
           e.taskCount ?? 0,

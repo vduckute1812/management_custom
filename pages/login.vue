@@ -7,6 +7,11 @@ definePageMeta({ layout: false });
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
+
+useSeoMeta({
+  title: computed(() => t("seo.login")),
+});
 
 const email = ref("");
 const password = ref("");
@@ -26,7 +31,7 @@ async function onSubmit() {
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
       (err as { statusMessage?: string }).statusMessage ??
-      "Login failed";
+      t("auth.loginFailed");
   } finally {
     busy.value = false;
   }
@@ -46,9 +51,9 @@ async function onSubmit() {
         </div>
         <div class="text-left">
           <p class="text-base font-semibold text-slate-900 leading-tight">
-            Management
+            {{ $t("nav.brand") }}
           </p>
-          <p class="text-xs text-slate-500">Sign in to continue</p>
+          <p class="text-xs text-slate-500">{{ $t("auth.signInTitle") }}</p>
         </div>
       </div>
 
@@ -60,7 +65,7 @@ async function onSubmit() {
           <label
             for="login-email"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >Email</label
+            >{{ $t("auth.email") }}</label
           >
           <input
             id="login-email"
@@ -75,7 +80,7 @@ async function onSubmit() {
           <label
             for="login-password"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >Password</label
+            >{{ $t("auth.password") }}</label
           >
           <input
             id="login-password"
@@ -99,14 +104,14 @@ async function onSubmit() {
           :disabled="busy"
           class="w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          {{ busy ? "Signing in…" : "Sign in" }}
+          {{ busy ? $t("auth.signingIn") : $t("auth.signIn") }}
         </button>
 
         <div class="flex items-center justify-between text-xs">
           <NuxtLink to="/signup" class="text-brand-600 hover:underline">
-            Create an account
+            {{ $t("auth.createAccountLink") }}
           </NuxtLink>
-          <span class="text-slate-400">Local install</span>
+          <span class="text-slate-400">{{ $t("auth.localInstall") }}</span>
         </div>
       </form>
     </div>
