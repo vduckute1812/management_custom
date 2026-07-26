@@ -10,10 +10,20 @@ import {
   type AuthUser,
 } from "~/types/task";
 
+import type { PostCategory } from "~/types/post";
+
 const { t, locale } = useI18n();
 const { apiFetch } = useApi();
 const { pushToast } = useToasts();
 const { user: currentUser, isSuperAdmin } = useAuth();
+const {
+  categories,
+  loading: categoriesLoading,
+  refresh: refreshCategories,
+  createCategory,
+  updateCategory,
+  removeCategory,
+} = useCategories();
 
 interface StatsResponse {
   rangeDays: number;
@@ -38,13 +48,17 @@ useSeoMeta({
   description: () => t("seo.adminDescription"),
 });
 
-const { data: stats, pending: loading, refresh } = await useAsyncData(
+const {
+  data: stats,
+  pending: loading,
+  refresh,
+} = await useAsyncData(
   "admin:stats",
   async () => {
     error.value = null;
     try {
       return await apiFetch<StatsResponse>(
-        `/api/admin/stats?days=${days.value}`
+        `/api/admin/stats?days=${days.value}`,
       );
     } catch (err: unknown) {
       error.value =
@@ -55,7 +69,7 @@ const { data: stats, pending: loading, refresh } = await useAsyncData(
       return null;
     }
   },
-  { watch: [days] }
+  { watch: [days] },
 );
 
 function roleChipClass(role: UserRole): string {
@@ -70,18 +84,18 @@ function roleLabel(role: UserRole): string {
 
 async function setRole(
   user: AdminUserSummary,
-  role: typeof UserRole.Admin | typeof UserRole.Normal
+  role: typeof UserRole.Admin | typeof UserRole.Normal,
 ) {
   if (user.role === role) return;
   roleBusy.value = user.id;
   try {
     const { user: updated } = await apiFetch<{ ok: true; user: AuthUser }>(
       `/api/admin/users/${user.id}/role`,
-      { method: "POST", body: { role } }
+      { method: "POST", body: { role } },
     );
     if (stats.value) {
       stats.value.users = stats.value.users.map((u) =>
-        u.id === updated.id ? { ...u, role: updated.role } : u
+        u.id === updated.id ? { ...u, role: updated.role } : u,
       );
     }
     pushToast(t("toasts.roleSetTo", { role: roleLabel(role) }), {
@@ -93,7 +107,7 @@ async function setRole(
         ?.data?.statusMessage ??
         (err as { statusMessage?: string }).statusMessage ??
         t("admin.failedToUpdateRole"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     roleBusy.value = null;
@@ -101,11 +115,7 @@ async function setRole(
 }
 
 async function removeUser(user: AdminUserSummary) {
-  if (
-    !confirm(
-      t("admin.deleteConfirm", { name: user.name || user.email })
-    )
-  ) {
+  if (!confirm(t("admin.deleteConfirm", { name: user.name || user.email }))) {
     return;
   }
   removeBusy.value = user.id;
@@ -119,7 +129,7 @@ async function removeUser(user: AdminUserSummary) {
         ?.data?.statusMessage ??
         (err as { statusMessage?: string }).statusMessage ??
         t("admin.failedToRemoveUser"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     removeBusy.value = null;
@@ -132,6 +142,81 @@ function canRemoveUser(user: AdminUserSummary): boolean {
     user.role !== UserRole.Superadmin &&
     user.id !== currentUser.value?.id
   );
+}
+
+// ---- article directories (post categories) ----
+
+const newCategoryName = ref("");
+const categoryBusy = ref<string | null>(null);
+
+onMounted(() => {
+  refreshCategories().catch(() => undefined);
+});
+
+function apiErrorMessage(err: unknown, fallback: string): string {
+  return (
+    (err as { data?: { statusMessage?: string }; statusMessage?: string })?.data
+      ?.statusMessage ??
+    (err as { statusMessage?: string }).statusMessage ??
+    fallback
+  );
+}
+
+async function onAddCategory() {
+  const name = newCategoryName.value.trim();
+  if (!name || categoryBusy.value) return;
+  categoryBusy.value = "new";
+  try {
+    await createCategory({ name });
+    newCategoryName.value = "";
+    pushToast(t("admin.categoryCreated"), { tone: "success" });
+  } catch (err: unknown) {
+    pushToast(apiErrorMessage(err, t("admin.categorySaveFailed")), {
+      tone: "danger",
+    });
+  } finally {
+    categoryBusy.value = null;
+  }
+}
+
+async function onRenameCategory(cat: PostCategory) {
+  const name = prompt(t("admin.categoryRenamePrompt"), cat.name)?.trim();
+  if (!name || name === cat.name) return;
+  categoryBusy.value = cat.id;
+  try {
+    await updateCategory(cat.id, { name });
+    pushToast(t("admin.categoryRenamed"), { tone: "success" });
+  } catch (err: unknown) {
+    pushToast(apiErrorMessage(err, t("admin.categorySaveFailed")), {
+      tone: "danger",
+    });
+  } finally {
+    categoryBusy.value = null;
+  }
+}
+
+async function onDeleteCategory(cat: PostCategory) {
+  if (
+    !confirm(
+      t("admin.categoryDeleteConfirm", {
+        name: cat.name,
+        count: cat.postCount ?? 0,
+      }),
+    )
+  ) {
+    return;
+  }
+  categoryBusy.value = cat.id;
+  try {
+    await removeCategory(cat.id);
+    pushToast(t("admin.categoryDeleted"), { tone: "success" });
+  } catch (err: unknown) {
+    pushToast(apiErrorMessage(err, t("admin.categorySaveFailed")), {
+      tone: "danger",
+    });
+  } finally {
+    categoryBusy.value = null;
+  }
 }
 
 // ---- charts ----
@@ -158,7 +243,7 @@ async function ensureChartLib() {
     mod.LinearScale,
     mod.Tooltip,
     mod.Legend,
-    mod.Filler
+    mod.Filler,
   );
   ChartCtor = mod.Chart;
   return ChartCtor;
@@ -202,7 +287,7 @@ async function renderCharts() {
     type: "doughnut",
     data: {
       labels: stats.value.statuses.map((s) =>
-        t(STATUS_I18N_KEYS[s.status] ?? "status.todo")
+        t(STATUS_I18N_KEYS[s.status] ?? "status.todo"),
       ),
       datasets: [
         {
@@ -261,7 +346,7 @@ watch(
   () => {
     void renderCharts();
   },
-  { flush: "post" }
+  { flush: "post" },
 );
 
 onBeforeUnmount(() => {
@@ -309,13 +394,17 @@ function formatDateTime(iso?: string): string {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
     >
       <div>
-        <h1 class="text-lg font-semibold text-slate-900">{{ $t("admin.title") }}</h1>
+        <h1 class="text-lg font-semibold text-slate-900">
+          {{ $t("admin.title") }}
+        </h1>
         <p class="text-xs text-slate-500">
           {{ $t("admin.subtitle") }}
         </p>
       </div>
       <div class="flex items-center gap-2">
-        <label class="text-xs text-slate-500" for="admin-range">{{ $t("admin.range") }}</label>
+        <label class="text-xs text-slate-500" for="admin-range">{{
+          $t("admin.range")
+        }}</label>
         <select
           id="admin-range"
           v-model.number="days"
@@ -407,17 +496,37 @@ function formatDateTime(iso?: string): string {
         class="bg-white border border-slate-200 rounded-xl overflow-hidden"
       >
         <table class="min-w-full text-sm">
-          <thead class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+          <thead
+            class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500"
+          >
             <tr>
-              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colUser") }}</th>
-              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colRole") }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colEpics") }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colTasks") }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colHours") }}</th>
-              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colLastActivity") }}</th>
-              <th class="text-left px-4 py-2 font-medium">{{ $t("admin.colLastLogin") }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colVerified") }}</th>
-              <th class="text-right px-4 py-2 font-medium">{{ $t("admin.colActions") }}</th>
+              <th class="text-left px-4 py-2 font-medium">
+                {{ $t("admin.colUser") }}
+              </th>
+              <th class="text-left px-4 py-2 font-medium">
+                {{ $t("admin.colRole") }}
+              </th>
+              <th class="text-right px-4 py-2 font-medium">
+                {{ $t("admin.colEpics") }}
+              </th>
+              <th class="text-right px-4 py-2 font-medium">
+                {{ $t("admin.colTasks") }}
+              </th>
+              <th class="text-right px-4 py-2 font-medium">
+                {{ $t("admin.colHours") }}
+              </th>
+              <th class="text-left px-4 py-2 font-medium">
+                {{ $t("admin.colLastActivity") }}
+              </th>
+              <th class="text-left px-4 py-2 font-medium">
+                {{ $t("admin.colLastLogin") }}
+              </th>
+              <th class="text-right px-4 py-2 font-medium">
+                {{ $t("admin.colVerified") }}
+              </th>
+              <th class="text-right px-4 py-2 font-medium">
+                {{ $t("admin.colActions") }}
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -462,12 +571,15 @@ function formatDateTime(iso?: string): string {
                 ></span>
               </td>
               <td class="px-4 py-2.5 text-right">
-                <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">
+                <div
+                  class="inline-flex items-center justify-end gap-1.5 flex-wrap"
+                >
                   <span
                     v-if="u.role === UserRole.Superadmin"
                     class="text-[11px] text-slate-400"
                     :title="$t('admin.superadminLocked')"
-                  >{{ $t("common.emDash") }}</span>
+                    >{{ $t("common.emDash") }}</span
+                  >
                   <template v-else>
                     <button
                       v-if="u.role === UserRole.Normal"
@@ -504,7 +616,102 @@ function formatDateTime(iso?: string): string {
         </table>
       </div>
 
-      <p v-if="loading" class="text-xs text-slate-500">{{ $t("admin.loading") }}</p>
+      <div class="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+        <div>
+          <h2 class="text-sm font-semibold text-slate-800">
+            {{ $t("admin.categoriesTitle") }}
+          </h2>
+          <p class="text-xs text-slate-500">
+            {{ $t("admin.categoriesSubtitle") }}
+          </p>
+        </div>
+
+        <form class="flex gap-2" @submit.prevent="onAddCategory">
+          <label class="sr-only" for="new-category-name">
+            {{ $t("admin.categoryNameLabel") }}
+          </label>
+          <input
+            id="new-category-name"
+            v-model="newCategoryName"
+            type="text"
+            maxlength="120"
+            class="flex-1 max-w-xs rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+            :placeholder="$t('admin.categoryNamePlaceholder')"
+            :disabled="categoryBusy === 'new'"
+          />
+          <button
+            type="submit"
+            class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            :disabled="!newCategoryName.trim() || categoryBusy === 'new'"
+          >
+            {{ $t("admin.categoryAdd") }}
+          </button>
+        </form>
+
+        <div v-if="categoriesLoading && !categories.length" aria-busy="true">
+          <SkeletonList :rows="4" />
+        </div>
+        <table v-else class="min-w-full text-sm">
+          <thead
+            class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500"
+          >
+            <tr>
+              <th class="text-left px-3 py-2 font-medium">
+                {{ $t("admin.categoryColName") }}
+              </th>
+              <th class="text-left px-3 py-2 font-medium">
+                {{ $t("admin.categoryColSlug") }}
+              </th>
+              <th class="text-right px-3 py-2 font-medium">
+                {{ $t("admin.categoryColArticles") }}
+              </th>
+              <th class="text-right px-3 py-2 font-medium">
+                {{ $t("admin.colActions") }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="cat in categories" :key="cat.id">
+              <td class="px-3 py-2 font-medium text-slate-800">
+                {{ cat.name }}
+              </td>
+              <td class="px-3 py-2 text-xs text-slate-500">{{ cat.slug }}</td>
+              <td class="px-3 py-2 text-right tabular-nums">
+                {{ cat.postCount ?? 0 }}
+              </td>
+              <td class="px-3 py-2 text-right">
+                <div class="inline-flex items-center justify-end gap-1.5">
+                  <button
+                    type="button"
+                    class="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+                    :disabled="categoryBusy === cat.id"
+                    @click="onRenameCategory(cat)"
+                  >
+                    {{ $t("admin.categoryRename") }}
+                  </button>
+                  <button
+                    type="button"
+                    class="text-[11px] px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    :disabled="categoryBusy === cat.id"
+                    @click="onDeleteCategory(cat)"
+                  >
+                    {{ $t("admin.remove") }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="!categories.length">
+              <td colspan="4" class="px-3 py-3 text-xs italic text-slate-400">
+                {{ $t("admin.categoryEmpty") }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p v-if="loading" class="text-xs text-slate-500">
+        {{ $t("admin.loading") }}
+      </p>
     </div>
   </div>
 </template>

@@ -267,7 +267,15 @@
       "justNow": "剛剛",
       "minutesAgo": "{count} 分鐘",
       "hoursAgo": "{count} 小時",
-      "daysAgo": "{count} 天"
+      "daysAgo": "{count} 天",
+      "plan": "計劃",
+      "planTitle": "將此文章作為研究任務加入時間管理",
+      "planUntitled": "分享的文章",
+      "planTaskTitle": "研究：{title}",
+      "planTaskNotes": "作者 {author} · 發布於 {date}\n動態文章 ID：{id}",
+      "planTaskCreated": "已在時間管理中建立研究任務",
+      "planTaskOpen": "開啟",
+      "planTaskFailed": "無法建立任務"
     }
   },
   "tasks": {
@@ -575,7 +583,23 @@
     "failedToUpdateRole": "更新角色失敗",
     "failedToRemoveUser": "移除使用者失敗",
     "chartHoursLogged": "已記錄小時",
-    "chartTasks": "任務"
+    "chartTasks": "任務",
+    "categoriesTitle": "文章欄目",
+    "categoriesSubtitle": "建立和管理用於整理文章的欄目。刪除欄目後文章仍會保留，但將不再分類。",
+    "categoryNameLabel": "新欄目名稱",
+    "categoryNamePlaceholder": "例如：機器人",
+    "categoryAdd": "新增欄目",
+    "categoryColName": "名稱",
+    "categoryColSlug": "標識",
+    "categoryColArticles": "文章數",
+    "categoryRename": "重新命名",
+    "categoryRenamePrompt": "新欄目名稱：",
+    "categoryCreated": "欄目已建立",
+    "categoryRenamed": "欄目已重新命名",
+    "categoryDeleted": "欄目已刪除",
+    "categorySaveFailed": "無法儲存欄目",
+    "categoryDeleteConfirm": "刪除「{name}」？{count} 篇文章將保留在動態中，但不再分類。",
+    "categoryEmpty": "尚無欄目。"
   },
   "common": {
     "close": "關閉",
@@ -607,6 +631,17 @@
       "high": "高",
       "normal": "普通",
       "low": "低"
+    }
+  },
+  "uploads": {
+    "errors": {
+      "empty": "「{name}」是空檔案。",
+      "unsupportedType": "「{name}」不是允許的檔案類型。允許：{allowed}。",
+      "tooLarge": "「{name}」大小為 {size}。{type}檔案不得超過 {max}。",
+      "nameTooLong": "檔名不得超過 {max} 個字元。",
+      "contentMismatch": "「{name}」的內容不是有效的{type}。",
+      "tooMany": "每則貼文最多只能附加 {max} 個檔案。",
+      "imageOnly": "限時動態僅支援圖片。允許：{allowed}。"
     }
   },
   "toasts": {
@@ -801,7 +836,10 @@
     "brand": "Da Nang Tech R&D and Networking Portal",
     "welcome": "歡迎",
     "welcomeNamed": "歡迎，{name}",
-    "intro": "此工作區有兩個獨立模組。使用頁首在它們之間切換——各模組內部沒有交叉連結。",
+    "intro": "這個網站是我們與世界各地科技愛好者連結和分享的地方。",
+    "categoriesTitle": "主要欄目",
+    "categoriesBody": "文章按核心科技主題分類整理。選擇一個欄目即可在動態中瀏覽其文章。",
+    "articleCount": "尚無文章 | {count} 篇文章 | {count} 篇文章",
     "feedTitle": "動態",
     "feedBody": "分享帶分類、LaTeX 公式與樣式文字的貼文。瀏覽帶查看者與表情的限時動態。可見性可為公開、私人或限指定人員。",
     "timeTitle": "時間管理",

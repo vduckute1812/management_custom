@@ -1,4 +1,3 @@
-import { extname } from "node:path";
 import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
@@ -12,34 +11,8 @@ import {
   r2SignedGetUrl,
 } from "../utils/r2";
 
-export const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
-
-const IMAGE_MIMES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
-
-const DOC_MIMES = new Set([
-  "application/pdf",
-  "text/plain",
-  "text/markdown",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-]);
-
-const EXT_MIME: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".gif": "image/gif",
-  ".pdf": "application/pdf",
-  ".txt": "text/plain",
-  ".md": "text/markdown",
-  ".docx":
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-};
+// The allowlist and per-type size ceilings live in `~/utils/uploadPolicy`,
+// shared with the client so both sides enforce the same rules.
 
 interface UploadRow extends RowDataPacket {
   id: string;
@@ -50,21 +23,6 @@ interface UploadRow extends RowDataPacket {
   size_bytes: number;
   storage_key: string;
   created_at: string;
-}
-
-export function resolveMime(
-  fileName: string,
-  declaredMime: string | undefined
-): { mime: string; kind: AttachmentKind } | null {
-  const ext = extname(fileName).toLowerCase();
-  const fromExt = EXT_MIME[ext];
-  const mime = (declaredMime || fromExt || "").toLowerCase().split(";")[0].trim();
-  if (!mime) return null;
-  // Prefer extension when both present and disagree — client Content-Type is untrusted.
-  const canonical = fromExt || mime;
-  if (IMAGE_MIMES.has(canonical)) return { mime: canonical, kind: "image" };
-  if (DOC_MIMES.has(canonical)) return { mime: canonical, kind: "document" };
-  return null;
 }
 
 function toRecord(row: UploadRow): UploadRecord {
@@ -119,7 +77,7 @@ export async function createUpload(args: {
         args.sizeBytes,
         storageKey,
         isoToDB(now),
-      ]
+      ],
     );
   } catch (err) {
     await r2DeleteObject(storageKey).catch(() => undefined);
@@ -141,12 +99,14 @@ export async function getUploadById(id: string): Promise<UploadRow | null> {
   const [rows] = await pool.query<UploadRow[]>(
     `SELECT id, user_id, file_name, mime, kind, size_bytes, storage_key, created_at
      FROM uploads WHERE id = ? LIMIT 1`,
-    [id]
+    [id],
   );
   return rows[0] ?? null;
 }
 
-export async function getUploadRecord(id: string): Promise<UploadRecord | null> {
+export async function getUploadRecord(
+  id: string,
+): Promise<UploadRecord | null> {
   const row = await getUploadById(id);
   return row ? toRecord(row) : null;
 }
@@ -167,7 +127,7 @@ export async function signedUploadUrl(storageKey: string): Promise<string> {
  */
 export async function canViewerAccessUpload(
   viewerId: string | null,
-  uploadId: string
+  uploadId: string,
 ): Promise<boolean> {
   const row = await getUploadById(uploadId);
   if (!row) return false;
@@ -181,7 +141,7 @@ export async function canViewerAccessUpload(
        INNER JOIN posts p ON p.id = pa.post_id
        WHERE pa.upload_id = ? AND p.visibility = 'public'
        LIMIT 1`,
-      [uploadId]
+      [uploadId],
     );
     return publicRows.length > 0;
   }
@@ -203,7 +163,7 @@ export async function canViewerAccessUpload(
          )
        )
      LIMIT 1`,
-    [uploadId, viewerId, viewerId]
+    [uploadId, viewerId, viewerId],
   );
   if (postRows.length) return true;
 
@@ -212,14 +172,14 @@ export async function canViewerAccessUpload(
      WHERE s.upload_id = ?
        AND s.expires_at > UTC_TIMESTAMP(3)
      LIMIT 1`,
-    [uploadId]
+    [uploadId],
   );
   return storyRows.length > 0;
 }
 
 export async function assertOwnedUploads(
   userId: string,
-  uploadIds: string[]
+  uploadIds: string[],
 ): Promise<UploadRow[]> {
   if (!uploadIds.length) return [];
   const unique = [...new Set(uploadIds)];
@@ -229,7 +189,7 @@ export async function assertOwnedUploads(
     `SELECT id, user_id, file_name, mime, kind, size_bytes, storage_key, created_at
      FROM uploads
      WHERE id IN (${placeholders}) AND user_id = ?`,
-    [...unique, userId]
+    [...unique, userId],
   );
   if (rows.length !== unique.length) {
     throw Object.assign(new Error("One or more uploads are invalid"), {

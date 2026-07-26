@@ -64,16 +64,12 @@ function emptyReactions(): Record<PostReactionType, number> {
   };
 }
 
-function toAuthor(
-  id: string,
-  name: string | null,
-  email: string
-): PostAuthor {
+function toAuthor(id: string, name: string | null, email: string): PostAuthor {
   return { id, name, email };
 }
 
 async function loadStoryReactionMaps(
-  storyIds: string[]
+  storyIds: string[],
 ): Promise<Map<string, Record<PostReactionType, number>>> {
   const map = new Map<string, Record<PostReactionType, number>>();
   for (const id of storyIds) map.set(id, emptyReactions());
@@ -86,7 +82,7 @@ async function loadStoryReactionMaps(
      FROM story_reactions
      WHERE story_id IN (${placeholders})
      GROUP BY story_id, reaction`,
-    storyIds
+    storyIds,
   );
   for (const row of rows) {
     const bucket = map.get(row.story_id) ?? emptyReactions();
@@ -99,11 +95,11 @@ async function loadStoryReactionMaps(
 function rowToStory(
   row: StoryRow,
   viewerId: string,
-  reactions: Record<PostReactionType, number>
+  reactions: Record<PostReactionType, number>,
 ): Story {
   const reactionCount = POST_REACTION_TYPES.reduce(
     (sum, key) => sum + (reactions[key] ?? 0),
-    0
+    0,
   );
   const isOwner = row.user_id === viewerId;
   return {
@@ -143,7 +139,7 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
      INNER JOIN users u ON u.id = s.user_id
      WHERE s.expires_at > UTC_TIMESTAMP(3)
      ORDER BY s.created_at ASC`,
-    [viewerId, viewerId]
+    [viewerId, viewerId],
   );
 
   const reactionMaps = await loadStoryReactionMaps(rows.map((r) => r.id));
@@ -153,7 +149,7 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
     const story = rowToStory(
       row,
       viewerId,
-      reactionMaps.get(row.id) ?? emptyReactions()
+      reactionMaps.get(row.id) ?? emptyReactions(),
     );
     let group = byAuthor.get(story.author.id);
     if (!group) {
@@ -183,7 +179,7 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
 
 export async function createStory(
   userId: string,
-  args: { body?: string | null; uploadId?: string | null }
+  args: { body?: string | null; uploadId?: string | null },
 ): Promise<Story> {
   const body = args.body?.trim() || null;
   const uploadId = args.uploadId?.trim() || null;
@@ -193,15 +189,25 @@ export async function createStory(
     });
   }
   if (body && body.length > 500) {
-    throw Object.assign(new Error("Story text must be 500 characters or fewer"), {
-      statusCode: 400,
-    });
+    throw Object.assign(
+      new Error("Story text must be 500 characters or fewer"),
+      {
+        statusCode: 400,
+      },
+    );
   }
 
   let mime: string | null = null;
   let storageKey: string | null = null;
   if (uploadId) {
     const [up] = await assertOwnedUploads(userId, [uploadId]);
+    // Stories are rendered as media; a document here would surface as a
+    // broken <img>, so reject it rather than store an unviewable story.
+    if (up.kind !== "image") {
+      throw Object.assign(new Error("Story media must be an image"), {
+        statusCode: 400,
+      });
+    }
     mime = up.mime;
     storageKey = up.storage_key;
   }
@@ -224,7 +230,7 @@ export async function createStory(
       mime,
       isoToDB(now),
       isoToDB(expires),
-    ]
+    ],
   );
 
   const tray = await listStoriesTray(userId);
@@ -237,14 +243,14 @@ export async function createStory(
 
 export async function markStoryViewed(
   userId: string,
-  storyId: string
+  storyId: string,
 ): Promise<void> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id FROM stories
      WHERE id = ? AND expires_at > UTC_TIMESTAMP(3)
      LIMIT 1`,
-    [storyId]
+    [storyId],
   );
   if (!rows.length) {
     throw Object.assign(new Error("Story not found"), { statusCode: 404 });
@@ -253,32 +259,32 @@ export async function markStoryViewed(
     `INSERT INTO story_views (story_id, user_id, viewed_at)
      VALUES (?, ?, ?)
      ON DUPLICATE KEY UPDATE viewed_at = viewed_at`,
-    [storyId, userId, isoToDB(nowISO())]
+    [storyId, userId, isoToDB(nowISO())],
   );
 }
 
 export async function deleteStory(
   userId: string,
-  storyId: string
+  storyId: string,
 ): Promise<boolean> {
   const pool = getPool();
   const [result] = await pool.query(
     "DELETE FROM stories WHERE id = ? AND user_id = ?",
-    [storyId, userId]
+    [storyId, userId],
   );
   return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
 }
 
 async function assertOwnedStory(
   userId: string,
-  storyId: string
+  storyId: string,
 ): Promise<void> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id FROM stories
      WHERE id = ? AND user_id = ? AND expires_at > UTC_TIMESTAMP(3)
      LIMIT 1`,
-    [storyId, userId]
+    [storyId, userId],
   );
   if (!rows.length) {
     throw Object.assign(new Error("Story not found"), { statusCode: 404 });
@@ -291,7 +297,7 @@ async function assertVisibleStory(storyId: string): Promise<void> {
     `SELECT id FROM stories
      WHERE id = ? AND expires_at > UTC_TIMESTAMP(3)
      LIMIT 1`,
-    [storyId]
+    [storyId],
   );
   if (!rows.length) {
     throw Object.assign(new Error("Story not found"), { statusCode: 404 });
@@ -300,7 +306,7 @@ async function assertVisibleStory(storyId: string): Promise<void> {
 
 export async function getStoryInsights(
   ownerId: string,
-  storyId: string
+  storyId: string,
 ): Promise<StoryInsights> {
   await assertOwnedStory(ownerId, storyId);
   const pool = getPool();
@@ -315,7 +321,7 @@ export async function getStoryInsights(
        ON sr.story_id = sv.story_id AND sr.user_id = sv.user_id
      WHERE sv.story_id = ?
      ORDER BY sv.viewed_at DESC`,
-    [storyId]
+    [storyId],
   );
 
   const viewers: StoryViewerEntry[] = viewerRows.map((r) => ({
@@ -329,7 +335,7 @@ export async function getStoryInsights(
      FROM story_reactions
      WHERE story_id = ?
      GROUP BY story_id, reaction`,
-    [storyId]
+    [storyId],
   );
   const reactions = emptyReactions();
   for (const row of reactionRows) {
@@ -337,7 +343,7 @@ export async function getStoryInsights(
   }
   const reactionCount = POST_REACTION_TYPES.reduce(
     (sum, key) => sum + (reactions[key] ?? 0),
-    0
+    0,
   );
 
   const [reactionUsers] = await pool.query<ReactionUserRow[]>(
@@ -346,7 +352,7 @@ export async function getStoryInsights(
      INNER JOIN users u ON u.id = sr.user_id
      WHERE sr.story_id = ?
      ORDER BY sr.created_at DESC`,
-    [storyId]
+    [storyId],
   );
 
   return {
@@ -366,7 +372,7 @@ export async function getStoryInsights(
 export async function setStoryReaction(
   userId: string,
   storyId: string,
-  reaction: PostReactionType
+  reaction: PostReactionType,
 ): Promise<Story> {
   await assertVisibleStory(storyId);
   if (!POST_REACTION_TYPES.includes(reaction)) {
@@ -379,7 +385,7 @@ export async function setStoryReaction(
     `INSERT INTO story_reactions (story_id, user_id, reaction, created_at)
      VALUES (?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE reaction = VALUES(reaction), created_at = VALUES(created_at)`,
-    [storyId, userId, reaction, isoToDB(now)]
+    [storyId, userId, reaction, isoToDB(now)],
   );
 
   const tray = await listStoriesTray(userId);
@@ -392,13 +398,13 @@ export async function setStoryReaction(
 
 export async function clearStoryReaction(
   userId: string,
-  storyId: string
+  storyId: string,
 ): Promise<Story> {
   await assertVisibleStory(storyId);
   const pool = getPool();
   await pool.query(
     `DELETE FROM story_reactions WHERE story_id = ? AND user_id = ?`,
-    [storyId, userId]
+    [storyId, userId],
   );
 
   const tray = await listStoriesTray(userId);

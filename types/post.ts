@@ -5,12 +5,7 @@
 export type PostVisibility = "public" | "private" | "shared";
 
 export type PostReactionType =
-  | "like"
-  | "love"
-  | "haha"
-  | "wow"
-  | "sad"
-  | "angry";
+  "like" | "love" | "haha" | "wow" | "sad" | "angry";
 
 export const POST_REACTION_TYPES: PostReactionType[] = [
   "like",
@@ -65,6 +60,8 @@ export interface PostCategory {
   slug: string;
   name: string;
   sortOrder: number;
+  /** Total article count in this directory (present on list endpoints). */
+  postCount?: number;
 }
 
 export interface PostAuthor {

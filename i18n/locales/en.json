@@ -267,7 +267,15 @@
       "justNow": "Just now",
       "minutesAgo": "{count}m",
       "hoursAgo": "{count}h",
-      "daysAgo": "{count}d"
+      "daysAgo": "{count}d",
+      "plan": "Plan",
+      "planTitle": "Add this article to Time Management as a research task",
+      "planUntitled": "Shared article",
+      "planTaskTitle": "Research: {title}",
+      "planTaskNotes": "Article by {author} · published {date}\nFeed post id: {id}",
+      "planTaskCreated": "Research task created in Time Management",
+      "planTaskOpen": "Open",
+      "planTaskFailed": "Could not create the task"
     }
   },
   "tasks": {
@@ -575,7 +583,23 @@
     "failedToUpdateRole": "Failed to update role",
     "failedToRemoveUser": "Failed to remove user",
     "chartHoursLogged": "Hours logged",
-    "chartTasks": "Tasks"
+    "chartTasks": "Tasks",
+    "categoriesTitle": "Article directories",
+    "categoriesSubtitle": "Create and manage the categories used to organize feed articles. Deleting a directory keeps its articles but leaves them uncategorized.",
+    "categoryNameLabel": "New directory name",
+    "categoryNamePlaceholder": "e.g. Robotics",
+    "categoryAdd": "Add directory",
+    "categoryColName": "Name",
+    "categoryColSlug": "Slug",
+    "categoryColArticles": "Articles",
+    "categoryRename": "Rename",
+    "categoryRenamePrompt": "New directory name:",
+    "categoryCreated": "Directory created",
+    "categoryRenamed": "Directory renamed",
+    "categoryDeleted": "Directory deleted",
+    "categorySaveFailed": "Could not save directory",
+    "categoryDeleteConfirm": "Delete \"{name}\"? {count} article(s) will stay in the feed but become uncategorized.",
+    "categoryEmpty": "No directories yet."
   },
   "common": {
     "close": "Close",
@@ -607,6 +631,17 @@
       "high": "High",
       "normal": "Normal",
       "low": "Low"
+    }
+  },
+  "uploads": {
+    "errors": {
+      "empty": "\"{name}\" is empty.",
+      "unsupportedType": "\"{name}\" isn't an allowed file type. Allowed: {allowed}.",
+      "tooLarge": "\"{name}\" is {size}. {type} files must be {max} or smaller.",
+      "nameTooLong": "File name must be {max} characters or fewer.",
+      "contentMismatch": "\"{name}\" doesn't look like a real {type}.",
+      "tooMany": "You can attach up to {max} files to a post.",
+      "imageOnly": "Stories only support images. Allowed: {allowed}."
     }
   },
   "toasts": {
@@ -801,7 +836,10 @@
     "brand": "Da Nang Tech R&D and Networking Portal",
     "welcome": "Welcome",
     "welcomeNamed": "Welcome, {name}",
-    "intro": "This workspace has two independent modules. Use the header to move between them — there is no cross-linking inside either module.",
+    "intro": "This website is a place where we connect and share with tech enthusiasts everywhere.",
+    "categoriesTitle": "Main categories",
+    "categoriesBody": "Articles are organized into core tech topics. Pick a directory to browse its articles in the Feed.",
+    "articleCount": "No articles yet | 1 article | {count} articles",
     "feedTitle": "Feed",
     "feedBody": "Share posts with categories, LaTeX formulas, and styled text. Browse stories with viewers and reactions. Visibility can be public, private, or limited to specific people.",
     "timeTitle": "Time Management",

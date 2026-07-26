@@ -1,0 +1,5 @@
+# Run before formatting so a leaked credential is reported against the exact
+# bytes you staged, and the commit stops before anything else touches them.
+node scripts/scan-secrets.mjs --staged
+
+npx lint-staged

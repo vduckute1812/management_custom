@@ -267,7 +267,15 @@
       "justNow": "刚刚",
       "minutesAgo": "{count} 分钟",
       "hoursAgo": "{count} 小时",
-      "daysAgo": "{count} 天"
+      "daysAgo": "{count} 天",
+      "plan": "计划",
+      "planTitle": "将此文章作为研究任务加入时间管理",
+      "planUntitled": "分享的文章",
+      "planTaskTitle": "研究：{title}",
+      "planTaskNotes": "作者 {author} · 发布于 {date}\n动态文章 ID：{id}",
+      "planTaskCreated": "已在时间管理中创建研究任务",
+      "planTaskOpen": "打开",
+      "planTaskFailed": "无法创建任务"
     }
   },
   "tasks": {
@@ -575,7 +583,23 @@
     "failedToUpdateRole": "更新角色失败",
     "failedToRemoveUser": "移除用户失败",
     "chartHoursLogged": "已记录小时",
-    "chartTasks": "任务"
+    "chartTasks": "任务",
+    "categoriesTitle": "文章栏目",
+    "categoriesSubtitle": "创建和管理用于整理文章的栏目。删除栏目后文章仍会保留，但将不再分类。",
+    "categoryNameLabel": "新栏目名称",
+    "categoryNamePlaceholder": "例如：机器人",
+    "categoryAdd": "添加栏目",
+    "categoryColName": "名称",
+    "categoryColSlug": "标识",
+    "categoryColArticles": "文章数",
+    "categoryRename": "重命名",
+    "categoryRenamePrompt": "新栏目名称：",
+    "categoryCreated": "栏目已创建",
+    "categoryRenamed": "栏目已重命名",
+    "categoryDeleted": "栏目已删除",
+    "categorySaveFailed": "无法保存栏目",
+    "categoryDeleteConfirm": "删除“{name}”？{count} 篇文章将保留在动态中，但不再分类。",
+    "categoryEmpty": "暂无栏目。"
   },
   "common": {
     "close": "关闭",
@@ -607,6 +631,17 @@
       "high": "高",
       "normal": "普通",
       "low": "低"
+    }
+  },
+  "uploads": {
+    "errors": {
+      "empty": "“{name}”是空文件。",
+      "unsupportedType": "“{name}”不是允许的文件类型。允许：{allowed}。",
+      "tooLarge": "“{name}”大小为 {size}。{type}文件不得超过 {max}。",
+      "nameTooLong": "文件名不得超过 {max} 个字符。",
+      "contentMismatch": "“{name}”的内容不是有效的{type}。",
+      "tooMany": "每条帖子最多只能附加 {max} 个文件。",
+      "imageOnly": "快拍仅支持图片。允许：{allowed}。"
     }
   },
   "toasts": {
@@ -801,7 +836,10 @@
     "brand": "Da Nang Tech R&D and Networking Portal",
     "welcome": "欢迎",
     "welcomeNamed": "欢迎，{name}",
-    "intro": "此工作区有两个独立模块。使用页眉在它们之间切换——各模块内部没有交叉链接。",
+    "intro": "这个网站是我们与世界各地科技爱好者连接和分享的地方。",
+    "categoriesTitle": "主要栏目",
+    "categoriesBody": "文章按核心科技主题分类整理。选择一个栏目即可在动态中浏览其文章。",
+    "articleCount": "暂无文章 | {count} 篇文章 | {count} 篇文章",
     "feedTitle": "动态",
     "feedBody": "分享带分类、LaTeX 公式与样式文字的帖子。浏览带查看者与表情的快拍。可见性可为公开、私密或限指定人员。",
     "timeTitle": "时间管理",

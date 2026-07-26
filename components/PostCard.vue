@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Post, PostComment, PostReactionType } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
+import { TaskStatus } from "~/types/task";
 
 const props = defineProps<{
   post: Post;
@@ -15,6 +16,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { loadComments, addComment, removeComment } = usePosts();
+const { saveTask } = useTasks();
+const { pushToast } = useToasts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
 
@@ -83,8 +86,12 @@ const visibilityBadge = computed(() => {
 
 const topReactions = computed(() =>
   POST_REACTION_TYPES.filter((k) => (props.post.reactions?.[k] ?? 0) > 0).map(
-    (k) => ({ type: k, count: props.post.reactions[k], emoji: REACTION_EMOJI[k] })
-  )
+    (k) => ({
+      type: k,
+      count: props.post.reactions[k],
+      emoji: REACTION_EMOJI[k],
+    }),
+  ),
 );
 
 async function toggleComments() {
@@ -161,6 +168,49 @@ function onShareClick() {
     return;
   }
   shareOpen.value = !shareOpen.value;
+}
+
+const planBusy = ref(false);
+
+/**
+ * Time Management integration: turn this article into a research task so
+ * it can be scheduled, time-tracked, and marked done from /tasks.
+ */
+async function onPlanClick() {
+  if (!auth.isAuthenticated.value) {
+    navigateTo({ path: "/login", query: { redirect: "/feed" } });
+    return;
+  }
+  if (planBusy.value) return;
+  planBusy.value = true;
+  try {
+    const excerpt =
+      (props.post.body || "").replace(/\s+/g, " ").trim().slice(0, 80) ||
+      t("feed.post.planUntitled");
+    const tags = ["article"];
+    if (props.post.category?.slug) tags.push(props.post.category.slug);
+    await saveTask({
+      title: t("feed.post.planTaskTitle", { title: excerpt }),
+      notes: t("feed.post.planTaskNotes", {
+        author: authorLabel(props.post.author.name, props.post.author.email),
+        date: new Date(props.post.createdAt).toLocaleString(),
+        id: props.post.id,
+      }),
+      status: TaskStatus.Todo,
+      tags,
+    });
+    pushToast(t("feed.post.planTaskCreated"), {
+      tone: "success",
+      actionLabel: t("feed.post.planTaskOpen"),
+      onAction: async () => {
+        await navigateTo("/tasks");
+      },
+    });
+  } catch {
+    pushToast(t("feed.post.planTaskFailed"), { tone: "danger" });
+  } finally {
+    planBusy.value = false;
+  }
 }
 </script>
 
@@ -241,7 +291,9 @@ function onShareClick() {
               height="360"
               loading="lazy"
               class="w-full max-h-72 object-cover bg-slate-100"
-              @error="($event.target as HTMLImageElement).style.display = 'none'"
+              @error="
+                ($event.target as HTMLImageElement).style.display = 'none'
+              "
             />
           </a>
           <a
@@ -268,7 +320,7 @@ function onShareClick() {
           {{
             authorLabel(
               post.sharedPost.author.name,
-              post.sharedPost.author.email
+              post.sharedPost.author.email,
             )
           }}
           <span class="font-normal text-slate-400">
@@ -288,17 +340,22 @@ function onShareClick() {
             v-for="r in topReactions"
             :key="r.type"
             :title="REACTION_LABEL[r.type]"
-          >{{ r.emoji }}</span>
+            >{{ r.emoji }}</span
+          >
           <span>{{ post.reactionCount }}</span>
         </template>
         <template v-else>{{ $t("feed.post.zeroReactions") }}</template>
       </span>
       <span>
-        {{ t("feed.post.comments", post.commentCount, { count: post.commentCount }) }}
+        {{
+          t("feed.post.comments", post.commentCount, {
+            count: post.commentCount,
+          })
+        }}
       </span>
     </div>
 
-    <div class="relative grid grid-cols-3 border-t border-slate-100">
+    <div class="relative grid grid-cols-4 border-t border-slate-100">
       <div class="relative">
         <button
           type="button"
@@ -317,7 +374,11 @@ function onShareClick() {
           <span aria-hidden="true">
             {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
           </span>
-          {{ post.myReaction ? REACTION_LABEL[post.myReaction] : $t("feed.post.react") }}
+          {{
+            post.myReaction
+              ? REACTION_LABEL[post.myReaction]
+              : $t("feed.post.react")
+          }}
         </button>
         <div
           v-if="pickerOpen"
@@ -354,13 +415,24 @@ function onShareClick() {
       >
         {{ $t("feed.post.share") }}
       </button>
+      <button
+        type="button"
+        class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
+        :disabled="planBusy"
+        :title="$t('feed.post.planTitle')"
+        @click="onPlanClick"
+      >
+        {{ $t("feed.post.plan") }}
+      </button>
     </div>
 
     <div
       v-if="shareOpen"
       class="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/60"
     >
-      <label class="sr-only" :for="`share-${post.id}`">{{ $t("feed.post.shareNote") }}</label>
+      <label class="sr-only" :for="`share-${post.id}`">{{
+        $t("feed.post.shareNote")
+      }}</label>
       <input
         :id="`share-${post.id}`"
         v-model="shareNote"
@@ -389,17 +461,16 @@ function onShareClick() {
       </div>
     </div>
 
-    <div v-if="commentsOpen" class="border-t border-slate-100 px-4 py-3 space-y-3">
+    <div
+      v-if="commentsOpen"
+      class="border-t border-slate-100 px-4 py-3 space-y-3"
+    >
       <div v-if="commentsLoading" class="space-y-2" aria-busy="true">
         <SkeletonBlock height="h-10" rounded="rounded-lg" />
         <SkeletonBlock height="h-10" rounded="rounded-lg" />
       </div>
       <ul v-else class="space-y-3">
-        <li
-          v-for="comment in comments"
-          :key="comment.id"
-          class="flex gap-2.5"
-        >
+        <li v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
           <div
             class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 text-[10px] font-semibold flex items-center justify-center shrink-0"
             aria-hidden="true"
@@ -420,7 +491,9 @@ function onShareClick() {
                 {{ $t("feed.post.delete") }}
               </button>
             </div>
-            <p class="text-sm text-slate-700 whitespace-pre-wrap break-words mt-0.5">
+            <p
+              class="text-sm text-slate-700 whitespace-pre-wrap break-words mt-0.5"
+            >
               {{ comment.body }}
             </p>
           </div>
@@ -435,7 +508,9 @@ function onShareClick() {
         class="flex gap-2"
         @submit.prevent="onAddComment"
       >
-        <label class="sr-only" :for="`comment-${post.id}`">{{ $t("feed.post.writeComment") }}</label>
+        <label class="sr-only" :for="`comment-${post.id}`">{{
+          $t("feed.post.writeComment")
+        }}</label>
         <input
           :id="`comment-${post.id}`"
           v-model="commentBody"
@@ -458,8 +533,8 @@ function onShareClick() {
           to="/login"
           class="font-medium text-brand-700 hover:underline"
         >
-          {{ $t("feed.post.loginLink") }}
-        </NuxtLink>{{
+          {{ $t("feed.post.loginLink") }} </NuxtLink
+        >{{
           $t("feed.post.loginToComment").slice($t("feed.post.loginLink").length)
         }}
       </p>

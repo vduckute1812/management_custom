@@ -4,9 +4,16 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
+import {
+  UPLOAD_ACCEPT_IMAGES_ATTR,
+  UPLOAD_ALLOWED_IMAGE_EXTENSIONS,
+  resolveUploadRule,
+} from "~/utils/uploadPolicy";
 
 const { t } = useI18n();
 const auth = useAuth();
+const route = useRoute();
+const { pushToast } = useToasts();
 
 const {
   posts,
@@ -58,15 +65,32 @@ useSeoMeta({
 });
 
 onMounted(async () => {
-  const jobs: Promise<unknown>[] = [
-    refreshCategories().catch(() => undefined),
-    posts.value.length ? Promise.resolve() : refresh().catch(() => undefined),
-  ];
+  const requestedCategory =
+    typeof route.query.category === "string" ? route.query.category : null;
+
+  const jobs: Promise<unknown>[] = [refreshCategories().catch(() => undefined)];
+  // When arriving with a ?category= deep link (e.g. from the home page
+  // topic cards) the first posts fetch must already be filtered, so the
+  // unfiltered refresh is skipped and resolved after categories load.
+  if (!requestedCategory && !posts.value.length) {
+    jobs.push(refresh().catch(() => undefined));
+  }
   // Stories require auth; skip for guests so we don't spam 401s.
   if (auth.isAuthenticated.value) {
     jobs.push(refreshStories().catch(() => undefined));
   }
   await Promise.all(jobs);
+
+  if (requestedCategory) {
+    const match = categories.value.find(
+      (c) => c.slug === requestedCategory || c.id === requestedCategory,
+    );
+    if (match) {
+      await setCategoryFilter(match.id).catch(() => undefined);
+    } else if (!posts.value.length) {
+      await refresh().catch(() => undefined);
+    }
+  }
 });
 
 async function onCreate(payload: {
@@ -113,11 +137,26 @@ async function onStoryFile(e: Event) {
   const file = input.files?.[0];
   input.value = "";
   if (!file) return;
+
+  // Stories render as media, so narrow the shared allowlist to images here.
+  const rule = resolveUploadRule(file.name, file.type);
+  if (!rule || rule.kind !== "image") {
+    pushToast(
+      t("uploads.errors.imageOnly", {
+        allowed: UPLOAD_ALLOWED_IMAGE_EXTENSIONS.join(", "),
+      }),
+      { tone: "danger" },
+    );
+    return;
+  }
+
   storyUploading.value = true;
   try {
     const up = await uploadFile(file);
     storyUploadId.value = up.id;
     storyFileName.value = up.fileName;
+  } catch {
+    // uploadFile already surfaced a toast.
   } finally {
     storyUploading.value = false;
   }
@@ -146,11 +185,11 @@ async function submitStory() {
 
 <template>
   <div class="flex-1 min-h-0">
-    <header
-      class="border-b border-slate-200 bg-slate-50/90 px-4 sm:px-6 py-4"
-    >
+    <header class="border-b border-slate-200 bg-slate-50/90 px-4 sm:px-6 py-4">
       <div class="max-w-2xl mx-auto">
-        <h1 class="text-xl font-semibold text-slate-900">{{ $t("feed.title") }}</h1>
+        <h1 class="text-xl font-semibold text-slate-900">
+          {{ $t("feed.title") }}
+        </h1>
         <p class="text-sm text-slate-500 mt-0.5">
           <template v-if="auth.isAuthenticated.value">
             {{ $t("feed.subtitleAuth") }}
@@ -171,9 +210,18 @@ async function submitStory() {
           @create="storyComposerOpen = true"
         />
         <template #error="{ clearError }">
-          <div class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          <div
+            class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+          >
             {{ $t("feed.storiesFailed") }}
-            <button type="button" class="underline ml-1" @click="clearError(); refreshStories()">
+            <button
+              type="button"
+              class="underline ml-1"
+              @click="
+                clearError();
+                refreshStories();
+              "
+            >
               {{ $t("feed.retry") }}
             </button>
           </div>
@@ -193,7 +241,9 @@ async function submitStory() {
         role="group"
         :aria-label="$t('feed.categoryFilterAria')"
       >
-        <span class="text-xs font-medium text-slate-500">{{ $t("feed.category") }}</span>
+        <span class="text-xs font-medium text-slate-500">{{
+          $t("feed.category")
+        }}</span>
         <button
           type="button"
           class="rounded-full px-2.5 py-1 text-xs font-medium transition"
@@ -220,6 +270,11 @@ async function submitStory() {
           @click="onCategoryFilter(cat.id)"
         >
           {{ cat.name }}
+          <span
+            v-if="cat.postCount !== undefined"
+            class="ml-1 tabular-nums opacity-70"
+            >{{ cat.postCount }}</span
+          >
         </button>
       </div>
 
@@ -257,7 +312,9 @@ async function submitStory() {
         "
         illustration="spark"
         :primary-label="
-          auth.isAuthenticated.value ? $t('empty.writeAPost') : $t('empty.login')
+          auth.isAuthenticated.value
+            ? $t('empty.writeAPost')
+            : $t('empty.login')
         "
         @primary="
           auth.isAuthenticated.value
@@ -309,11 +366,18 @@ async function submitStory() {
         class="w-full max-w-md rounded-2xl bg-white p-5 space-y-3 shadow-xl"
         @submit.prevent="submitStory"
       >
-        <h2 id="story-composer-title" class="text-base font-semibold text-slate-900">
+        <h2
+          id="story-composer-title"
+          class="text-base font-semibold text-slate-900"
+        >
           {{ $t("feed.stories.newStory") }}
         </h2>
-        <p class="text-xs text-slate-500">{{ $t("feed.stories.visible24h") }}</p>
-        <label class="sr-only" for="story-body">{{ $t("feed.stories.storyText") }}</label>
+        <p class="text-xs text-slate-500">
+          {{ $t("feed.stories.visible24h") }}
+        </p>
+        <label class="sr-only" for="story-body">{{
+          $t("feed.stories.storyText")
+        }}</label>
         <textarea
           id="story-body"
           v-model="storyBody"
@@ -339,7 +403,7 @@ async function submitStory() {
             ref="storyFileInput"
             type="file"
             class="hidden"
-            accept="image/jpeg,image/png,image/webp,image/gif"
+            :accept="UPLOAD_ACCEPT_IMAGES_ATTR"
             @change="onStoryFile"
           />
         </div>

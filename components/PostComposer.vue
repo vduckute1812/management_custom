@@ -8,6 +8,7 @@ import type {
   UploadRecord,
 } from "~/types/post";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
+import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 
 const props = defineProps<{
   submitting?: boolean;
@@ -27,12 +28,13 @@ const emit = defineEmits<{
       categoryId: string | null;
       fontFamily: PostFontFamily;
       textColor: PostTextColor;
-    }
+    },
   ): void;
 }>();
 
 const { t } = useI18n();
-const { uploadFile } = useUploads();
+const { uploadFile, validateFile } = useUploads();
+const { pushToast } = useToasts();
 const { results, loading: searching, searchDebounced } = useUserDirectory();
 
 const body = ref("");
@@ -52,7 +54,7 @@ const canSubmit = computed(
     body.value.trim().length > 0 &&
     !props.submitting &&
     !uploading.value &&
-    (visibility.value !== "shared" || audience.value.length > 0)
+    (visibility.value !== "shared" || audience.value.length > 0),
 );
 
 watch(audienceQuery, (q) => {
@@ -74,13 +76,32 @@ async function onFilesSelected(e: Event) {
   const files = Array.from(input.files ?? []);
   input.value = "";
   if (!files.length) return;
+
+  // Report every rejected file, then upload the rest — one oversized pick
+  // shouldn't discard the others in the same selection.
+  const accepted: File[] = [];
+  for (const file of files) {
+    const reason = validateFile(file);
+    if (reason) pushToast(reason, { tone: "danger" });
+    else accepted.push(file);
+  }
+  if (!accepted.length) return;
+
+  const room = Math.max(UPLOAD_MAX_PER_POST - attachments.value.length, 0);
+  if (accepted.length > room) {
+    pushToast(t("uploads.errors.tooMany", { max: UPLOAD_MAX_PER_POST }), {
+      tone: "danger",
+    });
+  }
+
   uploading.value = true;
   try {
-    for (const file of files) {
-      if (attachments.value.length >= 10) break;
+    for (const file of accepted.slice(0, room)) {
       const uploaded = await uploadFile(file);
       attachments.value = [...attachments.value, uploaded];
     }
+  } catch {
+    // uploadFile already surfaced a toast.
   } finally {
     uploading.value = false;
   }
@@ -99,8 +120,7 @@ function insertLatex(block = false) {
   }
   const start = el.selectionStart ?? body.value.length;
   const end = el.selectionEnd ?? start;
-  body.value =
-    body.value.slice(0, start) + snippet + body.value.slice(end);
+  body.value = body.value.slice(0, start) + snippet + body.value.slice(end);
   nextTick(() => {
     const pos = start + snippet.length;
     el.focus();
@@ -167,7 +187,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
     class="rounded-xl border border-slate-200 bg-white p-4 space-y-3"
     @submit.prevent="onSubmit"
   >
-    <label class="sr-only" for="post-composer">{{ $t("feed.composer.writeAPost") }}</label>
+    <label class="sr-only" for="post-composer">{{
+      $t("feed.composer.writeAPost")
+    }}</label>
     <textarea
       id="post-composer"
       ref="textareaEl"
@@ -208,48 +230,42 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
     />
 
     <div class="flex flex-wrap items-center gap-2">
-      <label class="sr-only" for="post-category">{{ $t("feed.composer.category") }}</label>
+      <label class="sr-only" for="post-category">{{
+        $t("feed.composer.category")
+      }}</label>
       <select
         id="post-category"
         v-model="categoryId"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
       >
         <option value="">{{ $t("feed.composer.noCategory") }}</option>
-        <option
-          v-for="cat in categories || []"
-          :key="cat.id"
-          :value="cat.id"
-        >
+        <option v-for="cat in categories || []" :key="cat.id" :value="cat.id">
           {{ cat.name }}
         </option>
       </select>
 
-      <label class="sr-only" for="post-font">{{ $t("feed.composer.font") }}</label>
+      <label class="sr-only" for="post-font">{{
+        $t("feed.composer.font")
+      }}</label>
       <select
         id="post-font"
         v-model="fontFamily"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
       >
-        <option
-          v-for="f in POST_FONT_FAMILIES"
-          :key="f"
-          :value="f"
-        >
+        <option v-for="f in POST_FONT_FAMILIES" :key="f" :value="f">
           {{ fontLabels[f] }}
         </option>
       </select>
 
-      <label class="sr-only" for="post-color">{{ $t("feed.composer.textColor") }}</label>
+      <label class="sr-only" for="post-color">{{
+        $t("feed.composer.textColor")
+      }}</label>
       <select
         id="post-color"
         v-model="textColor"
         class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
       >
-        <option
-          v-for="c in POST_TEXT_COLORS"
-          :key="c"
-          :value="c"
-        >
+        <option v-for="c in POST_TEXT_COLORS" :key="c" :value="c">
           {{ colorLabels[c] }}
         </option>
       </select>
@@ -272,10 +288,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       </button>
     </div>
 
-    <div
-      v-if="attachments.length"
-      class="flex flex-wrap gap-2"
-    >
+    <div v-if="attachments.length" class="flex flex-wrap gap-2">
       <div
         v-for="att in attachments"
         :key="att.id"
@@ -285,7 +298,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
         <button
           type="button"
           class="text-slate-400 hover:text-rose-600"
-          :aria-label="$t('feed.composer.removeAttachment', { name: att.fileName })"
+          :aria-label="
+            $t('feed.composer.removeAttachment', { name: att.fileName })
+          "
           @click="removeAttachment(att.id)"
         >
           ×
@@ -293,9 +308,13 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       </div>
     </div>
 
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div
+      class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+    >
       <div class="flex flex-wrap items-center gap-2">
-        <label class="sr-only" for="post-visibility">{{ $t("feed.composer.visibility") }}</label>
+        <label class="sr-only" for="post-visibility">{{
+          $t("feed.composer.visibility")
+        }}</label>
         <select
           id="post-visibility"
           v-model="visibility"
@@ -313,17 +332,21 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
         <button
           type="button"
           class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          :disabled="uploading || attachments.length >= 10"
+          :disabled="uploading || attachments.length >= UPLOAD_MAX_PER_POST"
           @click="fileInput?.click()"
         >
-          {{ uploading ? $t("feed.composer.uploading") : $t("feed.composer.attach") }}
+          {{
+            uploading
+              ? $t("feed.composer.uploading")
+              : $t("feed.composer.attach")
+          }}
         </button>
         <input
           ref="fileInput"
           type="file"
           class="hidden"
           multiple
-          accept=".jpg,.jpeg,.png,.webp,.gif,.pdf,.txt,.md,.docx,image/*,application/pdf,text/plain,text/markdown"
+          :accept="UPLOAD_ACCEPT_ATTR"
           @change="onFilesSelected"
         />
       </div>
@@ -337,8 +360,14 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       </button>
     </div>
 
-    <div v-if="visibility === 'shared'" class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3">
-      <label class="block text-xs font-medium text-slate-600" for="audience-search">
+    <div
+      v-if="visibility === 'shared'"
+      class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3"
+    >
+      <label
+        class="block text-xs font-medium text-slate-600"
+        for="audience-search"
+      >
         {{ $t("feed.composer.shareWith") }}
       </label>
       <div v-if="audience.length" class="flex flex-wrap gap-1.5">
@@ -351,7 +380,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           <button
             type="button"
             class="text-brand-600 hover:text-rose-600"
-            :aria-label="$t('feed.composer.removePerson', { name: u.name || u.email })"
+            :aria-label="
+              $t('feed.composer.removePerson', { name: u.name || u.email })
+            "
             @click="removeAudience(u.id)"
           >
             ×
@@ -379,7 +410,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           {{ $t("feed.composer.searching") }}
         </li>
         <li
-          v-for="u in results.filter((r) => !audience.some((a) => a.id === r.id))"
+          v-for="u in results.filter(
+            (r) => !audience.some((a) => a.id === r.id),
+          )"
           :key="u.id"
         >
           <button
@@ -388,8 +421,12 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
             role="option"
             @click="pickAudience(u)"
           >
-            <span class="font-medium text-slate-800">{{ u.name || u.email }}</span>
-            <span v-if="u.name" class="block text-[11px] text-slate-500">{{ u.email }}</span>
+            <span class="font-medium text-slate-800">{{
+              u.name || u.email
+            }}</span>
+            <span v-if="u.name" class="block text-[11px] text-slate-500">{{
+              u.email
+            }}</span>
           </button>
         </li>
       </ul>

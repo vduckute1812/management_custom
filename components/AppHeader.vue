@@ -15,7 +15,7 @@ const userInitial = computed(() => {
 });
 
 const displayName = computed(
-  () => auth.user.value?.name || auth.user.value?.email || t("nav.account")
+  () => auth.user.value?.name || auth.user.value?.email || t("nav.account"),
 );
 
 function isMainActive(to: string) {
@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => route.fullPath,
-  () => closeMenu()
+  () => closeMenu(),
 );
 </script>
 
@@ -93,7 +93,7 @@ watch(
       </NuxtLink>
 
       <nav
-        class="flex min-w-0 flex-1 items-center gap-0.5 sm:gap-1"
+        class="flex min-w-0 flex-1 items-center justify-end gap-0.5 sm:gap-1"
         :aria-label="$t('nav.primaryAria')"
       >
         <NuxtLink
@@ -155,7 +155,9 @@ watch(
             <span class="block truncate text-xs font-medium text-slate-800">
               {{ displayName }}
             </span>
-            <span class="block text-[10px] uppercase tracking-wider text-slate-400">
+            <span
+              class="block text-[10px] uppercase tracking-wider text-slate-400"
+            >
               {{ t(ROLE_I18N_KEYS[auth.user.value.role] ?? "roles.normal") }}
             </span>
           </span>

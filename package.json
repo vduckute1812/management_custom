@@ -11,11 +11,19 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "prepare": "husky",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "scan:secrets": "node scripts/scan-secrets.mjs --all",
+    "scan:secrets:staged": "node scripts/scan-secrets.mjs --staged",
     "migrate": "node --env-file=.env --import tsx scripts/migrate.ts up",
     "migrate:status": "node --env-file=.env --import tsx scripts/migrate.ts status",
     "migrate:reset": "node --env-file=.env --import tsx scripts/migrate.ts reset",
     "migrate:auth": "node --env-file=.env --import tsx scripts/migrate-auth.ts",
     "check:db": "node --env-file=.env --import tsx scripts/check-db.ts"
+  },
+  "lint-staged": {
+    "*.{js,mjs,cjs,ts,vue,json,css,md,yml,yaml}": "prettier --write"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1095.0",
@@ -40,6 +48,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/katex": "^0.16.8",
     "@types/nodemailer": "^8.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.6.2",
     "tsx": "^4.22.4",
     "typescript": "^7.0.2",
     "vue-tsc": "^3.3.8"

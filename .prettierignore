@@ -1,0 +1,21 @@
+# Build / deps
+.nuxt
+.output
+.nitro
+.cache
+.data
+dist
+node_modules
+.venv
+
+# Lockfiles & generated
+package-lock.json
+uv.lock
+
+# Local / env
+.env
+.env.*
+
+# Misc
+*.min.js
+coverage

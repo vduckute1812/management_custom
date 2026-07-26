@@ -50,7 +50,7 @@ export default defineNuxtPlugin(() => {
   const { locale, setLocale, locales } = useSafeI18n();
 
   const available = new Set(
-    locales.value.map((l) => (typeof l === "string" ? l : l.code))
+    locales.value.map((l) => (typeof l === "string" ? l : l.code)),
   );
 
   async function applyPreferredLocale(preferred: AppLocale) {
@@ -74,7 +74,8 @@ export default defineNuxtPlugin(() => {
     // If geo-IP and timezone are unavailable, retain i18n's browser-language
     // detection when it resolved to one of this app's supported locales.
     const preferred =
-      detected ?? (isAppLocale(locale.value) ? locale.value : settings.value.locale);
+      detected ??
+      (isAppLocale(locale.value) ? locale.value : settings.value.locale);
     update("locale", preferred);
   }
 
@@ -92,7 +93,7 @@ export default defineNuxtPlugin(() => {
       } else {
         applyLocaleSideEffects(next);
       }
-    }
+    },
   );
 
   watch(locale, (next) => {
