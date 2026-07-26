@@ -13,7 +13,7 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 5. **If the build fails** → the running stack is **not** restarted.
 6. MySQL is ensured up; **DB migrations** run with the *new* image (`scripts/migrate.ts up`) while the old app is still serving.
 7. **If migrate fails** → `:latest` is restored to `:previous` and the live app is **not** restarted.
-8. On success it recreates the compose stack and health-checks `http://127.0.0.1:3000/`.
+8. On success it recreates **only the app** container (`--no-deps --force-recreate app`) so nginx stays up for Cloudflare Tunnel, then health-checks `http://${LAN_IP}:3000/`.
 9. **If health fails** → it retags `:previous` → `:latest`, recreates the app, and fails the job.
 
 Manual entrypoint: `bash docker/deploy.sh` (same script).
@@ -79,8 +79,12 @@ Required at minimum: `~/.config/management/.env.prod`
 | `uv sync` / lib error   | Unchanged                               |
 | Image build error       | Unchanged (old containers keep running) |
 | DB migration error      | Unchanged; `:latest` tag restored       |
-| Compose / health fail   | Restored from `:previous` image         |
+| App recreate / health fail | Restored from `:previous` image (nginx stays up) |
 | Success                 | New SHA is live as `:latest`            |
+
+### Troubleshooting: brief 5xx while a deploy is running
+
+Old deploys used `compose up --force-recreate` on the **whole** stack, which bounced nginx and made Cloudflare Tunnel briefly unable to reach `127.0.0.1:8080`. That shows up as a short public outage (often a gateway / internal error page) right when GitHub Actions switches the release. Current `ci-deploy.sh` only recreates the app container.
 
 Force a manual rollback on the Pi (from the repo root):
 

@@ -235,13 +235,25 @@ run_migrations() {
   log "migrations applied"
 }
 
+recreate_app() {
+  # Recreate *only* the app. Force-recreating nginx (or the whole stack) drops
+  # :8080 briefly; cloudflared then cannot reach origin and public users see
+  # Cloudflare/gateway errors during every GitHub-triggered deploy.
+  log "recreating app container (leave nginx/mysql running)"
+  mgmt_compose up -d --no-deps --force-recreate app
+  # Ensure reverse proxy is up without bouncing it.
+  mgmt_compose up -d nginx
+}
+
 rollback() {
   log "rolling back to ${PREV_TAG}"
   if ! image_exists "${PREV_TAG}"; then
     die "no previous image (${PREV_TAG}) available to roll back to"
   fi
   tag_image "${PREV_TAG}" "${LATEST_TAG}"
-  mgmt_compose up -d --force-recreate app
+  if ! recreate_app; then
+    die "rollback recreate failed"
+  fi
   if wait_healthy; then
     log "rollback succeeded — previous release is serving again"
   else
@@ -317,13 +329,13 @@ if ! run_migrations; then
 fi
 
 # ── Recreate app + health check ──────────────────────────────────────────
-log "recreating production stack"
-if ! mgmt_compose up -d --force-recreate; then
-  log "compose up failed"
+log "switching live app to ${GIT_SHA}"
+if ! recreate_app; then
+  log "app recreate failed"
   if [[ "${HAD_PREVIOUS}" == true ]]; then
     rollback
   fi
-  die "compose up failed and rollback could not recover"
+  die "app recreate failed and rollback could not recover"
 fi
 
 log "waiting for app health at ${HEALTH_URL}"
