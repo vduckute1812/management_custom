@@ -55,7 +55,8 @@ SMTP_SECURE=false
 # Where the app is reachable from the user's browser; used to build the
 # absolute URL inside verification emails.
 # Prefer APP_BASE_URL behind a reverse proxy / Cloudflare Tunnel.
-# APP_BASE_URL=https://example.com
+# Production site identity for emails + @nuxtjs/seo is https://dntechx.com
+# APP_BASE_URL=https://dntechx.com
 APP_HOST=localhost
 APP_PORT=3000
 # APP_PROTOCOL=http
@@ -126,6 +127,21 @@ UI language defaults to English (or a browser match on first visit). Change it a
 npm run build
 node --env-file=.env .output/server/index.mjs
 ```
+
+On the live host, confirm SEO endpoints after deploy:
+
+- `https://dntechx.com/robots.txt`
+- `https://dntechx.com/sitemap.xml` (should list `/` and `/feed` only)
+
+Then submit the sitemap in Google Search Console. Details: [`architecture.md`](./architecture.md#seo-nuxtjsseo).
+
+## Type-checking Vue / TypeScript
+
+```bash
+npx vue-tsc --noEmit -p tsconfig.json
+```
+
+Requires **TypeScript 5.9.x** (classic compiler API). Do **not** upgrade to native TypeScript 7 — `vue-tsc` / Volar cannot load it (`typescript/lib/tsc` is not exported). Plural/`t()` call shapes that fail type-check are documented in [`i18n.md`](./i18n.md).
 
 ## Verifying the database
 

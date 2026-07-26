@@ -222,3 +222,11 @@ Documented here so the roadmap matches the as-built install (migrations `0003`�
 - [x] Localized seeded category labels (`CATEGORY_I18N_KEYS` / `categories.*`) on hub + feed UI
 - [x] Plan-in-Time-Management action on posts; optimistic reactions with per-post request tokens
 - [x] Implementation docs synced: architecture / api / auth / database / i18n / getting-started
+
+## Phase 13 — Feed polish, SEO module, vue-tsc restore
+
+- [x] Feed UI redesign: two-column layout (`lg+` category rail), richer composer / post cards / story tray (`pages/feed/index.vue`, `PostComposer`, `PostCard`, `StoryTray`)
+- [x] `@nuxtjs/seo` for `https://dntechx.com` — `/robots.txt`, `/sitemap.xml` (public `/` + `/feed` only), OG text meta; dynamic `ogImage` disabled on ARM
+- [x] Pin TypeScript to **5.9.x** so `vue-tsc` works (native TS 7 is incompatible with Volar)
+- [x] Fix vue-i18n plural calls to `t(key, named, plural)` and MySQL `RowDataPacket` query generics that failed type-check
+- [x] Docs synced: architecture (SEO + TS), i18n (plural signature), getting-started, roadmap, product README, `.cursor/rules/nuxt3-standards.mdc`

@@ -6,10 +6,10 @@ The original feature spec lives in [`auth-rbac.md`](./auth-rbac.md). This docume
 
 ## Roles
 
-| Role         | Sees                                                          | Can do                                                                  |
-| ------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `normal`     | Own epics/tasks/timer; install feed/stories per visibility rules. | Full Time Management for own data. Feed: create/react/comment/share within ACL. |
-| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts. |
+| Role         | Sees                                                              | Can do                                                                                                                                                                                                          |
+| ------------ | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normal`     | Own epics/tasks/timer; install feed/stories per visibility rules. | Full Time Management for own data. Feed: create/react/comment/share within ACL.                                                                                                                                 |
+| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.     | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                                                         |
 | `superadmin` | Same as `admin`. Exactly one per install (the bootstrap account). | Everything `admin` can, plus owner-only ops (e.g. `DELETE /api/admin/users/:id`). Role is **never assignable through the API** — only seeded by `npm run migrate:auth` — and **cannot be modified or demoted**. |
 
 The role is enforced in three layers:
@@ -20,12 +20,12 @@ The role is enforced in three layers:
 
 ## Client route access
 
-| Paths | Rule |
-| ----- | ---- |
-| `/`, `/feed` (+ nested) | Public |
-| `/login`, `/signup`, `/verify-email` | Public; if already authenticated → `/` (or `?redirect=`) |
-| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, … | Require session → else `/login?redirect=…` |
-| `/admin` | Require admin role → else `/` + toast |
+| Paths                                                        | Rule                                                     |
+| ------------------------------------------------------------ | -------------------------------------------------------- |
+| `/`, `/feed` (+ nested)                                      | Public                                                   |
+| `/login`, `/signup`, `/verify-email`                         | Public; if already authenticated → `/` (or `?redirect=`) |
+| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, … | Require session → else `/login?redirect=…`               |
+| `/admin`                                                     | Require admin role → else `/` + toast                    |
 
 See `middleware/auth.global.ts`.
 
@@ -36,7 +36,7 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 ## Token lifecycle
 
 - **Access token** — 15-minute HS256 JWT, signed with `JWT_SECRET`. Stateless: rejection is "signature bad / wrong issuer / expired".
-- **Refresh token** — 30-day opaque base64url, stored as SHA-256 hash only. On `/api/auth/refresh` the presented token is *revoked* and a new pair is issued (rotation). On `/api/auth/logout` the presented refresh token is revoked outright; with `everywhere: true`, every active refresh token for the caller is revoked.
+- **Refresh token** — 30-day opaque base64url, stored as SHA-256 hash only. On `/api/auth/refresh` the presented token is _revoked_ and a new pair is issued (rotation). On `/api/auth/logout` the presented refresh token is revoked outright; with `everywhere: true`, every active refresh token for the caller is revoked.
 - **Email verification** — a one-shot opaque token (also hashed) emailed via SMTP at sign-up. Login is refused with `403` until the user POSTs the token to `/api/auth/verify-email`.
 
 The client (`composables/useApi.ts`) auto-attaches the access token on every request, proactively refreshes it within 30 s of expiry, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
@@ -57,6 +57,6 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 
 ## Email transport
 
-`server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail you need an [App Password](https://myaccount.google.com/apppasswords), not your account password.
+`server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail / Google Workspace you need an [App Password](https://myaccount.google.com/apppasswords), not your account password. Production typically sets `SMTP_FROM` to a display name + address (e.g. `Danang TechX <admin@dntechx.com>`) while `SMTP_USER` remains the mailbox used to authenticate.
 
 The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudflare Tunnel). Otherwise it is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.

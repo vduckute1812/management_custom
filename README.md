@@ -78,7 +78,7 @@ The "now" indicator ticks every 30 seconds and snaps forward when the tab regain
 
 ### Share on the Feed
 
-Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language.
+Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports.
 
 ### Switch language
 
@@ -463,6 +463,7 @@ A few choices that look opinionated and aren't accidents.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
 - **Language is a device preference, not a URL.** Same model as theme and density: stored in local settings, no `/en/...` prefixes, no server-side user locale. Switching language rewrites chrome only — user content stays as authored.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
+- **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub and Feed only; Time Management / admin / auth forms stay disallowed. The app remains a client SPA — full first-byte HTML for social crawlers would need selective SSR later.
 
 ---
 
@@ -472,12 +473,12 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 
 | Topic                                            | Document                                                         |
 | ------------------------------------------------ | ---------------------------------------------------------------- |
-| Install, env vars, dev / prod commands           | [`implement/getting-started.md`](./implement/getting-started.md) |
-| Stack, runtime topology, project layout          | [`implement/architecture.md`](./implement/architecture.md)       |
+| Install, env vars, type-check, SEO endpoints     | [`implement/getting-started.md`](./implement/getting-started.md) |
+| Stack, runtime topology, SEO, project layout     | [`implement/architecture.md`](./implement/architecture.md)       |
 | Database schema (DDL), field references          | [`implement/database.md`](./implement/database.md)               |
 | REST endpoints under `/api/*`                    | [`implement/api.md`](./implement/api.md)                         |
 | JWT / refresh model, admin seed, email transport | [`implement/auth.md`](./implement/auth.md)                       |
-| UI languages, locale sync, message namespaces    | [`implement/i18n.md`](./implement/i18n.md)                       |
+| UI languages, plural `t()`, SEO titles           | [`implement/i18n.md`](./implement/i18n.md)                       |
 | Original Authentication & RBAC feature spec      | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
 | Phase-by-phase engineering progress              | [`implement/roadmap.md`](./implement/roadmap.md)                 |
 | Raspberry Pi CI/CD deploy + rollback             | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |

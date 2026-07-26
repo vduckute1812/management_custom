@@ -1,12 +1,22 @@
 ---
-description: Nuxt 3 conventions for this SPA — architecture, API, auth, UI feedback
-globs: "**/*.{vue,ts}"
+description: Nuxt 3 SPA conventions — architecture, API, auth, i18n, SEO, and TypeScript/vue-tsc compatibility
+globs: "**/*.{vue,ts,json}"
 alwaysApply: false
 ---
 
 # Nuxt 3 Project Standards
 
-This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n`. Runtime: **Node ≥ 24**. As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
+This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n` + `@nuxtjs/seo`. Runtime: **Node ≥ 24**. TypeScript: classic compiler pinned in `package.json` (required by `vue-tsc`; see below). As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
+
+## Toolchain compatibility & type safety
+
+General principles — they apply to any dependency, not just today's versions:
+
+* **Type-check is the gate.** `npx vue-tsc --noEmit -p tsconfig.json` must pass before committing changes to `.vue` / `.ts` files. Never "fix" a failing check by skipping it, loosening `tsconfig`, or patching files inside `node_modules`.
+* **Upgrade tools together.** The type-checker, its compiler, and the framework plugins form one toolchain. Before bumping any of them (e.g. `typescript`, `vue-tsc`, i18n modules), confirm the new versions support each other — check release notes, then run the type-check to prove it. If a new major of a compiler/runtime is not yet supported by the surrounding tooling, stay on the latest supported line and note why in `package.json` history / docs.
+* **Reproduce, don't assume.** When a tool crashes after a dependency change, verify whether it's a tooling break or a real code error by running the check with a known-good toolchain first. Fix real code errors immediately; roll back incompatible tool versions rather than working around them.
+* **Follow library call signatures, not intuition.** When a typed API has overloads (i18n `t(...)`, DB `query<T>(...)`, etc.), match the library's documented parameter order and generic constraints; if the checker rejects a call, read the overload — do not cast or `any` it away. Prefer the library's own row/result types over hand-rolled shapes.
+* **Docs follow the code.** When a compatibility constraint is discovered, record it in `implement/` (getting-started / architecture) so the next upgrade attempt sees it.
 
 ## Architecture
 
@@ -67,5 +77,12 @@ Full as-built flow: [`implement/i18n.md`](../../implement/i18n.md).
 * **Routing:** `strategy: 'no_prefix'` — no `/en/...` paths. Switch with `LanguageSwitcher` (Settings → Language, or header account menu).
 * **Persistence:** `useSettings().locale` in `mgmt:settings:v1`. `plugins/i18n-locale.client.ts` syncs settings ↔ `setLocale` ↔ Day.js locale ↔ `html[lang]`. Cookie `mgmt_locale` is only for first-visit browser detection.
 * **Usage:** `$t` / `useI18n().t` for chrome, toasts, SEO titles. Add every new key to **all four** locale files (`en` first). Escape literal `@` as `{'@'}`.
+* **Plurals:** with named interpolation use `t(key, { count }, count)` — named object second, plural number third (the overload order vue-i18n defines).
 * **Labels:** `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` / `RECURRENCE_I18N_KEYS` from `~/types/task` + `t(...)`. Seeded post categories: `CATEGORY_I18N_KEYS` + `categoryDisplayName` from `~/utils/categoryLabel` (DB `name` fallback for custom dirs). Dates: Day.js after locale sync, or `INTL_LOCALE` from `~/types/locale`.
 * Do **not** invent a parallel i18n stack, store locale on the user row, or hardcode English UI strings in new UI. User-authored content stays untranslated.
+
+## SEO
+
+* Site identity / robots / sitemap live in `nuxt.config.ts` (`@nuxtjs/seo`, `site.url = https://dntechx.com`). Do not invent a second SEO stack.
+* Keep private app routes out of the sitemap; page titles stay on `useSeoMeta` + `t('seo.*')`.
+* Dynamic OG image generation is intentionally off (`ogImage.enabled: false`) on this host.

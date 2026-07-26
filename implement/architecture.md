@@ -6,25 +6,29 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Tech Stack
 
-| Layer    | Technology                  | Purpose                                                                                 |
-| -------- | --------------------------- | --------------------------------------------------------------------------------------- |
-| Frontend | Nuxt 3 / Vue 3              | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                 |
-| Styling  | TailwindCSS v4              | Utility-first layout and theming                                                        |
-| i18n     | `@nuxtjs/i18n`              | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
-| Backend  | Nitro (bundled with Nuxt 3) | Server-side API routes                                                                  |
-| Storage  | MySQL 8 (`mysql2` driver)   | Primary persistence — database `rc` (override via env)                                  |
-| Media    | Cloudflare R2 (S3 API)      | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                   |
-| Time     | Day.js                      | Date parsing, formatting, diffing (locale packs sync with UI language)                  |
-| Charts   | Chart.js                    | Velocity and trend visualizations                                                       |
-| Math     | KaTeX                       | Inline/block LaTeX in feed post bodies                                                  |
+| Layer      | Technology                     | Purpose                                                                                 |
+| ---------- | ------------------------------ | --------------------------------------------------------------------------------------- |
+| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                 |
+| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                        |
+| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
+| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)          |
+| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need      |
+| Backend    | Nitro (bundled with Nuxt 3)    | Server-side API routes                                                                  |
+| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                  |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                   |
+| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                  |
+| Charts     | Chart.js                       | Velocity and trend visualizations                                                       |
+| Math       | KaTeX                          | Inline/block LaTeX in feed post bodies                                                  |
 
 ## Project facts
 
 | Property     | Value                                                                 |
 | ------------ | --------------------------------------------------------------------- |
 | Project Path | `~/Projects/management_custom`                                        |
+| Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                |
 | Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                           |
 | Framework    | Nuxt 3 (Vue 3), client-only SPA                                       |
+| TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)  |
 | Styling      | TailwindCSS v4                                                        |
 | Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)   |
 | Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories) |
@@ -62,14 +66,14 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area            | Routes                                                              | Auth                                                   |
-| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
-| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`) |
-| Feed            | `/feed`                                                             | Public browse; compose/react/comment need login        |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                          |
-| Account         | `/settings`, `/profile`                                             | Authenticated                                          |
-| Admin           | `/admin`                                                            | Admin / superadmin                                     |
-| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                     |
+| Area            | Routes                                                              | Auth                                                                                                 |
+| --------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                                               |
+| Feed            | `/feed`                                                             | Public browse; two-column layout (stream + category rail on `lg+`); compose/react/comment need login |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                                                        |
+| Account         | `/settings`, `/profile`                                             | Authenticated                                                                                        |
+| Admin           | `/admin`                                                            | Admin / superadmin                                                                                   |
+| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                                                   |
 
 Global guard: `middleware/auth.global.ts`.
 
@@ -135,8 +139,25 @@ Global guard: `middleware/auth.global.ts`.
 ├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, categoryLabel, …
 ├── implement/                       # Technical documentation (you are here)
 ├── .env.example
-└── nuxt.config.ts                   # SPA routeRules + @nuxtjs/i18n
+└── nuxt.config.ts                   # SPA routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```
+
+---
+
+## SEO (`@nuxtjs/seo`)
+
+Configured in `nuxt.config.ts` for production identity **Da Nang TechX** / `https://dntechx.com`:
+
+| Surface              | Behavior                                                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/robots.txt`        | Allows crawl of public surfaces; `Disallow` for `/tasks`, `/epics`, `/analytics`, `/admin`, `/settings`, `/profile`, `/login`, `/signup`, `/verify-email`              |
+| `/sitemap.xml`       | Indexes `/` and `/feed` only (private app routes excluded)                                                                                                             |
+| Open Graph / Twitter | Text meta via `nuxt-seo-utils`; **dynamic OG image generation is disabled** (`ogImage.enabled: false`) — native `@takumi-rs/core` is not viable on the ARM deploy host |
+| Page titles          | Still set per-page with `useSeoMeta` + `t('seo.*')` (see [`i18n.md`](./i18n.md#seo-titles))                                                                            |
+
+**SPA caveat.** The whole app remains `routeRules: { "/**": { ssr: false } }`. Google can execute JS; many social crawlers do not. `/robots.txt` and `/sitemap.xml` are Nitro routes and work without SSR. Full HTML meta in the first response for `/` and `/feed` would require selective SSR/prerender later.
+
+After deploy, verify the two endpoints on the live host and submit the sitemap in Google Search Console.
 
 ---
 

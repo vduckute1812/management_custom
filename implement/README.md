@@ -1,6 +1,6 @@
 # Implementation Documentation
 
-Technical reference for the **Personal Task & Analytics Manager**. The root [`../README.md`](../README.md) describes the product — what the app *is* and how it *feels* to use. Everything in this folder describes the engineering: how it's built, where the code lives, and how to run it.
+Technical reference for the **Personal Task & Analytics Manager**. The root [`../README.md`](../README.md) describes the product — what the app _is_ and how it _feels_ to use. Everything in this folder describes the engineering: how it's built, where the code lives, and how to run it.
 
 If you came here to **use** the app, start at the root README. If you came here to **change** the app, start here.
 
@@ -8,17 +8,17 @@ If you came here to **use** the app, start at the root README. If you came here 
 
 ## Map
 
-| File                                        | What's in it                                                                                |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| [`getting-started.md`](./getting-started.md)| Prerequisites, env vars, `npm` scripts, dev / prod commands, the first-run experience.      |
-| [`architecture.md`](./architecture.md)      | Tech stack, SPA topology (Feed + Time Management), MySQL + optional R2, project structure. |
-| [`database.md`](./database.md)              | Schema DDL + feed/stories tables, field references, migration policy.                       |
-| [`api.md`](./api.md)                        | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin).                 |
-| [`auth.md`](./auth.md)                      | Roles, public vs protected client routes, JWT/refresh, bootstrap superadmin, email transport. |
-| [`i18n.md`](./i18n.md)                      | UI languages (`en` / `vi` / `zh-CN` / `zh-TW`), `no_prefix` routing, settings persistence, message namespaces, Day.js / SEO wiring. |
-| [`auth-rbac.md`](./auth-rbac.md)            | Original feature spec for Authentication & RBAC (the "what was asked for" document).        |
-| [`roadmap.md`](./roadmap.md)                | Phase-by-phase engineering progress through Phase 12 (feed/stories + public hub). |
-| [`ci-cd.md`](./ci-cd.md)                    | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.    |
+| File                                         | What's in it                                                                                  |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| [`getting-started.md`](./getting-started.md) | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                 |
+| [`architecture.md`](./architecture.md)       | Tech stack, SPA topology, SEO (`@nuxtjs/seo`), MySQL + optional R2, project structure.        |
+| [`database.md`](./database.md)               | Schema DDL + feed/stories tables, field references, migration policy.                         |
+| [`api.md`](./api.md)                         | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin).                   |
+| [`auth.md`](./auth.md)                       | Roles, public vs protected client routes, JWT/refresh, bootstrap superadmin, email transport. |
+| [`i18n.md`](./i18n.md)                       | Locales, `no_prefix` routing, plural `t()` shape, Day.js / SEO titles.                        |
+| [`auth-rbac.md`](./auth-rbac.md)             | Original feature spec for Authentication & RBAC (the "what was asked for" document).          |
+| [`roadmap.md`](./roadmap.md)                 | Phase-by-phase engineering progress through Phase 13 (feed polish + SEO + vue-tsc).           |
+| [`ci-cd.md`](./ci-cd.md)                     | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.                      |
 
 ## Feature specs vs. implementation docs
 
