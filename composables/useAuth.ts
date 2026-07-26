@@ -127,7 +127,8 @@ export const useAuth = () => {
 
   async function refresh(): Promise<AuthSession> {
     if (!refreshToken.value) {
-      const { t } = useI18n();
+      // May run from auth.client plugin (no setup instance after await).
+      const { t } = useSafeI18n();
       throw createError({
         statusCode: 401,
         statusMessage: t("auth.noRefreshToken"),

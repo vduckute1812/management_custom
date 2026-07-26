@@ -20,7 +20,8 @@ export type TaskSavePayload = Omit<Partial<Task>, "recurrence"> & {
 };
 
 export const useTasks = () => {
-  const { t } = useI18n();
+  // Also pulled in from plugins/notifications.client.ts at app boot.
+  const { t } = useSafeI18n();
   const tasks = useState<Task[]>("tasks", () => []);
   const isLoading = useState<boolean>("tasks:loading", () => false);
   const error = useState<string | null>("tasks:error", () => null);

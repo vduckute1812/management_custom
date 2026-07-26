@@ -39,7 +39,8 @@ export type NotificationPermissionState =
  *   `resetFired()` clears it when the tab returns from a long invisibility.
  */
 export const useNotifications = () => {
-  const { t } = useI18n();
+  // Called from plugins/notifications.client.ts (no setup instance).
+  const { t } = useSafeI18n();
   const { settings } = useSettings();
   const { withProjections } = useRecurrence();
   const { pushToast } = useToasts();

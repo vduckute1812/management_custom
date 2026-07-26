@@ -18,7 +18,8 @@ function applyLocaleSideEffects(code: AppLocale) {
 
 export default defineNuxtPlugin(() => {
   const { settings, update } = useSettings();
-  const { locale, setLocale, locales } = useI18n();
+  // Plugins have no Vue setup instance — useI18n() throws prod error "26".
+  const { locale, setLocale, locales } = useSafeI18n();
 
   const available = new Set(
     locales.value.map((l) => (typeof l === "string" ? l : l.code))

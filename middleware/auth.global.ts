@@ -46,7 +46,8 @@ export default defineNuxtRouteMiddleware((to) => {
   if (to.path.startsWith("/admin") && !auth.isAdmin.value) {
     if (import.meta.client) {
       const { pushToast } = useToasts();
-      const { t } = useI18n();
+      // Middleware has no Vue setup instance — useI18n() throws prod "26".
+      const { t } = useSafeI18n();
       queueMicrotask(() => {
         pushToast(t("auth.adminAccessRequired"), {
           tone: "danger",
