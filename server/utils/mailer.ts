@@ -187,7 +187,7 @@ export async function sendVerificationEmail(args: {
             <tr>
               <td style="padding:22px 24px 8px 24px;">
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b;">
-                  Management
+                  Da Nang Tech R&amp;D and Networking Portal
                 </div>
                 <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:22px; font-weight:700; line-height:1.25; color:#0f172a; margin-top:10px;">
                   Verify your email address
@@ -232,7 +232,7 @@ export async function sendVerificationEmail(args: {
           </table>
 
           <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:11px; line-height:1.6; color:#94a3b8; margin-top:10px;">
-            © ${new Date().getFullYear()} Management
+            © ${new Date().getFullYear()} Da Nang Tech R&amp;D and Networking Portal
           </div>
         </td>
       </tr>

@@ -43,7 +43,7 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: "Personal Task & Analytics Manager",
+      title: "Da Nang Tech R&D and Networking Portal",
       meta: [
         { charset: "utf-8" },
         { name: "viewport", content: "width=device-width, initial-scale=1" },

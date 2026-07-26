@@ -1,6 +1,6 @@
 {
   "nav": {
-    "brand": "Management",
+    "brand": "Da Nang Tech R&D and Networking Portal",
     "skipToContent": "跳到主要内容",
     "primaryAria": "主导航",
     "moduleAria": "模块",
@@ -22,7 +22,7 @@
     "accountMenuAria": "账户菜单",
     "sectionFeed": "动态",
     "sectionTime": "时间管理",
-    "sectionDefault": "Management",
+    "sectionDefault": "Da Nang Tech R&D and Networking Portal",
     "sectionFeedHint": "帖子、快拍与分享",
     "sectionTasksHint": "任务、史诗与日程",
     "quickJump": "快速跳转",
@@ -778,7 +778,7 @@
   "seo": {
     "appTitle": "个人任务与分析管理器",
     "home": "首页",
-    "homeDescription": "Management — 动态与时间管理模块总览。",
+    "homeDescription": "Da Nang Tech R&D and Networking Portal — 动态与时间管理模块总览。",
     "feed": "动态",
     "feedDescription": "与团队分享文档、快拍与动态。",
     "profile": "个人资料",
@@ -798,7 +798,7 @@
     "verifyEmail": "验证邮箱"
   },
   "home": {
-    "brand": "Management",
+    "brand": "Da Nang Tech R&D and Networking Portal",
     "welcome": "欢迎",
     "welcomeNamed": "欢迎，{name}",
     "intro": "此工作区有两个独立模块。使用页眉在它们之间切换——各模块内部没有交叉链接。",

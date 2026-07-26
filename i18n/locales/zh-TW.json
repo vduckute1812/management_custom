@@ -1,6 +1,6 @@
 {
   "nav": {
-    "brand": "Management",
+    "brand": "Da Nang Tech R&D and Networking Portal",
     "skipToContent": "跳至主要內容",
     "primaryAria": "主要導覽",
     "moduleAria": "模組",
@@ -22,7 +22,7 @@
     "accountMenuAria": "帳戶選單",
     "sectionFeed": "動態",
     "sectionTime": "時間管理",
-    "sectionDefault": "Management",
+    "sectionDefault": "Da Nang Tech R&D and Networking Portal",
     "sectionFeedHint": "貼文、限時動態與分享",
     "sectionTasksHint": "任務、史詩與行程",
     "quickJump": "快速跳轉",
@@ -778,7 +778,7 @@
   "seo": {
     "appTitle": "個人任務與分析管理器",
     "home": "首頁",
-    "homeDescription": "Management — 動態與時間管理模組總覽。",
+    "homeDescription": "Da Nang Tech R&D and Networking Portal — 動態與時間管理模組總覽。",
     "feed": "動態",
     "feedDescription": "與團隊分享文件、限時動態與動態。",
     "profile": "個人資料",
@@ -798,7 +798,7 @@
     "verifyEmail": "驗證電子郵件"
   },
   "home": {
-    "brand": "Management",
+    "brand": "Da Nang Tech R&D and Networking Portal",
     "welcome": "歡迎",
     "welcomeNamed": "歡迎，{name}",
     "intro": "此工作區有兩個獨立模組。使用頁首在它們之間切換——各模組內部沒有交叉連結。",
