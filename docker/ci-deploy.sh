@@ -226,7 +226,8 @@ run_migrations() {
   esac
   log "migrate DB_HOST=${db_host}"
 
-  if ! mgmt_compose run --rm --no-deps \
+  # -T: no pseudo-TTY (GitHub Actions has no TTY; avoids podman-compose warning).
+  if ! mgmt_compose run --rm --no-deps -T \
     -e "DB_HOST=${db_host}" \
     app \
     node --import tsx scripts/migrate.ts up; then

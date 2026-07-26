@@ -15,6 +15,12 @@ export default defineNuxtConfig({
   routeRules: {
     "/**": { ssr: false },
   },
+  // After a deploy, hashed /_nuxt/* chunks disappear. SPA clients still on an
+  // old shell then fail dynamic imports (Nuxt error page: 500 + a dep index
+  // like "26"). Reload immediately instead of only on the next navigation.
+  experimental: {
+    emitRouteChunkError: "automatic-immediate",
+  },
   css: ["~/assets/css/main.css"],
   vite: {
     plugins: [tailwindcss()],
