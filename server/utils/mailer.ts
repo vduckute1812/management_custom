@@ -24,12 +24,14 @@ interface MailerState {
 const state: MailerState = { transport: null, ready: false };
 
 function buildTransport(): Transporter | null {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = process.env.SMTP_HOST?.trim();
+  const user = process.env.SMTP_USER?.trim();
+  // Gmail app passwords are often pasted with spaces; Google accepts either,
+  // but normalize so operators don't trip on copy-paste formatting.
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, "");
   if (!host || !user || !pass) {
     console.warn(
-      "[mailer] SMTP_HOST / SMTP_USER / SMTP_PASS not set — emails will be printed to the server console instead of sent."
+      "[mailer] SMTP_HOST / SMTP_USER / SMTP_PASS not set — emails will be printed to the server console instead of sent.",
     );
     return null;
   }
@@ -65,18 +67,24 @@ export async function sendMail(args: SendMailArgs): Promise<void> {
       `\n[mailer:dry-run]\n` +
         `To:      ${args.to}\n` +
         `Subject: ${args.subject}\n` +
-        `---\n${args.text}\n---\n`
+        `---\n${args.text}\n---\n`,
     );
     return;
   }
   const from = process.env.SMTP_FROM ?? process.env.SMTP_USER!;
-  await t.sendMail({
-    from,
-    to: args.to,
-    subject: args.subject,
-    text: args.text,
-    html: args.html,
-  });
+  try {
+    await t.sendMail({
+      from,
+      to: args.to,
+      subject: args.subject,
+      text: args.text,
+      html: args.html,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[mailer] send failed to=${args.to}: ${message}`);
+    throw err;
+  }
 }
 
 /**

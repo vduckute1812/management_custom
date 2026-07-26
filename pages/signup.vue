@@ -1,11 +1,16 @@
 <script setup lang="ts">
+import {
+  evaluatePassword,
+  isPasswordStrong,
+  type PasswordRuleId,
+} from "~/utils/passwordPolicy";
+
 definePageMeta({ layout: false });
 
 // Already-authenticated visitors are redirected away by the global auth
 // middleware (see middleware/auth.global.ts), so we only handle the
 // unauthenticated sign-up flow here.
 const auth = useAuth();
-const router = useRouter();
 const { t } = useI18n();
 
 useSeoMeta({
@@ -14,14 +19,43 @@ useSeoMeta({
 
 const email = ref("");
 const password = ref("");
+const passwordConfirm = ref("");
 const name = ref("");
 const busy = ref(false);
 const error = ref<string | null>(null);
 const success = ref<{ verificationSent: boolean } | null>(null);
 
+const RULE_I18N: Record<PasswordRuleId, string> = {
+  minLength: "auth.passwordRuleMinLength",
+  lower: "auth.passwordRuleLower",
+  upper: "auth.passwordRuleUpper",
+  digit: "auth.passwordRuleDigit",
+  special: "auth.passwordRuleSpecial",
+};
+
+const passwordRules = computed(() => evaluatePassword(password.value));
+const passwordsMatch = computed(
+  () =>
+    passwordConfirm.value.length > 0 &&
+    password.value === passwordConfirm.value,
+);
+const canSubmit = computed(
+  () => isPasswordStrong(password.value) && passwordsMatch.value && !busy.value,
+);
+
 async function onSubmit() {
   if (busy.value) return;
   error.value = null;
+
+  if (!isPasswordStrong(password.value)) {
+    error.value = t("auth.passwordTooWeak");
+    return;
+  }
+  if (password.value !== passwordConfirm.value) {
+    error.value = t("auth.passwordMismatch");
+    return;
+  }
+
   busy.value = true;
   try {
     const result = await auth.signup({
@@ -65,7 +99,9 @@ async function onSubmit() {
         v-if="success"
         class="bg-white border border-emerald-200 rounded-xl shadow-sm p-6 space-y-3"
       >
-        <p class="text-sm font-semibold text-emerald-700">{{ $t("auth.accountCreated") }}</p>
+        <p class="text-sm font-semibold text-emerald-700">
+          {{ $t("auth.accountCreated") }}
+        </p>
         <p class="text-sm text-slate-700">
           {{
             success.verificationSent
@@ -128,10 +164,50 @@ async function onSubmit() {
             autocomplete="new-password"
             minlength="8"
             required
+            aria-describedby="signup-password-rules"
             class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
           />
-          <p class="text-[11px] text-slate-500 mt-1">
-            {{ $t("auth.passwordHint") }}
+          <ul
+            id="signup-password-rules"
+            class="mt-2 space-y-1"
+            :aria-label="$t('auth.passwordRequirements')"
+          >
+            <li
+              v-for="rule in passwordRules"
+              :key="rule.id"
+              class="flex items-center gap-1.5 text-[11px]"
+              :class="rule.ok ? 'text-emerald-700' : 'text-slate-500'"
+            >
+              <span aria-hidden="true">{{ rule.ok ? "✓" : "○" }}</span>
+              <span>{{ $t(RULE_I18N[rule.id]) }}</span>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <label
+            for="signup-password-confirm"
+            class="block text-xs font-medium text-slate-600 mb-1"
+            >{{ $t("auth.confirmPassword") }}</label
+          >
+          <input
+            id="signup-password-confirm"
+            v-model="passwordConfirm"
+            type="password"
+            autocomplete="new-password"
+            minlength="8"
+            required
+            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
+            :class="
+              passwordConfirm && !passwordsMatch
+                ? 'border-rose-300 focus:ring-rose-300 focus:border-rose-400'
+                : ''
+            "
+          />
+          <p
+            v-if="passwordConfirm && !passwordsMatch"
+            class="mt-1 text-[11px] text-rose-600"
+          >
+            {{ $t("auth.passwordMismatch") }}
           </p>
         </div>
 
@@ -144,7 +220,7 @@ async function onSubmit() {
 
         <button
           type="submit"
-          :disabled="busy"
+          :disabled="!canSubmit"
           class="w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
           {{ busy ? $t("auth.creatingAccount") : $t("auth.createAccount") }}

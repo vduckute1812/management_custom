@@ -23,7 +23,8 @@ import {
   hashPassword,
   nowPlusSeconds,
 } from "~/server/utils/auth";
-import { sendVerificationEmail } from "~/server/utils/mailer";
+import { buildVerifyUrl, sendVerificationEmail } from "~/server/utils/mailer";
+import { passwordStrengthError } from "~/utils/passwordPolicy";
 
 interface SignupBody {
   email?: string;
@@ -46,10 +47,11 @@ export default defineEventHandler(async (event) => {
       statusMessage: "A valid email is required",
     });
   }
-  if (password.length < 8) {
+  const strengthError = passwordStrengthError(password);
+  if (strengthError) {
     throw createError({
       statusCode: 400,
-      statusMessage: "Password must be at least 8 characters",
+      statusMessage: strengthError,
     });
   }
   if (name && name.length > 120) {
@@ -87,9 +89,13 @@ export default defineEventHandler(async (event) => {
   try {
     await sendVerificationEmail({ to: email, token: rawToken });
   } catch (err) {
-    // SMTP failures shouldn't block sign-up — the user record exists and the
-    // verification row exists; they can resend later. Log and continue.
+    // SMTP failures shouldn't block sign-up — the user + verification row
+    // already exist. Log the one-time link so an operator can finish verify
+    // from the server console (token is never returned to the browser).
     console.error("[signup] failed to dispatch verification email", err);
+    console.error(
+      `[signup] verification link (SMTP failed; one-time, expires in 24h):\n${buildVerifyUrl(rawToken)}`,
+    );
     verificationSent = false;
   }
 
