@@ -55,7 +55,7 @@
     "passwordRuleLower": "一个小写字母",
     "passwordRuleUpper": "一个大写字母",
     "passwordRuleDigit": "一个数字",
-    "passwordRuleSpecial": "一个特殊字符（!@#$…）",
+    "passwordRuleSpecial": "一个特殊字符（!{'@'}#$…）",
     "passwordMismatch": "两次输入的密码不一致。",
     "passwordTooWeak": "请选择符合全部要求的更强密码。",
     "createAccount": "创建账户",

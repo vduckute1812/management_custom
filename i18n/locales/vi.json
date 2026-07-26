@@ -55,7 +55,7 @@
     "passwordRuleLower": "Một chữ thường",
     "passwordRuleUpper": "Một chữ hoa",
     "passwordRuleDigit": "Một chữ số",
-    "passwordRuleSpecial": "Một ký tự đặc biệt (!@#$…)",
+    "passwordRuleSpecial": "Một ký tự đặc biệt (!{'@'}#$…)",
     "passwordMismatch": "Mật khẩu không khớp.",
     "passwordTooWeak": "Chọn mật khẩu mạnh hơn, đáp ứng mọi yêu cầu.",
     "createAccount": "Tạo tài khoản",

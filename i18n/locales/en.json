@@ -55,7 +55,7 @@
     "passwordRuleLower": "One lowercase letter",
     "passwordRuleUpper": "One uppercase letter",
     "passwordRuleDigit": "One number",
-    "passwordRuleSpecial": "One special character (!@#$…)",
+    "passwordRuleSpecial": "One special character (!{'@'}#$…)",
     "passwordMismatch": "Passwords do not match.",
     "passwordTooWeak": "Choose a stronger password that meets every requirement.",
     "createAccount": "Create account",
