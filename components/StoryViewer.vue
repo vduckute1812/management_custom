@@ -13,13 +13,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const {
-  markViewed,
-  removeStory,
-  setReaction,
-  clearReaction,
-  fetchInsights,
-} = useStories();
+const { markViewed, removeStory, setReaction, clearReaction, fetchInsights } =
+  useStories();
 const { mediaUrl } = useMediaUrl();
 
 const groupIndex = ref(props.startGroupIndex);
@@ -206,7 +201,7 @@ watch(
     groupIndex.value = i;
     storyIndex.value = 0;
     void startTimer();
-  }
+  },
 );
 </script>
 
@@ -249,7 +244,9 @@ watch(
         </div>
       </div>
 
-      <div class="absolute inset-x-0 top-3 z-10 px-3 pt-3 flex items-center justify-between gap-2">
+      <div
+        class="absolute inset-x-0 top-3 z-10 px-3 pt-3 flex items-center justify-between gap-2"
+      >
         <p class="text-sm font-semibold truncate">
           {{ group.author.name || group.author.email }}
         </p>
@@ -260,7 +257,13 @@ watch(
             class="text-xs text-white/80 hover:text-white rounded px-1.5 py-0.5 bg-white/10"
             @click="openInsights"
           >
-            {{ t("feed.stories.views", story.viewCount, { count: story.viewCount }) }}
+            {{
+              t(
+                "feed.stories.views",
+                { count: story.viewCount },
+                story.viewCount,
+              )
+            }}
           </button>
           <button
             v-if="story.canDelete"
@@ -286,7 +289,9 @@ watch(
         @click="next"
       />
 
-      <div class="absolute inset-0 flex items-center justify-center p-6 pt-14 pb-20">
+      <div
+        class="absolute inset-0 flex items-center justify-center p-6 pt-14 pb-20"
+      >
         <img
           v-if="story.mediaUrl && story.mime?.startsWith('image/')"
           :src="mediaUrl(story.mediaUrl)"
@@ -298,7 +303,9 @@ watch(
         <p
           v-if="story.body"
           class="text-center text-lg font-medium leading-relaxed whitespace-pre-wrap"
-          :class="story.mediaUrl ? 'absolute bottom-20 inset-x-6 drop-shadow' : ''"
+          :class="
+            story.mediaUrl ? 'absolute bottom-20 inset-x-6 drop-shadow' : ''
+          "
         >
           {{ story.body }}
         </p>
@@ -342,7 +349,9 @@ watch(
             })
           }}
         </span>
-        <span class="text-xs font-medium text-white/80">{{ $t("feed.stories.details") }}</span>
+        <span class="text-xs font-medium text-white/80">{{
+          $t("feed.stories.details")
+        }}</span>
       </button>
     </div>
 
@@ -360,9 +369,13 @@ watch(
             aria-modal="true"
             :aria-label="$t('feed.stories.insightsAria')"
           >
-            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <div
+              class="flex items-center justify-between border-b border-slate-200 px-4 py-3"
+            >
               <div>
-                <p class="text-sm font-semibold text-slate-900">{{ $t("feed.stories.myStory") }}</p>
+                <p class="text-sm font-semibold text-slate-900">
+                  {{ $t("feed.stories.myStory") }}
+                </p>
                 <p class="text-xs text-slate-500">
                   {{
                     $t("feed.stories.viewsReactions", {
@@ -390,7 +403,9 @@ watch(
 
               <template v-else-if="insights">
                 <section>
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  <h3
+                    class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2"
+                  >
                     {{ $t("feed.stories.viewers") }}
                   </h3>
                   <ul v-if="insights.viewers.length" class="space-y-2">
@@ -403,7 +418,9 @@ watch(
                         class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700"
                         aria-hidden="true"
                       >
-                        {{ (v.user.name || v.user.email).charAt(0).toUpperCase() }}
+                        {{
+                          (v.user.name || v.user.email).charAt(0).toUpperCase()
+                        }}
                       </span>
                       <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium text-slate-800">
@@ -413,16 +430,24 @@ watch(
                           {{ formatWhen(v.viewedAt) }}
                         </p>
                       </div>
-                      <span v-if="v.reaction" class="text-base" :title="v.reaction">
+                      <span
+                        v-if="v.reaction"
+                        class="text-base"
+                        :title="v.reaction"
+                      >
                         {{ REACTION_EMOJI[v.reaction] }}
                       </span>
                     </li>
                   </ul>
-                  <p v-else class="text-sm text-slate-500">{{ $t("feed.stories.noViewsYet") }}</p>
+                  <p v-else class="text-sm text-slate-500">
+                    {{ $t("feed.stories.noViewsYet") }}
+                  </p>
                 </section>
 
                 <section>
-                  <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
+                  <h3
+                    class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2"
+                  >
                     {{ $t("feed.stories.reactions") }}
                   </h3>
                   <div
@@ -431,7 +456,7 @@ watch(
                   >
                     <span
                       v-for="r in POST_REACTION_TYPES.filter(
-                        (k) => (insights?.reactions[k] ?? 0) > 0
+                        (k) => (insights?.reactions[k] ?? 0) > 0,
                       )"
                       :key="r"
                       class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
@@ -446,7 +471,9 @@ watch(
                       :key="`${ru.user.id}-${ru.reaction}`"
                       class="flex items-center gap-3"
                     >
-                      <span class="text-base">{{ REACTION_EMOJI[ru.reaction] }}</span>
+                      <span class="text-base">{{
+                        REACTION_EMOJI[ru.reaction]
+                      }}</span>
                       <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium text-slate-800">
                           {{ ru.user.name || ru.user.email }}
@@ -457,7 +484,9 @@ watch(
                       </div>
                     </li>
                   </ul>
-                  <p v-else class="text-sm text-slate-500">{{ $t("feed.stories.noReactionsYet") }}</p>
+                  <p v-else class="text-sm text-slate-500">
+                    {{ $t("feed.stories.noReactionsYet") }}
+                  </p>
                 </section>
               </template>
             </div>

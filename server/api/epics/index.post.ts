@@ -13,6 +13,7 @@ import {
   type EpicColor,
 } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import type { RowDataPacket } from "mysql2/promise";
 
 function sanitize(input: Partial<Epic>, base?: Epic | null): Epic {
   const now = nowISO();
@@ -20,16 +21,17 @@ function sanitize(input: Partial<Epic>, base?: Epic | null): Epic {
     typeof input.status === "number" &&
     TASK_STATUSES.includes(input.status as TaskStatus)
       ? (input.status as TaskStatus)
-      : base?.status ?? TaskStatus.Todo;
+      : (base?.status ?? TaskStatus.Todo);
 
   const tags = Array.isArray(input.tags)
     ? input.tags.map((t) => String(t)).filter(Boolean)
-    : base?.tags ?? [];
+    : (base?.tags ?? []);
 
   const color: EpicColor =
-    typeof input.color === "string" && EPIC_COLORS.includes(input.color as EpicColor)
+    typeof input.color === "string" &&
+    EPIC_COLORS.includes(input.color as EpicColor)
       ? (input.color as EpicColor)
-      : base?.color ?? "brand";
+      : (base?.color ?? "brand");
 
   return {
     id: base?.id ?? input.id ?? generateId("epic"),
@@ -37,7 +39,7 @@ function sanitize(input: Partial<Epic>, base?: Epic | null): Epic {
     description:
       typeof input.description === "string"
         ? input.description
-        : base?.description ?? undefined,
+        : (base?.description ?? undefined),
     status,
     color,
     dueDate: input.dueDate || base?.dueDate || undefined,
@@ -80,9 +82,9 @@ export default defineEventHandler(async (event) => {
 
 async function epicIdExistsForAnyone(id: string): Promise<boolean> {
   const pool = getPool();
-  const [rows] = await pool.query<{ id: string }[] & { length: number }>(
+  const [rows] = await pool.query<(RowDataPacket & { id: string })[]>(
     "SELECT id FROM epics WHERE id = ? LIMIT 1",
-    [id]
+    [id],
   );
   return rows.length > 0;
 }

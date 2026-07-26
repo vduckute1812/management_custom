@@ -3,7 +3,48 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-01",
   devtools: { enabled: false },
-  modules: ["@nuxtjs/i18n"],
+  modules: ["@nuxtjs/i18n", "@nuxtjs/seo"],
+  // Public-facing identity used by @nuxtjs/seo for canonical URLs, sitemap,
+  // robots, Open Graph, and schema.org output.
+  site: {
+    url: "https://dntechx.com",
+    name: "Da Nang TechX",
+    description:
+      "Da Nang Tech R&D and Networking Portal — feed and time management.",
+    defaultLocale: "en",
+  },
+  // Only the public hub and feed should be indexed; app/admin surfaces are
+  // gated SPA views with no crawlable value, so keep them out of search.
+  robots: {
+    disallow: [
+      "/tasks",
+      "/epics",
+      "/analytics",
+      "/admin",
+      "/settings",
+      "/profile",
+      "/login",
+      "/signup",
+      "/verify-email",
+    ],
+  },
+  // Dynamic OG image rendering needs a native renderer (@takumi-rs/core) that
+  // isn't viable on this ARM host. Disable it — OG/Twitter text meta still work
+  // via nuxt-seo-utils; use a static og:image if a preview thumbnail is needed.
+  ogImage: { enabled: false },
+  sitemap: {
+    exclude: [
+      "/tasks/**",
+      "/epics/**",
+      "/analytics",
+      "/admin/**",
+      "/settings",
+      "/profile/**",
+      "/login",
+      "/signup",
+      "/verify-email",
+    ],
+  },
   // SPA mode. Auth tokens live in localStorage; SSR can't read them, so we
   // disable SSR via routeRules. Public routes (/, /feed) render for guests;
   // the auth plugin hydrates once, then route middleware gates protected
@@ -31,8 +72,18 @@ export default defineNuxtConfig({
     locales: [
       { code: "en", language: "en-US", name: "English", file: "en.json" },
       { code: "vi", language: "vi-VN", name: "Tiếng Việt", file: "vi.json" },
-      { code: "zh-CN", language: "zh-CN", name: "简体中文", file: "zh-CN.json" },
-      { code: "zh-TW", language: "zh-TW", name: "繁體中文", file: "zh-TW.json" },
+      {
+        code: "zh-CN",
+        language: "zh-CN",
+        name: "简体中文",
+        file: "zh-CN.json",
+      },
+      {
+        code: "zh-TW",
+        language: "zh-TW",
+        name: "繁體中文",
+        file: "zh-TW.json",
+      },
     ],
     detectBrowserLanguage: {
       useCookie: true,
@@ -49,8 +100,7 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         {
           name: "description",
-          content:
-            "Local-first task and analytics manager built with Nuxt 3.",
+          content: "Local-first task and analytics manager built with Nuxt 3.",
         },
         // Render with a sensible color scheme even on first paint, before the
         // theme plugin has run.

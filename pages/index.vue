@@ -40,8 +40,12 @@ function catLabel(cat: { slug: string; name: string }) {
       />
     </div>
 
-    <div class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
-      <section class="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
+    <div
+      class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20"
+    >
+      <section
+        class="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
+      >
         <header>
           <div
             class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-3 py-1.5 shadow-sm backdrop-blur"
@@ -50,7 +54,9 @@ function catLabel(cat: { slug: string; name: string }) {
               <span
                 class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-60"
               />
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-brand-600" />
+              <span
+                class="relative inline-flex h-2 w-2 rounded-full bg-brand-600"
+              />
             </span>
             <span class="text-xs font-semibold tracking-wide text-brand-700">
               {{ $t("home.brand") }}
@@ -66,7 +72,9 @@ function catLabel(cat: { slug: string; name: string }) {
                 : $t("home.welcome")
             }}
           </h1>
-          <p class="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+          <p
+            class="mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg"
+          >
             {{ $t("home.intro") }}
           </p>
 
@@ -109,7 +117,9 @@ function catLabel(cat: { slug: string; name: string }) {
           </div>
 
           <p class="mt-4 max-w-xl text-xs leading-5 text-slate-500">
-            {{ auth.isAuthenticated.value ? $t("home.cta") : $t("home.ctaGuest") }}
+            {{
+              auth.isAuthenticated.value ? $t("home.cta") : $t("home.ctaGuest")
+            }}
           </p>
         </header>
 
@@ -127,7 +137,9 @@ function catLabel(cat: { slug: string; name: string }) {
                 <span class="h-2.5 w-2.5 rounded-full bg-amber-400" />
                 <span class="h-2.5 w-2.5 rounded-full bg-emerald-400" />
               </div>
-              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              <span
+                class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
+              >
                 {{ $t("nav.brand") }}
               </span>
             </div>
@@ -153,16 +165,26 @@ function catLabel(cat: { slug: string; name: string }) {
                   </svg>
                 </span>
                 <div class="mt-auto">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300">
+                  <p
+                    class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300"
+                  >
                     {{ $t("nav.feed") }}
                   </p>
-                  <h2 class="mt-2 text-xl font-semibold">{{ $t("home.feedTitle") }}</h2>
+                  <h2 class="mt-2 text-xl font-semibold">
+                    {{ $t("home.feedTitle") }}
+                  </h2>
                   <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-300">
                     {{ $t("home.feedBody") }}
                   </p>
-                  <span class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+                  <span
+                    class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white"
+                  >
                     {{ $t("nav.feed") }}
-                    <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+                    <span
+                      class="transition-transform group-hover:translate-x-1"
+                      aria-hidden="true"
+                      >→</span
+                    >
                   </span>
                 </div>
               </NuxtLink>
@@ -194,7 +216,9 @@ function catLabel(cat: { slug: string; name: string }) {
                   </div>
                 </div>
                 <div class="mt-auto">
-                  <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
+                  <p
+                    class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600"
+                  >
                     {{ $t("nav.timeManagement") }}
                   </p>
                   <h2 class="mt-2 text-xl font-semibold text-slate-900">
@@ -203,9 +227,15 @@ function catLabel(cat: { slug: string; name: string }) {
                   <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
                     {{ $t("home.timeBody") }}
                   </p>
-                  <span class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700">
+                  <span
+                    class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700"
+                  >
                     {{ $t("nav.timeManagement") }}
-                    <span class="transition-transform group-hover:translate-x-1" aria-hidden="true">→</span>
+                    <span
+                      class="transition-transform group-hover:translate-x-1"
+                      aria-hidden="true"
+                      >→</span
+                    >
                   </span>
                 </div>
               </NuxtLink>
@@ -218,15 +248,21 @@ function catLabel(cat: { slug: string; name: string }) {
         class="mt-16 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur sm:mt-20 sm:p-8 lg:p-10"
         :aria-label="$t('home.categoriesTitle')"
       >
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div
+          class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+        >
           <div class="max-w-2xl">
             <div class="flex items-center gap-3">
               <span class="h-px w-8 bg-brand-500" aria-hidden="true" />
-              <p class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
+              <p
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600"
+              >
                 {{ $t("nav.feed") }}
               </p>
             </div>
-            <h2 class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            <h2
+              class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+            >
               {{ $t("home.categoriesTitle") }}
             </h2>
             <p class="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
@@ -255,7 +291,10 @@ function catLabel(cat: { slug: string; name: string }) {
           />
         </div>
 
-        <div v-else class="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          v-else
+          class="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+        >
           <NuxtLink
             v-for="(cat, index) in categories"
             :key="cat.id"
@@ -282,14 +321,18 @@ function catLabel(cat: { slug: string; name: string }) {
                 />
               </svg>
             </div>
-            <p class="mt-4 text-sm font-semibold text-slate-900 group-hover:text-brand-700">
+            <p
+              class="mt-4 text-sm font-semibold text-slate-900 group-hover:text-brand-700"
+            >
               {{ catLabel(cat) }}
             </p>
             <p class="mt-1 text-xs text-slate-500">
               {{
-                t("home.articleCount", cat.postCount ?? 0, {
-                  count: cat.postCount ?? 0,
-                })
+                t(
+                  "home.articleCount",
+                  { count: cat.postCount ?? 0 },
+                  cat.postCount ?? 0,
+                )
               }}
             </p>
           </NuxtLink>

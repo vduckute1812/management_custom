@@ -37,7 +37,7 @@ const rolledOver = computed(() => {
         (b) =>
           !b.projected &&
           dayjs(b.end).isValid() &&
-          dayjs(b.end).isBefore(startOfToday)
+          dayjs(b.end).isBefore(startOfToday),
       );
     })
     .sort((a, b) => {
@@ -67,7 +67,7 @@ function reasonFor(task: Task): string {
     (b) =>
       !b.projected &&
       dayjs(b.end).isValid() &&
-      dayjs(b.end).isBefore(startOfToday)
+      dayjs(b.end).isBefore(startOfToday),
   );
   if (overdue && pastBlock) {
     return t("analytics.rollover.dueAndLastBlock", {
@@ -96,7 +96,7 @@ async function moveOne(task: Task, when: "today" | "tomorrow") {
       when === "today" ? dayjs() : dayjs().add(1, "day").startOf("day");
     const saved = await rescheduleToDay(task, day);
     const start = saved.timeBlocks?.find((b) =>
-      dayjs(b.start).isSame(day, "day")
+      dayjs(b.start).isSame(day, "day"),
     )?.start;
     pushToast(
       start
@@ -106,12 +106,12 @@ async function moveOne(task: Task, when: "today" | "tomorrow") {
             time: formatTime(dayjs(start)),
           })
         : t("toasts.movedTask", { title: saved.title }),
-      { tone: "success", duration: 2800 }
+      { tone: "success", duration: 2800 },
     );
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.couldNotReschedule"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     busyId.value = null;
@@ -133,9 +133,9 @@ async function moveAllToday() {
     }
     pushToast(
       ok
-        ? t("toasts.rescheduledCount", ok, { count: ok })
+        ? t("toasts.rescheduledCount", { count: ok }, ok)
         : t("toasts.couldNotRescheduleAny"),
-      { tone: ok ? "success" : "danger", duration: 3200 }
+      { tone: ok ? "success" : "danger", duration: 3200 },
     );
   } finally {
     bulkBusy.value = false;
@@ -203,7 +203,10 @@ function openOnDashboard(task: Task) {
               {{ task.title }}
             </p>
             <span
-              v-if="task.priority !== undefined && task.priority !== TaskPriority.Normal"
+              v-if="
+                task.priority !== undefined &&
+                task.priority !== TaskPriority.Normal
+              "
               class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0"
               :class="PRIORITY_BADGE[task.priority]"
             >

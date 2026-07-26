@@ -385,9 +385,11 @@ async function onPlanClick() {
       </span>
       <span>
         {{
-          t("feed.post.comments", post.commentCount, {
-            count: post.commentCount,
-          })
+          t(
+            "feed.post.comments",
+            { count: post.commentCount },
+            post.commentCount,
+          )
         }}
       </span>
     </div>

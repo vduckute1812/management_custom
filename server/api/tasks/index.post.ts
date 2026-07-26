@@ -18,6 +18,7 @@ import {
   type TimeBlock,
 } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import type { RowDataPacket } from "mysql2/promise";
 
 function clampPercent(value: unknown): number | undefined {
   if (value === null || value === undefined || value === "") return undefined;
@@ -42,9 +43,7 @@ function sanitizeChecklist(input: unknown): ChecklistItem[] {
       if (!text) return null;
       return {
         id:
-          typeof item.id === "string" && item.id
-            ? item.id
-            : generateId("chk"),
+          typeof item.id === "string" && item.id ? item.id : generateId("chk"),
         text,
         done: item.done === true,
       };
@@ -78,7 +77,10 @@ function sanitizeBlocks(input: unknown): TimeBlock[] {
 function sanitizeRecurrence(input: unknown): Recurrence | undefined {
   if (!input || typeof input !== "object") return undefined;
   const r = input as Partial<Recurrence>;
-  if (typeof r.rule !== "number" || !RECURRENCE_RULES.includes(r.rule as RecurrenceRule)) {
+  if (
+    typeof r.rule !== "number" ||
+    !RECURRENCE_RULES.includes(r.rule as RecurrenceRule)
+  ) {
     return undefined;
   }
   const intervalRaw = toNumberOrUndefined(r.interval);
@@ -99,34 +101,34 @@ function sanitize(input: Partial<Task>, base?: Task | null): Task {
     typeof input.status === "number" &&
     TASK_STATUSES.includes(input.status as TaskStatus)
       ? (input.status as TaskStatus)
-      : base?.status ?? TaskStatus.Todo;
+      : (base?.status ?? TaskStatus.Todo);
 
   const tags = Array.isArray(input.tags)
     ? input.tags.map((t) => String(t)).filter(Boolean)
-    : base?.tags ?? [];
+    : (base?.tags ?? []);
 
   const epicId =
     typeof input.epicId === "string" && input.epicId
       ? input.epicId
       : input.epicId === null || input.epicId === ""
-      ? undefined
-      : base?.epicId;
+        ? undefined
+        : base?.epicId;
 
   const timeBlocks =
     input.timeBlocks !== undefined
       ? sanitizeBlocks(input.timeBlocks)
-      : base?.timeBlocks ?? [];
+      : (base?.timeBlocks ?? []);
 
   const checklist =
     input.checklist !== undefined
       ? sanitizeChecklist(input.checklist)
-      : base?.checklist ?? [];
+      : (base?.checklist ?? []);
 
   const priority: TaskPriority =
     typeof input.priority === "number" &&
     TASK_PRIORITIES.includes(input.priority as TaskPriority)
       ? (input.priority as TaskPriority)
-      : base?.priority ?? TaskPriority.Normal;
+      : (base?.priority ?? TaskPriority.Normal);
 
   let recurrence: Recurrence | undefined;
   if (input.recurrence === null) {
@@ -142,7 +144,9 @@ function sanitize(input: Partial<Task>, base?: Task | null): Task {
     epicId,
     title: String(input.title ?? base?.title ?? "Untitled task").trim(),
     notes:
-      typeof input.notes === "string" ? input.notes : base?.notes ?? undefined,
+      typeof input.notes === "string"
+        ? input.notes
+        : (base?.notes ?? undefined),
     status,
     priority,
     dueDate: input.dueDate || base?.dueDate || undefined,
@@ -210,9 +214,9 @@ export default defineEventHandler(async (event) => {
  */
 async function taskIdExistsForAnyone(id: string): Promise<boolean> {
   const pool = getPool();
-  const [rows] = await pool.query<{ id: string }[] & { length: number }>(
+  const [rows] = await pool.query<(RowDataPacket & { id: string })[]>(
     "SELECT id FROM tasks WHERE id = ? LIMIT 1",
-    [id]
+    [id],
   );
   return rows.length > 0;
 }
