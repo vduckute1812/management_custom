@@ -23,12 +23,37 @@ function labelOf(name: string | null, email: string) {
 </script>
 
 <template>
-  <section :aria-label="$t('feed.stories.sectionAria')" class="space-y-2">
+  <section :aria-label="$t('feed.stories.sectionAria')" class="space-y-3">
     <div class="flex items-center justify-between px-0.5">
-      <h2 class="text-sm font-semibold text-slate-800">{{ $t("feed.stories.title") }}</h2>
+      <div class="flex items-center gap-2">
+        <span
+          class="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-700"
+          aria-hidden="true"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            class="h-4 w-4"
+          >
+            <path
+              d="m12 3 2.2 4.8L19 10l-4.8 2.2L12 17l-2.2-4.8L5 10l4.8-2.2L12 3Z"
+              stroke-linejoin="round"
+            />
+            <path
+              d="m19 16 .8 1.8L22 19l-2.2 1.2L19 22l-.8-1.8L16 19l2.2-1.2L19 16Z"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+        <h2 class="text-sm font-bold text-slate-900">
+          {{ $t("feed.stories.title") }}
+        </h2>
+      </div>
       <button
         type="button"
-        class="text-xs font-medium text-brand-700 hover:underline"
+        class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-50"
         @click="emit('create')"
       >
         {{ $t("feed.stories.addYours") }}
@@ -37,7 +62,7 @@ function labelOf(name: string | null, email: string) {
 
     <div
       v-if="loading && !groups.length"
-      class="flex gap-3 overflow-x-auto pb-1"
+      class="scrollbar-thin flex gap-4 overflow-x-auto pb-1 pt-1"
       aria-busy="true"
     >
       <SkeletonBlock
@@ -52,16 +77,16 @@ function labelOf(name: string | null, email: string) {
 
     <div
       v-else
-      class="flex gap-3 overflow-x-auto pb-1"
+      class="scrollbar-thin flex gap-4 overflow-x-auto pb-1 pt-1"
       role="list"
     >
       <button
         type="button"
-        class="shrink-0 flex flex-col items-center gap-1 w-16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 rounded-lg"
+        class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
         @click="emit('create')"
       >
         <span
-          class="h-14 w-14 rounded-full border-2 border-dashed border-slate-300 bg-white text-slate-500 flex items-center justify-center text-xl font-semibold"
+          class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-brand-300 bg-brand-50 text-xl font-semibold text-brand-700 transition group-hover:scale-105 group-hover:border-brand-500"
           aria-hidden="true"
         >
           +
@@ -76,15 +101,15 @@ function labelOf(name: string | null, email: string) {
         :key="group.author.id"
         type="button"
         role="listitem"
-        class="shrink-0 flex flex-col items-center gap-1 w-16 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 rounded-lg"
+        class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
         @click="emit('open', idx)"
       >
         <span
-          class="h-14 w-14 rounded-full flex items-center justify-center text-sm font-semibold"
+          class="flex h-14 w-14 items-center justify-center rounded-full text-sm font-bold transition group-hover:scale-105"
           :class="
             group.hasUnseen
-              ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-200 ring-offset-2'
-              : 'bg-slate-200 text-slate-600'
+              ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-400 ring-offset-2'
+              : 'bg-slate-200 text-slate-600 ring-2 ring-slate-200 ring-offset-2'
           "
         >
           {{ initialOf(group.author.name, group.author.email) }}

@@ -19,9 +19,19 @@ body,
   height: 100%;
   background: #f8fafc;
   color: #0f172a;
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
-    "Helvetica Neue", Arial, "Apple Color Emoji", sans-serif;
-  transition: background-color 200ms ease, color 200ms ease;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Apple Color Emoji",
+    sans-serif;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 /* -------------------------------------------------------------------------
@@ -47,49 +57,113 @@ html[data-theme="dark"] #__nuxt {
 }
 
 /* --- Surfaces ----------------------------------------------------------- */
-html[data-theme="dark"] .bg-white { background-color: #111827 !important; }
-html[data-theme="dark"] .bg-slate-50 { background-color: #0f172a !important; }
-html[data-theme="dark"] .bg-slate-100 { background-color: #1e293b !important; }
-html[data-theme="dark"] .bg-slate-200 { background-color: #334155 !important; }
-html[data-theme="dark"] .bg-slate-50\/40 { background-color: rgba(15, 23, 42, 0.4) !important; }
-html[data-theme="dark"] .bg-slate-50\/60 { background-color: rgba(15, 23, 42, 0.6) !important; }
+html[data-theme="dark"] .bg-white {
+  background-color: #111827 !important;
+}
+html[data-theme="dark"] .bg-slate-50 {
+  background-color: #0f172a !important;
+}
+html[data-theme="dark"] .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+html[data-theme="dark"] .bg-slate-200 {
+  background-color: #334155 !important;
+}
+html[data-theme="dark"] .bg-slate-50\/40 {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+html[data-theme="dark"] .bg-slate-50\/60 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
+}
 
 /* --- Brand soft surfaces (calendar today highlight, etc.) -------------- */
-html[data-theme="dark"] .bg-brand-50 { background-color: rgba(99, 102, 241, 0.16) !important; }
-html[data-theme="dark"] .bg-brand-50\/30 { background-color: rgba(99, 102, 241, 0.1) !important; }
-html[data-theme="dark"] .bg-brand-50\/40 { background-color: rgba(99, 102, 241, 0.14) !important; }
-html[data-theme="dark"] .bg-brand-50\/60 { background-color: rgba(99, 102, 241, 0.2) !important; }
-html[data-theme="dark"] .bg-brand-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
-html[data-theme="dark"] .hover\:bg-brand-50\/30:hover { background-color: rgba(99, 102, 241, 0.14) !important; }
-html[data-theme="dark"] .hover\:bg-brand-50:hover { background-color: rgba(99, 102, 241, 0.18) !important; }
-html[data-theme="dark"] .text-brand-600 { color: #a5b4fc !important; }
-html[data-theme="dark"] .text-brand-700 { color: #c7d2fe !important; }
-html[data-theme="dark"] .text-brand-800 { color: #e0e7ff !important; }
+html[data-theme="dark"] .bg-brand-50 {
+  background-color: rgba(99, 102, 241, 0.16) !important;
+}
+html[data-theme="dark"] .bg-brand-50\/30 {
+  background-color: rgba(99, 102, 241, 0.1) !important;
+}
+html[data-theme="dark"] .bg-brand-50\/40 {
+  background-color: rgba(99, 102, 241, 0.14) !important;
+}
+html[data-theme="dark"] .bg-brand-50\/60 {
+  background-color: rgba(99, 102, 241, 0.2) !important;
+}
+html[data-theme="dark"] .bg-brand-100 {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+}
+html[data-theme="dark"] .hover\:bg-brand-50\/30:hover {
+  background-color: rgba(99, 102, 241, 0.14) !important;
+}
+html[data-theme="dark"] .hover\:bg-brand-50:hover {
+  background-color: rgba(99, 102, 241, 0.18) !important;
+}
+html[data-theme="dark"] .text-brand-600 {
+  color: #a5b4fc !important;
+}
+html[data-theme="dark"] .text-brand-700 {
+  color: #c7d2fe !important;
+}
+html[data-theme="dark"] .text-brand-800 {
+  color: #e0e7ff !important;
+}
 
 /* --- Text --------------------------------------------------------------- */
-html[data-theme="dark"] .text-slate-900 { color: #f1f5f9 !important; }
-html[data-theme="dark"] .text-slate-800 { color: #e2e8f0 !important; }
-html[data-theme="dark"] .text-slate-700 { color: #cbd5e1 !important; }
-html[data-theme="dark"] .text-slate-600 { color: #94a3b8 !important; }
-html[data-theme="dark"] .text-slate-500 { color: #94a3b8 !important; }
-html[data-theme="dark"] .text-slate-400 { color: #64748b !important; }
-html[data-theme="dark"] .text-slate-300 { color: #475569 !important; }
+html[data-theme="dark"] .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+html[data-theme="dark"] .text-slate-800 {
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+html[data-theme="dark"] .text-slate-600 {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+html[data-theme="dark"] .text-slate-400 {
+  color: #64748b !important;
+}
+html[data-theme="dark"] .text-slate-300 {
+  color: #475569 !important;
+}
 
 /* --- Borders, rings, dividers ------------------------------------------ */
-html[data-theme="dark"] .border-slate-100 { border-color: #1e293b !important; }
-html[data-theme="dark"] .border-slate-200 { border-color: #1e293b !important; }
-html[data-theme="dark"] .border-slate-300 { border-color: #334155 !important; }
-html[data-theme="dark"] .ring-slate-200 { --tw-ring-color: #334155 !important; }
-html[data-theme="dark"] .ring-slate-300 { --tw-ring-color: #475569 !important; }
+html[data-theme="dark"] .border-slate-100 {
+  border-color: #1e293b !important;
+}
+html[data-theme="dark"] .border-slate-200 {
+  border-color: #1e293b !important;
+}
+html[data-theme="dark"] .border-slate-300 {
+  border-color: #334155 !important;
+}
+html[data-theme="dark"] .ring-slate-200 {
+  --tw-ring-color: #334155 !important;
+}
+html[data-theme="dark"] .ring-slate-300 {
+  --tw-ring-color: #475569 !important;
+}
 html[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: #1e293b !important;
 }
 
 /* --- Hover states ------------------------------------------------------- */
-html[data-theme="dark"] .hover\:bg-slate-50:hover { background-color: #1e293b !important; }
-html[data-theme="dark"] .hover\:bg-slate-100:hover { background-color: #334155 !important; }
-html[data-theme="dark"] .hover\:bg-slate-200:hover { background-color: #475569 !important; }
-html[data-theme="dark"] .hover\:bg-slate-800:hover { background-color: #475569 !important; }
+html[data-theme="dark"] .hover\:bg-slate-50:hover {
+  background-color: #1e293b !important;
+}
+html[data-theme="dark"] .hover\:bg-slate-100:hover {
+  background-color: #334155 !important;
+}
+html[data-theme="dark"] .hover\:bg-slate-200:hover {
+  background-color: #475569 !important;
+}
+html[data-theme="dark"] .hover\:bg-slate-800:hover {
+  background-color: #475569 !important;
+}
 
 /* --- Form controls ------------------------------------------------------ */
 html[data-theme="dark"] input,
@@ -119,48 +193,120 @@ html[data-theme="dark"] code {
 }
 
 /* --- Status chip surfaces (kept color-coded, just tinted) -------------- */
-html[data-theme="dark"] .bg-amber-50 { background-color: rgba(245, 158, 11, 0.14) !important; }
-html[data-theme="dark"] .bg-amber-50\/40 { background-color: rgba(245, 158, 11, 0.1) !important; }
-html[data-theme="dark"] .bg-amber-100 { background-color: rgba(245, 158, 11, 0.22) !important; }
-html[data-theme="dark"] .text-amber-600 { color: #fbbf24 !important; }
-html[data-theme="dark"] .text-amber-700 { color: #fcd34d !important; }
-html[data-theme="dark"] .text-amber-800 { color: #fde68a !important; }
-html[data-theme="dark"] .bg-indigo-100 { background-color: rgba(99, 102, 241, 0.22) !important; }
-html[data-theme="dark"] .text-indigo-700 { color: #a5b4fc !important; }
+html[data-theme="dark"] .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.14) !important;
+}
+html[data-theme="dark"] .bg-amber-50\/40 {
+  background-color: rgba(245, 158, 11, 0.1) !important;
+}
+html[data-theme="dark"] .bg-amber-100 {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+}
+html[data-theme="dark"] .text-amber-600 {
+  color: #fbbf24 !important;
+}
+html[data-theme="dark"] .text-amber-700 {
+  color: #fcd34d !important;
+}
+html[data-theme="dark"] .text-amber-800 {
+  color: #fde68a !important;
+}
+html[data-theme="dark"] .bg-indigo-100 {
+  background-color: rgba(99, 102, 241, 0.22) !important;
+}
+html[data-theme="dark"] .text-indigo-700 {
+  color: #a5b4fc !important;
+}
 
-html[data-theme="dark"] .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.14) !important; }
-html[data-theme="dark"] .bg-emerald-100 { background-color: rgba(16, 185, 129, 0.22) !important; }
-html[data-theme="dark"] .hover\:bg-emerald-100:hover { background-color: rgba(16, 185, 129, 0.32) !important; }
-html[data-theme="dark"] .text-emerald-600 { color: #34d399 !important; }
-html[data-theme="dark"] .text-emerald-700 { color: #6ee7b7 !important; }
-html[data-theme="dark"] .text-emerald-800 { color: #a7f3d0 !important; }
+html[data-theme="dark"] .bg-emerald-50 {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+}
+html[data-theme="dark"] .bg-emerald-100 {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+}
+html[data-theme="dark"] .hover\:bg-emerald-100:hover {
+  background-color: rgba(16, 185, 129, 0.32) !important;
+}
+html[data-theme="dark"] .text-emerald-600 {
+  color: #34d399 !important;
+}
+html[data-theme="dark"] .text-emerald-700 {
+  color: #6ee7b7 !important;
+}
+html[data-theme="dark"] .text-emerald-800 {
+  color: #a7f3d0 !important;
+}
 
-html[data-theme="dark"] .bg-rose-50 { background-color: rgba(244, 63, 94, 0.14) !important; }
-html[data-theme="dark"] .bg-rose-100 { background-color: rgba(244, 63, 94, 0.22) !important; }
-html[data-theme="dark"] .hover\:bg-rose-100:hover { background-color: rgba(244, 63, 94, 0.32) !important; }
-html[data-theme="dark"] .text-rose-500 { color: #fb7185 !important; }
-html[data-theme="dark"] .text-rose-600 { color: #fda4af !important; }
-html[data-theme="dark"] .text-rose-700 { color: #fda4af !important; }
-html[data-theme="dark"] .text-rose-800 { color: #fecdd3 !important; }
-html[data-theme="dark"] .border-rose-200 { border-color: rgba(244, 63, 94, 0.3) !important; }
-html[data-theme="dark"] .ring-rose-300 { --tw-ring-color: rgba(244, 63, 94, 0.4) !important; }
-html[data-theme="dark"] .ring-emerald-300 { --tw-ring-color: rgba(16, 185, 129, 0.4) !important; }
-html[data-theme="dark"] .ring-amber-300 { --tw-ring-color: rgba(245, 158, 11, 0.4) !important; }
-html[data-theme="dark"] .ring-brand-300 { --tw-ring-color: rgba(99, 102, 241, 0.4) !important; }
+html[data-theme="dark"] .bg-rose-50 {
+  background-color: rgba(244, 63, 94, 0.14) !important;
+}
+html[data-theme="dark"] .bg-rose-100 {
+  background-color: rgba(244, 63, 94, 0.22) !important;
+}
+html[data-theme="dark"] .hover\:bg-rose-100:hover {
+  background-color: rgba(244, 63, 94, 0.32) !important;
+}
+html[data-theme="dark"] .text-rose-500 {
+  color: #fb7185 !important;
+}
+html[data-theme="dark"] .text-rose-600 {
+  color: #fda4af !important;
+}
+html[data-theme="dark"] .text-rose-700 {
+  color: #fda4af !important;
+}
+html[data-theme="dark"] .text-rose-800 {
+  color: #fecdd3 !important;
+}
+html[data-theme="dark"] .border-rose-200 {
+  border-color: rgba(244, 63, 94, 0.3) !important;
+}
+html[data-theme="dark"] .ring-rose-300 {
+  --tw-ring-color: rgba(244, 63, 94, 0.4) !important;
+}
+html[data-theme="dark"] .ring-emerald-300 {
+  --tw-ring-color: rgba(16, 185, 129, 0.4) !important;
+}
+html[data-theme="dark"] .ring-amber-300 {
+  --tw-ring-color: rgba(245, 158, 11, 0.4) !important;
+}
+html[data-theme="dark"] .ring-brand-300 {
+  --tw-ring-color: rgba(99, 102, 241, 0.4) !important;
+}
 
 /* --- Epic accent surfaces (sky, violet, slate) ------------------------- */
-html[data-theme="dark"] .bg-sky-100 { background-color: rgba(14, 165, 233, 0.22) !important; }
-html[data-theme="dark"] .text-sky-700 { color: #7dd3fc !important; }
-html[data-theme="dark"] .text-sky-800 { color: #bae6fd !important; }
-html[data-theme="dark"] .ring-sky-300 { --tw-ring-color: rgba(14, 165, 233, 0.4) !important; }
+html[data-theme="dark"] .bg-sky-100 {
+  background-color: rgba(14, 165, 233, 0.22) !important;
+}
+html[data-theme="dark"] .text-sky-700 {
+  color: #7dd3fc !important;
+}
+html[data-theme="dark"] .text-sky-800 {
+  color: #bae6fd !important;
+}
+html[data-theme="dark"] .ring-sky-300 {
+  --tw-ring-color: rgba(14, 165, 233, 0.4) !important;
+}
 
-html[data-theme="dark"] .bg-violet-100 { background-color: rgba(139, 92, 246, 0.22) !important; }
-html[data-theme="dark"] .text-violet-700 { color: #c4b5fd !important; }
-html[data-theme="dark"] .text-violet-800 { color: #ddd6fe !important; }
-html[data-theme="dark"] .ring-violet-300 { --tw-ring-color: rgba(139, 92, 246, 0.4) !important; }
+html[data-theme="dark"] .bg-violet-100 {
+  background-color: rgba(139, 92, 246, 0.22) !important;
+}
+html[data-theme="dark"] .text-violet-700 {
+  color: #c4b5fd !important;
+}
+html[data-theme="dark"] .text-violet-800 {
+  color: #ddd6fe !important;
+}
+html[data-theme="dark"] .ring-violet-300 {
+  --tw-ring-color: rgba(139, 92, 246, 0.4) !important;
+}
 
-html[data-theme="dark"] .ring-rose-200 { --tw-ring-color: rgba(244, 63, 94, 0.3) !important; }
-html[data-theme="dark"] .bg-rose-50\/40 { background-color: rgba(244, 63, 94, 0.1) !important; }
+html[data-theme="dark"] .ring-rose-200 {
+  --tw-ring-color: rgba(244, 63, 94, 0.3) !important;
+}
+html[data-theme="dark"] .bg-rose-50\/40 {
+  background-color: rgba(244, 63, 94, 0.1) !important;
+}
 
 /* --- Skeleton + miscellany --------------------------------------------- */
 html[data-theme="dark"] .skeleton {
@@ -211,6 +357,26 @@ html[data-theme="dark"] [class*="grid-rows-6"] .opacity-50 {
   outline: 2px solid #818cf8;
   outline-offset: 2px;
   border-radius: 6px;
+}
+
+.feed-ambient {
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(99, 102, 241, 0.14),
+      transparent 38%
+    ),
+    radial-gradient(circle at 82% 4%, rgba(14, 165, 233, 0.09), transparent 32%);
+}
+
+html[data-theme="dark"] .feed-ambient {
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      rgba(99, 102, 241, 0.13),
+      transparent 38%
+    ),
+    radial-gradient(circle at 82% 4%, rgba(14, 165, 233, 0.07), transparent 32%);
 }
 
 /* Skip-to-content link is visually hidden until focused. */
@@ -268,26 +434,68 @@ html[data-theme="dark"] [class*="grid-rows-6"] .opacity-50 {
  * min-height utilities the codebase actually uses, so individual components
  * stay readable. Per spec: ~0.75× scale, font size unchanged.
  * ----------------------------------------------------------------------- */
-html[data-density="compact"] .p-2 { padding: 0.375rem !important; }
-html[data-density="compact"] .p-3 { padding: 0.5rem !important; }
-html[data-density="compact"] .p-4 { padding: 0.75rem !important; }
-html[data-density="compact"] .p-5 { padding: 0.875rem !important; }
-html[data-density="compact"] .p-6 { padding: 1rem !important; }
+html[data-density="compact"] .p-2 {
+  padding: 0.375rem !important;
+}
+html[data-density="compact"] .p-3 {
+  padding: 0.5rem !important;
+}
+html[data-density="compact"] .p-4 {
+  padding: 0.75rem !important;
+}
+html[data-density="compact"] .p-5 {
+  padding: 0.875rem !important;
+}
+html[data-density="compact"] .p-6 {
+  padding: 1rem !important;
+}
 
-html[data-density="compact"] .px-3 { padding-left: 0.5rem !important; padding-right: 0.5rem !important; }
-html[data-density="compact"] .px-4 { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
-html[data-density="compact"] .px-5 { padding-left: 0.875rem !important; padding-right: 0.875rem !important; }
-html[data-density="compact"] .px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+html[data-density="compact"] .px-3 {
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+html[data-density="compact"] .px-4 {
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+html[data-density="compact"] .px-5 {
+  padding-left: 0.875rem !important;
+  padding-right: 0.875rem !important;
+}
+html[data-density="compact"] .px-6 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
 
-html[data-density="compact"] .py-2 { padding-top: 0.25rem !important; padding-bottom: 0.25rem !important; }
-html[data-density="compact"] .py-3 { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
-html[data-density="compact"] .py-4 { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; }
-html[data-density="compact"] .py-5 { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
+html[data-density="compact"] .py-2 {
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+}
+html[data-density="compact"] .py-3 {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+html[data-density="compact"] .py-4 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+html[data-density="compact"] .py-5 {
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+}
 
-html[data-density="compact"] .gap-2 { gap: 0.375rem !important; }
-html[data-density="compact"] .gap-3 { gap: 0.5rem !important; }
-html[data-density="compact"] .gap-4 { gap: 0.75rem !important; }
-html[data-density="compact"] .gap-6 { gap: 1rem !important; }
+html[data-density="compact"] .gap-2 {
+  gap: 0.375rem !important;
+}
+html[data-density="compact"] .gap-3 {
+  gap: 0.5rem !important;
+}
+html[data-density="compact"] .gap-4 {
+  gap: 0.75rem !important;
+}
+html[data-density="compact"] .gap-6 {
+  gap: 1rem !important;
+}
 
 html[data-density="compact"] .space-y-3 > :not([hidden]) ~ :not([hidden]) {
   margin-top: 0.5rem !important;
@@ -303,10 +511,17 @@ html[data-density="compact"] .space-y-6 > :not([hidden]) ~ :not([hidden]) {
 }
 
 /* Make calendar day cards shorter in compact mode so more fits on screen. */
-html[data-density="compact"] .min-h-\[400px\] { min-height: 300px !important; }
-html[data-density="compact"] .min-h-\[88px\] { min-height: 64px !important; }
+html[data-density="compact"] .min-h-\[400px\] {
+  min-height: 300px !important;
+}
+html[data-density="compact"] .min-h-\[88px\] {
+  min-height: 64px !important;
+}
 /* Slim down nav-link padding a hair more — feels right for sidebar density. */
-html[data-density="compact"] aside nav a { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+html[data-density="compact"] aside nav a {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
 
 /* Toast slide-in animation, respecting prefers-reduced-motion above. */
 @keyframes toast-in {
@@ -325,8 +540,13 @@ html[data-density="compact"] aside nav a { padding-top: 0.375rem !important; pad
 
 /* Subtle skeleton pulse. */
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
 }
 .skeleton {
   background: #e2e8f0;

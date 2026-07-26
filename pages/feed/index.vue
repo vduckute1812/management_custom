@@ -189,166 +189,375 @@ async function submitStory() {
 </script>
 
 <template>
-  <div class="flex-1 min-h-0">
-    <header class="border-b border-slate-200 bg-slate-50/90 px-4 sm:px-6 py-4">
-      <div class="max-w-2xl mx-auto">
-        <h1 class="text-xl font-semibold text-slate-900">
-          {{ $t("feed.title") }}
-        </h1>
-        <p class="text-sm text-slate-500 mt-0.5">
-          <template v-if="auth.isAuthenticated.value">
-            {{ $t("feed.subtitleAuth") }}
-          </template>
-          <template v-else>
-            {{ $t("feed.subtitleGuest") }}
-          </template>
-        </p>
+  <div class="relative min-h-0 flex-1 bg-slate-50">
+    <div
+      class="feed-ambient pointer-events-none absolute inset-x-0 top-0 h-72"
+      aria-hidden="true"
+    />
+
+    <header
+      class="relative border-b border-slate-200 bg-white px-4 py-7 sm:px-6 sm:py-9"
+    >
+      <div class="mx-auto max-w-[1180px]">
+        <div class="flex items-start justify-between gap-6">
+          <div class="max-w-2xl">
+            <div class="mb-3 flex items-center gap-2">
+              <span
+                class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm shadow-brand-200"
+                aria-hidden="true"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  class="h-4 w-4"
+                >
+                  <path d="M4 5.5h16v11H8l-4 3v-14Z" stroke-linejoin="round" />
+                  <path d="M8 9h8M8 13h5" stroke-linecap="round" />
+                </svg>
+              </span>
+              <span
+                class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700"
+              >
+                Da Nang TechX
+              </span>
+            </div>
+            <h1
+              class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+            >
+              {{ $t("feed.title") }}
+            </h1>
+            <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">
+              <template v-if="auth.isAuthenticated.value">
+                {{ $t("feed.subtitleAuth") }}
+              </template>
+              <template v-else>
+                {{ $t("feed.subtitleGuest") }}
+              </template>
+            </p>
+          </div>
+
+          <button
+            v-if="auth.isAuthenticated.value"
+            type="button"
+            class="hidden shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md lg:inline-flex"
+            @click="composerRef?.focus()"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              class="h-4 w-4"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+            </svg>
+            {{ $t("feed.composer.writeAPost") }}
+          </button>
+          <NuxtLink
+            v-else
+            to="/login"
+            class="hidden shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md lg:inline-flex"
+          >
+            {{ $t("empty.login") }}
+          </NuxtLink>
+        </div>
       </div>
     </header>
 
-    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-      <NuxtErrorBoundary v-if="auth.isAuthenticated.value">
-        <StoryTray
-          :groups="tray.groups"
-          :loading="storiesLoading"
-          @open="openViewer"
-          @create="storyComposerOpen = true"
-        />
-        <template #error="{ clearError }">
+    <div class="relative mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">
+      <div
+        class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px] xl:gap-8"
+      >
+        <div class="min-w-0 space-y-5">
+          <NuxtErrorBoundary v-if="auth.isAuthenticated.value">
+            <div
+              class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+            >
+              <StoryTray
+                :groups="tray.groups"
+                :loading="storiesLoading"
+                @open="openViewer"
+                @create="storyComposerOpen = true"
+              />
+            </div>
+            <template #error="{ clearError }">
+              <div
+                class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm"
+              >
+                {{ $t("feed.storiesFailed") }}
+                <button
+                  type="button"
+                  class="ml-1 font-medium underline underline-offset-2"
+                  @click="
+                    clearError();
+                    refreshStories();
+                  "
+                >
+                  {{ $t("feed.retry") }}
+                </button>
+              </div>
+            </template>
+          </NuxtErrorBoundary>
+
+          <PostComposer
+            v-if="auth.isAuthenticated.value"
+            ref="composerRef"
+            :submitting="submitting"
+            :categories="categories"
+            @submit="onCreate"
+          />
+
           <div
-            class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700"
+            class="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden"
+            role="group"
+            :aria-label="$t('feed.categoryFilterAria')"
           >
-            {{ $t("feed.storiesFailed") }}
             <button
               type="button"
-              class="underline ml-1"
-              @click="
-                clearError();
-                refreshStories();
+              class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
+              :class="
+                !categoryFilter
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
               "
+              :disabled="categoriesLoading"
+              @click="onCategoryFilter(null)"
+            >
+              {{ $t("feed.all") }}
+            </button>
+            <button
+              v-for="cat in categories"
+              :key="cat.id"
+              type="button"
+              class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
+              :class="
+                categoryFilter === cat.id
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
+              "
+              @click="onCategoryFilter(cat.id)"
+            >
+              {{ catLabel(cat) }}
+              <span
+                v-if="cat.postCount !== undefined"
+                class="ml-1 tabular-nums opacity-60"
+              >
+                {{ cat.postCount }}
+              </span>
+            </button>
+          </div>
+
+          <div
+            v-if="error"
+            class="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm"
+            role="alert"
+          >
+            <span>{{ error }}</span>
+            <button
+              type="button"
+              class="shrink-0 text-xs font-semibold underline underline-offset-2"
+              @click="refresh"
             >
               {{ $t("feed.retry") }}
             </button>
           </div>
-        </template>
-      </NuxtErrorBoundary>
 
-      <PostComposer
-        v-if="auth.isAuthenticated.value"
-        ref="composerRef"
-        :submitting="submitting"
-        :categories="categories"
-        @submit="onCreate"
-      />
-
-      <div
-        class="flex flex-wrap items-center gap-2"
-        role="group"
-        :aria-label="$t('feed.categoryFilterAria')"
-      >
-        <span class="text-xs font-medium text-slate-500">{{
-          $t("feed.category")
-        }}</span>
-        <button
-          type="button"
-          class="rounded-full px-2.5 py-1 text-xs font-medium transition"
-          :class="
-            !categoryFilter
-              ? 'bg-brand-600 text-white'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          "
-          :disabled="categoriesLoading"
-          @click="onCategoryFilter(null)"
-        >
-          {{ $t("feed.all") }}
-        </button>
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          type="button"
-          class="rounded-full px-2.5 py-1 text-xs font-medium transition"
-          :class="
-            categoryFilter === cat.id
-              ? 'bg-brand-600 text-white'
-              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-          "
-          @click="onCategoryFilter(cat.id)"
-        >
-          {{ catLabel(cat) }}
-          <span
-            v-if="cat.postCount !== undefined"
-            class="ml-1 tabular-nums opacity-70"
-            >{{ cat.postCount }}</span
+          <div
+            v-if="loading && !posts.length"
+            class="space-y-4"
+            aria-busy="true"
           >
-        </button>
-      </div>
+            <SkeletonBlock
+              v-for="n in 3"
+              :key="n"
+              height="h-52"
+              rounded="rounded-2xl"
+            />
+          </div>
 
-      <div
-        v-if="error"
-        class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 flex items-center justify-between gap-3"
-        role="alert"
-      >
-        <span>{{ error }}</span>
-        <button
-          type="button"
-          class="text-xs font-medium underline underline-offset-2"
-          @click="refresh"
-        >
-          {{ $t("feed.retry") }}
-        </button>
-      </div>
+          <EmptyState
+            v-else-if="!loading && !posts.length && !error"
+            :title="$t('empty.feedNothingYet')"
+            :description="
+              auth.isAuthenticated.value
+                ? $t('empty.feedBeFirst')
+                : $t('empty.feedNoPublic')
+            "
+            illustration="spark"
+            :primary-label="
+              auth.isAuthenticated.value
+                ? $t('empty.writeAPost')
+                : $t('empty.login')
+            "
+            @primary="
+              auth.isAuthenticated.value
+                ? composerRef?.focus()
+                : navigateTo('/login')
+            "
+          />
 
-      <div v-if="loading && !posts.length" class="space-y-3" aria-busy="true">
-        <SkeletonBlock
-          v-for="n in 3"
-          :key="n"
-          height="h-36"
-          rounded="rounded-xl"
-        />
-      </div>
+          <div v-else class="space-y-5">
+            <PostCard
+              v-for="post in posts"
+              :key="post.id"
+              :post="post"
+              @react="(r) => setReaction(post.id, r)"
+              @clear-react="clearReaction(post.id)"
+              @delete="removePost(post.id)"
+              @share="(note) => onShare(post.id, note)"
+            />
 
-      <EmptyState
-        v-else-if="!loading && !posts.length && !error"
-        :title="$t('empty.feedNothingYet')"
-        :description="
-          auth.isAuthenticated.value
-            ? $t('empty.feedBeFirst')
-            : $t('empty.feedNoPublic')
-        "
-        illustration="spark"
-        :primary-label="
-          auth.isAuthenticated.value
-            ? $t('empty.writeAPost')
-            : $t('empty.login')
-        "
-        @primary="
-          auth.isAuthenticated.value
-            ? composerRef?.focus()
-            : navigateTo('/login')
-        "
-      />
-
-      <div v-else class="space-y-4">
-        <PostCard
-          v-for="post in posts"
-          :key="post.id"
-          :post="post"
-          @react="(r) => setReaction(post.id, r)"
-          @clear-react="clearReaction(post.id)"
-          @delete="removePost(post.id)"
-          @share="(note) => onShare(post.id, note)"
-        />
-
-        <div v-if="nextCursor" class="flex justify-center pt-2">
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            :disabled="loadingMore"
-            @click="loadMore"
-          >
-            {{ loadingMore ? $t("feed.loading") : $t("feed.loadMore") }}
-          </button>
+            <div v-if="nextCursor" class="flex justify-center pt-2">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow disabled:opacity-50"
+                :disabled="loadingMore"
+                @click="loadMore"
+              >
+                <svg
+                  v-if="loadingMore"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  class="h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="9"
+                    stroke="currentColor"
+                    stroke-opacity=".25"
+                    stroke-width="3"
+                  />
+                  <path
+                    d="M21 12a9 9 0 0 0-9-9"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                {{ loadingMore ? $t("feed.loading") : $t("feed.loadMore") }}
+              </button>
+            </div>
+          </div>
         </div>
+
+        <aside class="sticky top-20 hidden space-y-4 lg:block">
+          <section
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+          >
+            <div class="border-b border-slate-100 px-4 py-3.5">
+              <h2
+                class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"
+              >
+                {{ $t("feed.category") }}
+              </h2>
+            </div>
+            <div
+              class="space-y-1 p-2"
+              role="group"
+              :aria-label="$t('feed.categoryFilterAria')"
+            >
+              <button
+                type="button"
+                class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                :class="
+                  !categoryFilter
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                "
+                :disabled="categoriesLoading"
+                @click="onCategoryFilter(null)"
+              >
+                <span class="flex items-center gap-2.5">
+                  <span
+                    class="h-2 w-2 rounded-full"
+                    :class="!categoryFilter ? 'bg-brand-500' : 'bg-slate-300'"
+                  />
+                  {{ $t("feed.all") }}
+                </span>
+              </button>
+              <button
+                v-for="cat in categories"
+                :key="cat.id"
+                type="button"
+                class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                :class="
+                  categoryFilter === cat.id
+                    ? 'bg-brand-50 text-brand-700'
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                "
+                @click="onCategoryFilter(cat.id)"
+              >
+                <span class="flex min-w-0 items-center gap-2.5">
+                  <span
+                    class="h-2 w-2 shrink-0 rounded-full"
+                    :class="
+                      categoryFilter === cat.id
+                        ? 'bg-brand-500'
+                        : 'bg-slate-300'
+                    "
+                  />
+                  <span class="truncate">{{ catLabel(cat) }}</span>
+                </span>
+                <span
+                  v-if="cat.postCount !== undefined"
+                  class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-500"
+                >
+                  {{ cat.postCount }}
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <section
+            class="relative overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-sm"
+          >
+            <div
+              class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-500/30 blur-2xl"
+              aria-hidden="true"
+            />
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              class="relative mb-4 h-6 w-6 text-brand-300"
+              aria-hidden="true"
+            >
+              <path d="M8 12h8M12 8v8" stroke-linecap="round" />
+              <circle cx="12" cy="12" r="9" />
+            </svg>
+            <p class="relative text-sm font-semibold leading-5">
+              {{ $t("feed.title") }}
+            </p>
+            <p class="relative mt-2 text-xs leading-5 text-slate-300">
+              {{
+                auth.isAuthenticated.value
+                  ? $t("feed.subtitleAuth")
+                  : $t("feed.subtitleGuest")
+              }}
+            </p>
+            <button
+              v-if="auth.isAuthenticated.value"
+              type="button"
+              class="relative mt-4 w-full rounded-xl bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
+              @click="composerRef?.focus()"
+            >
+              {{ $t("feed.composer.writeAPost") }}
+            </button>
+            <NuxtLink
+              v-else
+              to="/login"
+              class="relative mt-4 block w-full rounded-xl bg-white px-3 py-2.5 text-center text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
+            >
+              {{ $t("empty.login") }}
+            </NuxtLink>
+          </section>
+        </aside>
       </div>
     </div>
 

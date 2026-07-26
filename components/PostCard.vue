@@ -246,10 +246,12 @@ async function onPlanClick() {
 </script>
 
 <template>
-  <article class="rounded-xl border border-slate-200 bg-white overflow-hidden">
-    <header class="flex items-start gap-3 px-4 pt-4">
+  <article
+    class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+  >
+    <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
       <div
-        class="w-10 h-10 rounded-full bg-brand-100 text-brand-700 text-sm font-semibold flex items-center justify-center shrink-0"
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-sm ring-4 ring-brand-50"
         aria-hidden="true"
       >
         {{ initialOf(post.author.name, post.author.email) }}
@@ -279,7 +281,7 @@ async function onPlanClick() {
       <button
         v-if="post.canDelete"
         type="button"
-        class="text-[11px] text-slate-400 hover:text-rose-600 px-1.5 py-1 rounded"
+        class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
         :title="$t('feed.post.deleteTitle')"
         @click="emit('delete')"
       >
@@ -287,11 +289,15 @@ async function onPlanClick() {
       </button>
     </header>
 
-    <div class="px-4 pt-3 pb-2 space-y-3">
+    <div class="space-y-3 px-4 pb-3 pt-4 sm:px-5">
       <div v-if="post.category" class="flex flex-wrap gap-1.5">
         <span
-          class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800"
+          class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-800 ring-1 ring-inset ring-brand-100"
         >
+          <span
+            class="h-1.5 w-1.5 rounded-full bg-brand-500"
+            aria-hidden="true"
+          />
           {{ categoryLabel() }}
         </span>
       </div>
@@ -313,7 +319,7 @@ async function onPlanClick() {
             :href="mediaUrl(att.url)"
             target="_blank"
             rel="noopener"
-            class="block overflow-hidden rounded-lg border border-slate-200"
+            class="block overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
           >
             <img
               :src="mediaUrl(att.url)"
@@ -321,7 +327,7 @@ async function onPlanClick() {
               width="640"
               height="360"
               loading="lazy"
-              class="w-full max-h-72 object-cover bg-slate-100"
+              class="w-full max-h-96 object-cover bg-slate-100 transition duration-300 group-hover:scale-[1.01]"
               @error="
                 ($event.target as HTMLImageElement).style.display = 'none'
               "
@@ -345,7 +351,7 @@ async function onPlanClick() {
 
       <div
         v-if="post.sharedPost"
-        class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 space-y-1.5"
+        class="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
       >
         <p class="text-xs font-medium text-slate-600">
           {{
@@ -363,7 +369,7 @@ async function onPlanClick() {
     </div>
 
     <div
-      class="px-4 py-1.5 flex items-center justify-between text-[11px] text-slate-500 tabular-nums"
+      class="flex items-center justify-between px-4 py-2 text-[11px] tabular-nums text-slate-500 sm:px-5"
     >
       <span class="inline-flex items-center gap-1">
         <template v-if="topReactions.length">
@@ -386,7 +392,9 @@ async function onPlanClick() {
       </span>
     </div>
 
-    <div class="relative grid grid-cols-4 border-t border-slate-100">
+    <div
+      class="relative grid grid-cols-4 border-t border-slate-100 bg-slate-50/40 px-1 py-1"
+    >
       <div
         class="relative"
         @mouseenter="onReactPointerEnter"
@@ -396,7 +404,7 @@ async function onPlanClick() {
       >
         <button
           type="button"
-          class="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition"
+          class="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition sm:text-sm"
           :class="
             post.myReaction
               ? 'text-brand-700 bg-brand-50/40'
@@ -406,7 +414,7 @@ async function onPlanClick() {
           :aria-expanded="pickerOpen"
           @click="onReactClick"
         >
-          <span aria-hidden="true">
+          <span class="text-base" aria-hidden="true">
             {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
           </span>
           {{
@@ -444,25 +452,62 @@ async function onPlanClick() {
       </div>
       <button
         type="button"
-        class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+        class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-slate-600 transition hover:bg-white hover:text-slate-900 hover:shadow-sm sm:text-sm"
         @click="toggleComments"
       >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="hidden h-4 w-4 sm:block"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"
+            stroke-linejoin="round"
+          />
+        </svg>
         {{ $t("feed.post.comment") }}
       </button>
       <button
         type="button"
-        class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition"
+        class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-slate-600 transition hover:bg-white hover:text-slate-900 hover:shadow-sm sm:text-sm"
         @click="onShareClick"
       >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="hidden h-4 w-4 sm:block"
+          aria-hidden="true"
+        >
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" />
+        </svg>
         {{ $t("feed.post.share") }}
       </button>
       <button
         type="button"
-        class="flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition disabled:opacity-50"
+        class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-slate-600 transition hover:bg-white hover:text-slate-900 hover:shadow-sm disabled:opacity-50 sm:text-sm"
         :disabled="planBusy"
         :title="$t('feed.post.planTitle')"
         @click="onPlanClick"
       >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          class="hidden h-4 w-4 sm:block"
+          aria-hidden="true"
+        >
+          <rect x="4" y="4" width="16" height="16" rx="3" />
+          <path d="M8 2v4M16 2v4M8 11h8M8 15h5" stroke-linecap="round" />
+        </svg>
         {{ $t("feed.post.plan") }}
       </button>
     </div>
