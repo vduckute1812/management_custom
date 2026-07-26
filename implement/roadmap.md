@@ -5,18 +5,21 @@ Engineering progress, phase by phase. Each item is one shippable subtask.
 ---
 
 ## Phase 1 — Environment Setup
+
 - [x] Initialize Nuxt 3 project
 - [x] Configure TailwindCSS
 - [x] Set up project directory structure
 - [x] Provision a local MySQL `rc` database with the schema owned by versioned SQL migrations in `server/db/migrations/`
 
 ## Phase 2 — Local Storage API
+
 - [x] Build the server DB layer (`server/utils/db.ts` barrel + per-entity modules under `server/db/`) with the `mysql2` pool, SQL-file migration runner (`migrator.ts` + `schema_migrations` table + `GET_LOCK` advisory locking), granular CRUD, and aggregator helpers (`computeEpicHours`, `computeTaskSpent`)
 - [x] Implement Epic CRUD: `GET /api/epics`, `POST /api/epics`, `DELETE /api/epics/:id`
 - [x] Implement Task CRUD: `GET /api/tasks`, `POST /api/tasks`, `DELETE /api/tasks/:id`
 - [x] Ensure `DELETE /api/epics/:id` clears `epicId` on orphaned tasks (FK `ON DELETE SET NULL`)
 
 ## Phase 3 — Epic & Task UI
+
 - [x] Build `EpicModal.vue` (create/edit Epic)
 - [x] Build `EpicCard.vue` showing derived `estimatedHours` and `spentHours`
 - [x] Build Epic detail page (`/epics/[id].vue`) listing child tasks
@@ -24,18 +27,21 @@ Engineering progress, phase by phase. Each item is one shippable subtask.
 - [x] Build `TimeBlockEditor.vue` — add, remove, and edit time blocks with date + time range pickers
 
 ## Phase 4 — Calendar Views
+
 - [x] Build main dashboard layout with Daily / Weekly / Monthly toggle
 - [x] `CalendarDaily.vue` — render each task's blocks that fall on the selected day
 - [x] `CalendarWeekly.vue` — render blocks in their respective day columns across the week
 - [x] `CalendarMonthly.vue` — deadline markers and block density dots per day
 
 ## Phase 5 — Analytics Engine
+
 - [x] Create `useEpics.ts` and `useTasks.ts` composables for reactive derived state
 - [x] Aggregate velocity (estimated vs. spent) by day / week / month at both task and Epic level
 - [x] Render velocity charts with Chart.js
 - [x] Display completion rate and roll-over counters per period
 
 ## Phase 6 — UX Polish
+
 - [x] Epic color identity: schema + picker + propagation to all calendar blocks
 - [x] Quick-capture bar (`n`): single-line title; sensible defaults
 - [x] Command palette (`Mod+K`): jump to any Epic, task, or view
@@ -49,6 +55,7 @@ Engineering progress, phase by phase. Each item is one shippable subtask.
 - [x] Drag-to-reschedule + resize on time blocks (Daily: pointer events, 15-min snap, top/bottom resize handles; Weekly: native HTML5 DnD across day columns)
 
 ## Phase 7 — Power-user
+
 - [x] Task priority (`high` / `normal` / `low`) — visible in Up next sort
 - [x] Full-text search across titles, notes, tags, and epic descriptions (command palette)
 - [x] Settings page (week start, time format) — persisted to `localStorage`
@@ -67,6 +74,7 @@ Engineering progress, phase by phase. Each item is one shippable subtask.
 The big "single-user app becomes a small multi-user app" pass. Every API now requires a token, every row knows who owns it, and admins get a system-wide view that normal users do not. Original spec: [`auth-rbac.md`](./auth-rbac.md). Implementation reference: [`auth.md`](./auth.md).
 
 **Schema & setup**
+
 - [x] New tables: `users`, `auth_refresh_tokens`, `auth_email_verifications`
 - [x] `user_id VARCHAR(64)` columns on `epics` and `tasks` (with `idx_*_user` indexes); time blocks + checklist items inherit ownership through the task FK
 - [x] `active_timer` keyed by `user_id` so concurrent users can each run one timer
@@ -76,12 +84,14 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `npm run check:db` verifies core tables are present and reports the current user count (later migrations add feed/stories tables; checker focuses on the original task stack + migrations status)
 
 **Token model**
+
 - [x] Short-lived JWT access tokens (HS256, 15 min, signed with `JWT_SECRET`, carry `{ sub, email, role }`)
 - [x] Opaque refresh tokens (30 days, base64url, SHA-256-hashed at rest) with rotation on every refresh
 - [x] Logout revokes the supplied refresh token; `everywhere: true` revokes every active refresh token for the caller
 - [x] `JWT_SECRET` length guard (≥16 chars) at process startup
 
 **Server auth**
+
 - [x] `server/utils/auth.ts` — bcryptjs password hashing, JWT sign/verify, opaque-token helpers
 - [x] `server/utils/mailer.ts` — nodemailer wrapper with a "print to console" fallback when SMTP env is incomplete
 - [x] `server/utils/authContext.ts` — `requireUser(event)` / `requireAdmin(event)` translators
@@ -94,20 +104,23 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `GET /api/auth/me` (re-validates role against the DB, never returns `passwordHash`)
 
 **Per-user data scoping** — every existing read/write is now bound to the authenticated user
+
 - [x] All epic helpers: `getAllEpics(userId)`, `getEpicById(userId, id)`, `upsertEpic(userId, epic)`, `deleteEpic(userId, id)`
 - [x] All task helpers: `getAllTasks(userId)`, `getTaskById(userId, id)`, `upsertTask(userId, task)`, `deleteTask(userId, id)`
 - [x] All timer helpers: `getActiveTimer(userId)`, `setActiveTimer(userId, timer)`, `appendBlock(userId, taskId, block, updatedAt)` (with an inline ownership re-check)
 - [x] `POST /api/tasks` rejects with 404 when `body.id` belongs to another user (instead of silently no-op'ing); same guard for `POST /api/epics`
 - [x] Defense-in-depth in `upsertTask` / `upsertEpic`: a precondition `SELECT user_id` aborts the transaction before the children-replace DELETE runs, so even a misrouted call can't wipe another user's `time_blocks` / `checklist_items`
-- [x] `POST /api/timer/start` rejects starting a timer on someone else's `taskId` with 404; `/start` only finalizes the *caller's* prior timer
+- [x] `POST /api/timer/start` rejects starting a timer on someone else's `taskId` with 404; `/start` only finalizes the _caller's_ prior timer
 
 **Admin role**
+
 - [x] `GET /api/admin/users` — per-user summary (`taskCount`, `epicCount`, `hoursLogged`, `lastActivity`); never includes password hashes
 - [x] `GET /api/admin/stats?days=N` — system-wide totals + per-day hours series + status mix for dashboard charts
 - [x] `POST /api/admin/users/:id/role` — promote/demote, with a guard against demoting the last admin
 - [x] `requireAdmin` returns 403 (not 404) so the UI can distinguish "missing token" from "wrong role"
 
 **Client**
+
 - [x] `composables/useAuth.ts` — login / signup / verify / refresh / logout + localStorage persistence of `{ user, accessToken, accessExpiresAt, refreshToken }`
 - [x] `composables/useApi.ts` — auto-attaches `Authorization: Bearer …`, proactively refreshes within 30 s of expiry, and on a 401 makes one refresh-and-retry attempt before bouncing to `/login?redirect=…`
 - [x] A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip
@@ -116,17 +129,20 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `middleware/auth.global.ts` — `/`, `/feed`, `/login`, `/signup`, `/verify-email` are public; Time Management / settings / profile require auth; `/admin` requires `role: admin`
 
 **Pages & UI**
+
 - [x] `/login`, `/signup`, `/verify-email` — minimal forms with explicit error surfacing and a "verification sent" success state
 - [x] `/admin` — admin dashboard with Chart.js: hours-per-day line, task-status doughnut, per-user bar (hours + tasks), plus a sortable user table with inline promote/demote buttons and an `Active range` selector (7 / 14 / 30 / 90 days)
 - [x] Layout sidebar: user chip showing name/email + role + sign-out button; "Admin" nav item appears only when `auth.isAdmin`
 - [x] Mobile bottom nav switched to `grid-flow-col auto-cols-fr` so the extra Admin tab doesn't squeeze the others
 
 **Docs & env**
+
 - [x] `.env.example` extended with `JWT_SECRET`, `ADMIN_INITIAL_*`, SMTP block, and `APP_HOST` / `APP_PORT`
 - [x] Technical documentation refactored — README keeps the product / UX story; everything code-shaped lives under `implement/` (this folder)
 - [x] Feature spec moved from `IMPLEMENT.md` to `implement/auth-rbac.md` (one feature per file under `implement/`)
 
 **Verified end-to-end**
+
 - [x] Unauthenticated requests get 401; admin-only routes get 403 for normal users
 - [x] Email verification round-trip works in console-fallback mode
 - [x] Two concurrent users can run timers without interference; cross-user `taskId` is rejected
@@ -135,6 +151,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `npm run check:db` reports core tables present and the live user count
 
 **Deferred (per spec)**
+
 - [ ] **Phase 2: SMS sign-up.** `implement/auth-rbac.md` explicitly marks SMS as a later phase. Hook-in point would be a new `auth/signup-sms.post.ts` + a `phone_numbers` table linked to `users`; the rest of the token / role machinery is provider-agnostic.
 - [ ] Password reset / change. Not in the spec; would slot in alongside `verify-email` with the same one-shot opaque-token pattern.
 - [ ] OAuth ("Sign in with Google"). The spec text was ambiguous between SMTP-verified email/password and OAuth; we shipped the former. Adding the latter is additive (a new route that creates/links a user and issues the same JWT/refresh pair).
@@ -144,6 +161,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 A pass that hardens RBAC by introducing a dedicated install-owner role, and that simplifies the type system by collapsing all enum-shaped fields from "string in TS, integer in DB" to **integers everywhere**.
 
 **Superadmin role**
+
 - [x] `UserRole` extended with a third rank, `Superadmin = 2`, that ranks strictly above `Admin` (1)
 - [x] `npm run migrate:auth` seeds the bootstrap user as `superadmin` (not `admin`) and auto-promotes a pre-existing seed account from earlier versions
 - [x] `POST /api/admin/users/:id/role` refuses to assign `superadmin`, refuses to modify any user whose current role is `superadmin`, and still refuses to demote the last admin-or-superadmin
@@ -151,6 +169,7 @@ A pass that hardens RBAC by introducing a dedicated install-owner role, and that
 - [x] Admin dashboard hides the promote/demote buttons on the superadmin row; the layout chip and role label everywhere render `Superadmin` from `ROLE_LABELS`
 
 **Integer enums end-to-end** (replaces the previous "TS string union ↔ DB integer" boundary)
+
 - [x] `UserRole`, `TaskStatus`, `TaskPriority`, `RecurrenceRule` rewritten in `~/types/task.ts` as `const` objects with numeric values + derived union types (e.g. `TaskStatus = { Todo: 0, InProgress: 1, Done: 2 } as const`)
 - [x] Removed every `numberToRole` / `roleToNumber` / `numberToStatus` / `statusToNumber` / `priority` / `recurrence` translator from `server/db`; row mappers coerce `unknown` straight to the integer enum with bounded fallbacks
 - [x] Every API endpoint validates incoming enum fields against the numeric constant arrays (`TASK_STATUSES`, `TASK_PRIORITIES`, `RECURRENCE_RULES`, `ASSIGNABLE_USER_ROLES`); string values are rejected
@@ -165,12 +184,14 @@ A pass that hardens RBAC by introducing a dedicated install-owner role, and that
 The calendar grew a real sense of time, and the planner picked up a heads-up before each block starts.
 
 **Live "now" indicator**
+
 - [x] New `composables/useNow.ts` — a shared reactive Dayjs that ticks every 30 s and force-refreshes on `visibilitychange`, so a backgrounded tab catches up instantly when refocused without burning a render per second
 - [x] `CalendarDaily.vue` — renders a horizontal rose-tinted "now" line across the hour grid when the displayed day is today, with a `HH:mm` badge in the time gutter (z-index above blocks but `pointer-events: none`)
 - [x] `CalendarWeekly.vue` — today's column header gains a `Now HH:mm` pill that lives next to the weekday label
 
 **Pre-task alerts (5-min default lead, configurable)**
-- [x] `composables/useNotifications.ts` rebuilt around a dual-channel model: in-app toast always fires when alerts are enabled; desktop pop-up fires *additionally* when browser Notification permission has been granted
+
+- [x] `composables/useNotifications.ts` rebuilt around a dual-channel model: in-app toast always fires when alerts are enabled; desktop pop-up fires _additionally_ when browser Notification permission has been granted
 - [x] **Late-join logic** — if the lead window has already passed but the block hasn't started, the alert fires immediately on the next scheduler pass rather than being silently skipped
 - [x] Dedupe key `${taskId}:${blockId}` shared across both channels so a block never alerts twice, even with the page open across multiple tabs or after a settings change
 - [x] Toast carries an **Open** action that sets `useUiOverlays().focusTaskId` and routes to `/tasks`; the tasks page watches `focusTaskId` and pops the matching `TaskModal` so the alert lands the user on the right thing in one tap from any page
@@ -189,12 +210,15 @@ Full chrome localization with device-local preference (no URL prefixes).
 - [x] Full UI string migration (pages, components, toasts, SEO titles) + `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS`
 - [x] Docs: `implement/i18n.md`, architecture/README/roadmap/product README, `.cursor/rules/nuxt3-standards.mdc`
 
-## Phase 12 — Feed / stories / public hub *(landed alongside Time Management)*
+## Phase 12 — Feed / stories / public hub _(landed alongside Time Management)_
 
-Documented here so the roadmap matches the as-built install (migrations `0003`–`0005`, R2 uploads, public `/` + `/feed`).
+Documented here so the roadmap matches the as-built install (migrations `0003`–`0006`, R2 uploads, public `/` + `/feed`).
 
 - [x] Public hub (`/`) + Feed module (`/feed`) with optional-auth public post reads
 - [x] Posts: visibility ACL, categories, reactions, comments, share, LaTeX/styled body
 - [x] Stories: 24h tray, views, reactions, owner insights
-- [x] Uploads via Cloudflare R2 (`server/utils/r2.ts`) when `R2_*` configured
-- [x] Implementation docs synced: architecture / api / auth / database / getting-started
+- [x] Uploads via Cloudflare R2 (`server/utils/r2.ts`) when `R2_*` configured; shared `utils/uploadPolicy.ts` + magic-byte sniff
+- [x] Core tech directories (Electronics / ME / IT / IoT) via migration `0006` + admin CRUD + post counts
+- [x] Localized seeded category labels (`CATEGORY_I18N_KEYS` / `categories.*`) on hub + feed UI
+- [x] Plan-in-Time-Management action on posts; optimistic reactions with per-post request tokens
+- [x] Implementation docs synced: architecture / api / auth / database / i18n / getting-started

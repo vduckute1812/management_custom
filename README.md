@@ -44,8 +44,8 @@ A useful negative principle: **no gamification.** Streaks, points, and combos wo
 
 ## Who It's For
 
-| Persona               | What they need                                                                       |
-| --------------------- | ------------------------------------------------------------------------------------ |
+| Persona               | What they need                                                                      |
+| --------------------- | ----------------------------------------------------------------------------------- |
 | **The Maker**         | A weekly canvas for deep work, with honest data on whether estimates match reality. |
 | **The Researcher**    | Long-running Epics (months) with many small, mixed tasks underneath.                |
 | **The Solo Operator** | Visibility across projects without the ceremony of Jira or Notion databases.        |
@@ -60,7 +60,7 @@ Each feature is framed as **what the user accomplishes**, not what the code does
 
 ### Plan the week with Epics
 
-Group related work under a named goal (e.g. *Computer Vision*). The Epic itself stores no hours — its totals are always summed from child tasks, so they can never lie. Deleting an Epic preserves its tasks; they simply become standalone.
+Group related work under a named goal (e.g. _Computer Vision_). The Epic itself stores no hours — its totals are always summed from child tasks, so they can never lie. Deleting an Epic preserves its tasks; they simply become standalone.
 
 ### Capture and schedule tasks
 
@@ -68,26 +68,26 @@ Every task carries title, notes, status, due date, estimate, progress, tags — 
 
 ### Three calendar lenses
 
-| View    | Purpose                                                            |
-| ------- | ------------------------------------------------------------------ |
+| View    | Purpose                                                                                                                                                                                        |
+| ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Daily   | Today, hour by hour. Drag, resize, click empty space to capture. A live "now" line sweeps across the hour grid with a `HH:mm` badge in the gutter so you always know where you are in the day. |
-| Weekly  | The classic 7-column plan; a task's Monday and Friday blocks both appear in their respective columns. Today's column header shows the same live `Now HH:mm` pill. |
-| Monthly | Coarse density (dots) + deadline markers; click a day to drill in. |
+| Weekly  | The classic 7-column plan; a task's Monday and Friday blocks both appear in their respective columns. Today's column header shows the same live `Now HH:mm` pill.                              |
+| Monthly | Coarse density (dots) + deadline markers; click a day to drill in.                                                                                                                             |
 
 The "now" indicator ticks every 30 seconds and snaps forward when the tab regains focus, so it stays accurate without burning a render every second.
 
 ### Share on the Feed
 
-Open **Feed** (`g f` or Home → Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author.
+Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language.
 
 ### Switch language
 
 The interface is available in **English**, **Vietnamese**, **Simplified Chinese**, and **Traditional Chinese**. Preference is saved on this device only (same store as theme and density) — URLs do not change when you switch.
 
-| Where | What |
-| ----- | ---- |
+| Where                 | What                              |
+| --------------------- | --------------------------------- |
 | `Settings → Language` | Button group for all four locales |
-| Header → account menu | Compact language select |
+| Header → account menu | Compact language select           |
 
 Chrome, toasts, calendar weekday names, and status/role labels follow the chosen language. Posts, task titles, and other content you type stay as written.
 
@@ -96,7 +96,7 @@ Chrome, toasts, calendar weekday names, and status/role labels follow the chosen
 Five minutes before every scheduled block (configurable in `Settings → Pre-task alerts`), the app fires a heads-up so you don't crash into the next session unprepared. Two channels, deduped by block id so a single block can never alert twice:
 
 - **In-app toast** — always fires, no browser permission required. Appears in the top of the window with the task title, the time window, a "Starts in N min" hint, and an **Open** action that pops the task modal regardless of which page you're on.
-- **Desktop pop-up** — fires *additionally* if you grant the Notification permission. Useful when the tab isn't focused.
+- **Desktop pop-up** — fires _additionally_ if you grant the Notification permission. Useful when the tab isn't focused.
 
 In-app toasts are on by default for fresh installs; flip the master switch off in settings if you'd rather not be alerted. The setting persists locally, so an existing user who turned it off stays off after the upgrade.
 
@@ -113,27 +113,27 @@ In-app toasts are on by default for fresh installs; flip the master switch off i
 
 Concrete journeys, each rated by target friction.
 
-### Flow 1 — "Plan tomorrow morning" *(target: ≤ 90 seconds)*
+### Flow 1 — "Plan tomorrow morning" _(target: ≤ 90 seconds)_
 
 1. Open **Time Management** (`g d` or Home → Time management) → **Daily** view of tomorrow (`t` then `→`).
-2. From the *Up next* rail, drag tasks onto morning hour slots, or click an empty slot to create there.
+2. From the _Up next_ rail, drag tasks onto morning hour slots, or click an empty slot to create there.
 3. Press `n` for quick capture; type `Read MLE paper @9` or `Draft tomorrow 9-11` + `Enter`.
 4. Done. No modal traversal required for routine planning. (`Shift+N` opens the full editor when you need it.)
 
-### Flow 2 — "Log what I just spent" *(target: ≤ 15 seconds)*
+### Flow 2 — "Log what I just spent" _(target: ≤ 15 seconds)_
 
 1. While in **Daily** view, click the existing block.
 2. Tap **Log Nh** to use the full block duration (or enter a custom amount).
-3. Done — task `spentHours` and parent Epic totals recompute instantly. Double-click (or *Edit details*) opens the full modal.
+3. Done — task `spentHours` and parent Epic totals recompute instantly. Double-click (or _Edit details_) opens the full modal.
 
-### Flow 3 — "Weekly review" *(target: ≤ 5 minutes)*
+### Flow 3 — "Weekly review" _(target: ≤ 5 minutes)_
 
 1. Navigate to **Analytics** with `g a`.
 2. Toggle granularity to **week**; scan velocity bars for outliers (red variance > 1.5h).
 3. In **Rolled over**, move missed tasks to today / tomorrow (or bulk-move all).
 4. Drill into any Epic via the velocity rollup list; optional drag-reschedule on the weekly canvas.
 
-### Flow 4 — "Switch interface language" *(target: ≤ 10 seconds)*
+### Flow 4 — "Switch interface language" _(target: ≤ 10 seconds)_
 
 1. Open **Settings** (account menu → Settings, or sidebar when in Time Management).
 2. Under **Language**, pick English / Tiếng Việt / 简体中文 / 繁體中文.
@@ -148,11 +148,11 @@ Engineering detail (message files, sync plugin, key namespaces): [`implement/i18
 
 ### Epics vs. Tasks
 
-| Concept       | Role                                                                  |
-| ------------- | --------------------------------------------------------------------- |
-| **Epic**      | A grouping container with a title, description, status, color, tags.  |
-| **Task**      | The unit of work. Belongs to at most one Epic via `epicId`.           |
-| Derived hours | Epic totals are **computed**, not stored — always sum from tasks.     |
+| Concept       | Role                                                                 |
+| ------------- | -------------------------------------------------------------------- |
+| **Epic**      | A grouping container with a title, description, status, color, tags. |
+| **Task**      | The unit of work. Belongs to at most one Epic via `epicId`.          |
+| Derived hours | Epic totals are **computed**, not stored — always sum from tasks.    |
 
 An Epic without tasks is valid (useful for planning ahead). A task without an `epicId` is a standalone item.
 
@@ -173,7 +173,7 @@ The task-level `spentHours` is derived by summing block-level values. Each block
 
 ### Color identity
 
-Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` | `violet` | `slate`). All child task blocks inherit it, so a glance at the weekly view reveals *project mix*, not just *status mix*. Status is encoded with a left edge stripe and an icon, so the two channels never compete.
+Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` | `violet` | `slate`). All child task blocks inherit it, so a glance at the weekly view reveals _project mix_, not just _status mix_. Status is encoded with a left edge stripe and an icon, so the two channels never compete.
 
 > For the storage shape behind these concepts — table columns, types, indexes — see [`implement/database.md`](./implement/database.md).
 
@@ -181,10 +181,10 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 ## Roles & Permissions
 
-| Role         | Sees                                                          | Can do                                                                  |
-| ------------ | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `normal`     | Own epics/tasks/timer; Feed per visibility rules.             | Full Time Management for own data; create/react/comment on the Feed.    |
-| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard. | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts. |
+| Role         | Sees                                                              | Can do                                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normal`     | Own epics/tasks/timer; Feed per visibility rules.                 | Full Time Management for own data; create/react/comment on the Feed.                                                                                                               |
+| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.     | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
 | `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
 
 Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
@@ -197,17 +197,17 @@ A small system on purpose. Fewer choices, more consistency.
 
 ### Color tokens
 
-| Role             | Token             | Notes                                |
-| ---------------- | ----------------- | ------------------------------------ |
-| Brand            | `--color-brand-*` | Indigo scale (50–900)                |
-| Surface base     | `slate-50`        | Body background                      |
-| Surface elevated | `white`           | Cards, modals, calendar cells        |
-| Border / hairline| `slate-200`       | Default 1px ring                     |
-| Text primary     | `slate-900`       | Body                                 |
-| Text secondary   | `slate-500`       | Meta, labels                         |
-| Success          | `emerald-500`     | Done status, positive variance       |
-| Warning          | `amber-500`       | In-progress                          |
-| Danger           | `rose-500`        | Overdue, destructive actions         |
+| Role              | Token             | Notes                          |
+| ----------------- | ----------------- | ------------------------------ |
+| Brand             | `--color-brand-*` | Indigo scale (50–900)          |
+| Surface base      | `slate-50`        | Body background                |
+| Surface elevated  | `white`           | Cards, modals, calendar cells  |
+| Border / hairline | `slate-200`       | Default 1px ring               |
+| Text primary      | `slate-900`       | Body                           |
+| Text secondary    | `slate-500`       | Meta, labels                   |
+| Success           | `emerald-500`     | Done status, positive variance |
+| Warning           | `amber-500`       | In-progress                    |
+| Danger            | `rose-500`        | Overdue, destructive actions   |
 
 **Epic accent colors:** `sky`, `emerald`, `amber`, `rose`, `violet`, `slate`. Each ships as a pre-resolved Tailwind pair (`bg-*-100 text-*-800`) so accent classes are statically detectable at build time.
 
@@ -217,28 +217,28 @@ A small system on purpose. Fewer choices, more consistency.
 
 Three theme modes selectable via the sidebar quick toggle or `Settings → Appearance`:
 
-| Mode       | Behavior                                                                  |
-| ---------- | ------------------------------------------------------------------------- |
-| **System** | Tracks `prefers-color-scheme`; flips live when the OS preference changes  |
-| **Light**  | Forces the light palette                                                  |
-| **Dark**   | Forces the dark palette                                                   |
+| Mode       | Behavior                                                                 |
+| ---------- | ------------------------------------------------------------------------ |
+| **System** | Tracks `prefers-color-scheme`; flips live when the OS preference changes |
+| **Light**  | Forces the light palette                                                 |
+| **Dark**   | Forces the dark palette                                                  |
 
 The preference is persisted locally and applied **before any CSS paints**, so dark-OS users opening the app cold see dark mode from the first frame — no flash of light content.
 
 Language preference lives in the same local settings blob (`Settings → Language`). It does not affect the URL and does not travel with the account to another browser.
 
-Status and epic colors are *tinted* in dark mode, never inverted — color-coded semantics must survive the swap.
+Status and epic colors are _tinted_ in dark mode, never inverted — color-coded semantics must survive the swap.
 
 ### Typography
 
-| Token   | Size  | Use                                              |
-| ------- | ----- | ------------------------------------------------ |
-| `xs`    | 11px  | Meta, dot labels, table headers (uppercase)     |
-| `sm`    | 13px  | Body, list items, modal fields                  |
-| `base`  | 14px  | Default paragraph                                |
-| `lg`    | 16px  | Section headings                                 |
-| `xl`    | 20px  | Page titles                                      |
-| `2xl`   | 24px  | KPI numbers                                      |
+| Token  | Size | Use                                         |
+| ------ | ---- | ------------------------------------------- |
+| `xs`   | 11px | Meta, dot labels, table headers (uppercase) |
+| `sm`   | 13px | Body, list items, modal fields              |
+| `base` | 14px | Default paragraph                           |
+| `lg`   | 16px | Section headings                            |
+| `xl`   | 20px | Page titles                                 |
+| `2xl`  | 24px | KPI numbers                                 |
 
 System font stack only — no web fonts to load. Numerals use `tabular-nums` everywhere a column of digits could shift.
 
@@ -256,12 +256,12 @@ System font stack only — no web fonts to load. Numerals use `tabular-nums` eve
 
 ### Motion
 
-| Token        | Duration | Easing         | Use                                |
-| ------------ | -------- | -------------- | ---------------------------------- |
-| `motion-xs`  | 120ms    | ease-out       | Hover, focus rings                 |
-| `motion-sm`  | 180ms    | ease-out       | Modal fade, tooltip                |
-| `motion-md`  | 240ms    | ease-in-out    | View transitions, drawer slide     |
-| `motion-lg`  | 320ms    | ease-in-out    | Layout reflow on view change       |
+| Token       | Duration | Easing      | Use                            |
+| ----------- | -------- | ----------- | ------------------------------ |
+| `motion-xs` | 120ms    | ease-out    | Hover, focus rings             |
+| `motion-sm` | 180ms    | ease-out    | Modal fade, tooltip            |
+| `motion-md` | 240ms    | ease-in-out | View transitions, drawer slide |
+| `motion-lg` | 320ms    | ease-in-out | Layout reflow on view change   |
 
 **`prefers-reduced-motion: reduce`** disables non-essential transitions and replaces slides with instant cross-fades.
 
@@ -271,14 +271,14 @@ System font stack only — no web fonts to load. Numerals use `tabular-nums` eve
 
 ### Modal vs. drawer vs. inline
 
-| Context                                  | Pattern              |
-| ---------------------------------------- | -------------------- |
-| Create / edit a task or epic             | Centered modal       |
-| Add a time block to an existing task     | Inline editor inside the modal |
-| Quick-capture a task title from anywhere | Single-line command bar |
-| Change a task's status                   | Inline dropdown on the row |
-| Change a task's date by drag             | Direct manipulation on the calendar |
-| Confirm destructive action               | **Undo toast** (5 s) — *not* a blocking dialog, except for Epic delete which has cascading orphan logic |
+| Context                                  | Pattern                                                                                                 |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Create / edit a task or epic             | Centered modal                                                                                          |
+| Add a time block to an existing task     | Inline editor inside the modal                                                                          |
+| Quick-capture a task title from anywhere | Single-line command bar                                                                                 |
+| Change a task's status                   | Inline dropdown on the row                                                                              |
+| Change a task's date by drag             | Direct manipulation on the calendar                                                                     |
+| Confirm destructive action               | **Undo toast** (5 s) — _not_ a blocking dialog, except for Epic delete which has cascading orphan logic |
 
 ### Micro-interactions
 
@@ -333,13 +333,13 @@ Every screen has four states. The README — and the code — must specify all f
 
 ### Empty
 
-| Surface          | Empty state                                                                 |
-| ---------------- | --------------------------------------------------------------------------- |
+| Surface                    | Empty state                                                                                    |
+| -------------------------- | ---------------------------------------------------------------------------------------------- |
 | Time Management (`/tasks`) | Centered empty state, primary CTA "Create your first task" (`n`), secondary "Load sample data" |
-| Epics index      | Same pattern; CTA "Create your first epic"                                  |
-| Analytics        | Friendly message: "We'll show velocity after you log a few blocks."         |
-| Up next sidebar  | Italic "Nothing scheduled. Create your first task!"                         |
-| Calendar day     | Hint cell "Click to plan a block"                                           |
+| Epics index                | Same pattern; CTA "Create your first epic"                                                     |
+| Analytics                  | Friendly message: "We'll show velocity after you log a few blocks."                            |
+| Up next sidebar            | Italic "Nothing scheduled. Create your first task!"                                            |
+| Calendar day               | Hint cell "Click to plan a block"                                                              |
 
 ### Loading
 
@@ -358,7 +358,7 @@ Every screen has four states. The README — and the code — must specify all f
 
 ### Offline
 
-- The app *is* offline. No spinner ever waits on the network. If the local server stops, the UI surfaces "Server unreachable — your data is safe on disk."
+- The app _is_ offline. No spinner ever waits on the network. If the local server stops, the UI surfaces "Server unreachable — your data is safe on disk."
 
 ---
 
@@ -368,54 +368,54 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 
 ### Global
 
-| Shortcut       | Action                                  |
-| -------------- | --------------------------------------- |
-| `?`            | Show the full shortcuts cheatsheet      |
-| `Mod + K`      | Open command palette (jump to anything) |
-| `/`            | Focus search                            |
-| `n`            | New task (quick capture)                |
-| `Shift + N`    | New task (full modal)                   |
-| `e`            | New epic                                |
-| `g h`          | Go to Home (hub)                        |
-| `g d`          | Go to Time Management (`/tasks`)        |
-| `g e`          | Go to Epics                             |
-| `g a`          | Go to Analytics                         |
-| `g f`          | Go to Feed                              |
+| Shortcut    | Action                                  |
+| ----------- | --------------------------------------- |
+| `?`         | Show the full shortcuts cheatsheet      |
+| `Mod + K`   | Open command palette (jump to anything) |
+| `/`         | Focus search                            |
+| `n`         | New task (quick capture)                |
+| `Shift + N` | New task (full modal)                   |
+| `e`         | New epic                                |
+| `g h`       | Go to Home (hub)                        |
+| `g d`       | Go to Time Management (`/tasks`)        |
+| `g e`       | Go to Epics                             |
+| `g a`       | Go to Analytics                         |
+| `g f`       | Go to Feed                              |
 
 ### Calendar
 
-| Shortcut       | Action                              |
-| -------------- | ----------------------------------- |
-| `1` / `2` / `3`| Daily / Weekly / Monthly view       |
-| `t`            | Jump to Today                       |
-| `←` / `→`      | Previous / Next period              |
-| `Shift + ←/→`  | Jump by month in any view           |
+| Shortcut        | Action                        |
+| --------------- | ----------------------------- |
+| `1` / `2` / `3` | Daily / Weekly / Monthly view |
+| `t`             | Jump to Today                 |
+| `←` / `→`       | Previous / Next period        |
+| `Shift + ←/→`   | Jump by month in any view     |
 
 ### Calendar (mouse & touch)
 
-| Gesture             | Action                                                 |
-| ------------------- | ------------------------------------------------------ |
-| Drag block (Daily)  | Move within day, snaps to 15-minute grid               |
-| Drag top/bottom edge | Resize block (30-minute minimum)                      |
-| Drag block (Weekly) | Move across days (time of day preserved)               |
-| Click empty slot    | Open task modal pre-filled with that start time        |
+| Gesture              | Action                                          |
+| -------------------- | ----------------------------------------------- |
+| Drag block (Daily)   | Move within day, snaps to 15-minute grid        |
+| Drag top/bottom edge | Resize block (30-minute minimum)                |
+| Drag block (Weekly)  | Move across days (time of day preserved)        |
+| Click empty slot     | Open task modal pre-filled with that start time |
 
 ### Lists & rows
 
-| Shortcut       | Action                              |
-| -------------- | ----------------------------------- |
-| `j` / `k`      | Next / previous row                 |
-| `Enter`        | Open selected                       |
-| `Space`        | Toggle status                       |
-| `Delete`       | Delete with undo toast              |
+| Shortcut  | Action                 |
+| --------- | ---------------------- |
+| `j` / `k` | Next / previous row    |
+| `Enter`   | Open selected          |
+| `Space`   | Toggle status          |
+| `Delete`  | Delete with undo toast |
 
 ### Modals & forms
 
-| Shortcut       | Action                              |
-| -------------- | ----------------------------------- |
-| `Esc`          | Close (with unsaved-changes guard)  |
-| `Mod + Enter`  | Save                                |
-| `Tab` / `Shift+Tab` | Focus next / previous field    |
+| Shortcut            | Action                             |
+| ------------------- | ---------------------------------- |
+| `Esc`               | Close (with unsaved-changes guard) |
+| `Mod + Enter`       | Save                               |
+| `Tab` / `Shift+Tab` | Focus next / previous field        |
 
 ---
 
@@ -429,7 +429,7 @@ Targets, not aspirations. These are required for any PR.
 - **ARIA, sparingly.** Icon-only buttons get `aria-label`. Live regions announce undo toasts and save confirmations.
 - **Reduced motion** — `prefers-reduced-motion: reduce` disables slides, scales, and easing curves; transitions become instant cross-fades.
 - **Tap targets** ≥ 44×44 px on touch viewports; the calendar's hour cells expand on coarse pointers.
-- **Color is never the only signal.** Status uses color *and* a label *and* a dot. Variance uses color *and* a sign.
+- **Color is never the only signal.** Status uses color _and_ a label _and_ a dot. Variance uses color _and_ a sign.
 - **Skip link** "Skip to main content" appears on Tab from page load.
 
 ---
@@ -438,11 +438,11 @@ Targets, not aspirations. These are required for any PR.
 
 A productivity tool should be useful on a phone for capture, even if planning happens at a desk.
 
-| Breakpoint     | Layout                                                                 |
-| -------------- | ---------------------------------------------------------------------- |
+| Breakpoint     | Layout                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | **< 640px**    | Sidebar collapses to a bottom nav bar. Calendar shows Daily only; Weekly/Monthly disabled with a hint. Modals are full-screen sheets. |
-| **640–1024px** | Sidebar becomes a top bar with icons. Weekly view stays but cells shrink and clamp at 2 lines per task. |
-| **≥ 1024px**   | Full layout: left sidebar + main + right rail.                         |
+| **640–1024px** | Sidebar becomes a top bar with icons. Weekly view stays but cells shrink and clamp at 2 lines per task.                               |
+| **≥ 1024px**   | Full layout: left sidebar + main + right rail.                                                                                        |
 
 **Print:** a print stylesheet renders a clean weekly agenda — sidebar hidden, hour grid black-on-white, no shadows.
 
@@ -457,7 +457,7 @@ A few choices that look opinionated and aren't accidents.
 - **Undo over confirm.** Confirm dialogs train muscle memory to click "OK." Undo is a more honest contract: the action happens, and we trust you to notice if it was wrong.
 - **No streaks, no badges.** The whole point is to face accurate numbers. Game mechanics distort them.
 - **System fonts only.** A productivity tool shouldn't ever wait on Google Fonts.
-- **Skeletons over spinners.** Spinners say "loading"; skeletons say "you're about to see *this much* content," which is calmer.
+- **Skeletons over spinners.** Spinners say "loading"; skeletons say "you're about to see _this much_ content," which is calmer.
 - **Three views, not five.** Day, Week, Month. We resisted Quarter and Agenda — they're rarely useful and they add UI weight that costs every user every day.
 - **In-app alerts only by default; desktop pop-ups are opt-in.** A calm tool doesn't ambush you with OS pop-ups, but a silent calendar is no better than no calendar. The compromise: a non-intrusive in-app toast fires 5 min before each scheduled block by default (no permission prompt, no system surface — only visible when the app is open). Granting browser Notification permission is an explicit upgrade that adds the matching desktop pop-up; the alert is otherwise identical. The whole feature is one toggle in `Settings → Pre-task alerts`.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.

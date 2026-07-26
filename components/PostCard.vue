@@ -2,6 +2,7 @@
 import type { Post, PostComment, PostReactionType } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
 import { TaskStatus } from "~/types/task";
+import { categoryDisplayName } from "~/utils/categoryLabel";
 
 const props = defineProps<{
   post: Post;
@@ -14,7 +15,7 @@ const emit = defineEmits<{
   (e: "share", note: string): void;
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { loadComments, addComment, removeComment } = usePosts();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
@@ -30,6 +31,12 @@ const shareOpen = ref(false);
 const shareNote = ref("");
 const shareSubmitting = ref(false);
 const pickerOpen = ref(false);
+/** Coarse pointers can't hover — click toggles the picker instead of liking. */
+const touchLike = ref(false);
+
+onMounted(() => {
+  touchLike.value = window.matchMedia("(hover: none)").matches;
+});
 
 const REACTION_EMOJI: Record<PostReactionType, string> = {
   like: "👍",
@@ -48,6 +55,12 @@ const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
   sad: t("feed.post.reactionSad"),
   angry: t("feed.post.reactionAngry"),
 }));
+
+function categoryLabel() {
+  return props.post.category
+    ? categoryDisplayName(props.post.category, t, te)
+    : "";
+}
 
 function authorLabel(name: string | null, email: string) {
   return name?.trim() || email;
@@ -142,6 +155,12 @@ function onReactClick() {
     navigateTo({ path: "/login", query: { redirect: "/feed" } });
     return;
   }
+  // Touch devices: open/close the picker (can't hover). Desktop: quick
+  // click toggles like / clears the current reaction.
+  if (touchLike.value) {
+    pickerOpen.value = !pickerOpen.value;
+    return;
+  }
   if (props.post.myReaction) {
     emit("clear-react");
   } else {
@@ -159,6 +178,18 @@ function pickReaction(r: PostReactionType) {
   } else {
     emit("react", r);
   }
+  pickerOpen.value = false;
+}
+
+function onReactPointerEnter() {
+  if (!touchLike.value) pickerOpen.value = true;
+}
+
+function onReactPointerLeave(e: MouseEvent | FocusEvent) {
+  if (touchLike.value) return;
+  const next = (e as FocusEvent).relatedTarget as Node | null;
+  const root = e.currentTarget as Node | null;
+  if (next && root?.contains(next)) return;
   pickerOpen.value = false;
 }
 
@@ -261,7 +292,7 @@ async function onPlanClick() {
         <span
           class="inline-flex items-center rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800"
         >
-          {{ post.category.name }}
+          {{ categoryLabel() }}
         </span>
       </div>
       <PostBody
@@ -356,7 +387,13 @@ async function onPlanClick() {
     </div>
 
     <div class="relative grid grid-cols-4 border-t border-slate-100">
-      <div class="relative">
+      <div
+        class="relative"
+        @mouseenter="onReactPointerEnter"
+        @mouseleave="onReactPointerLeave"
+        @focusin="onReactPointerEnter"
+        @focusout="onReactPointerLeave"
+      >
         <button
           type="button"
           class="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-medium transition"
@@ -366,10 +403,8 @@ async function onPlanClick() {
               : 'text-slate-600 hover:bg-slate-50'
           "
           :aria-pressed="Boolean(post.myReaction)"
+          :aria-expanded="pickerOpen"
           @click="onReactClick"
-          @mouseenter="pickerOpen = true"
-          @focus="pickerOpen = true"
-          @mouseleave="pickerOpen = false"
         >
           <span aria-hidden="true">
             {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
@@ -380,25 +415,31 @@ async function onPlanClick() {
               : $t("feed.post.react")
           }}
         </button>
+        <!--
+          Outer shell uses pb-1 as a hover bridge so the pointer can travel
+          from the button into the floating picker without closing it.
+        -->
         <div
           v-if="pickerOpen"
-          class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 flex gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md z-10"
+          class="absolute bottom-full left-1/2 z-10 w-max -translate-x-1/2 pb-1"
           role="listbox"
           :aria-label="$t('feed.post.chooseReaction')"
-          @mouseenter="pickerOpen = true"
-          @mouseleave="pickerOpen = false"
         >
-          <button
-            v-for="r in POST_REACTION_TYPES"
-            :key="r"
-            type="button"
-            class="h-8 w-8 rounded-full text-base hover:scale-110 transition motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-            :title="REACTION_LABEL[r]"
-            :aria-label="REACTION_LABEL[r]"
-            @click="pickReaction(r)"
+          <div
+            class="flex gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md"
           >
-            {{ REACTION_EMOJI[r] }}
-          </button>
+            <button
+              v-for="r in POST_REACTION_TYPES"
+              :key="r"
+              type="button"
+              class="h-8 w-8 rounded-full text-base hover:scale-110 transition motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+              :title="REACTION_LABEL[r]"
+              :aria-label="REACTION_LABEL[r]"
+              @click.stop="pickReaction(r)"
+            >
+              {{ REACTION_EMOJI[r] }}
+            </button>
+          </div>
         </div>
       </div>
       <button

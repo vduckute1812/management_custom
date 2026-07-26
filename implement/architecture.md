@@ -6,29 +6,29 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Tech Stack
 
-| Layer    | Technology                  | Purpose                                                |
-| -------- | --------------------------- | ------------------------------------------------------ |
-| Frontend | Nuxt 3 / Vue 3              | Reactive UI, routing, SPA via `routeRules` `ssr: false` |
-| Styling  | TailwindCSS v4              | Utility-first layout and theming                       |
+| Layer    | Technology                  | Purpose                                                                                 |
+| -------- | --------------------------- | --------------------------------------------------------------------------------------- |
+| Frontend | Nuxt 3 / Vue 3              | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                 |
+| Styling  | TailwindCSS v4              | Utility-first layout and theming                                                        |
 | i18n     | `@nuxtjs/i18n`              | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
-| Backend  | Nitro (bundled with Nuxt 3) | Server-side API routes                                 |
-| Storage  | MySQL 8 (`mysql2` driver)   | Primary persistence — database `rc` (override via env) |
-| Media    | Cloudflare R2 (S3 API)      | Optional object storage for feed/story uploads (`server/utils/r2.ts`) |
-| Time     | Day.js                      | Date parsing, formatting, diffing (locale packs sync with UI language) |
-| Charts   | Chart.js                    | Velocity and trend visualizations                      |
-| Math     | KaTeX                       | Inline/block LaTeX in feed post bodies                 |
+| Backend  | Nitro (bundled with Nuxt 3) | Server-side API routes                                                                  |
+| Storage  | MySQL 8 (`mysql2` driver)   | Primary persistence — database `rc` (override via env)                                  |
+| Media    | Cloudflare R2 (S3 API)      | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                   |
+| Time     | Day.js                      | Date parsing, formatting, diffing (locale packs sync with UI language)                  |
+| Charts   | Chart.js                    | Velocity and trend visualizations                                                       |
+| Math     | KaTeX                       | Inline/block LaTeX in feed post bodies                                                  |
 
 ## Project facts
 
-| Property     | Value                                                                |
-| ------------ | -------------------------------------------------------------------- |
-| Project Path | `~/Projects/management_custom`                                       |
-| Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                          |
-| Framework    | Nuxt 3 (Vue 3), client-only SPA                                      |
-| Styling      | TailwindCSS v4                                                       |
-| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)  |
-| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories)|
-| Telemetry    | None                                                                 |
+| Property     | Value                                                                 |
+| ------------ | --------------------------------------------------------------------- |
+| Project Path | `~/Projects/management_custom`                                        |
+| Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                           |
+| Framework    | Nuxt 3 (Vue 3), client-only SPA                                       |
+| Styling      | TailwindCSS v4                                                        |
+| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)   |
+| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories) |
+| Telemetry    | None                                                                  |
 
 ---
 
@@ -62,14 +62,14 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area | Routes | Auth |
-| ---- | ------ | ---- |
-| Hub | `/` | Public |
-| Feed | `/feed` | Public browse; compose/react/comment need login |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated |
-| Account | `/settings`, `/profile` | Authenticated |
-| Admin | `/admin` | Admin / superadmin |
-| Auth forms | `/login`, `/signup`, `/verify-email` | Public; authed users bounce to `/` |
+| Area            | Routes                                                              | Auth                                                   |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------ |
+| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`) |
+| Feed            | `/feed`                                                             | Public browse; compose/react/comment need login        |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                          |
+| Account         | `/settings`, `/profile`                                             | Authenticated                                          |
+| Admin           | `/admin`                                                            | Admin / superadmin                                     |
+| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                     |
 
 Global guard: `middleware/auth.global.ts`.
 
@@ -89,24 +89,26 @@ Global guard: `middleware/auth.global.ts`.
 │   │   ├── posts/                   # feed CRUD, comments, reactions, share
 │   │   ├── stories/                 # 24h stories, views, reactions, insights
 │   │   ├── uploads/                 # R2 upload + signed GET
-│   │   ├── categories/              # GET post categories
+│   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
 │   │   └── users/directory.get.ts   # people picker for shared visibility
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0005 SQL files
+│   │   └── migrations/              # 0001…0006 SQL files
 │   ├── middleware/auth.ts           # Hydrates event.context.user from Bearer JWT
 │   ├── plugins/db-verify.ts         # Refuses boot if migrations pending/drifted
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
-│       └── r2.ts                    # S3-compatible Cloudflare R2 client
+│       ├── r2.ts                    # S3-compatible Cloudflare R2 client
+│       └── fileSignature.ts         # Magic-byte sniff for uploads
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*
 │   ├── migrate-auth.ts              # Seed superadmin
 │   ├── check-db.ts                  # npm run check:db
+│   ├── scan-secrets.mjs             # Pre-commit secret scanner
 │   └── notify-public-ip-change.ts   # Optional ops helper
 ├── pages/
-│   ├── index.vue                    # Public hub (Feed vs Time Management)
+│   ├── index.vue                    # Public hub (localized category cards + module blurbs)
 │   ├── feed/index.vue
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
@@ -130,7 +132,7 @@ Global guard: `middleware/auth.global.ts`.
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
 ├── types/                           # task.ts, post.ts, story.ts, locale.ts
-├── utils/                           # parseQuickCapture.ts, renderPostBody.ts, …
+├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, categoryLabel, …
 ├── implement/                       # Technical documentation (you are here)
 ├── .env.example
 └── nuxt.config.ts                   # SPA routeRules + @nuxtjs/i18n

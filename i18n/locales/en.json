@@ -285,6 +285,7 @@
     "next": "Next",
     "quickCapture": {
       "aria": "Quick capture",
+      "button": "Quick capture",
       "titleAria": "Quick task title",
       "placeholder": "Read paper {'@'}14 · Draft tomorrow 9-11 · #vision notes",
       "add": "Add",
@@ -831,6 +832,17 @@
     "login": "Sign in",
     "signup": "Create account",
     "verifyEmail": "Verify email"
+  },
+  "categories": {
+    "electronics": "Electronics",
+    "mechanicalEngineering": "Mechanical Engineering",
+    "informationTechnology": "Information Technology (IT)",
+    "iot": "IoT (Internet of Things)",
+    "general": "General",
+    "math": "Math",
+    "announcements": "Announcements",
+    "docs": "Documents",
+    "ideas": "Ideas"
   },
   "home": {
     "brand": "Da Nang Tech R&D and Networking Portal",

@@ -285,6 +285,7 @@
     "next": "下一個",
     "quickCapture": {
       "aria": "快速記錄",
+      "button": "快速記錄",
       "titleAria": "快速任務標題",
       "placeholder": "讀論文 {'@'}14 · 明天草稿 9-11 · #vision 筆記",
       "add": "新增",
@@ -831,6 +832,17 @@
     "login": "登入",
     "signup": "建立帳戶",
     "verifyEmail": "驗證電子郵件"
+  },
+  "categories": {
+    "electronics": "電子",
+    "mechanicalEngineering": "機械工程",
+    "informationTechnology": "資訊技術（IT）",
+    "iot": "物聯網（IoT）",
+    "general": "綜合",
+    "math": "數學",
+    "announcements": "公告",
+    "docs": "文件",
+    "ideas": "想法"
   },
   "home": {
     "brand": "Da Nang Tech R&D and Networking Portal",

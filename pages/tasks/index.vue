@@ -10,21 +10,19 @@ import {
   type CalendarView,
   type Task,
 } from "~/types/task";
+import { isAppLocale } from "~/types/locale";
+import { formatCalendarHeader } from "~/utils/formatCalendarHeader";
 
 dayjs.extend(isoWeek);
 
 const { t } = useI18n();
 const { tasks, fetchAll, isLoading, error, findTask } = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
-const {
-  quickCaptureOpen,
-  focusTaskId,
-  clearFocusTask,
-  pendingCreateTask,
-} = useUiOverlays();
+const { quickCaptureOpen, focusTaskId, clearFocusTask, pendingCreateTask } =
+  useUiOverlays();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
-const { startOfWeek, formatTime } = useSettings();
+const { settings, startOfWeek, formatTime } = useSettings();
 const { withProjections } = useRecurrence();
 
 const TASK_DND_MIME = "application/x-mgmt-task-id";
@@ -90,7 +88,7 @@ watch(
     taskModalOpen.value = true;
     clearFocusTask();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 watch(
@@ -100,17 +98,14 @@ watch(
     openCreate();
     pendingCreateTask.value = false;
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const headerLabel = computed(() => {
-  if (view.value === "daily") return cursor.value.format("dddd, MMMM D, YYYY");
-  if (view.value === "weekly") {
-    const start = startOfWeek(cursor.value);
-    const end = start.add(6, "day");
-    return `${start.format("MMM D")} – ${end.format("MMM D, YYYY")}`;
-  }
-  return cursor.value.format("MMMM YYYY");
+  const locale = isAppLocale(settings.value.locale)
+    ? settings.value.locale
+    : "en";
+  return formatCalendarHeader(cursor.value, view.value, locale, startOfWeek);
 });
 
 function step(direction: 1 | -1) {
@@ -141,7 +136,11 @@ const projectionWindow = computed(() => {
 });
 
 const projectedTasks = computed(() =>
-  withProjections(tasks.value, projectionWindow.value.start, projectionWindow.value.end)
+  withProjections(
+    tasks.value,
+    projectionWindow.value.start,
+    projectionWindow.value.end,
+  ),
 );
 
 function jumpToday() {
@@ -167,7 +166,7 @@ async function seedSamples() {
   } catch (err) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     seeding.value = false;
@@ -217,15 +216,18 @@ const upcoming = computed<Task[]>(() => {
 
 const stats = computed(() => {
   const total = tasks.value.length;
-  const done = tasks.value.filter((task) => task.status === TaskStatus.Done).length;
+  const done = tasks.value.filter(
+    (task) => task.status === TaskStatus.Done,
+  ).length;
   const inProgress = tasks.value.filter(
-    (task) => task.status === TaskStatus.InProgress
+    (task) => task.status === TaskStatus.InProgress,
   ).length;
   return { total, done, inProgress };
 });
 
 const isEmpty = computed(
-  () => !isLoading.value && tasks.value.length === 0 && epics.value.length === 0
+  () =>
+    !isLoading.value && tasks.value.length === 0 && epics.value.length === 0,
 );
 </script>
 
@@ -249,9 +251,11 @@ const isEmpty = computed(
       </div>
 
       <div class="flex items-center gap-2 flex-wrap justify-end">
-        <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
+        <div
+          class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden"
+        >
           <button
-            v-for="opt in (['daily', 'weekly', 'monthly'] as const)"
+            v-for="opt in ['daily', 'weekly', 'monthly'] as const"
             :key="opt"
             class="px-3 py-1.5 text-xs font-medium capitalize transition disabled:opacity-40 disabled:cursor-not-allowed"
             :class="
@@ -326,8 +330,11 @@ const isEmpty = computed(
           >
             <path d="M12 5v14M5 12h14" stroke-linecap="round" />
           </svg>
-          {{ $t("tasks.quickCapture") }}
-          <kbd class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono">n</kbd>
+          {{ $t("tasks.quickCapture.button") }}
+          <kbd
+            class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono"
+            >n</kbd
+          >
         </button>
       </div>
     </header>
@@ -340,10 +347,7 @@ const isEmpty = computed(
     </div>
 
     <!-- Empty state takes over the whole canvas on first run. -->
-    <div
-      v-if="isEmpty"
-      class="flex-1 flex items-center justify-center p-6"
-    >
+    <div v-if="isEmpty" class="flex-1 flex items-center justify-center p-6">
       <EmptyState
         :title="$t('empty.planFirstDay')"
         :description="$t('empty.planFirstDayDesc')"
@@ -390,10 +394,14 @@ const isEmpty = computed(
         class="border-t lg:border-t-0 lg:border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin max-h-[40vh] lg:max-h-none"
       >
         <div class="p-4 border-b border-slate-100">
-          <h2 class="text-sm font-semibold text-slate-800">{{ $t("tasks.upNext") }}</h2>
+          <h2 class="text-sm font-semibold text-slate-800">
+            {{ $t("tasks.upNext") }}
+          </h2>
           <p class="text-[11px] text-slate-500">
             <span class="lg:hidden">{{ $t("tasks.upNextHint") }}</span>
-            <span class="hidden lg:inline">{{ $t("tasks.upNextHintDesktop") }}</span>
+            <span class="hidden lg:inline">{{
+              $t("tasks.upNextHintDesktop")
+            }}</span>
           </p>
         </div>
         <SkeletonList v-if="isLoading" variant="row" :rows="3" />
@@ -411,7 +419,9 @@ const isEmpty = computed(
                 <span
                   class="w-2 h-2 rounded-full shrink-0"
                   :class="colorOfTask(task).solid"
-                  :title="findEpic(task.epicId)?.title ?? $t('tasks.standalone')"
+                  :title="
+                    findEpic(task.epicId)?.title ?? $t('tasks.standalone')
+                  "
                 />
                 <p class="text-sm font-medium text-slate-900 truncate">
                   {{ task.title }}
@@ -428,9 +438,14 @@ const isEmpty = computed(
             >
               {{ findEpic(task.epicId)?.title }}
             </p>
-            <div class="mt-1 ml-4 flex items-center gap-2 text-[11px] text-slate-500 tabular-nums flex-wrap">
+            <div
+              class="mt-1 ml-4 flex items-center gap-2 text-[11px] text-slate-500 tabular-nums flex-wrap"
+            >
               <span
-                v-if="task.priority !== undefined && task.priority !== TaskPriority.Normal"
+                v-if="
+                  task.priority !== undefined &&
+                  task.priority !== TaskPriority.Normal
+                "
                 class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
                 :class="PRIORITY_BADGE[task.priority]"
               >
@@ -445,7 +460,9 @@ const isEmpty = computed(
                 }}
               </span>
               <span v-else-if="task.dueDate">
-                {{ $t("tasks.due", { date: dayjs(task.dueDate).format("MMM D") }) }}
+                {{
+                  $t("tasks.due", { date: dayjs(task.dueDate).format("MMM D") })
+                }}
               </span>
               <span v-if="task.estimatedHours !== undefined">
                 {{
@@ -473,9 +490,15 @@ const isEmpty = computed(
                   stroke-width="2.5"
                   class="w-3 h-3"
                 >
-                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round" />
+                  <polyline
+                    points="20 6 9 17 4 12"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
-                {{ task.checklist.filter((c) => c.done).length }}/{{ task.checklist.length }}
+                {{ task.checklist.filter((c) => c.done).length }}/{{
+                  task.checklist.length
+                }}
               </span>
             </div>
             <div

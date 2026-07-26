@@ -9,6 +9,7 @@ import type {
 } from "~/types/post";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
 import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
+import { categoryDisplayName } from "~/utils/categoryLabel";
 
 const props = defineProps<{
   submitting?: boolean;
@@ -32,10 +33,14 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const { uploadFile, validateFile } = useUploads();
 const { pushToast } = useToasts();
 const { results, loading: searching, searchDebounced } = useUserDirectory();
+
+function catLabel(cat: PostCategory) {
+  return categoryDisplayName(cat, t, te);
+}
 
 const body = ref("");
 const visibility = ref<PostVisibility>("public");
@@ -240,7 +245,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       >
         <option value="">{{ $t("feed.composer.noCategory") }}</option>
         <option v-for="cat in categories || []" :key="cat.id" :value="cat.id">
-          {{ cat.name }}
+          {{ catLabel(cat) }}
         </option>
       </select>
 

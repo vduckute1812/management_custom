@@ -67,5 +67,5 @@ Full as-built flow: [`implement/i18n.md`](../../implement/i18n.md).
 * **Routing:** `strategy: 'no_prefix'` — no `/en/...` paths. Switch with `LanguageSwitcher` (Settings → Language, or header account menu).
 * **Persistence:** `useSettings().locale` in `mgmt:settings:v1`. `plugins/i18n-locale.client.ts` syncs settings ↔ `setLocale` ↔ Day.js locale ↔ `html[lang]`. Cookie `mgmt_locale` is only for first-visit browser detection.
 * **Usage:** `$t` / `useI18n().t` for chrome, toasts, SEO titles. Add every new key to **all four** locale files (`en` first). Escape literal `@` as `{'@'}`.
-* **Labels:** `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` / `RECURRENCE_I18N_KEYS` from `~/types/task` + `t(...)`. Dates: Day.js after locale sync, or `INTL_LOCALE` from `~/types/locale`.
+* **Labels:** `STATUS_I18N_KEYS` / `ROLE_I18N_KEYS` / `PRIORITY_I18N_KEYS` / `RECURRENCE_I18N_KEYS` from `~/types/task` + `t(...)`. Seeded post categories: `CATEGORY_I18N_KEYS` + `categoryDisplayName` from `~/utils/categoryLabel` (DB `name` fallback for custom dirs). Dates: Day.js after locale sync, or `INTL_LOCALE` from `~/types/locale`.
 * Do **not** invent a parallel i18n stack, store locale on the user row, or hardcode English UI strings in new UI. User-authored content stays untranslated.

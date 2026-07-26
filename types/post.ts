@@ -64,6 +64,23 @@ export interface PostCategory {
   postCount?: number;
 }
 
+/**
+ * Seeded directory slugs → i18n keys under `categories.*`.
+ * Admin-created directories without a key keep showing the DB `name`.
+ * Use: `t(CATEGORY_I18N_KEYS[slug] ?? '', cat.name)` via `categoryDisplayName`.
+ */
+export const CATEGORY_I18N_KEYS: Record<string, string> = {
+  electronics: "categories.electronics",
+  "mechanical-engineering": "categories.mechanicalEngineering",
+  "information-technology": "categories.informationTechnology",
+  iot: "categories.iot",
+  general: "categories.general",
+  math: "categories.math",
+  announcements: "categories.announcements",
+  docs: "categories.docs",
+  ideas: "categories.ideas",
+};
+
 export interface PostAuthor {
   id: string;
   name: string | null;

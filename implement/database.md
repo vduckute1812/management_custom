@@ -6,19 +6,19 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories`.
 
 ## Migration system
 
-| File / Symbol                             | Role                                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `server/db/migrations/NNNN_name.sql`      | Plain SQL files, applied in lexical order. `0001_initial.sql` is the baseline.        |
-| `server/db/migrator.ts`                   | Discovery, status, apply (with `GET_LOCK('schema_migrations', 30)`), checksum drift.  |
-| `schema_migrations` table                 | `id`, `name`, `checksum` (SHA-256), `applied_at`, `duration_ms`.                      |
-| `npm run migrate`                         | Apply all pending migrations.                                                         |
-| `npm run migrate:status`                  | Show applied vs pending vs drift.                                                     |
-| `npm run migrate:reset`                   | DEV-ONLY drop of all known tables (requires `MIGRATE_RESET_CONFIRM=yes`).             |
-| `server/plugins/db-verify.ts`             | Boot-time guard — refuses to start if any migration is pending or has drifted.       |
+| File / Symbol                        | Role                                                                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------ |
+| `server/db/migrations/NNNN_name.sql` | Plain SQL files, applied in lexical order. `0001_initial.sql` is the baseline.       |
+| `server/db/migrator.ts`              | Discovery, status, apply (with `GET_LOCK('schema_migrations', 30)`), checksum drift. |
+| `schema_migrations` table            | `id`, `name`, `checksum` (SHA-256), `applied_at`, `duration_ms`.                     |
+| `npm run migrate`                    | Apply all pending migrations.                                                        |
+| `npm run migrate:status`             | Show applied vs pending vs drift.                                                    |
+| `npm run migrate:reset`              | DEV-ONLY drop of all known tables (requires `MIGRATE_RESET_CONFIRM=yes`).            |
+| `server/plugins/db-verify.ts`        | Boot-time guard — refuses to start if any migration is pending or has drifted.       |
 
 The "migrations are immutable once applied" rule is enforced via SHA-256: editing a previously-applied file fails the next status/migrate run and the server boot. See [`../server/db/migrations/README.md`](../server/db/migrations/README.md) for the full conventions.
 
@@ -29,7 +29,7 @@ The "migrations are immutable once applied" rule is enforced via SHA-256: editin
 Every enum-shaped column on this database is `TINYINT UNSIGNED` and the
 same integer flows unchanged through the entire stack: MySQL → row mapper →
 API JSON → JWT claim → frontend code. There are no string ↔ integer
-translation helpers anywhere; the TypeScript type *is* the integer.
+translation helpers anywhere; the TypeScript type _is_ the integer.
 
 In source, each enum is exported as a `const` object plus a numeric union:
 
@@ -50,7 +50,7 @@ Benefits over a string-ENUM column with translation at the boundary:
   `roleToNumber` to keep in sync.
 - **Cheap to compare & order.** `ORDER BY priority DESC` is "by importance"
   because the mapping is `low=0, normal=1, high=2`. Same for roles: `normal
-  = 0 < admin = 1 < superadmin = 2`, so `WHERE role >= 1` is "has admin
+= 0 < admin = 1 < superadmin = 2`, so `WHERE role >= 1` is "has admin
   powers".
 - **Smaller wire payloads.** `{ "role": 2 }` vs `{ "role": "superadmin" }`.
 - **Trivially extended.** Adding `Superadmin = 2` was a code change, not an
@@ -59,13 +59,13 @@ Benefits over a string-ENUM column with translation at the boundary:
 - **Free from MySQL's ENUM footguns** (1-indexed storage, silent fallback
   to `''` on invalid input, awkward to introspect from a client).
 
-| Column                  | Type                    | Mapping                                  |
-| ----------------------- | ----------------------- | ---------------------------------------- |
-| `users.role`            | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`        |
-| `epics.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`           |
-| `tasks.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`           |
-| `tasks.priority`        | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`                |
-| `tasks.recurrence_rule` | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`           |
+| Column                  | Type                    | Mapping                           |
+| ----------------------- | ----------------------- | --------------------------------- |
+| `users.role`            | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2` |
+| `epics.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`    |
+| `tasks.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`    |
+| `tasks.priority`        | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`         |
+| `tasks.recurrence_rule` | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`    |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -241,38 +241,38 @@ Tags are free-form strings on both epics and tasks. Modeling them as a separate 
 
 ### Epic
 
-| Field         | Type     | Required | Description                          |
-| ------------- | -------- | -------- | ------------------------------------ |
-| `id`          | string   | Yes      | `epic_<random>`                      |
-| `title`       | string   | Yes      | Short display name                   |
-| `description` | string   | No       | Markdown-supported overview          |
+| Field         | Type     | Required | Description                                      |
+| ------------- | -------- | -------- | ------------------------------------------------ |
+| `id`          | string   | Yes      | `epic_<random>`                                  |
+| `title`       | string   | Yes      | Short display name                               |
+| `description` | string   | No       | Markdown-supported overview                      |
 | `status`      | integer  | Yes      | `TaskStatus`: `0` Todo, `1` InProgress, `2` Done |
-| `dueDate`     | ISO date | No       | `YYYY-MM-DD`                         |
-| `tags`        | string[] | No       | Free-form labels                     |
-| `createdAt`   | ISO 8601 | Yes      | Record creation                      |
-| `updatedAt`   | ISO 8601 | Yes      | Last modification                    |
+| `dueDate`     | ISO date | No       | `YYYY-MM-DD`                                     |
+| `tags`        | string[] | No       | Free-form labels                                 |
+| `createdAt`   | ISO 8601 | Yes      | Record creation                                  |
+| `updatedAt`   | ISO 8601 | Yes      | Last modification                                |
 
 **Computed (not stored):** `estimatedHours`, `spentHours`, `progress`, `taskCount`.
 
 ### Task
 
-| Field            | Type     | Required | Description                                  |
-| ---------------- | -------- | -------- | -------------------------------------------- |
-| `id`             | string   | Yes      | `task_<random>`                              |
-| `epicId`         | string   | No       | Parent Epic; omit for standalone             |
-| `title`          | string   | Yes      | Short display name                           |
-| `notes`          | string   | No       | Markdown long-form                           |
-| `status`         | integer  | Yes      | `TaskStatus`: `0` Todo, `1` InProgress, `2` Done |
-| `priority`       | integer  | Yes      | `TaskPriority`: `0` Low, `1` Normal (default), `2` High |
-| `dueDate`        | ISO date | No       | `YYYY-MM-DD`                                 |
-| `estimatedHours` | number   | No       | Planned time budget                          |
-| `progress`       | integer  | No       | `0–100`                                      |
-| `tags`           | string[] | No       | Free-form labels                             |
-| `timeBlocks`     | Block[]  | No       | Scheduled work sessions                      |
-| `checklist`      | Item[]   | No       | Sub-steps `[{ id, text, done }]`             |
+| Field            | Type     | Required | Description                                              |
+| ---------------- | -------- | -------- | -------------------------------------------------------- |
+| `id`             | string   | Yes      | `task_<random>`                                          |
+| `epicId`         | string   | No       | Parent Epic; omit for standalone                         |
+| `title`          | string   | Yes      | Short display name                                       |
+| `notes`          | string   | No       | Markdown long-form                                       |
+| `status`         | integer  | Yes      | `TaskStatus`: `0` Todo, `1` InProgress, `2` Done         |
+| `priority`       | integer  | Yes      | `TaskPriority`: `0` Low, `1` Normal (default), `2` High  |
+| `dueDate`        | ISO date | No       | `YYYY-MM-DD`                                             |
+| `estimatedHours` | number   | No       | Planned time budget                                      |
+| `progress`       | integer  | No       | `0–100`                                                  |
+| `tags`           | string[] | No       | Free-form labels                                         |
+| `timeBlocks`     | Block[]  | No       | Scheduled work sessions                                  |
+| `checklist`      | Item[]   | No       | Sub-steps `[{ id, text, done }]`                         |
 | `recurrence`     | object   | No       | `{ rule: RecurrenceRule, interval, until? }` — see below |
-| `createdAt`      | ISO 8601 | Yes      | Record creation                              |
-| `updatedAt`      | ISO 8601 | Yes      | Last modification                            |
+| `createdAt`      | ISO 8601 | Yes      | Record creation                                          |
+| `updatedAt`      | ISO 8601 | Yes      | Last modification                                        |
 
 **Computed (not stored):** `spentHours`, `checklistProgress`.
 
@@ -288,42 +288,46 @@ A recurring task carries its existing `timeBlocks` as **seeds**. The UI never au
 
 ### Time Block
 
-| Field        | Type     | Required | Description                          |
-| ------------ | -------- | -------- | ------------------------------------ |
-| `id`         | string   | Yes      | `block_<random>`                     |
-| `start`      | ISO 8601 | Yes      | Block start datetime                 |
-| `end`        | ISO 8601 | Yes      | Block end datetime                   |
-| `spentHours` | number   | No       | Actual hours logged                  |
+| Field        | Type     | Required | Description          |
+| ------------ | -------- | -------- | -------------------- |
+| `id`         | string   | Yes      | `block_<random>`     |
+| `start`      | ISO 8601 | Yes      | Block start datetime |
+| `end`        | ISO 8601 | Yes      | Block end datetime   |
+| `spentHours` | number   | No       | Actual hours logged  |
 
 ### Active Timer (top-level, optional)
 
-| Field       | Type     | Required | Description                                       |
-| ----------- | -------- | -------- | ------------------------------------------------- |
-| `taskId`    | string   | Yes      | ID of the task currently being tracked            |
-| `startedAt` | ISO 8601 | Yes      | When the timer started                            |
+| Field       | Type     | Required | Description                            |
+| ----------- | -------- | -------- | -------------------------------------- |
+| `taskId`    | string   | Yes      | ID of the task currently being tracked |
+| `startedAt` | ISO 8601 | Yes      | When the timer started                 |
 
 When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended to the task's `timeBlocks` and `activeTimer` is cleared.
 
 ---
 
-## Feed & stories (migrations 0003–0005)
+## Feed & stories (migrations 0003–0006)
 
 Canonical DDL lives in the migration files; this section is the as-built map.
 
-| Table | Purpose |
-| ----- | ------- |
-| `posts` | Feed posts: `body`, `visibility` (`public`/`private`/`shared`), optional `category_id`, `font_family`, `text_color`, optional `shared_post_id` |
-| `post_audience` | ACL rows for `visibility = shared` |
-| `post_reactions` | One reaction per `(post_id, user_id)` (`like`/`love`/…) |
-| `post_comments` | Threaded comments on a post |
-| `post_attachments` | Attachment metadata linked to `uploads` |
-| `post_categories` | Install-wide category catalog (seeded; no `user_id`) |
-| `uploads` | Upload metadata + R2 `storage_key` |
-| `stories` | 24h stories (`expires_at`), optional media |
-| `story_views` | Viewer rollup |
-| `story_reactions` | Reactions on stories |
+| Table              | Purpose                                                                                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `posts`            | Feed posts: `body`, `visibility` (`public`/`private`/`shared`), optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`                      |
+| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                  |
+| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                             |
+| `post_comments`    | Threaded comments on a post                                                                                                                                         |
+| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                             |
+| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order` |
+| `uploads`          | Upload metadata + R2 `storage_key`                                                                                                                                  |
+| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                          |
+| `story_views`      | Viewer rollup                                                                                                                                                       |
+| `story_reactions`  | Reactions on stories                                                                                                                                                |
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
+
+**Category display names.** MySQL stores a canonical `name` (admin-editable). Seeded slugs resolve to UI copy via `CATEGORY_I18N_KEYS` + `utils/categoryLabel.ts` (`categories.*` in locale JSON). Custom admin directories without a key keep showing the DB `name`.
+
+**Upload policy.** Allowed types, per-type size caps, and magic-byte checks live in `utils/uploadPolicy.ts` (client + server) and `server/utils/fileSignature.ts`. See [`api.md`](./api.md#uploads-r2).
 
 ---
 
@@ -333,6 +337,6 @@ These fields are documented so the data model stays forward-compatible. The curr
 
 **TimeBlock:**
 
-| Field    | Type     | Description                                                  |
-| -------- | -------- | ------------------------------------------------------------ |
-| `notes`  | string   | What actually happened during this block                     |
+| Field   | Type   | Description                              |
+| ------- | ------ | ---------------------------------------- |
+| `notes` | string | What actually happened during this block |

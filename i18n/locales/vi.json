@@ -285,6 +285,7 @@
     "next": "Sau",
     "quickCapture": {
       "aria": "Ghi nhanh",
+      "button": "Ghi nhanh",
       "titleAria": "Tiêu đề công việc nhanh",
       "placeholder": "Đọc bài {'@'}14 · Nháp ngày mai 9-11 · #vision ghi chú",
       "add": "Thêm",
@@ -831,6 +832,17 @@
     "login": "Đăng nhập",
     "signup": "Tạo tài khoản",
     "verifyEmail": "Xác minh email"
+  },
+  "categories": {
+    "electronics": "Điện tử",
+    "mechanicalEngineering": "Cơ khí",
+    "informationTechnology": "Công nghệ thông tin (CNTT)",
+    "iot": "IoT (Internet of Things)",
+    "general": "Chung",
+    "math": "Toán",
+    "announcements": "Thông báo",
+    "docs": "Tài liệu",
+    "ideas": "Ý tưởng"
   },
   "home": {
     "brand": "Da Nang Tech R&D and Networking Portal",

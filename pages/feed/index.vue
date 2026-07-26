@@ -9,8 +9,9 @@ import {
   UPLOAD_ALLOWED_IMAGE_EXTENSIONS,
   resolveUploadRule,
 } from "~/utils/uploadPolicy";
+import { categoryDisplayName } from "~/utils/categoryLabel";
 
-const { t } = useI18n();
+const { t, te } = useI18n();
 const auth = useAuth();
 const route = useRoute();
 const { pushToast } = useToasts();
@@ -116,6 +117,10 @@ async function onCreate(payload: {
 
 async function onCategoryFilter(id: string | null) {
   await setCategoryFilter(id);
+}
+
+function catLabel(cat: { slug: string; name: string }) {
+  return categoryDisplayName(cat, t, te);
 }
 
 async function onShare(id: string, note: string) {
@@ -269,7 +274,7 @@ async function submitStory() {
           "
           @click="onCategoryFilter(cat.id)"
         >
-          {{ cat.name }}
+          {{ catLabel(cat) }}
           <span
             v-if="cat.postCount !== undefined"
             class="ml-1 tabular-nums opacity-70"

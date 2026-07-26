@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { categoryDisplayName } from "~/utils/categoryLabel";
+
 const auth = useAuth();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const {
   categories,
   loading: categoriesLoading,
@@ -15,6 +17,10 @@ useSeoMeta({
 onMounted(() => {
   refreshCategories().catch(() => undefined);
 });
+
+function catLabel(cat: { slug: string; name: string }) {
+  return categoryDisplayName(cat, t, te);
+}
 </script>
 
 <template>
@@ -70,7 +76,7 @@ onMounted(() => {
           <p
             class="text-sm font-semibold text-slate-900 group-hover:text-brand-700"
           >
-            {{ cat.name }}
+            {{ catLabel(cat) }}
           </p>
           <p class="mt-1 text-xs text-slate-500">
             {{
