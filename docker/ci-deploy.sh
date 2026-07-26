@@ -241,8 +241,10 @@ recreate_app() {
   # Cloudflare/gateway errors during every GitHub-triggered deploy.
   log "recreating app container (leave nginx/mysql running)"
   mgmt_compose up -d --no-deps --force-recreate app
-  # Ensure reverse proxy is up without bouncing it.
+  # Ensure reverse proxy is up without bouncing it; reload so bind-mounted
+  # nginx.prod.conf edits from this checkout take effect.
   mgmt_compose up -d nginx
+  "${RUNTIME}" exec mgmt-nginx-prod nginx -s reload >/dev/null 2>&1 || true
 }
 
 rollback() {

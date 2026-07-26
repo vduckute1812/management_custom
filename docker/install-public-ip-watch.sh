@@ -52,9 +52,16 @@ if loginctl show-user "$(whoami)" 2>/dev/null | grep -q "Linger=no"; then
   fi
 fi
 
+if [[ ! -d "${ROOT}" || ! -f "${DIR}/sync-public-ip.sh" ]]; then
+  echo "[ip-watch] ERROR: repo path missing (${ROOT}). Re-run from the live checkout." >&2
+  exit 1
+fi
+
 echo "==> Enabling and starting ${TIMER_NAME}"
 systemctl --user daemon-reload
 systemctl --user enable --now "${TIMER_NAME}"
+# Fail fast if WorkingDirectory / script path is wrong (common after repo rename/move).
+systemctl --user start "${SERVICE_NAME}"
 
 echo
 echo "Public IP watch timer started."
