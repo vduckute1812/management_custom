@@ -3,6 +3,7 @@ import type {
   Post,
   PostComment,
   PostFontFamily,
+  PostFormat,
   PostReactionType,
   PostTextColor,
   PostVisibility,
@@ -101,6 +102,8 @@ export const usePosts = () => {
 
   async function createPost(args: {
     body: string;
+    title?: string | null;
+    format?: PostFormat;
     visibility?: PostVisibility;
     audienceUserIds?: string[];
     attachmentIds?: string[];
@@ -108,10 +111,13 @@ export const usePosts = () => {
     fontFamily?: PostFontFamily;
     textColor?: PostTextColor;
   }): Promise<Post> {
+    const format = args.format ?? "update";
     const res = await apiFetch<{ post: Post }>("/api/posts", {
       method: "POST",
       body: {
         body: args.body,
+        title: args.title ?? null,
+        format,
         visibility: args.visibility ?? "public",
         audienceUserIds: args.audienceUserIds ?? [],
         attachmentIds: args.attachmentIds ?? [],
@@ -127,7 +133,12 @@ export const usePosts = () => {
     ) {
       posts.value = [res.post, ...posts.value];
     }
-    pushToast(t("toasts.postShared"), { tone: "success", duration: 2500 });
+    pushToast(
+      format === "manuscript"
+        ? t("toasts.manuscriptPublished")
+        : t("toasts.postShared"),
+      { tone: "success", duration: 2500 },
+    );
     return res.post;
   }
 

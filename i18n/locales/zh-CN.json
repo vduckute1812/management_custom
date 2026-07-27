@@ -210,13 +210,7 @@
     },
     "composer": {
       "writeAPost": "写帖子",
-      "writeADocument": "撰写长文",
-      "writeModeAria": "写作模式",
-      "modeShort": "短帖",
-      "modeLong": "长文档",
-      "longFormHint": "大编辑区，适合论文、研究笔记与学位论文。最多 100,000 字符。",
       "placeholder": "写帖子… 使用 $E=mc^2$ 或 $$…$$ 输入 LaTeX",
-      "placeholderLong": "撰写文档… 支持章节与公式（$E=mc^2$ 或 $$…$$）。",
       "category": "分类",
       "noCategory": "无分类",
       "font": "字体",
@@ -232,7 +226,6 @@
       "attach": "附件",
       "uploading": "上传中…",
       "post": "发布",
-      "publishDocument": "发布文档",
       "shareWith": "分享给",
       "searchPeople": "按姓名或邮箱搜索…",
       "audienceHint": "输入以查找本安装中的人员进行分享。",
@@ -250,8 +243,7 @@
       "colorBlue": "蓝色",
       "colorRose": "玫瑰",
       "colorGreen": "绿色",
-      "colorAmber": "琥珀",
-      "trimmedToMode": "已按此模式截断为 {max} 个字符。"
+      "colorAmber": "琥珀"
     },
     "post": {
       "delete": "删除",
@@ -736,7 +728,8 @@
     "movedTask": "已移动「{title}」",
     "couldNotReschedule": "无法改期",
     "rescheduledCount": "已将 {count} 个任务改期到今天 | 已将 {count} 个任务改期到今天",
-    "couldNotRescheduleAny": "无法改期任何任务"
+    "couldNotRescheduleAny": "无法改期任何任务",
+    "manuscriptPublished": "手稿已发布"
   },
   "status": {
     "todo": "待办",
@@ -850,7 +843,9 @@
     "adminDescription": "系统级汇总。",
     "login": "登录",
     "signup": "创建账户",
-    "verifyEmail": "验证邮箱"
+    "verifyEmail": "验证邮箱",
+    "manuscriptWrite": "撰写手稿",
+    "manuscriptWriteDescription": "撰写长文手稿，适合论文与研究笔记。"
   },
   "categories": {
     "electronics": "电子",
@@ -881,5 +876,30 @@
   "export": {
     "status": "状态",
     "role": "角色"
+  },
+  "manuscript": {
+    "studioKicker": "写作台",
+    "studioTitle": "撰写手稿",
+    "studioLede": "安静的页面，适合论文章节、随笔与研究笔记。",
+    "cancel": "返回动态",
+    "publish": "发布手稿",
+    "publishing": "发布中…",
+    "titleLabel": "手稿标题",
+    "titlePlaceholder": "输入手稿标题",
+    "bodyLabel": "手稿正文",
+    "bodyPlaceholder": "开始写作… 支持段落与公式（$E=mc^2$ 或 $$…$$）。",
+    "settings": "发布设置",
+    "readingTime": "约 {count} 分钟阅读",
+    "wordCount": "{count} 词",
+    "charCount": "{count}/{max} · ⌘/Ctrl+Enter 发布",
+    "badge": "手稿",
+    "readFull": "阅读全文",
+    "writeCta": "新建手稿",
+    "openStudioChip": "打开写作台",
+    "inviteKicker": "手稿",
+    "inviteTitle": "为长文留出空间",
+    "inviteBody": "用独立页面撰写论文章节、随笔与长研究笔记——与短动态分开。",
+    "inviteAction": "进入写作台",
+    "loginRequired": "登录后打开写作台。"
   }
 }

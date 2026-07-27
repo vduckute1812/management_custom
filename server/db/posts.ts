@@ -10,6 +10,7 @@ import type {
   PostCategory,
   PostComment,
   PostFontFamily,
+  PostFormat,
   PostReactionType,
   PostTextColor,
   PostVisibility,
@@ -17,6 +18,7 @@ import type {
 } from "../../types/post";
 import {
   POST_FONT_FAMILIES,
+  POST_FORMATS,
   POST_REACTION_TYPES,
   POST_TEXT_COLORS,
 } from "../../types/post";
@@ -26,6 +28,8 @@ interface PostRow extends RowDataPacket {
   id: string;
   user_id: string;
   body: string;
+  format: string | null;
+  title: string | null;
   visibility: PostVisibility;
   category_id: string | null;
   font_family: string | null;
@@ -41,6 +45,8 @@ interface PostRow extends RowDataPacket {
   category_name: string | null;
   category_sort_order: number | null;
   shared_body: string | null;
+  shared_title: string | null;
+  shared_format: string | null;
   shared_created_at: string | null;
   shared_author_id: string | null;
   shared_author_name: string | null;
@@ -124,6 +130,8 @@ const POST_SELECT = `
     p.id,
     p.user_id,
     p.body,
+    p.format,
+    p.title,
     p.visibility,
     p.category_id,
     p.font_family,
@@ -140,6 +148,8 @@ const POST_SELECT = `
     c.name AS category_name,
     c.sort_order AS category_sort_order,
     sp.body AS shared_body,
+    sp.title AS shared_title,
+    sp.format AS shared_format,
     sp.created_at AS shared_created_at,
     su.id AS shared_author_id,
     su.name AS shared_author_name,
@@ -156,6 +166,18 @@ function normalizeFontFamily(value: string | null | undefined): PostFontFamily {
     return value as PostFontFamily;
   }
   return "default";
+}
+
+function normalizeFormat(value: string | null | undefined): PostFormat {
+  if (value && (POST_FORMATS as readonly string[]).includes(value)) {
+    return value as PostFormat;
+  }
+  return "update";
+}
+
+function normalizeTitle(value: string | null | undefined): string | null {
+  const trimmed = typeof value === "string" ? value.trim() : "";
+  return trimmed ? trimmed : null;
 }
 
 function normalizeTextColor(value: string | null | undefined): PostTextColor {
@@ -268,7 +290,9 @@ function rowToPost(
   ) {
     sharedPost = {
       id: row.shared_post_id,
+      title: normalizeTitle(row.shared_title),
       body: row.shared_body,
+      format: normalizeFormat(row.shared_format),
       createdAt: dbToISO(row.shared_created_at),
       author: toAuthor(
         row.shared_author_id,
@@ -286,6 +310,8 @@ function rowToPost(
 
   return {
     id: row.id,
+    format: normalizeFormat(row.format),
+    title: normalizeTitle(row.title),
     body: row.body,
     visibility: row.visibility,
     category: categoryFromRow(row),
@@ -405,6 +431,8 @@ export async function createPost(
   userId: string,
   args: {
     body: string;
+    title?: string | null;
+    format?: PostFormat;
     visibility?: PostVisibility;
     audienceUserIds?: string[];
     attachmentIds?: string[];
@@ -418,6 +446,13 @@ export async function createPost(
   const id = generateId("post");
   const now = nowISO();
   const trimmed = args.body.trim();
+  const format = normalizeFormat(args.format);
+  const title = normalizeTitle(args.title);
+  if (format === "manuscript" && !title) {
+    throw Object.assign(new Error("Manuscript title is required"), {
+      statusCode: 400,
+    });
+  }
   const visibility: PostVisibility = args.visibility ?? "public";
   const audienceUserIds =
     visibility === "shared"
@@ -439,7 +474,10 @@ export async function createPost(
     }
   }
 
-  const fontFamily = normalizeFontFamily(args.fontFamily);
+  const fontFamily =
+    format === "manuscript" && !args.fontFamily
+      ? ("serif" as PostFontFamily)
+      : normalizeFontFamily(args.fontFamily);
   const textColor = normalizeTextColor(args.textColor);
 
   if (args.sharedPostId) {
@@ -458,13 +496,15 @@ export async function createPost(
     await conn.beginTransaction();
     await conn.query(
       `INSERT INTO posts
-         (id, user_id, body, visibility, category_id, font_family, text_color,
+         (id, user_id, body, format, title, visibility, category_id, font_family, text_color,
           shared_post_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
         trimmed,
+        format,
+        format === "manuscript" ? title : null,
         visibility,
         categoryId,
         fontFamily === "default" ? null : fontFamily,

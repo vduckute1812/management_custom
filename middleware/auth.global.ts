@@ -19,8 +19,8 @@ const AUTH_FORM_PATHS = new Set(["/login", "/signup"]);
 
 function isPublicPath(path: string): boolean {
   if (PUBLIC_PATHS.has(path)) return true;
-  // Feed (and nested feed routes) are browseable anonymously; public posts
-  // are served by the API without auth. Mutations still require a session.
+  // Feed is browseable anonymously; the writing desk requires a session.
+  if (path === "/feed/write") return false;
   if (path === "/feed" || path.startsWith("/feed/")) return true;
   return false;
 }

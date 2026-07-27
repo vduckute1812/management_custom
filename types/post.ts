@@ -4,6 +4,13 @@
 
 export type PostVisibility = "public" | "private" | "shared";
 
+/**
+ * Content format — short social updates vs long-form manuscripts
+ * (essays, thesis chapters, research notes).
+ */
+export const POST_FORMATS = ["update", "manuscript"] as const;
+export type PostFormat = (typeof POST_FORMATS)[number];
+
 export type PostReactionType =
   "like" | "love" | "haha" | "wow" | "sad" | "angry";
 
@@ -89,7 +96,9 @@ export interface PostAuthor {
 
 export interface SharedPostPreview {
   id: string;
+  title: string | null;
   body: string;
+  format: PostFormat;
   createdAt: string;
   author: PostAuthor;
 }
@@ -117,6 +126,10 @@ export interface PostComment {
 
 export interface Post {
   id: string;
+  /** Short social update or long-form manuscript. */
+  format: PostFormat;
+  /** Display title — required for manuscripts, unused for updates. */
+  title: string | null;
   body: string;
   visibility: PostVisibility;
   category: PostCategory | null;

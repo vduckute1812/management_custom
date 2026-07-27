@@ -210,13 +210,7 @@
     },
     "composer": {
       "writeAPost": "撰寫貼文",
-      "writeADocument": "撰寫長文",
-      "writeModeAria": "寫作模式",
-      "modeShort": "短貼文",
-      "modeLong": "長文件",
-      "longFormHint": "大編輯區，適合論文、研究筆記與學位論文。最多 100,000 字元。",
       "placeholder": "撰寫貼文… 使用 $E=mc^2$ 或 $$…$$ 輸入 LaTeX",
-      "placeholderLong": "撰寫文件… 支援章節與公式（$E=mc^2$ 或 $$…$$）。",
       "category": "分類",
       "noCategory": "無分類",
       "font": "字型",
@@ -232,7 +226,6 @@
       "attach": "附件",
       "uploading": "上傳中…",
       "post": "發佈",
-      "publishDocument": "發佈文件",
       "shareWith": "分享給",
       "searchPeople": "按姓名或電子郵件搜尋…",
       "audienceHint": "輸入以尋找此安裝中的人員進行分享。",
@@ -250,8 +243,7 @@
       "colorBlue": "藍色",
       "colorRose": "玫瑰",
       "colorGreen": "綠色",
-      "colorAmber": "琥珀",
-      "trimmedToMode": "已依此模式截斷為 {max} 個字元。"
+      "colorAmber": "琥珀"
     },
     "post": {
       "delete": "刪除",
@@ -736,7 +728,8 @@
     "movedTask": "已移動「{title}」",
     "couldNotReschedule": "無法改期",
     "rescheduledCount": "已將 {count} 個任務改期到今天 | 已將 {count} 個任務改期到今天",
-    "couldNotRescheduleAny": "無法改期任何任務"
+    "couldNotRescheduleAny": "無法改期任何任務",
+    "manuscriptPublished": "手稿已發佈"
   },
   "status": {
     "todo": "待辦",
@@ -850,7 +843,9 @@
     "adminDescription": "系統級彙總。",
     "login": "登入",
     "signup": "建立帳戶",
-    "verifyEmail": "驗證電子郵件"
+    "verifyEmail": "驗證電子郵件",
+    "manuscriptWrite": "撰寫手稿",
+    "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。"
   },
   "categories": {
     "electronics": "電子",
@@ -881,5 +876,30 @@
   "export": {
     "status": "狀態",
     "role": "角色"
+  },
+  "manuscript": {
+    "studioKicker": "寫作台",
+    "studioTitle": "撰寫手稿",
+    "studioLede": "安靜的頁面，適合論文章節、隨筆與研究筆記。",
+    "cancel": "返回動態",
+    "publish": "發佈手稿",
+    "publishing": "發佈中…",
+    "titleLabel": "手稿標題",
+    "titlePlaceholder": "輸入手稿標題",
+    "bodyLabel": "手稿正文",
+    "bodyPlaceholder": "開始寫作… 支援段落與公式（$E=mc^2$ 或 $$…$$）。",
+    "settings": "發佈設定",
+    "readingTime": "約 {count} 分鐘閱讀",
+    "wordCount": "{count} 詞",
+    "charCount": "{count}/{max} · ⌘/Ctrl+Enter 發佈",
+    "badge": "手稿",
+    "readFull": "閱讀全文",
+    "writeCta": "新建手稿",
+    "openStudioChip": "開啟寫作台",
+    "inviteKicker": "手稿",
+    "inviteTitle": "為長文留出空間",
+    "inviteBody": "用獨立頁面撰寫論文章節、隨筆與長研究筆記——與短動態分開。",
+    "inviteAction": "進入寫作台",
+    "loginRequired": "登入後開啟寫作台。"
   }
 }

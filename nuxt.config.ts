@@ -26,6 +26,7 @@ export default defineNuxtConfig({
       "/login",
       "/signup",
       "/verify-email",
+      "/feed/write",
     ],
   },
   // Dynamic OG image rendering needs a native renderer (@takumi-rs/core) that

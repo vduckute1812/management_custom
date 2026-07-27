@@ -170,7 +170,7 @@
   },
   "feed": {
     "title": "Bảng tin",
-    "subtitleAuth": "Tài liệu, story, cảm xúc và bình luận — công khai, riêng tư hoặc chia sẻ.",
+    "subtitleAuth": "Cập nhật, bản thảo, story và bình luận — công khai, riêng tư hoặc chia sẻ.",
     "subtitleGuest": "Bài viết công khai ai cũng đọc được. Đăng nhập để bày tỏ cảm xúc, bình luận hoặc chia sẻ.",
     "storiesFailed": "Không tải được story.",
     "retry": "Thử lại",
@@ -210,13 +210,7 @@
     },
     "composer": {
       "writeAPost": "Viết bài",
-      "writeADocument": "Viết văn bản",
-      "writeModeAria": "Chế độ viết",
-      "modeShort": "Bài ngắn",
-      "modeLong": "Văn bản dài",
-      "longFormHint": "Ô soạn thảo lớn cho bài luận, ghi chú nghiên cứu và luận văn. Tối đa 100.000 ký tự.",
       "placeholder": "Viết bài… Dùng $E=mc^2$ hoặc $$…$$ cho LaTeX",
-      "placeholderLong": "Viết văn bản… Chương, mục, công thức ($E=mc^2$ hoặc $$…$$) đều được hỗ trợ.",
       "category": "Danh mục",
       "noCategory": "Không có danh mục",
       "font": "Phông chữ",
@@ -232,7 +226,6 @@
       "attach": "Đính kèm",
       "uploading": "Đang tải lên…",
       "post": "Đăng",
-      "publishDocument": "Đăng văn bản",
       "shareWith": "Chia sẻ với",
       "searchPeople": "Tìm theo tên hoặc email…",
       "audienceHint": "Gõ để tìm người trên bản cài này để chia sẻ.",
@@ -240,7 +233,6 @@
       "removeAttachment": "Gỡ {name}",
       "removePerson": "Gỡ {name}",
       "charCount": "{count}/{max} · ⌘/Ctrl+Enter để đăng",
-      "trimmedToMode": "Nội dung đã được cắt còn {max} ký tự cho chế độ này.",
       "fontDefault": "Phông mặc định",
       "fontSerif": "Serif",
       "fontMono": "Monospace",
@@ -736,7 +728,8 @@
     "movedTask": "Đã chuyển \"{title}\"",
     "couldNotReschedule": "Không đổi lịch được",
     "rescheduledCount": "Đã đổi lịch {count} công việc sang hôm nay | Đã đổi lịch {count} công việc sang hôm nay",
-    "couldNotRescheduleAny": "Không đổi lịch được công việc nào"
+    "couldNotRescheduleAny": "Không đổi lịch được công việc nào",
+    "manuscriptPublished": "Đã xuất bản bản thảo"
   },
   "status": {
     "todo": "Cần làm",
@@ -850,7 +843,9 @@
     "adminDescription": "Tổng hợp toàn hệ thống.",
     "login": "Đăng nhập",
     "signup": "Tạo tài khoản",
-    "verifyEmail": "Xác minh email"
+    "verifyEmail": "Xác minh email",
+    "manuscriptWrite": "Soạn bản thảo",
+    "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -881,5 +876,30 @@
   "export": {
     "status": "Trạng thái",
     "role": "Vai trò"
+  },
+  "manuscript": {
+    "studioKicker": "Phòng viết",
+    "studioTitle": "Soạn bản thảo",
+    "studioLede": "Không gian yên tĩnh cho bài luận, chương luận văn và ghi chú nghiên cứu — đủ chỗ để nghĩ.",
+    "cancel": "Về bảng tin",
+    "publish": "Xuất bản bản thảo",
+    "publishing": "Đang xuất bản…",
+    "titleLabel": "Tiêu đề bản thảo",
+    "titlePlaceholder": "Tiêu đề bản thảo của bạn",
+    "bodyLabel": "Nội dung bản thảo",
+    "bodyPlaceholder": "Bắt đầu viết… Dùng đoạn văn, tiêu đề mục, và $E=mc^2$ hoặc $$…$$ cho công thức.",
+    "settings": "Xuất bản",
+    "readingTime": "{count} phút đọc",
+    "wordCount": "{count} từ",
+    "charCount": "{count}/{max} · ⌘/Ctrl+Enter để xuất bản",
+    "badge": "Bản thảo",
+    "readFull": "Đọc toàn bộ bản thảo",
+    "writeCta": "Bản thảo mới",
+    "openStudioChip": "Mở phòng viết",
+    "inviteKicker": "Bản thảo",
+    "inviteTitle": "Viết đúng tầm công việc",
+    "inviteBody": "Mở trang riêng cho chương luận văn, bài luận và ghi chú dài — tách biệt khỏi cập nhật ngắn trên bảng tin.",
+    "inviteAction": "Vào phòng viết",
+    "loginRequired": "Đăng nhập để mở phòng viết."
   }
 }

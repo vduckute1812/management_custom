@@ -8,10 +8,7 @@ import type {
   UploadRecord,
 } from "~/types/post";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
-import {
-  type PostWriteMode,
-  postBodyMaxForMode,
-} from "~/utils/postBodyLimits";
+import { POST_BODY_MAX_UPDATE } from "~/utils/postBodyLimits";
 import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 
@@ -26,6 +23,7 @@ const emit = defineEmits<{
   (
     e: "submit",
     payload: {
+      format: "update";
       body: string;
       visibility: PostVisibility;
       audienceUserIds: string[];
@@ -47,7 +45,6 @@ function catLabel(cat: PostCategory) {
   return categoryDisplayName(cat, t, te);
 }
 
-const writeMode = ref<PostWriteMode>("short");
 const body = ref("");
 const visibility = ref<PostVisibility>("public");
 const categoryId = ref("");
@@ -59,25 +56,6 @@ const attachments = ref<UploadRecord[]>([]);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const textareaEl = ref<HTMLTextAreaElement | null>(null);
-
-const bodyMax = computed(() => postBodyMaxForMode(writeMode.value));
-const isLongForm = computed(() => writeMode.value === "long");
-
-const composerPlaceholder = computed(() => {
-  if (props.placeholder) return props.placeholder;
-  return isLongForm.value
-    ? t("feed.composer.placeholderLong")
-    : t("feed.composer.placeholder");
-});
-
-watch(writeMode, (mode) => {
-  const max = postBodyMaxForMode(mode);
-  if (body.value.length > max) {
-    body.value = body.value.slice(0, max);
-    pushToast(t("feed.composer.trimmedToMode", { max }), { tone: "info" });
-  }
-  nextTick(() => textareaEl.value?.focus());
-});
 
 const userInitial = computed(() => {
   const source = auth.user.value?.name || auth.user.value?.email || "";
@@ -116,8 +94,6 @@ async function onFilesSelected(e: Event) {
   input.value = "";
   if (!files.length) return;
 
-  // Report every rejected file, then upload the rest — one oversized pick
-  // shouldn't discard the others in the same selection.
   const accepted: File[] = [];
   for (const file of files) {
     const reason = validateFile(file);
@@ -170,6 +146,7 @@ function insertLatex(block = false) {
 function onSubmit() {
   if (!canSubmit.value) return;
   emit("submit", {
+    format: "update",
     body: body.value.trim(),
     visibility: visibility.value,
     audienceUserIds: audience.value.map((u) => u.id),
@@ -182,7 +159,6 @@ function onSubmit() {
 
 function clear() {
   body.value = "";
-  writeMode.value = "short";
   visibility.value = "public";
   categoryId.value = "";
   fontFamily.value = "default";
@@ -190,10 +166,6 @@ function clear() {
   audience.value = [];
   audienceQuery.value = "";
   attachments.value = [];
-}
-
-function setWriteMode(mode: PostWriteMode) {
-  writeMode.value = mode;
 }
 
 function focus() {
@@ -248,72 +220,26 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           {{ visibilityLabel[visibility] }}
         </p>
       </div>
-      <span
-        class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold text-emerald-700"
+      <NuxtLink
+        to="/feed/write"
+        class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4efe8] px-2.5 py-1 text-[10px] font-semibold text-[#3f6f5a] transition hover:bg-[#d7e8dd]"
       >
-        <span
-          class="h-1.5 w-1.5 rounded-full bg-emerald-500"
-          aria-hidden="true"
-        />
-        {{ visibilityLabel[visibility] }}
-      </span>
+        {{ $t("manuscript.openStudioChip") }}
+      </NuxtLink>
     </div>
 
     <div class="space-y-3 p-4 sm:p-5">
-      <div
-        class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1"
-        role="group"
-        :aria-label="$t('feed.composer.writeModeAria')"
-      >
-        <button
-          type="button"
-          class="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-          :class="
-            writeMode === 'short'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800'
-          "
-          :aria-pressed="writeMode === 'short'"
-          @click="setWriteMode('short')"
-        >
-          {{ $t("feed.composer.modeShort") }}
-        </button>
-        <button
-          type="button"
-          class="rounded-lg px-3 py-1.5 text-xs font-semibold transition"
-          :class="
-            writeMode === 'long'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800'
-          "
-          :aria-pressed="writeMode === 'long'"
-          @click="setWriteMode('long')"
-        >
-          {{ $t("feed.composer.modeLong") }}
-        </button>
-      </div>
-      <p v-if="isLongForm" class="text-xs leading-5 text-slate-500">
-        {{ $t("feed.composer.longFormHint") }}
-      </p>
-
       <label class="sr-only" for="post-composer">{{
-        isLongForm
-          ? $t("feed.composer.writeADocument")
-          : $t("feed.composer.writeAPost")
+        $t("feed.composer.writeAPost")
       }}</label>
       <textarea
         id="post-composer"
         ref="textareaEl"
         v-model="body"
-        :rows="isLongForm ? 28 : 4"
-        :maxlength="bodyMax"
-        class="w-full resize-y rounded-xl border-0 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-        :class="
-          isLongForm
-            ? 'min-h-[70vh] text-base leading-7 sm:min-h-[75vh] sm:px-5 sm:py-4'
-            : 'min-h-[6.5rem]'
-        "
-        :placeholder="composerPlaceholder"
+        rows="4"
+        :maxlength="POST_BODY_MAX_UPDATE"
+        class="min-h-[6.5rem] w-full resize-y rounded-xl border-0 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
+        :placeholder="placeholder || $t('feed.composer.placeholder')"
         :disabled="submitting"
         :style="{
           fontFamily:
@@ -483,12 +409,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
             <path d="m4 4 16 8-16 8 3-8-3-8Z" stroke-linejoin="round" />
             <path d="M7 12h13" stroke-linecap="round" />
           </svg>
-          {{
-            submitLabel ||
-            (isLongForm
-              ? $t("feed.composer.publishDocument")
-              : $t("feed.composer.post"))
-          }}
+          {{ submitLabel || $t("feed.composer.post") }}
         </button>
       </div>
 
@@ -568,7 +489,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
         {{
           $t("feed.composer.charCount", {
             count: body.length,
-            max: bodyMax,
+            max: POST_BODY_MAX_UPDATE,
           })
         }}
       </p>

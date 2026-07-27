@@ -65,6 +65,15 @@ useSeoMeta({
   description: () => t("seo.feedDescription"),
 });
 
+useHead({
+  link: [
+    {
+      rel: "stylesheet",
+      href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap",
+    },
+  ],
+});
+
 onMounted(async () => {
   const requestedCategory =
     typeof route.query.category === "string" ? route.query.category : null;
@@ -95,6 +104,8 @@ onMounted(async () => {
 });
 
 async function onCreate(payload: {
+  format?: "update" | "manuscript";
+  title?: string;
   body: string;
   visibility: PostVisibility;
   audienceUserIds: string[];
@@ -106,7 +117,17 @@ async function onCreate(payload: {
   if (!auth.isAuthenticated.value) return;
   submitting.value = true;
   try {
-    await createPost(payload);
+    await createPost({
+      format: payload.format ?? "update",
+      title: payload.title ?? null,
+      body: payload.body,
+      visibility: payload.visibility,
+      audienceUserIds: payload.audienceUserIds,
+      attachmentIds: payload.attachmentIds,
+      categoryId: payload.categoryId,
+      fontFamily: payload.fontFamily,
+      textColor: payload.textColor,
+    });
     composerRef.value?.clear();
   } catch {
     // toast from composable
@@ -238,24 +259,34 @@ async function submitStory() {
             </p>
           </div>
 
-          <button
+          <div
             v-if="auth.isAuthenticated.value"
-            type="button"
-            class="hidden shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md lg:inline-flex"
-            @click="composerRef?.focus()"
+            class="hidden shrink-0 items-center gap-2 lg:flex"
           >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              class="h-4 w-4"
-              aria-hidden="true"
+            <NuxtLink
+              to="/feed/write"
+              class="inline-flex items-center gap-2 rounded-xl border border-[#cfe0d5] bg-[#e4efe8] px-4 py-2.5 text-sm font-semibold text-[#3f6f5a] transition hover:-translate-y-0.5 hover:bg-[#d7e8dd]"
             >
-              <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-            </svg>
-            {{ $t("feed.composer.writeAPost") }}
-          </button>
+              {{ $t("manuscript.writeCta") }}
+            </NuxtLink>
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md"
+              @click="composerRef?.focus()"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="h-4 w-4"
+                aria-hidden="true"
+              >
+                <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+              </svg>
+              {{ $t("feed.composer.writeAPost") }}
+            </button>
+          </div>
           <NuxtLink
             v-else
             to="/login"
@@ -309,6 +340,38 @@ async function submitStory() {
             :categories="categories"
             @submit="onCreate"
           />
+
+          <NuxtLink
+            v-if="auth.isAuthenticated.value"
+            to="/feed/write"
+            class="manuscript-invite group relative block overflow-hidden rounded-2xl border border-[#d5ddd6] px-5 py-5 transition hover:-translate-y-0.5 hover:border-[#b9c7bd] hover:shadow-md sm:px-6"
+          >
+            <div class="relative z-[1] max-w-xl">
+              <p
+                class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3f6f5a]"
+              >
+                {{ $t("manuscript.inviteKicker") }}
+              </p>
+              <p
+                class="mt-1 font-[family-name:var(--font-manuscript,Georgia,serif)] text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
+                style="
+                  font-family: 'Source Serif 4', Georgia, 'Times New Roman',
+                    serif;
+                "
+              >
+                {{ $t("manuscript.inviteTitle") }}
+              </p>
+              <p class="mt-2 text-sm leading-6 text-slate-600">
+                {{ $t("manuscript.inviteBody") }}
+              </p>
+              <span
+                class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3f6f5a] transition group-hover:gap-2"
+              >
+                {{ $t("manuscript.inviteAction") }}
+                <span aria-hidden="true">→</span>
+              </span>
+            </div>
+          </NuxtLink>
 
           <div
             class="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden"
@@ -550,6 +613,13 @@ async function submitStory() {
               {{ $t("feed.composer.writeAPost") }}
             </button>
             <NuxtLink
+              v-if="auth.isAuthenticated.value"
+              to="/feed/write"
+              class="relative mt-2 block w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-white/20"
+            >
+              {{ $t("manuscript.writeCta") }}
+            </NuxtLink>
+            <NuxtLink
               v-else
               to="/login"
               class="relative mt-4 block w-full rounded-xl bg-white px-3 py-2.5 text-center text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
@@ -645,3 +715,25 @@ async function submitStory() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.manuscript-invite {
+  background:
+    linear-gradient(135deg, rgba(228, 239, 232, 0.95), rgba(247, 248, 246, 0.98)),
+    radial-gradient(circle at 100% 0%, rgba(63, 111, 90, 0.12), transparent 40%);
+}
+
+.manuscript-invite::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: linear-gradient(180deg, #3f6f5a, transparent 80%);
+}
+
+html[data-theme="dark"] .manuscript-invite {
+  background:
+    linear-gradient(135deg, rgba(36, 49, 42, 0.95), rgba(17, 24, 22, 0.98));
+  border-color: #2a332e;
+}
+</style>

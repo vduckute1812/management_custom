@@ -170,7 +170,7 @@
   },
   "feed": {
     "title": "Feed",
-    "subtitleAuth": "Documents, stories, reactions, and comments — public, private, or shared.",
+    "subtitleAuth": "Updates, manuscripts, stories, and comments — public, private, or shared.",
     "subtitleGuest": "Public posts anyone can read. Sign in to react, comment, or share.",
     "storiesFailed": "Stories failed to load.",
     "retry": "Retry",
@@ -210,13 +210,7 @@
     },
     "composer": {
       "writeAPost": "Write a post",
-      "writeADocument": "Write a document",
-      "writeModeAria": "Writing mode",
-      "modeShort": "Short post",
-      "modeLong": "Long document",
-      "longFormHint": "Large editor for essays, research notes, and thesis-style writing. Up to 100,000 characters.",
       "placeholder": "Write a post… Use $E=mc^2$ or $$…$$ for LaTeX",
-      "placeholderLong": "Write your document… Chapters, sections, equations ($E=mc^2$ or $$…$$) are all welcome.",
       "category": "Category",
       "noCategory": "No category",
       "font": "Font",
@@ -232,7 +226,6 @@
       "attach": "Attach",
       "uploading": "Uploading…",
       "post": "Post",
-      "publishDocument": "Publish document",
       "shareWith": "Share with",
       "searchPeople": "Search by name or email…",
       "audienceHint": "Type to find people on this install to share with.",
@@ -250,8 +243,7 @@
       "colorBlue": "Blue",
       "colorRose": "Rose",
       "colorGreen": "Green",
-      "colorAmber": "Amber",
-      "trimmedToMode": "Text was trimmed to {max} characters for this mode."
+      "colorAmber": "Amber"
     },
     "post": {
       "delete": "Delete",
@@ -736,7 +728,8 @@
     "movedTask": "Moved \"{title}\"",
     "couldNotReschedule": "Couldn't reschedule",
     "rescheduledCount": "Rescheduled {count} task to today | Rescheduled {count} tasks to today",
-    "couldNotRescheduleAny": "Couldn't reschedule any tasks"
+    "couldNotRescheduleAny": "Couldn't reschedule any tasks",
+    "manuscriptPublished": "Manuscript published"
   },
   "status": {
     "todo": "To do",
@@ -850,7 +843,9 @@
     "adminDescription": "System-wide rollups.",
     "login": "Sign in",
     "signup": "Create account",
-    "verifyEmail": "Verify email"
+    "verifyEmail": "Verify email",
+    "manuscriptWrite": "Write manuscript",
+    "manuscriptWriteDescription": "Compose a long-form manuscript for essays and thesis chapters."
   },
   "categories": {
     "electronics": "Electronics",
@@ -881,5 +876,30 @@
   "export": {
     "status": "Status",
     "role": "Role"
+  },
+  "manuscript": {
+    "studioKicker": "Writing desk",
+    "studioTitle": "Compose a manuscript",
+    "studioLede": "A calm page for essays, thesis chapters, and research notes — with room to think.",
+    "cancel": "Back to feed",
+    "publish": "Publish manuscript",
+    "publishing": "Publishing…",
+    "titleLabel": "Manuscript title",
+    "titlePlaceholder": "Title of your manuscript",
+    "bodyLabel": "Manuscript body",
+    "bodyPlaceholder": "Begin writing… Use headings, paragraphs, and $E=mc^2$ or $$…$$ for equations.",
+    "settings": "Publication",
+    "readingTime": "{count} min read",
+    "wordCount": "{count} words",
+    "charCount": "{count}/{max} · ⌘/Ctrl+Enter to publish",
+    "badge": "Manuscript",
+    "readFull": "Read full manuscript",
+    "writeCta": "New manuscript",
+    "openStudioChip": "Open writing desk",
+    "inviteKicker": "Manuscripts",
+    "inviteTitle": "Write like it matters",
+    "inviteBody": "Start a dedicated page for luận văn chapters, essays, and long research notes — separate from short feed updates.",
+    "inviteAction": "Enter writing desk",
+    "loginRequired": "Sign in to open the writing desk."
   }
 }

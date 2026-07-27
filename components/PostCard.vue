@@ -3,6 +3,10 @@ import type { Post, PostComment, PostReactionType } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
 import { TaskStatus } from "~/types/task";
 import { categoryDisplayName } from "~/utils/categoryLabel";
+import {
+  estimateReadingMinutes,
+  manuscriptExcerpt,
+} from "~/utils/manuscript";
 
 const props = defineProps<{
   post: Post;
@@ -56,12 +60,25 @@ const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
   angry: t("feed.post.reactionAngry"),
 }));
 
-/** Collapse long-form / thesis bodies in the feed until expanded. */
+/** Collapse long bodies / manuscripts in the feed until expanded. */
 const BODY_COLLAPSE_CHARS = 900;
 const bodyExpanded = ref(false);
 
-const bodyNeedsCollapse = computed(
-  () => (props.post.body?.length ?? 0) > BODY_COLLAPSE_CHARS,
+const isManuscript = computed(() => props.post.format === "manuscript");
+
+const bodyNeedsCollapse = computed(() => {
+  if (isManuscript.value) return true;
+  return (props.post.body?.length ?? 0) > BODY_COLLAPSE_CHARS;
+});
+
+const showExcerptOnly = computed(
+  () => isManuscript.value && !bodyExpanded.value,
+);
+
+const excerpt = computed(() => manuscriptExcerpt(props.post.body || "", 220));
+
+const readingMinutes = computed(() =>
+  estimateReadingMinutes(props.post.body || "", props.post.title || ""),
 );
 
 watch(
@@ -231,9 +248,12 @@ async function onPlanClick() {
   planBusy.value = true;
   try {
     const excerpt =
+      props.post.title?.trim() ||
       (props.post.body || "").replace(/\s+/g, " ").trim().slice(0, 80) ||
       t("feed.post.planUntitled");
-    const tags = ["article"];
+    const tags = [
+      props.post.format === "manuscript" ? "manuscript" : "article",
+    ];
     if (props.post.category?.slug) tags.push(props.post.category.slug);
     await saveTask({
       title: t("feed.post.planTaskTitle", { title: excerpt }),
@@ -262,11 +282,21 @@ async function onPlanClick() {
 
 <template>
   <article
-    class="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
+    class="group overflow-hidden rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+    :class="
+      isManuscript
+        ? 'manuscript-card border-[#d5ddd6] bg-[#f7f8f6] hover:border-[#b9c7bd]'
+        : 'border-slate-200 bg-white hover:border-slate-300'
+    "
   >
     <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
       <div
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-sm ring-4 ring-brand-50"
+        class="flex h-10 w-10 shrink-0 items-center justify-center text-sm font-bold text-white shadow-sm"
+        :class="
+          isManuscript
+            ? 'rounded-xl bg-[#3f6f5a] ring-4 ring-[#e4efe8]'
+            : 'rounded-full bg-gradient-to-br from-brand-500 to-brand-700 ring-4 ring-brand-50'
+        "
         aria-hidden="true"
       >
         {{ initialOf(post.author.name, post.author.email) }}
@@ -284,12 +314,22 @@ async function onPlanClick() {
             {{ formatWhen(post.createdAt) }}
           </time>
           <span
+            v-if="isManuscript"
+            class="rounded-full bg-[#e4efe8] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3f6f5a]"
+          >
+            {{ $t("manuscript.badge") }}
+          </span>
+          <span
             class="text-[10px] font-medium uppercase tracking-wide rounded-full bg-slate-100 text-slate-600 px-1.5 py-0.5"
           >
             {{ visibilityBadge }}
           </span>
         </div>
         <p class="text-[11px] text-slate-400 truncate">
+          <template v-if="isManuscript">
+            {{ $t("manuscript.readingTime", { count: readingMinutes }) }}
+            <span aria-hidden="true"> · </span>
+          </template>
           {{ post.author.email }}
         </p>
       </div>
@@ -307,19 +347,43 @@ async function onPlanClick() {
     <div class="space-y-3 px-4 pb-3 pt-4 sm:px-5">
       <div v-if="post.category" class="flex flex-wrap gap-1.5">
         <span
-          class="inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-800 ring-1 ring-inset ring-brand-100"
+          class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+          :class="
+            isManuscript
+              ? 'bg-[#e4efe8] text-[#3f6f5a] ring-[#cfe0d5]'
+              : 'bg-brand-50 text-brand-800 ring-brand-100'
+          "
         >
           <span
-            class="h-1.5 w-1.5 rounded-full bg-brand-500"
+            class="h-1.5 w-1.5 rounded-full"
+            :class="isManuscript ? 'bg-[#3f6f5a]' : 'bg-brand-500'"
             aria-hidden="true"
           />
           {{ categoryLabel() }}
         </span>
       </div>
+
+      <h2
+        v-if="isManuscript && post.title"
+        class="manuscript-card__title text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
+      >
+        {{ post.title }}
+      </h2>
+
       <div v-if="post.body" class="relative">
+        <p
+          v-if="showExcerptOnly"
+          class="manuscript-card__excerpt text-[15px] leading-7 text-slate-700"
+        >
+          {{ excerpt }}
+        </p>
         <div
+          v-else
           class="post-body-clip"
-          :class="{ 'post-body-clip--collapsed': bodyNeedsCollapse && !bodyExpanded }"
+          :class="{
+            'post-body-clip--collapsed':
+              !isManuscript && bodyNeedsCollapse && !bodyExpanded,
+          }"
         >
           <PostBody
             :body="post.body"
@@ -330,13 +394,20 @@ async function onPlanClick() {
         <button
           v-if="bodyNeedsCollapse"
           type="button"
-          class="mt-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+          class="mt-2 text-xs font-semibold"
+          :class="
+            isManuscript
+              ? 'text-[#3f6f5a] hover:text-[#345c4a]'
+              : 'text-brand-700 hover:text-brand-800'
+          "
           @click="bodyExpanded = !bodyExpanded"
         >
           {{
             bodyExpanded
               ? $t("feed.post.showLess")
-              : $t("feed.post.showMore")
+              : isManuscript
+                ? $t("manuscript.readFull")
+                : $t("feed.post.showMore")
           }}
         </button>
       </div>
@@ -396,6 +467,21 @@ async function onPlanClick() {
           <span class="font-normal text-slate-400">
             · {{ formatWhen(post.sharedPost.createdAt) }}
           </span>
+          <span
+            v-if="post.sharedPost.format === 'manuscript'"
+            class="ml-1 rounded-full bg-[#e4efe8] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3f6f5a]"
+          >
+            {{ $t("manuscript.badge") }}
+          </span>
+        </p>
+        <p
+          v-if="post.sharedPost.title"
+          class="text-sm font-semibold text-slate-900"
+          style="
+            font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+          "
+        >
+          {{ post.sharedPost.title }}
         </p>
         <PostBody :body="post.sharedPost.body" />
       </div>
@@ -669,5 +755,22 @@ async function onPlanClick() {
   overflow: hidden;
   mask-image: linear-gradient(to bottom, #000 55%, transparent);
   -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.manuscript-card__title,
+.manuscript-card__excerpt {
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+}
+
+.manuscript-card {
+  position: relative;
+}
+
+.manuscript-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: linear-gradient(180deg, #3f6f5a, transparent 75%);
 }
 </style>
