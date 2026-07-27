@@ -166,21 +166,50 @@ const style = computed(() => ({
   font-size: inherit;
 }
 
-.post-body :deep(table) {
-  width: 100%;
-  margin: 0.75em 0;
-  border-collapse: collapse;
-  font-size: 0.92em;
-  overflow-x: auto;
+.post-body :deep(.md-table-wrap) {
   display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0.75em 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.post-body :deep(table) {
+  display: table;
+  width: max-content;
+  min-width: 100%;
+  margin: 0;
+  border-collapse: collapse;
+  border-spacing: 0;
+  font-size: 0.92em;
+  table-layout: auto;
 }
 
 .post-body :deep(th),
 .post-body :deep(td) {
   border: 1px solid #e2e8f0;
-  padding: 0.45em 0.65em;
-  text-align: left;
+  padding: 0.5em 0.75em;
   vertical-align: top;
+  text-align: start;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.post-body :deep(th[align="left"]),
+.post-body :deep(td[align="left"]) {
+  text-align: left;
+}
+
+.post-body :deep(th[align="center"]),
+.post-body :deep(td[align="center"]) {
+  text-align: center;
+}
+
+.post-body :deep(th[align="right"]),
+.post-body :deep(td[align="right"]) {
+  text-align: right;
 }
 
 .post-body :deep(th) {
@@ -188,7 +217,7 @@ const style = computed(() => ({
   font-weight: 600;
 }
 
-.post-body :deep(tr:nth-child(even) td) {
+.post-body :deep(tbody tr:nth-child(even) td) {
   background: #fafbfc;
 }
 
@@ -228,7 +257,7 @@ html[data-theme="dark"] .post-body :deep(th) {
   background: #1e293b;
 }
 
-html[data-theme="dark"] .post-body :deep(tr:nth-child(even) td) {
+html[data-theme="dark"] .post-body :deep(tbody tr:nth-child(even) td) {
   background: #0f172a;
 }
 </style>
