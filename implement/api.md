@@ -72,7 +72,8 @@ Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*
 ## Posts / feed
 
 Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.  
-Format: `update` (short) \| `manuscript` (long-form; requires `title`).
+Format: `update` (short) \| `manuscript` (long-form; requires `title`).  
+Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify).
 
 | Method   | Endpoint                             | Auth     | Description                                                     |
 | -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |
