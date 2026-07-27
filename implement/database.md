@@ -325,6 +325,8 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
+**Media cleanup.** Deleting a post/story, expiring a story, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / `purgeExpiredStories` / pre-delete key sweep on `deleteUser`). See [`api.md`](./api.md#uploads-r2).
+
 **Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`.
 
 **Category display names.** MySQL stores a canonical `name` (admin-editable). Seeded slugs resolve to UI copy via `CATEGORY_I18N_KEYS` + `utils/categoryLabel.ts` (`categories.*` in locale JSON). Custom admin directories without a key keep showing the DB `name`.

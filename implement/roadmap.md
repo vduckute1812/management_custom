@@ -242,3 +242,13 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Signup enqueues `email.verification` instead of awaiting SMTP inline
 - [x] Admin ops snapshot `GET /api/admin/queue`
 - [x] Docs: `implement/cache-queue.md`, `cache-queue-spec.md`, architecture / database / api / getting-started / README map
+
+## Phase 15 — R2 media lifecycle cleanup
+
+Delete Cloudflare objects when media is no longer shown.
+
+- [x] `purgeOrphanedUploads` — drop upload row + R2 key when not on a post or live story
+- [x] Post/story delete paths collect upload ids and purge orphans
+- [x] Expired stories: `purgeExpiredStories` on tray load + job-worker maintenance (~2 min)
+- [x] User delete: capture storage keys before CASCADE, then `purgeR2StorageKeys`
+- [x] Docs: api / database / cache-queue job table
