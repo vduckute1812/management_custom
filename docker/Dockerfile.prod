@@ -6,7 +6,19 @@ RUN apk add --no-cache python3 make gcc g++ musl-dev \
     && ln -sf python3 /usr/bin/python
 
 COPY package*.json ./
-RUN npm ci
+# Pi / residential links occasionally drop mid-fetch; retry npm ci a few times
+# before failing the image build (which would leave the live stack untouched).
+RUN set -eu; \
+    i=1; \
+    until npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000; do \
+      if [ "$i" -ge 4 ]; then \
+        echo "npm ci failed after ${i} attempts" >&2; \
+        exit 1; \
+      fi; \
+      echo "npm ci attempt ${i} failed — retrying in $((i * 15))s…"; \
+      sleep $((i * 15)); \
+      i=$((i + 1)); \
+    done
 
 COPY . .
 RUN npm run build

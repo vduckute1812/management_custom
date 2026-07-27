@@ -2,7 +2,9 @@
 # CI/CD deploy for the Raspberry Pi production stack.
 #
 # Guarantees:
-#   1. Syncs ops libs (`uv`) before compose/build.
+#   1. Syncs ops libs (`uv`) before compose/build. App `npm ci` (inside
+#      Dockerfile.prod) retries on registry timeouts so flaky Pi links get
+#      more than one chance before the build is declared failed.
 #   2. If the image *build* fails, the currently running stack is left alone.
 #   3. Runs DB migrations against MySQL with the *new* image before switching
 #      the live app. Migration failure leaves the running app untouched and

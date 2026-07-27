@@ -7,7 +7,7 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 ## What happens on every `master` push
 
 1. The Pi runner checks out the commit into its workspace (`actions/checkout`, `clean: false` so local secrets survive).
-2. **Sync libs** — `uv sync --frozen` installs ops deps (`podman-compose`). App npm deps sync inside the image build via `npm ci`.
+2. **Sync libs** — `uv sync --frozen` installs ops deps (`podman-compose`). App npm deps sync inside the image build via `npm ci` (Dockerfile retries on registry timeouts).
 3. `docker/ci-deploy.sh` snapshots the current app image as `:previous`.
 4. It builds a new image tagged with the git SHA.
 5. **If the build fails** → the running stack is **not** restarted.
