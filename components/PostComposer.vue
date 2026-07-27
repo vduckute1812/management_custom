@@ -270,6 +270,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
         @keydown.meta.enter.prevent="onSubmit"
         @keydown.ctrl.enter.prevent="onSubmit"
       />
+      <p class="text-xs leading-5 text-slate-500">
+        {{ $t("feed.composer.formatHint") }}
+      </p>
 
       <div class="flex flex-wrap items-center gap-2">
         <label class="sr-only" for="post-category">{{

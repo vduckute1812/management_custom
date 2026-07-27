@@ -267,9 +267,7 @@ const bodyStyle = computed(() => ({
           :disabled="!canSubmit"
         >
           {{
-            submitting
-              ? $t("manuscript.publishing")
-              : $t("manuscript.publish")
+            submitting ? $t("manuscript.publishing") : $t("manuscript.publish")
           }}
         </button>
       </div>
@@ -294,9 +292,7 @@ const bodyStyle = computed(() => ({
 
         <div class="manuscript-studio__meta-line">
           <span>{{
-            auth.user.value?.name ||
-            auth.user.value?.email ||
-            $t("nav.account")
+            auth.user.value?.name || auth.user.value?.email || $t("nav.account")
           }}</span>
           <span aria-hidden="true">·</span>
           <span>{{
@@ -322,6 +318,9 @@ const bodyStyle = computed(() => ({
           @keydown.meta.enter.prevent="onSubmit"
           @keydown.ctrl.enter.prevent="onSubmit"
         />
+        <p class="manuscript-studio__format-hint">
+          {{ $t("manuscript.formatHint") }}
+        </p>
       </section>
 
       <aside class="manuscript-studio__rail" aria-label="Manuscript settings">
@@ -677,6 +676,14 @@ const bodyStyle = computed(() => ({
 
 .manuscript-studio__body::placeholder {
   color: #9aa89f;
+}
+
+.manuscript-studio__format-hint {
+  margin: 0.65rem 0 0;
+  font-family: "Source Sans 3", system-ui, sans-serif;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #6b7c72;
 }
 
 .manuscript-studio__rail {

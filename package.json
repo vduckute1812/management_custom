@@ -35,8 +35,10 @@
     "chart.js": "^4.4.0",
     "dayjs": "^1.11.13",
     "ioredis": "^5.11.1",
+    "isomorphic-dompurify": "^3.19.0",
     "jsonwebtoken": "^9.0.3",
     "katex": "^0.18.1",
+    "marked": "^18.0.7",
     "mysql2": "^3.22.5",
     "nodemailer": "^9.0.1",
     "nuxt": "^3.13.0",
@@ -47,6 +49,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/dompurify": "^3.0.5",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/katex": "^0.16.8",
     "@types/nodemailer": "^8.0.1",

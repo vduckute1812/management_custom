@@ -6,21 +6,21 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Tech Stack
 
-| Layer      | Technology                     | Purpose                                                                                 |
-| ---------- | ------------------------------ | --------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                 |
-| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                        |
-| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md) |
-| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)          |
-| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need      |
-| Backend    | Nitro (bundled with Nuxt 3)    | Server-side API routes                                                                  |
-| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                  |
-| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set      |
-| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate); see [`cache-queue.md`](./cache-queue.md) |
-| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                   |
-| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                  |
-| Charts     | Chart.js                       | Velocity and trend visualizations                                                       |
-| Math       | KaTeX                          | Inline/block LaTeX in feed post bodies                                                  |
+| Layer      | Technology                     | Purpose                                                                                             |
+| ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                             |
+| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                    |
+| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)             |
+| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                      |
+| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                  |
+| Backend    | Nitro (bundled with Nuxt 3)    | Server-side API routes                                                                              |
+| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                              |
+| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                  |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate); see [`cache-queue.md`](./cache-queue.md)         |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                               |
+| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                              |
+| Charts     | Chart.js                       | Velocity and trend visualizations                                                                   |
+| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` |
 
 ## Project facts
 
@@ -73,14 +73,14 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area            | Routes                                                              | Auth                                                                                                 |
-| --------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                                               |
-| Feed            | `/feed`, `/feed/write` (manuscript desk)                            | Public browse; write desk requires login; compose/react/comment need login                           |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                                                        |
-| Account         | `/settings`, `/profile`                                             | Authenticated                                                                                        |
-| Admin           | `/admin`                                                            | Admin / superadmin                                                                                   |
-| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                                                   |
+| Area            | Routes                                                              | Auth                                                                       |
+| --------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                     |
+| Feed            | `/feed`, `/feed/write` (manuscript desk)                            | Public browse; write desk requires login; compose/react/comment need login |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                              |
+| Account         | `/settings`, `/profile`                                             | Authenticated                                                              |
+| Admin           | `/admin`                                                            | Admin / superadmin                                                         |
+| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                         |
 
 Global guard: `middleware/auth.global.ts`.
 
