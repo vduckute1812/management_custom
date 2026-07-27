@@ -87,6 +87,12 @@ export function renderPostBody(raw: string): string {
     return renderKatex(slot.tex, slot.display);
   });
 
+  // Keep real table layout; scroll wide tables via a wrapper (not display:block on <table>).
+  html = html.replace(
+    /<table\b[\s\S]*?<\/table>/gi,
+    (table) => `<div class="md-table-wrap">${table}</div>`,
+  );
+
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     ADD_TAGS: [
