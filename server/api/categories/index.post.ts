@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createPostCategory } from "~/server/utils/db";
 import { requireAdmin } from "~/server/utils/authContext";
+import { invalidateCategoryCaches } from "~/server/utils/cacheInvalidate";
 
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const category = await createPostCategory(parsed.data);
+    await invalidateCategoryCaches();
     return { category };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;

@@ -1,5 +1,6 @@
 import { deletePostCategory } from "~/server/utils/db";
 import { requireAdmin } from "~/server/utils/authContext";
+import { invalidateCategoryCaches } from "~/server/utils/cacheInvalidate";
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event);
@@ -15,5 +16,6 @@ export default defineEventHandler(async (event) => {
   if (!removed) {
     throw createError({ statusCode: 404, statusMessage: "Category not found" });
   }
+  await invalidateCategoryCaches();
   return { ok: true };
 });

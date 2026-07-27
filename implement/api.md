@@ -30,7 +30,7 @@ Request bodies that include these fields must send them as numbers; the server r
 
 | Method | Endpoint                 | Description                                                                                                                               |
 | ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user, sends email-verification link.                                                |
+| `POST` | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). |
 | `POST` | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt }`.    |
 | `POST` | `/api/auth/refresh`      | Body `{ refreshToken }`. Rotates: returns a new pair, revokes the presented refresh token.                                                |
 | `POST` | `/api/auth/logout`       | Body `{ refreshToken?, everywhere? }`. Revokes the supplied refresh token; `everywhere: true` revokes all of the caller's refresh tokens. |
@@ -47,6 +47,7 @@ Request bodies that include these fields must send them as numbers; the server r
 | -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/admin/users`          | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
 | `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix, for dashboard charts.                                                                                                                                            |
+| `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                    |
 | `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`403`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
 | `DELETE` | `/api/admin/users/:id`      | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
 
@@ -63,18 +64,20 @@ Install-wide post directories (`post_categories`). List is **public** so the hub
 | `PATCH`  | `/api/categories/:id` | Admin  | Rename / reorder.                                                          |
 | `DELETE` | `/api/categories/:id` | Admin  | Delete directory; posts keep `category_id` cleared (`ON DELETE SET NULL`). |
 
-Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*`). Domain: `server/db/categories.ts`.
+Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*`). Domain: `server/db/categories.ts`.  
+`GET` is **cached** (~60s); admin mutations bust the cache.
 
 ---
 
 ## Posts / feed
 
-Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.
+Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.  
+Format: `update` (short) \| `manuscript` (long-form; requires `title`).
 
 | Method   | Endpoint                             | Auth     | Description                                                     |
 | -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |
 | `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).  |
-| `POST`   | `/api/posts`                         | Required | Create a post (body, visibility, category, style, attachments). |
+| `POST`   | `/api/posts`                         | Required | Create a post/manuscript (body, format, title?, visibility, …). |
 | `DELETE` | `/api/posts/:id`                     | Required | Delete own post.                                                |
 | `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible to the viewer.           |
 | `POST`   | `/api/posts/:id/comments`            | Required | Add a comment.                                                  |
@@ -84,7 +87,8 @@ Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Gu
 | `POST`   | `/api/posts/:id/like`                | Required | Legacy like helper (maps onto reactions).                       |
 | `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                            |
 
-DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.
+DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.  
+Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
 

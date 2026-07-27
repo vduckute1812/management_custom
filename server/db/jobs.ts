@@ -1,0 +1,272 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import { dbToISO, isoToDB } from "./datetime";
+import { generateId, nowISO } from "./ids";
+import { getPool } from "./pool";
+
+export type JobStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "dead";
+
+export interface JobRow {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  status: JobStatus;
+  attempts: number;
+  maxAttempts: number;
+  availableAt: string;
+  lockedAt: string | null;
+  lockedBy: string | null;
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface JobDbRow extends RowDataPacket {
+  id: string;
+  type: string;
+  payload: string | Record<string, unknown>;
+  status: JobStatus;
+  attempts: number;
+  max_attempts: number;
+  available_at: string;
+  locked_at: string | null;
+  locked_by: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function parsePayload(
+  raw: string | Record<string, unknown>,
+): Record<string, unknown> {
+  if (raw && typeof raw === "object") return raw as Record<string, unknown>;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function mapJob(row: JobDbRow): JobRow {
+  return {
+    id: row.id,
+    type: row.type,
+    payload: parsePayload(row.payload),
+    status: row.status,
+    attempts: Number(row.attempts ?? 0),
+    maxAttempts: Number(row.max_attempts ?? 5),
+    availableAt: dbToISO(row.available_at),
+    lockedAt: row.locked_at ? dbToISO(row.locked_at) : null,
+    lockedBy: row.locked_by,
+    lastError: row.last_error,
+    createdAt: dbToISO(row.created_at),
+    updatedAt: dbToISO(row.updated_at),
+  };
+}
+
+export async function enqueueJob(args: {
+  type: string;
+  payload: Record<string, unknown>;
+  /** Delay before the job becomes claimable (seconds). */
+  delaySeconds?: number;
+  maxAttempts?: number;
+}): Promise<JobRow> {
+  const pool = getPool();
+  const id = generateId("job");
+  const now = nowISO();
+  const delay = Math.max(0, args.delaySeconds ?? 0);
+  const availableAt = new Date(Date.now() + delay * 1000).toISOString();
+  const maxAttempts = Math.min(Math.max(args.maxAttempts ?? 5, 1), 25);
+
+  await pool.query(
+    `INSERT INTO jobs
+       (id, type, payload, status, attempts, max_attempts, available_at,
+        locked_at, locked_by, last_error, created_at, updated_at)
+     VALUES (?, ?, CAST(? AS JSON), 'pending', 0, ?, ?, NULL, NULL, NULL, ?, ?)`,
+    [
+      id,
+      args.type,
+      JSON.stringify(args.payload ?? {}),
+      maxAttempts,
+      isoToDB(availableAt),
+      isoToDB(now),
+      isoToDB(now),
+    ],
+  );
+
+  const job = await getJobById(id);
+  if (!job) throw new Error(`enqueueJob: failed to reload ${id}`);
+  return job;
+}
+
+export async function getJobById(id: string): Promise<JobRow | null> {
+  const pool = getPool();
+  const [rows] = await pool.query<JobDbRow[]>(
+    `SELECT * FROM jobs WHERE id = ? LIMIT 1`,
+    [id],
+  );
+  return rows[0] ? mapJob(rows[0]) : null;
+}
+
+/**
+ * Atomically claim the next available pending job for this worker.
+ * Uses a short transaction + SELECT … FOR UPDATE SKIP LOCKED when available.
+ */
+export async function claimNextJob(workerId: string): Promise<JobRow | null> {
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [rows] = await conn.query<JobDbRow[]>(
+      `SELECT * FROM jobs
+       WHERE status = 'pending' AND available_at <= ?
+       ORDER BY available_at ASC, created_at ASC
+       LIMIT 1
+       FOR UPDATE SKIP LOCKED`,
+      [isoToDB(nowISO())],
+    );
+    const row = rows[0];
+    if (!row) {
+      await conn.commit();
+      return null;
+    }
+
+    const now = nowISO();
+    await conn.query(
+      `UPDATE jobs
+       SET status = 'processing',
+           attempts = attempts + 1,
+           locked_at = ?,
+           locked_by = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [isoToDB(now), workerId, isoToDB(now), row.id],
+    );
+    await conn.commit();
+
+    const claimed = await getJobById(row.id);
+    return claimed;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+export async function completeJob(id: string): Promise<void> {
+  const pool = getPool();
+  const now = nowISO();
+  await pool.query(
+    `UPDATE jobs
+     SET status = 'completed',
+         locked_at = NULL,
+         locked_by = NULL,
+         last_error = NULL,
+         updated_at = ?
+     WHERE id = ?`,
+    [isoToDB(now), id],
+  );
+}
+
+/**
+ * Mark a failed attempt. Retries with exponential backoff until max_attempts,
+ * then moves the job to `dead`.
+ */
+export async function failJob(id: string, error: string): Promise<JobRow | null> {
+  const job = await getJobById(id);
+  if (!job) return null;
+
+  const pool = getPool();
+  const now = nowISO();
+  const message = error.slice(0, 4000);
+  const exhausted = job.attempts >= job.maxAttempts;
+
+  if (exhausted) {
+    await pool.query(
+      `UPDATE jobs
+       SET status = 'dead',
+           locked_at = NULL,
+           locked_by = NULL,
+           last_error = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [message, isoToDB(now), id],
+    );
+  } else {
+    // Exponential backoff: 15s, 30s, 60s, … capped at 15 minutes.
+    const backoffSec = Math.min(15 * 2 ** Math.max(job.attempts - 1, 0), 900);
+    const availableAt = new Date(Date.now() + backoffSec * 1000).toISOString();
+    await pool.query(
+      `UPDATE jobs
+       SET status = 'pending',
+           available_at = ?,
+           locked_at = NULL,
+           locked_by = NULL,
+           last_error = ?,
+           updated_at = ?
+       WHERE id = ?`,
+      [isoToDB(availableAt), message, isoToDB(now), id],
+    );
+  }
+
+  return getJobById(id);
+}
+
+/** Recover jobs stuck in processing longer than `staleAfterSeconds`. */
+export async function requeueStaleJobs(
+  staleAfterSeconds = 300,
+): Promise<number> {
+  const pool = getPool();
+  const cutoff = new Date(Date.now() - staleAfterSeconds * 1000).toISOString();
+  const now = nowISO();
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE jobs
+     SET status = 'pending',
+         locked_at = NULL,
+         locked_by = NULL,
+         updated_at = ?
+     WHERE status = 'processing' AND locked_at IS NOT NULL AND locked_at < ?`,
+    [isoToDB(now), isoToDB(cutoff)],
+  );
+  return result.affectedRows ?? 0;
+}
+
+export async function countJobsByStatus(): Promise<Record<JobStatus, number>> {
+  const pool = getPool();
+  const [rows] = await pool.query<(RowDataPacket & { status: JobStatus; cnt: number })[]>(
+    `SELECT status, COUNT(*) AS cnt FROM jobs GROUP BY status`,
+  );
+  const out: Record<JobStatus, number> = {
+    pending: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+    dead: 0,
+  };
+  for (const row of rows) {
+    out[row.status] = Number(row.cnt ?? 0);
+  }
+  return out;
+}
+
+/** Drop old terminal jobs to keep the table lean. */
+export async function purgeOldJobs(olderThanDays = 14): Promise<number> {
+  const pool = getPool();
+  const cutoff = new Date(
+    Date.now() - olderThanDays * 24 * 3600 * 1000,
+  ).toISOString();
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM jobs
+     WHERE status IN ('completed', 'dead') AND updated_at < ?`,
+    [isoToDB(cutoff)],
+  );
+  return result.affectedRows ?? 0;
+}

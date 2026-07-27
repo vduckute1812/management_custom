@@ -15,6 +15,8 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need      |
 | Backend    | Nitro (bundled with Nuxt 3)    | Server-side API routes                                                                  |
 | Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                  |
+| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set      |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate); see [`cache-queue.md`](./cache-queue.md) |
 | Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                   |
 | Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                  |
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                       |
@@ -46,18 +48,23 @@ Browser (Vue 3 SPA)
     ▼
 Nuxt 3 / Nitro API Routes (/server/api/...)
     │
+    ├── server/utils/cache.ts  →  memory | Redis (optional)
+    │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
     │     tables: users (+ last_login_at), auth_*, epics, tasks,
     │             time_blocks, checklist_items, active_timer,
     │             posts, post_*, uploads, stories, story_*,
-    │             post_categories, schema_migrations
+    │             post_categories, jobs, schema_migrations
+    │
+    ├── server/plugins/job-worker.ts  →  claims `jobs` → mailer / cache bust
     │
     └── server/utils/r2.ts  ←→  Cloudflare R2 (when configured)
 ```
 
 - **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
 - **Schema ownership.** Versioned SQL in `server/db/migrations/`, applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
-- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `stories`, `uploads`, `categories`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `stories`, `uploads`, `categories`, `jobs`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **Cache & queue.** Hot public reads use the cache facade; signup email and similar side-effects go through the MySQL job queue. Full design: [`cache-queue.md`](./cache-queue.md).
 - **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, etc.) run inside `BEGIN … COMMIT`.
 - **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
 - **Auth scoping.** Time-management CRUD is always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
@@ -69,7 +76,7 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 | Area            | Routes                                                              | Auth                                                                                                 |
 | --------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
 | Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                                               |
-| Feed            | `/feed`                                                             | Public browse; two-column layout (stream + category rail on `lg+`); compose/react/comment need login |
+| Feed            | `/feed`, `/feed/write` (manuscript desk)                            | Public browse; write desk requires login; compose/react/comment need login                           |
 | Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                                                        |
 | Account         | `/settings`, `/profile`                                             | Authenticated                                                                                        |
 | Admin           | `/admin`                                                            | Admin / superadmin                                                                                   |

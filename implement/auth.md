@@ -37,7 +37,7 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 
 - **Access token** — 15-minute HS256 JWT, signed with `JWT_SECRET`. Stateless: rejection is "signature bad / wrong issuer / expired".
 - **Refresh token** — 30-day opaque base64url, stored as SHA-256 hash only. On `/api/auth/refresh` the presented token is _revoked_ and a new pair is issued (rotation). On `/api/auth/logout` the presented refresh token is revoked outright; with `everywhere: true`, every active refresh token for the caller is revoked.
-- **Email verification** — a one-shot opaque token (also hashed) emailed via SMTP at sign-up. Login is refused with `403` until the user POSTs the token to `/api/auth/verify-email`.
+- **Email verification** — a one-shot opaque token (also hashed). At sign-up the handler **enqueues** an `email.verification` job; the Nitro job worker sends it via SMTP (with retries). Login is refused with `403` until the user POSTs the token to `/api/auth/verify-email`. See [`cache-queue.md`](./cache-queue.md).
 - **Signup password policy** — shared `utils/passwordPolicy.ts`: min 8 chars + lower + upper + digit + special. Enforced on the client (confirm field + checklist) and again on `POST /api/auth/signup`.
 
 The client (`composables/useApi.ts`) auto-attaches the access token on every request, proactively refreshes it within 30 s of expiry, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
@@ -59,5 +59,7 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 ## Email transport
 
 `server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail / Google Workspace you need an [App Password](https://myaccount.google.com/apppasswords), not your account password. Production typically sets `SMTP_FROM` to a display name + address (e.g. `Danang TechX <admin@dntechx.com>`) while `SMTP_USER` remains the mailbox used to authenticate.
+
+Outbound mail from product flows should go through the **job queue** (`enqueueVerificationEmail` / `enqueueEmailSend`) so HTTP handlers stay fast and SMTP failures retry with backoff. Direct `sendMail` remains available for scripts and the worker itself.
 
 The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudflare Tunnel). Otherwise it is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.

@@ -10,6 +10,7 @@ Everything you need to take a fresh checkout from "I just cloned this" to "I'm l
 - npm
 - **MySQL 8** running on `localhost:3306` (or wherever you point the env vars)
 - Optional: **Cloudflare R2** credentials if you want feed/story file attachments
+- Optional: **Redis** (`REDIS_URL`) if you want a shared cache across app processes — not required; memory cache is the default
 
 ## Provision the database
 
@@ -68,9 +69,24 @@ APP_PORT=3000
 # R2_BUCKET=mgmt-uploads
 # R2_ENDPOINT=…          # optional override
 # R2_SIGNED_URL_TTL=3600 # optional
+
+# Cache — memory by default. Set REDIS_URL for a shared Redis driver.
+# REDIS_URL=redis://127.0.0.1:6379/0
+# CACHE_DRIVER=memory
+# CACHE_NAMESPACE=rc
+# CACHE_MEMORY_MAX=500
+
+# Background jobs — MySQL table `jobs`, worker inside Nitro (default on).
+# QUEUE_WORKER_ENABLED=true
+# QUEUE_POLL_MS=1500
+# QUEUE_IDLE_MS=4000
+# QUEUE_STALE_SECONDS=300
+# QUEUE_PURGE_DAYS=14
 ```
 
 The MySQL driver accepts `DB_PASSWORD` as an alias for `DB_PASS` for anyone whose shop standard prefers the long form.
+
+Cache & queue design notes: [`cache-queue.md`](./cache-queue.md).
 
 ## Install dependencies
 

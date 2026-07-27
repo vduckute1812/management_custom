@@ -230,3 +230,15 @@ Documented here so the roadmap matches the as-built install (migrations `0003`â€
 - [x] Pin TypeScript to **5.9.x** so `vue-tsc` works (native TS 7 is incompatible with Volar)
 - [x] Fix vue-i18n plural calls to `t(key, named, plural)` and MySQL `RowDataPacket` query generics that failed type-check
 - [x] Docs synced: architecture (SEO + TS), i18n (plural signature), getting-started, roadmap, product README, `.cursor/rules/nuxt3-standards.mdc`
+
+## Phase 14 â€” Cache & durable job queue
+
+Pi-friendly caching and background work without making Redis mandatory.
+
+- [x] Cache facade (`server/utils/cache.ts`): memory default + optional Redis (`REDIS_URL` / `ioredis`), fail-open
+- [x] Cache categories list + anonymous public feed pages; bust on write (`cacheInvalidate.ts`)
+- [x] MySQL `jobs` table (migration `0009`) with `SKIP LOCKED` claim, retries, stale reclaim, purge
+- [x] Nitro in-process worker (`server/plugins/job-worker.ts`) + handlers (`email.*`, `cache.invalidate`)
+- [x] Signup enqueues `email.verification` instead of awaiting SMTP inline
+- [x] Admin ops snapshot `GET /api/admin/queue`
+- [x] Docs: `implement/cache-queue.md`, `cache-queue-spec.md`, architecture / database / api / getting-started / README map

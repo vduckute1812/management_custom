@@ -23,7 +23,8 @@ import {
   hashPassword,
   nowPlusSeconds,
 } from "~/server/utils/auth";
-import { buildVerifyUrl, sendVerificationEmail } from "~/server/utils/mailer";
+import { buildVerifyUrl } from "~/server/utils/mailer";
+import { enqueueVerificationEmail } from "~/server/utils/queue";
 import { passwordStrengthError } from "~/utils/passwordPolicy";
 
 interface SignupBody {
@@ -87,14 +88,15 @@ export default defineEventHandler(async (event) => {
 
   let verificationSent = true;
   try {
-    await sendVerificationEmail({ to: email, token: rawToken });
+    // Enqueue so signup stays fast and SMTP retries happen in the worker.
+    await enqueueVerificationEmail({ to: email, token: rawToken });
   } catch (err) {
-    // SMTP failures shouldn't block sign-up — the user + verification row
-    // already exist. Log the one-time link so an operator can finish verify
-    // from the server console (token is never returned to the browser).
-    console.error("[signup] failed to dispatch verification email", err);
+    // Queue insert failures shouldn't block sign-up — the user + verification
+    // row already exist. Log the one-time link so an operator can finish
+    // verify from the server console (token is never returned to the browser).
+    console.error("[signup] failed to enqueue verification email", err);
     console.error(
-      `[signup] verification link (SMTP failed; one-time, expires in 24h):\n${buildVerifyUrl(rawToken)}`,
+      `[signup] verification link (enqueue failed; one-time, expires in 24h):\n${buildVerifyUrl(rawToken)}`,
     );
     verificationSent = false;
   }

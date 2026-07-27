@@ -12,6 +12,7 @@ import {
   POST_TITLE_MAX,
 } from "~/utils/postBodyLimits";
 import { UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
+import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
 
 const bodySchema = z
   .object({
@@ -91,6 +92,9 @@ export default defineEventHandler(async (event) => {
       fontFamily: parsed.data.fontFamily as (typeof POST_FONT_FAMILIES)[number],
       textColor: parsed.data.textColor as (typeof POST_TEXT_COLORS)[number],
     });
+    if (post.visibility === "public") {
+      await invalidatePublicFeedCaches();
+    }
     return { post };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;

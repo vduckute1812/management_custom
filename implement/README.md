@@ -11,20 +11,22 @@ If you came here to **use** the app, start at the root README. If you came here 
 | File                                         | What's in it                                                                                  |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | [`getting-started.md`](./getting-started.md) | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                 |
-| [`architecture.md`](./architecture.md)       | Tech stack, SPA topology, SEO (`@nuxtjs/seo`), MySQL + optional R2, project structure.        |
-| [`database.md`](./database.md)               | Schema DDL + feed/stories tables, field references, migration policy.                         |
-| [`api.md`](./api.md)                         | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin).                   |
+| [`architecture.md`](./architecture.md)       | Tech stack, SPA topology, SEO (`@nuxtjs/seo`), MySQL + optional R2/Redis, project structure.  |
+| [`cache-queue.md`](./cache-queue.md)         | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).         |
+| [`database.md`](./database.md)               | Schema DDL + feed/stories/jobs tables, field references, migration policy.                    |
+| [`api.md`](./api.md)                         | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin, queue).            |
 | [`auth.md`](./auth.md)                       | Roles, public vs protected client routes, JWT/refresh, bootstrap superadmin, email transport. |
 | [`i18n.md`](./i18n.md)                       | Locales, `no_prefix` routing, plural `t()` shape, Day.js / SEO titles.                        |
 | [`auth-rbac.md`](./auth-rbac.md)             | Original feature spec for Authentication & RBAC (the "what was asked for" document).          |
-| [`roadmap.md`](./roadmap.md)                 | Phase-by-phase engineering progress through Phase 13 (feed polish + SEO + vue-tsc).           |
+| [`cache-queue-spec.md`](./cache-queue-spec.md)| Feature spec for Cache & Queue.                                                              |
+| [`roadmap.md`](./roadmap.md)                 | Phase-by-phase engineering progress through Phase 14 (cache + queue).                         |
 | [`ci-cd.md`](./ci-cd.md)                     | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.                      |
 
 ## Feature specs vs. implementation docs
 
 Two kinds of file live here side-by-side:
 
-- **Implementation docs** (`architecture.md`, `database.md`, `api.md`, `auth.md`, `i18n.md`, `getting-started.md`, `roadmap.md`) — the **as-built** reference. Always describes what currently exists in the code.
-- **Feature specs** (`auth-rbac.md`, plus future per-feature spec files) — the **as-asked** record. Describes what was requested for a given feature, captured before or during implementation. Useful as a paper trail; not edited to track the code.
+- **Implementation docs** (`architecture.md`, `database.md`, `api.md`, `auth.md`, `i18n.md`, `getting-started.md`, `cache-queue.md`, `roadmap.md`) — the **as-built** reference. Always describes what currently exists in the code.
+- **Feature specs** (`auth-rbac.md`, `cache-queue-spec.md`, plus future per-feature spec files) — the **as-asked** record. Describes what was requested for a given feature, captured before or during implementation. Useful as a paper trail; not edited to track the code.
 
 When a new feature lands, drop its spec in next to `auth-rbac.md` (one file per feature) and update the implementation docs above to match the new shape.

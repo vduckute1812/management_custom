@@ -1,5 +1,6 @@
 import { deletePost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
@@ -15,5 +16,7 @@ export default defineEventHandler(async (event) => {
       statusMessage: "Post not found",
     });
   }
+  // Deleted posts may have been public; drop anonymous slices eagerly.
+  await invalidatePublicFeedCaches();
   return { ok: true };
 });

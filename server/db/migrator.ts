@@ -60,6 +60,7 @@ const KNOWN_TABLES_DROP_ORDER = [
   "uploads",
   "posts",
   "post_categories",
+  "jobs",
   "checklist_items",
   "time_blocks",
   "tasks",

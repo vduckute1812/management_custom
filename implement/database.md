@@ -306,13 +306,13 @@ When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended
 
 ---
 
-## Feed & stories (migrations 0003–0006)
+## Feed & stories (migrations 0003–0008)
 
 Canonical DDL lives in the migration files; this section is the as-built map.
 
 | Table              | Purpose                                                                                                                                                             |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `posts`            | Feed posts: `body`, `visibility` (`public`/`private`/`shared`), optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`                      |
+| `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id` |
 | `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                  |
 | `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                             |
 | `post_comments`    | Threaded comments on a post                                                                                                                                         |
@@ -325,9 +325,23 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
+**Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`.
+
 **Category display names.** MySQL stores a canonical `name` (admin-editable). Seeded slugs resolve to UI copy via `CATEGORY_I18N_KEYS` + `utils/categoryLabel.ts` (`categories.*` in locale JSON). Custom admin directories without a key keep showing the DB `name`.
 
 **Upload policy.** Allowed types, per-type size caps, and magic-byte checks live in `utils/uploadPolicy.ts` (client + server) and `server/utils/fileSignature.ts`. See [`api.md`](./api.md#uploads-r2).
+
+---
+
+## Jobs queue (migration 0009)
+
+| Table  | Purpose |
+| ------ | ------- |
+| `jobs` | Durable background work: `type`, JSON `payload`, `status`, attempts, `available_at`, lock metadata |
+
+Statuses: `pending` → `processing` → `completed`, or retry as `pending`, or `dead` after max attempts. Claimed with `FOR UPDATE SKIP LOCKED`. See [`cache-queue.md`](./cache-queue.md).
+
+Domain module: `server/db/jobs.ts`. Worker: `server/plugins/job-worker.ts`.
 
 ---
 

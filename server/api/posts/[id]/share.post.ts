@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createPost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
 
 const bodySchema = z.object({
   body: z
@@ -37,6 +38,9 @@ export default defineEventHandler(async (event) => {
       audienceUserIds: parsed.data.audienceUserIds,
       sharedPostId: id,
     });
+    if (post.visibility === "public") {
+      await invalidatePublicFeedCaches();
+    }
     return { post };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;
