@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import { assertOwnedUploads } from "./uploads";
+import { assertOwnedUploads, purgeOrphanedUploads, purgeR2StorageKeys } from "./uploads";
 import type { PostAuthor, PostReactionType } from "../../types/post";
 import { POST_REACTION_TYPES } from "../../types/post";
 import type {
@@ -119,10 +119,61 @@ function rowToStory(
   };
 }
 
+/**
+ * Remove expired stories and delete their Cloudflare media when no longer
+ * referenced. Returns how many story rows were removed.
+ */
+export async function purgeExpiredStories(): Promise<{
+  stories: number;
+  uploads: number;
+}> {
+  const pool = getPool();
+  const [expired] = await pool.query<
+    (RowDataPacket & {
+      id: string;
+      upload_id: string | null;
+      media_storage_key: string | null;
+    })[]
+  >(
+    `SELECT id, upload_id, media_storage_key
+     FROM stories
+     WHERE expires_at <= UTC_TIMESTAMP(3)`,
+  );
+  if (!expired.length) return { stories: 0, uploads: 0 };
+
+  const uploadIds = expired.map((r) => r.upload_id);
+  const orphanKeys = expired
+    .filter((r) => r.media_storage_key && !r.upload_id)
+    .map((r) => r.media_storage_key as string);
+
+  const [result] = await pool.query(
+    `DELETE FROM stories WHERE expires_at <= UTC_TIMESTAMP(3)`,
+  );
+  const stories = (result as { affectedRows?: number }).affectedRows ?? 0;
+
+  const uploads = await purgeOrphanedUploads(uploadIds);
+  if (orphanKeys.length) {
+    await purgeR2StorageKeys(orphanKeys);
+  }
+  return { stories, uploads };
+}
+
 export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
   const pool = getPool();
-  // Lazy cleanup of expired stories (best-effort).
-  await pool.query(`DELETE FROM stories WHERE expires_at <= UTC_TIMESTAMP(3)`);
+  // Lazy cleanup of expired stories + their R2 objects (best-effort).
+  try {
+    const purged = await purgeExpiredStories();
+    if (purged.stories > 0) {
+      console.info(
+        `[stories] purged expired stories=${purged.stories} uploads=${purged.uploads}`,
+      );
+    }
+  } catch (err) {
+    console.warn(
+      "[stories] expired purge failed:",
+      (err as Error)?.message || err,
+    );
+  }
 
   const [rows] = await pool.query<StoryRow[]>(
     `SELECT
@@ -268,11 +319,24 @@ export async function deleteStory(
   storyId: string,
 ): Promise<boolean> {
   const pool = getPool();
+  const [rows] = await pool.query<
+    (RowDataPacket & { upload_id: string | null })[]
+  >(`SELECT upload_id FROM stories WHERE id = ? AND user_id = ? LIMIT 1`, [
+    storyId,
+    userId,
+  ]);
+  if (!rows.length) return false;
+
+  const uploadId = rows[0].upload_id;
   const [result] = await pool.query(
     "DELETE FROM stories WHERE id = ? AND user_id = ?",
     [storyId, userId],
   );
-  return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  if (ok && uploadId) {
+    await purgeOrphanedUploads([uploadId]);
+  }
+  return ok;
 }
 
 async function assertOwnedStory(

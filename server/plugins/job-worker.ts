@@ -53,6 +53,23 @@ export default defineNitroPlugin((nitroApp) => {
           console.warn(`[queue] requeued ${requeued} stale processing job(s)`);
         }
         await purgeOldJobs(envInt("QUEUE_PURGE_DAYS", 14));
+        // Expired stories leave R2 orphans unless we sweep them even when
+        // nobody opens the tray. Run inline (cheap SELECT) rather than
+        // enqueueing a self-job that needs another tick.
+        try {
+          const { purgeExpiredStories } = await import("../db/stories");
+          const purged = await purgeExpiredStories();
+          if (purged.stories > 0 || purged.uploads > 0) {
+            console.info(
+              `[queue] purged expired stories=${purged.stories} uploads=${purged.uploads}`,
+            );
+          }
+        } catch (err) {
+          console.warn(
+            "[queue] expired story purge failed:",
+            (err as Error)?.message || err,
+          );
+        }
       }
 
       const job = await claimNextJob(workerId);

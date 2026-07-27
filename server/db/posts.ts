@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import { assertOwnedUploads, type UploadRow } from "./uploads";
+import { assertOwnedUploads, purgeOrphanedUploads, type UploadRow } from "./uploads";
 import type {
   Post,
   PostAttachment,
@@ -573,11 +573,26 @@ export async function deletePost(
   postId: string
 ): Promise<boolean> {
   const pool = getPool();
+  // Capture attachment upload ids before CASCADE removes post_attachments.
+  const [attRows] = await pool.query<
+    (RowDataPacket & { upload_id: string })[]
+  >(
+    `SELECT pa.upload_id
+     FROM post_attachments pa
+     INNER JOIN posts p ON p.id = pa.post_id
+     WHERE pa.post_id = ? AND p.user_id = ?`,
+    [postId, userId],
+  );
+
   const [result] = await pool.query(
     "DELETE FROM posts WHERE id = ? AND user_id = ?",
     [postId, userId]
   );
-  return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  if (ok && attRows.length) {
+    await purgeOrphanedUploads(attRows.map((r) => r.upload_id));
+  }
+  return ok;
 }
 
 export async function setPostReaction(

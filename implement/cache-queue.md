@@ -127,9 +127,10 @@ cannot double-run the same job.
 | `email.verification` | `{ to, token }` | `sendVerificationEmail` |
 | `email.send` | `{ to, subject, text, html? }` | `sendMail` |
 | `cache.invalidate` | `{ prefixes: string[] }` | `cacheDelPrefix` each |
+| `media.purgeExpired` | `{}` | `purgeExpiredStories` (story rows + orphan R2 uploads) |
 
 Enqueue helpers live in `server/utils/queue.ts`
-(`enqueueVerificationEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`).
+(`enqueueVerificationEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
 
 ### Worker
 
@@ -139,7 +140,7 @@ Enqueue helpers live in `server/utils/queue.ts`
 2. Claims one job, runs `processJob`, completes or fails
 3. Exponential backoff on failure: 15s × 2^(attempt−1), cap 15 minutes
 4. After `max_attempts`, status → `dead`
-5. Every ~2 minutes: requeue stale `processing` rows (`QUEUE_STALE_SECONDS`) and purge old `completed`/`dead` (`QUEUE_PURGE_DAYS`)
+5. Every ~2 minutes: requeue stale `processing` rows (`QUEUE_STALE_SECONDS`), purge old `completed`/`dead` (`QUEUE_PURGE_DAYS`), and **sweep expired stories + their Cloudflare R2 media**
 
 Disable for migrate-only containers: `QUEUE_WORKER_ENABLED=false`.
 

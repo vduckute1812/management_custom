@@ -23,6 +23,7 @@ export const JobTypes = {
   EmailSend: "email.send",
   EmailVerification: "email.verification",
   CacheInvalidate: "cache.invalidate",
+  MediaPurgeExpired: "media.purgeExpired",
 } as const;
 
 export type JobType = (typeof JobTypes)[keyof typeof JobTypes];
@@ -68,6 +69,17 @@ export async function enqueueCacheInvalidate(
   });
 }
 
+export async function enqueueMediaPurgeExpired(
+  opts?: { delaySeconds?: number },
+): Promise<JobRow> {
+  return enqueueJob({
+    type: JobTypes.MediaPurgeExpired,
+    payload: {},
+    delaySeconds: opts?.delaySeconds,
+    maxAttempts: 3,
+  });
+}
+
 export async function processJob(job: JobRow): Promise<void> {
   switch (job.type) {
     case JobTypes.EmailSend: {
@@ -96,6 +108,16 @@ export async function processJob(job: JobRow): Promise<void> {
         : [];
       for (const prefix of prefixes) {
         if (prefix) await cacheDelPrefix(prefix);
+      }
+      return;
+    }
+    case JobTypes.MediaPurgeExpired: {
+      const { purgeExpiredStories } = await import("~/server/db/stories");
+      const result = await purgeExpiredStories();
+      if (result.stories > 0 || result.uploads > 0) {
+        console.info(
+          `[queue] media.purgeExpired stories=${result.stories} uploads=${result.uploads}`,
+        );
       }
       return;
     }

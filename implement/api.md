@@ -119,6 +119,15 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 | `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). Error `data.code` maps to `uploads.errors.*` on the client. |
 | `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object.                                                                                                                                                                      |
 
+**Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
+
+- User deletes a **post** → orphaned attachments purged from MySQL + R2
+- User deletes a **story** → its upload purged if unused elsewhere
+- **Story expires** (24h) → purged on tray load and every ~2 min by the job worker
+- Admin **deletes a user** → CASCADE removes DB rows; storage keys are deleted from R2 afterwards
+
+Orphan check: an upload is kept only while referenced by `post_attachments` or a **non-expired** story. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`.
+
 ---
 
 ## Users directory

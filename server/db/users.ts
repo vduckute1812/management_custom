@@ -132,12 +132,25 @@ export async function recordUserLogin(id: string): Promise<void> {
   );
 }
 
-/** Hard-delete a user row. Related data cascades via FK constraints. */
+/**
+ * Hard-delete a user row. Related MySQL data cascades via FK constraints.
+ * Cloudflare R2 objects for the user's uploads are deleted afterwards
+ * (CASCADE cannot touch object storage).
+ */
 export async function deleteUser(id: string): Promise<boolean> {
+  const { listStorageKeysForUser, purgeR2StorageKeys } = await import(
+    "./uploads"
+  );
+  const keys = await listStorageKeysForUser(id);
+
   const pool = getPool();
   const [result] = await pool.query(
     "DELETE FROM users WHERE id = ?",
     [id]
   );
-  return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  if (ok && keys.length) {
+    await purgeR2StorageKeys(keys);
+  }
+  return ok;
 }
