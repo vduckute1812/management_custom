@@ -56,6 +56,21 @@ const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
   angry: t("feed.post.reactionAngry"),
 }));
 
+/** Collapse long-form / thesis bodies in the feed until expanded. */
+const BODY_COLLAPSE_CHARS = 900;
+const bodyExpanded = ref(false);
+
+const bodyNeedsCollapse = computed(
+  () => (props.post.body?.length ?? 0) > BODY_COLLAPSE_CHARS,
+);
+
+watch(
+  () => props.post.id,
+  () => {
+    bodyExpanded.value = false;
+  },
+);
+
 function categoryLabel() {
   return props.post.category
     ? categoryDisplayName(props.post.category, t, te)
@@ -301,12 +316,30 @@ async function onPlanClick() {
           {{ categoryLabel() }}
         </span>
       </div>
-      <PostBody
-        v-if="post.body"
-        :body="post.body"
-        :font-family="post.fontFamily || 'default'"
-        :text-color="post.textColor || 'default'"
-      />
+      <div v-if="post.body" class="relative">
+        <div
+          class="post-body-clip"
+          :class="{ 'post-body-clip--collapsed': bodyNeedsCollapse && !bodyExpanded }"
+        >
+          <PostBody
+            :body="post.body"
+            :font-family="post.fontFamily || 'default'"
+            :text-color="post.textColor || 'default'"
+          />
+        </div>
+        <button
+          v-if="bodyNeedsCollapse"
+          type="button"
+          class="mt-1 text-xs font-semibold text-brand-700 hover:text-brand-800"
+          @click="bodyExpanded = !bodyExpanded"
+        >
+          {{
+            bodyExpanded
+              ? $t("feed.post.showLess")
+              : $t("feed.post.showMore")
+          }}
+        </button>
+      </div>
 
       <div
         v-if="post.attachments?.length"
@@ -629,3 +662,12 @@ async function onPlanClick() {
     </div>
   </article>
 </template>
+
+<style scoped>
+.post-body-clip--collapsed {
+  max-height: 18rem;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+</style>

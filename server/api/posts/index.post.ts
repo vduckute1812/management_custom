@@ -2,10 +2,11 @@ import { z } from "zod";
 import { createPost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
+import { POST_BODY_MAX } from "~/utils/postBodyLimits";
 import { UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 
 const bodySchema = z.object({
-  body: z.string().trim().min(1, "Post body is required").max(5000),
+  body: z.string().trim().min(1, "Post body is required").max(POST_BODY_MAX),
   visibility: z
     .enum(["public", "private", "shared"])
     .optional()

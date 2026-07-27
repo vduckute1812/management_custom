@@ -3,7 +3,12 @@ import { createPost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 
 const bodySchema = z.object({
-  body: z.string().trim().max(5000).optional().default(""),
+  body: z
+    .string()
+    .trim()
+    .max(5_000)
+    .optional()
+    .default(""),
   visibility: z.enum(["public", "private", "shared"]).optional().default("public"),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
 });
