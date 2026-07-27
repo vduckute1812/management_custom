@@ -44,6 +44,7 @@ export default defineNuxtConfig({
       "/login",
       "/signup",
       "/verify-email",
+      "/feed/write",
     ],
   },
   // SPA mode. Auth tokens live in localStorage; SSR can't read them, so we
