@@ -22,7 +22,22 @@ Every enum-shaped field on this API is a small integer end-to-end (TS code, JSON
 | `recurrence.rule` | `Daily`  | `Weekly`     | `Monthly`    |
 | `role`            | `Normal` | `Admin`      | `Superadmin` |
 
-Request bodies that include these fields must send them as numbers; the server rejects string values with `400`. See [`database.md`](./database.md#integer-enums-end-to-end) for the rationale.
+Request bodies that include these fields must send them as numbers; the server rejects string values with `400`. Handlers wired through `server/schemas` + `parseBody` enforce this explicitly for tasks/epics/timer/login; remaining routes are migrating to the same pattern. See [`database.md`](./database.md#integer-enums-end-to-end) for the rationale.
+
+---
+
+## Request validation
+
+Shared Zod schemas live in `server/schemas/index.ts`. Handlers should use:
+
+- `parseBody(event, schema)` — validates JSON body, `400` on failure
+- `parseQuery(event, schema)` — validates query string, `400` on failure
+
+Service-layer business failures throw `DomainError(statusCode, message)`; route handlers catch with `mapDomainError(err)`.
+
+**Feed list query** (`GET /api/posts`): `limit` (1–50, default 20), optional `cursor`, `categoryId`, `locale`.
+
+Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 ---
 
@@ -123,7 +138,7 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 | Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
 | ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |
-| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object.                                                                                                                                                                                                                                                                            |
+| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI. |
 
 **Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
 
@@ -150,7 +165,7 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 | Method   | Endpoint         | Description                                                                                                               |
 | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/epics`     | Returns the caller's Epics with derived hours, progress, taskCount.                                                       |
-| `POST`   | `/api/epics`     | Creates or updates one of the caller's Epics. Attempting to POST a body with an `id` owned by someone else returns `404`. |
+| `POST`   | `/api/epics`     | Creates or updates one of the caller's Epics (`epicUpsertBodySchema`). Attempting to POST a body with an `id` owned by someone else returns `404`. |
 | `DELETE` | `/api/epics/:id` | Removes one of the caller's Epics. Cross-user ids `404`. Child tasks have `epicId` cleared.                               |
 
 ---
@@ -160,7 +175,7 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 | Method   | Endpoint         | Description                                                                                                                    |
 | -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                              |
-| `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (including its `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`. |
+| `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (`taskUpsertBodySchema`, including `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`. |
 | `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                       |
 
 ---

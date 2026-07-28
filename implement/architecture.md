@@ -98,6 +98,62 @@ Global guard: `middleware/auth.global.ts`.
 
 ---
 
+## Request validation & services
+
+Handlers that accept JSON or query parameters should validate through shared Zod schemas in `server/schemas/index.ts` and the helpers in `server/utils/http.ts`:
+
+| Helper           | Use                                                                 |
+| ---------------- | ------------------------------------------------------------------- |
+| `parseBody`      | `readBody` + `safeParse` → `400` with first issue message           |
+| `parseQuery`     | `getQuery` + `safeParse` → `400`                                     |
+| `DomainError`    | Typed business failure (`statusCode` + message) from service layers |
+| `mapDomainError` | Maps `DomainError` / domain `statusCode` throws to Nitro errors     |
+
+**Wired today (representative):** `loginBodySchema`, `taskUpsertBodySchema`, `epicUpsertBodySchema`, `timerStartBodySchema`, `postCreateBodySchema`, `feedQuerySchema`, plus Zod on profile/categories/posts patch routes from earlier feed work.
+
+**Integer enums** on task/epic bodies must be numbers — string values are rejected with `400` (no silent fallback to defaults).
+
+**Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
+
+| Service          | Responsibility                                      |
+| ---------------- | --------------------------------------------------- |
+| `taskService`    | `saveTaskForUser` — ownership guards + upsert       |
+| `timerService`   | `startTimerForUser` / `stopTimerForUser`            |
+| `postService`    | `createPostForUser` + public-feed cache invalidate  |
+
+Add new services only for workflows that span several DB calls or need shared transaction boundaries — not for every CRUD route.
+
+---
+
+## Security headers
+
+`server/middleware/security-headers.ts` sets baseline headers on every response:
+
+- `Content-Security-Policy` (self-hosted scripts/styles; `unsafe-inline` for theme boot + Vue)
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: SAMEORIGIN`
+- `Permissions-Policy` (camera/mic/geo disabled)
+
+Tighten CSP further when inline boot scripts can be nonce-based.
+
+---
+
+## Client auth storage
+
+| Surface            | Where it lives                                                                 |
+| ------------------ | ------------------------------------------------------------------------------ |
+| Refresh token      | HttpOnly cookie `mgmt_rt` (30 days) — **never** `localStorage`               |
+| Access JWT         | In-memory via `useAuth.accessToken` + HttpOnly cookie `mgmt_at` (15 min)       |
+| User profile chrome| `localStorage` `auth:user` + flag `auth:hasSession` (non-secret)               |
+| Theme / locale     | `localStorage` `mgmt:settings:v1` (unchanged)                                  |
+
+Boot flow (`plugins/auth.client.ts`): POST `/api/auth/refresh` with `credentials: 'include'` restores the access token. Legacy `auth:refreshToken` in `localStorage` is read once, sent in the refresh body, then wiped.
+
+All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer when in memory). Same-origin `/api/uploads/*` loads authenticate via `mgmt_at` without `?access_token=` in the URL.
+
+---
+
 ## Project Structure
 
 ```
@@ -105,7 +161,7 @@ Global guard: `middleware/auth.global.ts`.
 ├── server/
 │   ├── api/
 │   │   ├── auth/                    # signup, login, refresh, logout, verify-email, me, profile
-│   │   ├── admin/                   # users, stats, role, DELETE user (superadmin)
+│   │   ├── admin/                   # users, stats, queue, role, DELETE user (superadmin)
 │   │   ├── epics/                   # caller-scoped
 │   │   ├── tasks/                   # caller-scoped
 │   │   ├── timer/                   # per-user active timer
@@ -114,16 +170,32 @@ Global guard: `middleware/auth.global.ts`.
 │   │   ├── uploads/                 # R2 upload + signed GET
 │   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
 │   │   └── users/directory.get.ts   # people picker for shared visibility
+│   ├── schemas/
+│   │   └── index.ts                 # Shared Zod request schemas
+│   ├── services/
+│   │   ├── taskService.ts           # Task upsert workflow
+│   │   ├── timerService.ts          # Timer start/stop workflow
+│   │   └── postService.ts           # Post create + cache bust
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0010 SQL files
-│   ├── middleware/auth.ts           # Hydrates event.context.user from Bearer JWT
-│   ├── plugins/db-verify.ts         # Refuses boot if migrations pending/drifted
+│   │   └── migrations/              # 0001…0011 SQL files
+│   ├── middleware/
+│   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
+│   │   └── security-headers.ts      # CSP + baseline security headers
+│   ├── plugins/
+│   │   ├── db-verify.ts             # Refuses boot if migrations pending/drifted
+│   │   └── job-worker.ts            # MySQL jobs worker
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
+│       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
+│       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
 │       ├── r2.ts                    # S3-compatible Cloudflare R2 client
 │       └── fileSignature.ts         # Magic-byte sniff for uploads
+├── tests/                           # Vitest (`npm test`)
+│   ├── schemas.test.ts
+│   ├── security-utils.test.ts
+│   └── render-post-body.test.ts
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*
 │   ├── migrate-auth.ts              # Seed superadmin
@@ -132,31 +204,33 @@ Global guard: `middleware/auth.global.ts`.
 │   └── notify-public-ip-change.ts   # Optional ops helper
 ├── pages/
 │   ├── index.vue                    # Public hub (localized category cards + module blurbs)
-│   ├── feed/index.vue
+│   ├── feed/index.vue, feed/write, feed/edit/:id
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
 │   └── login.vue, signup.vue, verify-email.vue
 ├── components/                      # Flat SFC set (calendars, feed, shell, …)
 │   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, UserAvatar.vue, …
-│   ├── PostComposer.vue, PostCard.vue, StoryTray.vue, StoryViewer.vue, …
+│   ├── PostComposer.vue, PostCard.vue, PostCommentsPanel.vue, StoryTray.vue, …
 │   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
 ├── composables/
 │   ├── useAuth.ts, useApi.ts, useSettings.ts, useToasts.ts, useUiOverlays.ts
 │   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
+│   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
 ├── middleware/auth.global.ts
 ├── layouts/default.vue
 ├── plugins/
-│   ├── auth.client.ts
+│   ├── auth.client.ts               # Cookie session hydrate + legacy LS migration
 │   ├── theme.client.ts
 │   ├── i18n-locale.client.ts
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
 ├── types/                           # task.ts, post.ts, story.ts, locale.ts
-├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, categoryLabel, …
+├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, …
 ├── implement/                       # Technical documentation (you are here)
+├── vitest.config.ts
 ├── .env.example
 └── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```

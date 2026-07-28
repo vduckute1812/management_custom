@@ -1,18 +1,19 @@
 ---
-description: Nuxt 3 SPA conventions — architecture, API, auth, i18n, SEO, and TypeScript/vue-tsc compatibility
+description: Nuxt 3 hybrid app conventions — architecture, API, HttpOnly auth cookies, i18n, SEO, validation, and TypeScript/vue-tsc compatibility
 globs: "**/*.{vue,ts,json}"
 alwaysApply: false
 ---
 
 # Nuxt 3 Project Standards
 
-This app uses **hybrid rendering**: `/` and `/feed` are SSR'd for crawlers; the rest of the app is a client-only SPA (`routeRules`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n` + `@nuxtjs/seo`. Runtime: **Node ≥ 24**. TypeScript: classic compiler pinned in `package.json` (required by `vue-tsc`; see below). As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
+This app uses **hybrid rendering**: `/` and `/feed` are SSR'd for crawlers; the rest of the app is a client-only SPA (`routeRules`). Stack: Nuxt 3 + Tailwind 4 + Zod + HttpOnly cookie auth + Bearer access in memory + `@nuxtjs/i18n` + `@nuxtjs/seo`. Runtime: **Node ≥ 24**. TypeScript: classic compiler pinned in `package.json` (required by `vue-tsc`; see below). As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
 
 ## Toolchain compatibility & type safety
 
 General principles — they apply to any dependency, not just today's versions:
 
 * **Type-check is the gate.** `npx vue-tsc --noEmit -p tsconfig.json` must pass before committing changes to `.vue` / `.ts` files. Never "fix" a failing check by skipping it, loosening `tsconfig`, or patching files inside `node_modules`.
+* **Unit tests:** `npm test` (Vitest) for schemas, security helpers, and markdown sanitization — run after changing `server/schemas`, `server/utils/http.ts`, or `renderPostBody`.
 * **Upgrade tools together.** The type-checker, its compiler, and the framework plugins form one toolchain. Before bumping any of them (e.g. `typescript`, `vue-tsc`, i18n modules), confirm the new versions support each other — check release notes, then run the type-check to prove it. If a new major of a compiler/runtime is not yet supported by the surrounding tooling, stay on the latest supported line and note why in `package.json` history / docs.
 * **Reproduce, don't assume.** When a tool crashes after a dependency change, verify whether it's a tooling break or a real code error by running the check with a known-good toolchain first. Fix real code errors immediately; roll back incompatible tool versions rather than working around them.
 * **Follow library call signatures, not intuition.** When a typed API has overloads (i18n `t(...)`, DB `query<T>(...)`, etc.), match the library's documented parameter order and generic constraints; if the checker rejects a call, read the overload — do not cast or `any` it away. Prefer the library's own row/result types over hand-rolled shapes.
@@ -24,31 +25,44 @@ General principles — they apply to any dependency, not just today's versions:
 * **`pages/` / `components/`**: UI only. Extract data, multi-step flows, and shared state into `composables/`.
 * **`composables/`**: Vue/Nuxt context (`ref`, `useState`, `useRoute`, `apiFetch`). Always pass an explicit key to `useState('unique-key', factory)`.
 * **`utils/`** (client) / pure helpers: deterministic functions only — no `useNuxtApp()`, `useRoute()`, or `useRuntimeConfig()` at module top level.
-* **`server/api/`**: Thin handlers. Auth → validate → call `server/db` or `server/utils` → return JSON or `createError`.
-* **`server/db/`**: SQL / domain persistence (barrel via `server/utils/db.ts`). **`server/utils/`**: auth, mailer, R2, shared server helpers.
+* **`server/api/`**: Thin handlers. Auth → `parseBody`/`parseQuery` → domain `server/db` or `server/services` → return JSON or `mapDomainError`.
+* **`server/schemas/`**: Shared Zod request schemas — add new body/query shapes here first.
+* **`server/services/`**: Multi-step workflows only (task save, timer start/stop, post create) — not every CRUD route.
+* **`server/db/`**: SQL / domain persistence (barrel via `server/utils/db.ts`). **`server/utils/`**: auth, cookies, http helpers, mailer, R2.
 * **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/locale.ts`).
+* **Feed → Tasks:** use `usePlanPostAsTask` — do not call `useTasks` directly from feed presentation components for "plan as task".
 
 ## Data fetching & auth (client)
 
-* Authenticated API calls: use `apiFetch` from `useApi()` — not raw `$fetch` (attaches Bearer, refresh-on-401).
-* `$fetch` is OK for unauthenticated auth endpoints (`login` / `signup` / `refresh` / `verify-email`) and intentional public GETs (e.g. public feed when logged out).
+* Authenticated API calls: use `apiFetch` from `useApi()` — not raw `$fetch` (attaches Bearer, `credentials: 'include'`, refresh-on-401).
+* `$fetch` with `credentials: 'include'` is OK for auth endpoints (`login` / `signup` / `refresh` / `logout` / `verify-email`) from `useAuth`.
+* **Never** persist refresh tokens in `localStorage`. Access token is in-memory; cookies are HttpOnly (`mgmt_rt`, `mgmt_at`).
 * Client guard: `middleware/auth.global.ts` — public `/`, `/feed`, auth forms; protect `/tasks`, settings, admin, …
 * Server: `requireUser` / `requireAdmin` / `requireSuperAdmin`; feed list/detail GETs may use `getOptionalUser`.
+* Media: same-origin `/api/uploads/*` uses `mgmt_at` cookie — avoid new `?access_token=` URLs.
 * Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, `usePosts`, …).
 
 ## Nitro API handlers
 
 ```ts
-// ✅ validate → auth → domain
-const user = requireUser(event) // or requireAdmin(event)
-const parsed = bodySchema.safeParse(await readBody(event))
-if (!parsed.success) {
-  throw createError({ statusCode: 400, statusMessage: "Invalid body" })
-}
+// ✅ validate → auth → service or db
+import { parseBody, mapDomainError } from "~/server/utils/http"
+import { taskUpsertBodySchema } from "~/server/schemas"
+
+export default defineEventHandler(async (event) => {
+  const user = requireUser(event)
+  try {
+    const body = await parseBody(event, taskUpsertBodySchema)
+    return await saveTaskForUser(user.sub, body)
+  } catch (err) {
+    mapDomainError(err)
+  }
+})
 ```
 
-* Validate body/query with **Zod** (`safeParse` or `readValidatedBody` / `getValidatedQuery`).
+* Prefer `parseBody` / `parseQuery` from `~/server/utils/http.ts` with schemas from `~/server/schemas`.
 * Use `requireUser` / `requireAdmin` from `~/server/utils/authContext` — do not re-parse JWT in each route.
+* Integer enums (`status`, `priority`, `role`, …) must be numbers on the wire — reject strings with `400`.
 * Prefer semantic status codes: `400` validation, `401` unauthenticated, `403` forbidden, `404` missing, `500` unexpected.
 * Never log passwords, tokens, or raw Authorization headers.
 
@@ -66,7 +80,7 @@ if (!parsed.success) {
 ## Performance (SPA-aware)
 
 * Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer.
-* Browser-only APIs (`window`, `localStorage`): guard with `import.meta.client`. On SSR'd public routes, auth chrome must use `isAuthenticatedUi` / `userUi` (ready after mount) so hydration matches the guest HTML.
+* Browser-only APIs (`window`, `localStorage`): guard with `import.meta.client`. On SSR'd public routes, auth chrome must use `isAuthenticatedUi` / `userUi` (ready after mount) so hydration matches the guest HTML. Only non-secret prefs and profile chrome go in `localStorage` — not tokens.
 * Keep Chart.js and large editors out of the initial critical path when possible.
 
 ## i18n

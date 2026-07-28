@@ -33,6 +33,37 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 
 ---
 
+## HttpOnly cookies
+
+| Cookie    | Purpose                                      | Max-Age   | JS readable |
+| --------- | -------------------------------------------- | --------- | ----------- |
+| `mgmt_rt` | Refresh token (opaque, SHA-256 hash in DB)   | 30 days   | No          |
+| `mgmt_at` | Access JWT (mirrors in-memory Bearer token)  | 15 min    | No          |
+
+Both are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to on in production / when `APP_BASE_URL` is `https://`; override with `COOKIE_SECURE=false` for plain `http://localhost` dev.
+
+Login and refresh set both cookies. Logout revokes the refresh hash server-side and clears cookies.
+
+Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-origin check (`Origin` / `Referer` must match `Host` when a cookie is used) to reduce CSRF risk.
+
+---
+
+## Client session (`useAuth`)
+
+| Stored where        | Key / surface              | Contents                                      |
+| ------------------- | -------------------------- | --------------------------------------------- |
+| HttpOnly cookie     | `mgmt_rt`                  | Refresh secret (never in `localStorage`)      |
+| HttpOnly cookie     | `mgmt_at`                  | Short-lived JWT for media + same-origin API   |
+| In-memory + `useState`| `useAuth.accessToken`    | Bearer token for `apiFetch`                   |
+| `localStorage`      | `auth:user`                | Cached `AuthUser` profile (non-secret)        |
+| `localStorage`      | `auth:hasSession`          | `1` when a cookie session is expected         |
+
+`plugins/auth.client.ts` on boot: POST `/api/auth/refresh` with `credentials: 'include'`, then `GET /api/auth/me`. Legacy installs that still have `auth:refreshToken` in `localStorage` send it once in the refresh body, then wipe it.
+
+`useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set.
+
+---
+
 ## Token lifecycle
 
 - **Access token** — 15-minute HS256 JWT, signed with `JWT_SECRET`. Returned in JSON for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin media requests authenticate without putting the JWT in the query string.
