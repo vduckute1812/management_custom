@@ -1123,7 +1123,7 @@ export async function searchUserDirectory(
   const pool = getPool();
   const term = `%${q.trim().toLowerCase()}%`;
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, name, email FROM users
+    `SELECT id, name, email, avatar_upload_id FROM users
      WHERE id <> ?
        AND (
          LOWER(email) LIKE ?
@@ -1137,6 +1137,9 @@ export async function searchUserDirectory(
     id: String(r.id),
     name: (r.name as string | null) ?? null,
     email: String(r.email),
+    avatarUrl: avatarUrlFromUploadId(
+      (r.avatar_upload_id as string | null) ?? null,
+    ) ?? null,
   }));
 }
 

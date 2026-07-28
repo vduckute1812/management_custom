@@ -259,3 +259,14 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Vitest suite (`npm test`) for schemas, password/token helpers, markdown sanitize
 - [x] Feed→Tasks seam via `usePlanPostAsTask`; `PostCommentsPanel` extracted from `PostCard`
 - [x] Docs synced: architecture / api / auth / getting-started
+
+## Phase 17 — Direct chat (emoji + stickers)
+
+Signed-in 1:1 messaging between install members. Spec: [`chat-spec.md`](./chat-spec.md).
+
+- [x] Migration `0013_chat`: `chat_conversations`, `chat_messages`, `chat_conversation_reads`
+- [x] DB module `server/db/chat.ts` + Zod schemas; API under `/api/chat/*`
+- [x] Message kinds: text / emoji / sticker (integer enums); built-in sticker catalog
+- [x] UI `/chat` — conversation list, thread, emoji + sticker pickers, ~3.5s polling
+- [x] Nav + shortcuts (`g c`) + command palette; directory search returns avatars
+- [x] Docs: `chat-spec.md`, api / database / architecture / roadmap / product README / i18n

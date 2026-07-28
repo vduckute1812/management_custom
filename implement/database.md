@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat`.
 
 ## Migration system
 
@@ -66,6 +66,7 @@ Benefits over a string-ENUM column with translation at the boundary:
 | `tasks.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`    |
 | `tasks.priority`        | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`         |
 | `tasks.recurrence_rule` | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`    |
+| `chat_messages.kind`    | `TINYINT UNSIGNED`      | `Text=0, Emoji=1, Sticker=2`      |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -358,6 +359,20 @@ Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.t
 **Category display names.** MySQL stores a canonical `name` (admin-editable). Seeded slugs resolve to UI copy via `CATEGORY_I18N_KEYS` + `utils/categoryLabel.ts` (`categories.*` in locale JSON). Custom admin directories without a key keep showing the DB `name`.
 
 **Upload policy.** Allowed types, per-type size caps, and magic-byte checks live in `utils/uploadPolicy.ts` (client + server) and `server/utils/fileSignature.ts`. See [`api.md`](./api.md#uploads-r2).
+
+---
+
+## Chat (migration 0013)
+
+Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.md).
+
+| Table | Purpose |
+| ----- | ------- |
+| `chat_conversations` | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` |
+| `chat_messages` | Messages: `kind` (`0` text / `1` emoji / `2` sticker), optional `body`, optional `sticker_id` |
+| `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` for unread counts |
+
+Wire DTOs + sticker catalog: `~/types/chat.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
 
 ---
 

@@ -1,8 +1,8 @@
 # Personal Task & Analytics Manager
 
-A local-first productivity tool with two modules on one install: **Time Management** (plan the week, log sessions, analytics) and **Feed** (posts, stories, reactions). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
+A local-first productivity tool with three surfaces on one install: **Time Management** (plan the week, log sessions, analytics), **Feed** (posts, stories, reactions), and **Chat** (direct messages with emoji and stickers). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
 
-> **Design ethos.** Single-user simplicity for tasks; multi-user safety by default. Epics, tasks, time blocks, and the timer are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Admins additionally see a roll-up dashboard across every user.
+> **Design ethos.** Single-user simplicity for tasks; multi-user safety by default. Epics, tasks, time blocks, and the timer are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Chat is private 1:1 between signed-in members. Admins additionally see a roll-up dashboard across every user.
 
 > Looking for the engineering side — installation, schema, API, code layout? Head to [`implement/`](./implement/README.md). This document is the **product** description; everything code-shaped lives over there.
 
@@ -34,7 +34,7 @@ These five principles are the lens for every product decision. When in doubt, ra
 
 1. **Local & owned.** Primary data lives in a MySQL database you administer. Optional Cloudflare R2 holds feed/story file bytes when attachments are enabled — still under your account, not a multi-tenant SaaS. No telemetry. JSON / CSV / iCal export for tasks is one click away in `Settings → Your data`.
 2. **Calm by default.** No badges screaming for attention, no dopamine animations, no notifications you didn't ask for. The tool waits patiently and reports faithfully.
-3. **One screen, one job.** Hub picks a module. Time Management plans on `/tasks`. Feed shares on `/feed`. Analytics reflects. We resist cramming "everything everywhere."
+3. **One screen, one job.** Hub picks a module. Time Management plans on `/tasks`. Feed shares on `/feed`. Chat messages on `/chat`. Analytics reflects. We resist cramming "everything everywhere."
 4. **Keyboard-first.** Every primary action has a shortcut. The mouse is a fallback, not the contract.
 5. **Honest math.** Aggregates are always computed, never stored. If two views show different numbers, the tool is broken — not "eventually consistent."
 
@@ -79,6 +79,10 @@ The "now" indicator ticks every 30 seconds and snaps forward when the tab regain
 ### Share on the Feed
 
 Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
+
+### Chat with other members
+
+Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text, emoji, or stickers from the built-in pickers. Conversations stay private to the two participants; the thread polls for new messages while the page is open. Unread counts show on the conversation list.
 
 ### Edit your profile
 
@@ -193,11 +197,11 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 | Role         | Sees                                                              | Can do                                                                                                                                                                             |
 | ------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normal`     | Own epics/tasks/timer; Feed per visibility rules.                 | Full Time Management for own data; create/react/comment on the Feed.                                                                                                               |
+| `normal`     | Own epics/tasks/timer; Feed per visibility rules; Chat with other members. | Full Time Management for own data; create/react/comment on the Feed; DM other users.                                                                                               |
 | `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.     | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
 | `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
 
-Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
+Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). Chat is private 1:1 between signed-in members. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
 
 ---
 
@@ -391,6 +395,7 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 | `g e`       | Go to Epics                             |
 | `g a`       | Go to Analytics                         |
 | `g f`       | Go to Feed                              |
+| `g c`       | Go to Chat                              |
 
 ### Calendar
 

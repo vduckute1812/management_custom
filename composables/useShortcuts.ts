@@ -103,6 +103,12 @@ export const useShortcuts = () => {
         router.push("/feed");
         return;
       }
+      if (key === "c") {
+        e.preventDefault();
+        consumeG();
+        router.push("/chat");
+        return;
+      }
       // Any other key cancels the pending sequence.
       consumeG();
     }
