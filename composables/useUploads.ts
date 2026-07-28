@@ -1,5 +1,9 @@
 import type { UploadRecord } from "~/types/post";
 import {
+  compressImageForUpload,
+  willAttemptImageCompress,
+} from "~/utils/compressImage";
+import {
   checkUploadMeta,
   type UploadRejectionCode,
 } from "~/utils/uploadPolicy";
@@ -24,7 +28,8 @@ export const useUploads = () => {
   /**
    * Localized reason this file can't be uploaded, or `null` if it's fine.
    * A convenience only — `/api/uploads` re-checks everything against the
-   * received bytes.
+   * received bytes. Oversized JPEG/PNG/WebP that compression will try are
+   * allowed through; `uploadFile` re-validates after shrinking.
    */
   function validateFile(file: File): string | null {
     const rejection = checkUploadMeta({
@@ -33,6 +38,9 @@ export const useUploads = () => {
       size: file.size,
     });
     if (!rejection) return null;
+    if (rejection.code === "tooLarge" && willAttemptImageCompress(file)) {
+      return null;
+    }
     return t(`uploads.errors.${rejection.code}`, rejection.params);
   }
 
@@ -53,15 +61,22 @@ export const useUploads = () => {
     );
   }
 
+  /**
+   * Shrink oversize photos in the browser, then upload. Validation runs on the
+   * prepared file so a 8MB phone JPEG that compresses under the cap can still
+   * succeed.
+   */
   async function uploadFile(file: File): Promise<UploadRecord> {
-    const invalid = validateFile(file);
+    const prepared = await compressImageForUpload(file);
+
+    const invalid = validateFile(prepared);
     if (invalid) {
       pushToast(invalid, { tone: "danger" });
       throw new Error(invalid);
     }
 
     const form = new FormData();
-    form.append("file", file, file.name);
+    form.append("file", prepared, prepared.name);
 
     try {
       // Multipart must not set Content-Type manually (boundary).

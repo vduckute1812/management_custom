@@ -25,30 +25,30 @@ export interface UploadTypeRule {
 
 /**
  * Per-type ceilings. These follow common practice for social/document
- * attachments rather than one blanket number: photos off a phone land around
- * 2–4MB, animated GIFs run larger, and text files that reach even 512KB are
- * almost always a mistake.
+ * attachments rather than one blanket number. JPEG/PNG/WebP are compressed
+ * client-side first (`utils/compressImage.ts`, max edge 1920), so photo caps
+ * apply to the shrunk payload. Animated GIFs and documents are not re-encoded.
  */
 export const UPLOAD_RULES: readonly UploadTypeRule[] = [
   {
     mime: "image/jpeg",
     kind: "image",
     extensions: [".jpg", ".jpeg"],
-    maxBytes: 5 * MB,
+    maxBytes: 3 * MB,
     label: "JPEG",
   },
   {
     mime: "image/png",
     kind: "image",
     extensions: [".png"],
-    maxBytes: 5 * MB,
+    maxBytes: 3 * MB,
     label: "PNG",
   },
   {
     mime: "image/webp",
     kind: "image",
     extensions: [".webp"],
-    maxBytes: 5 * MB,
+    maxBytes: 3 * MB,
     label: "WebP",
   },
   {
