@@ -25,15 +25,24 @@ const html = computed(() => {
   return withUploadAccessTokens(renderPostBodyHtml(props.body), mediaUrl);
 });
 
-const style = computed(() => ({
-  fontFamily: POST_FONT_FAMILY_CSS[props.fontFamily] || "inherit",
-  color: POST_TEXT_COLOR_CSS[props.textColor] || "inherit",
-}));
+const style = computed(() => {
+  const out: Record<string, string> = {};
+  if (props.fontFamily !== "default") {
+    const ff = POST_FONT_FAMILY_CSS[props.fontFamily];
+    if (ff && ff !== "inherit") out.fontFamily = ff;
+  }
+  // Never set color: inherit inline — it overrides Tailwind and picks up
+  // light dark-theme body text on light manuscript paper.
+  if (props.textColor !== "default") {
+    out.color = POST_TEXT_COLOR_CSS[props.textColor];
+  }
+  return out;
+});
 </script>
 
 <template>
   <div
-    class="post-body min-w-0 max-w-full text-sm text-slate-800 break-words"
+    class="post-body min-w-0 max-w-full text-sm break-words"
     :style="style"
     v-html="html"
   />
@@ -44,6 +53,20 @@ const style = computed(() => ({
   Do not use :deep() here — without scoped it is left as invalid CSS.
 -->
 <style>
+.post-body {
+  /* Explicit ink — avoid inheriting light dark-theme chrome colors. */
+  color: #1e293b;
+}
+
+html[data-theme="dark"] .post-body {
+  color: #e2e8f0;
+}
+
+/* Manuscript cards keep a paper background even in dark mode — keep dark ink. */
+html[data-theme="dark"] .manuscript-card .post-body {
+  color: #1e293b;
+}
+
 .post-body .katex-display {
   margin: 0.75rem 0;
   overflow-x: auto;

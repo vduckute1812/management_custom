@@ -799,3 +799,26 @@ async function onPlanClick() {
   background: linear-gradient(180deg, #3f6f5a, transparent 75%);
 }
 </style>
+
+<!-- Unscoped: keep manuscript paper readable under global dark-theme text remaps. -->
+<style>
+html[data-theme="dark"] .manuscript-card .manuscript-card__title {
+  color: #0f172a !important;
+}
+
+html[data-theme="dark"] .manuscript-card .manuscript-card__excerpt {
+  color: #334155 !important;
+}
+
+html[data-theme="dark"] .manuscript-card .text-slate-900 {
+  color: #0f172a !important;
+}
+
+html[data-theme="dark"] .manuscript-card .text-slate-700 {
+  color: #334155 !important;
+}
+
+html[data-theme="dark"] .manuscript-card .text-slate-600 {
+  color: #475569 !important;
+}
+</style>
