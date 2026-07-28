@@ -52,6 +52,7 @@ Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
 Nuxt 3 / Nitro API Routes (/server/api/...)
     │
     ├── server/middleware/security-headers.ts  →  CSP + baseline headers
+    ├── server/middleware/rate-limit.ts      →  per-IP sliding-window caps on /api/*
     ├── server/middleware/auth.ts              →  Bearer / HttpOnly access cookie
     │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
@@ -105,7 +106,7 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 | Helper           | Use                                                                 |
 | ---------------- | ------------------------------------------------------------------- |
 | `parseBody`      | `readBody` + `safeParse` → `400` with first issue message           |
-| `parseQuery`     | `getQuery` + `safeParse` → `400`                                     |
+| `parseQuery`     | `getQuery` + `safeParse` → `400`                                    |
 | `DomainError`    | Typed business failure (`statusCode` + message) from service layers |
 | `mapDomainError` | Maps `DomainError` / domain `statusCode` throws to Nitro errors     |
 
@@ -115,11 +116,11 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 
 **Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
 
-| Service          | Responsibility                                      |
-| ---------------- | --------------------------------------------------- |
-| `taskService`    | `saveTaskForUser` — ownership guards + upsert       |
-| `timerService`   | `startTimerForUser` / `stopTimerForUser`            |
-| `postService`    | `createPostForUser` + public-feed cache invalidate  |
+| Service        | Responsibility                                     |
+| -------------- | -------------------------------------------------- |
+| `taskService`  | `saveTaskForUser` — ownership guards + upsert      |
+| `timerService` | `startTimerForUser` / `stopTimerForUser`           |
+| `postService`  | `createPostForUser` + public-feed cache invalidate |
 
 Add new services only for workflows that span several DB calls or need shared transaction boundaries — not for every CRUD route.
 
@@ -141,16 +142,18 @@ Tighten CSP further when inline boot scripts can be nonce-based.
 
 ## Client auth storage
 
-| Surface            | Where it lives                                                                 |
-| ------------------ | ------------------------------------------------------------------------------ |
-| Refresh token      | HttpOnly cookie `mgmt_rt` (30 days) — **never** `localStorage`               |
-| Access JWT         | In-memory via `useAuth.accessToken` + HttpOnly cookie `mgmt_at` (15 min)       |
-| User profile chrome| `localStorage` `auth:user` + flag `auth:hasSession` (non-secret)               |
-| Theme / locale     | `localStorage` `mgmt:settings:v1` (unchanged)                                  |
+| Surface             | Where it lives                                                           |
+| ------------------- | ------------------------------------------------------------------------ |
+| Refresh token       | HttpOnly cookie `mgmt_rt` (30 days) — **never** `localStorage`           |
+| Access JWT          | In-memory via `useAuth.accessToken` + HttpOnly cookie `mgmt_at` (15 min) |
+| User profile chrome | `localStorage` `auth:user` + flag `auth:hasSession` (non-secret)         |
+| Theme / locale      | `localStorage` `mgmt:settings:v1` (unchanged)                            |
 
 Boot flow (`plugins/auth.client.ts`): POST `/api/auth/refresh` with `credentials: 'include'` restores the access token. Legacy `auth:refreshToken` in `localStorage` is read once, sent in the refresh body, then wiped.
 
 All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer when in memory). Same-origin `/api/uploads/*` loads authenticate via `mgmt_at` without `?access_token=` in the URL.
+
+`apiFetch` also deduplicates identical in-flight requests and throttles rapid repeats of the same method + URL (400 ms gap). Server-side caps are enforced separately by `server/middleware/rate-limit.ts` — see [`api.md`](./api.md#rate-limiting).
 
 ---
 
@@ -180,6 +183,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   └── migrations/              # 0001…0011 SQL files
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
+│   │   ├── rate-limit.ts            # Per-IP sliding-window caps on /api/*
 │   │   └── security-headers.ts      # CSP + baseline security headers
 │   ├── plugins/
 │   │   ├── db-verify.ts             # Refuses boot if migrations pending/drifted
@@ -187,6 +191,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
+│       ├── rateLimit.ts             # In-memory sliding-window rate limiter
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
@@ -195,6 +200,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── tests/                           # Vitest (`npm test`)
 │   ├── schemas.test.ts
 │   ├── security-utils.test.ts
+│   ├── rate-limit.test.ts
 │   └── render-post-body.test.ts
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*

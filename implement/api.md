@@ -8,8 +8,27 @@ All routes are handled by Nitro under `/server/api/`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
+- **Rate limited:** all `/api/*` routes are throttled per client IP (see [Rate limiting](#rate-limiting) below).
 
 See [`auth.md`](./auth.md) for the token model and client route guard; see [`database.md`](./database.md) for the underlying field types.
+
+## Rate limiting
+
+`server/middleware/rate-limit.ts` applies a sliding-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present).
+
+| Scope                       | Limit        | Window |
+| --------------------------- | ------------ | ------ |
+| Global (all other `/api/*`) | 120 requests | 60 s   |
+| `POST /api/auth/login`      | 10           | 60 s   |
+| `POST /api/auth/signup`     | 5            | 60 s   |
+| `POST /api/auth/refresh`    | 30           | 60 s   |
+| `/api/uploads` (any method) | 30           | 60 s   |
+
+When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
+
+On the client, `useApi().apiFetch` additionally coalesces identical in-flight requests and enforces a **400 ms** minimum gap between repeated calls with the same method + URL — this reduces accidental double-submit spam but does not replace the server cap.
+
+Implementation: `server/utils/rateLimit.ts` (in-memory store; swap for Redis when running multiple Nitro workers).
 
 ## Enum encoding
 
@@ -45,7 +64,7 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 | Method  | Endpoint                 | Description                                                                                                                                                                                                                                                                                                                                                   |
 | ------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                         |
+| `POST`  | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                        |
 | `POST`  | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
 | `POST`  | `/api/auth/refresh`      | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
 | `POST`  | `/api/auth/logout`       | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
@@ -138,7 +157,7 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 | Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
 | ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |
-| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI. |
+| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI.                                                                                                           |
 
 **Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
 
@@ -162,21 +181,21 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 ## Epics (scoped to authenticated user)
 
-| Method   | Endpoint         | Description                                                                                                               |
-| -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/epics`     | Returns the caller's Epics with derived hours, progress, taskCount.                                                       |
+| Method   | Endpoint         | Description                                                                                                                                        |
+| -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/epics`     | Returns the caller's Epics with derived hours, progress, taskCount.                                                                                |
 | `POST`   | `/api/epics`     | Creates or updates one of the caller's Epics (`epicUpsertBodySchema`). Attempting to POST a body with an `id` owned by someone else returns `404`. |
-| `DELETE` | `/api/epics/:id` | Removes one of the caller's Epics. Cross-user ids `404`. Child tasks have `epicId` cleared.                               |
+| `DELETE` | `/api/epics/:id` | Removes one of the caller's Epics. Cross-user ids `404`. Child tasks have `epicId` cleared.                                                        |
 
 ---
 
 ## Tasks (scoped to authenticated user)
 
-| Method   | Endpoint         | Description                                                                                                                    |
-| -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                              |
+| Method   | Endpoint         | Description                                                                                                                                        |
+| -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                                                  |
 | `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (`taskUpsertBodySchema`, including `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`. |
-| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                       |
+| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                                           |
 
 ---
 

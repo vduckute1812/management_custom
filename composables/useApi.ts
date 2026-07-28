@@ -22,6 +22,15 @@ type ApiFetchOptions = Record<string, unknown> & {
 
 let _refreshInFlight: Promise<unknown> | null = null;
 
+/** Minimum gap between identical client requests (method + url). */
+const CLIENT_THROTTLE_MS = 400;
+const _lastRequestAt = new Map<string, number>();
+const _inFlight = new Map<string, Promise<unknown>>();
+
+function requestKey(url: string, method: string): string {
+  return `${method.toUpperCase()}:${url}`;
+}
+
 function isAbsolute(url: string): boolean {
   return /^https?:\/\//i.test(url);
 }
@@ -81,50 +90,75 @@ export const useApi = () => {
     if (!isAbsolute(url) && !url.startsWith("/")) {
       url = `/${url}`;
     }
-    await ensureFreshAccessToken();
 
-    try {
-      return (await $fetch(
-        url,
-        withAuthHeaders(
-          options,
-          auth.accessToken.value,
-        ) as Parameters<typeof $fetch>[1],
-      )) as T;
-    } catch (err: unknown) {
-      const status =
-        (err as { status?: number; statusCode?: number })?.status ??
-        (err as { statusCode?: number })?.statusCode;
-      if (status !== 401) {
-        throw err;
-      }
-      // Anonymous callers (no session) must not be bounced to /login — public
-      // pages like / and /feed call optional-auth endpoints that 401 for guests
-      // (e.g. stories). Only clear+redirect when we actually had a session.
-      if (!auth.hasRefreshSession.value) {
-        if (auth.accessToken.value || auth.user.value) {
-          await bounceToLogin();
-        }
-        throw err;
-      }
+    const method = (options?.method ?? "GET").toUpperCase();
+    const key = requestKey(url, method);
+
+    // Coalesce identical in-flight requests so rapid double-clicks share one call.
+    const existing = _inFlight.get(key);
+    if (existing) {
+      return existing as Promise<T>;
+    }
+
+    const now = Date.now();
+    const lastAt = _lastRequestAt.get(key) ?? 0;
+    const waitMs = CLIENT_THROTTLE_MS - (now - lastAt);
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+    _lastRequestAt.set(key, Date.now());
+
+    const run = (async () => {
+      await ensureFreshAccessToken();
+
       try {
-        if (!_refreshInFlight) {
-          _refreshInFlight = auth.refresh().finally(() => {
-            _refreshInFlight = null;
-          });
+        return (await $fetch(
+          url,
+          withAuthHeaders(options, auth.accessToken.value) as Parameters<
+            typeof $fetch
+          >[1],
+        )) as T;
+      } catch (err: unknown) {
+        const status =
+          (err as { status?: number; statusCode?: number })?.status ??
+          (err as { statusCode?: number })?.statusCode;
+        if (status !== 401) {
+          throw err;
         }
-        await _refreshInFlight;
-      } catch {
-        await bounceToLogin();
-        throw err;
+        // Anonymous callers (no session) must not be bounced to /login — public
+        // pages like / and /feed call optional-auth endpoints that 401 for guests
+        // (e.g. stories). Only clear+redirect when we actually had a session.
+        if (!auth.hasRefreshSession.value) {
+          if (auth.accessToken.value || auth.user.value) {
+            await bounceToLogin();
+          }
+          throw err;
+        }
+        try {
+          if (!_refreshInFlight) {
+            _refreshInFlight = auth.refresh().finally(() => {
+              _refreshInFlight = null;
+            });
+          }
+          await _refreshInFlight;
+        } catch {
+          await bounceToLogin();
+          throw err;
+        }
+        return (await $fetch(
+          url,
+          withAuthHeaders(options, auth.accessToken.value) as Parameters<
+            typeof $fetch
+          >[1],
+        )) as T;
       }
-      return (await $fetch(
-        url,
-        withAuthHeaders(
-          options,
-          auth.accessToken.value,
-        ) as Parameters<typeof $fetch>[1],
-      )) as T;
+    })();
+
+    _inFlight.set(key, run);
+    try {
+      return await run;
+    } finally {
+      _inFlight.delete(key);
     }
   }
 

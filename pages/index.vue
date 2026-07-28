@@ -37,10 +37,10 @@ function catLabel(cat: { slug: string; name: string }) {
       aria-hidden="true"
     >
       <div
-        class="absolute -left-24 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-200/40 blur-3xl"
+        class="absolute -left-24 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-200/40 blur-3xl home-ambient-brand"
       />
       <div
-        class="absolute -right-20 top-10 h-[26rem] w-[26rem] rounded-full bg-violet-100/60 blur-3xl"
+        class="absolute -right-20 top-10 h-[26rem] w-[26rem] rounded-full bg-violet-100/60 blur-3xl home-ambient-violet"
       />
       <div
         class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300 to-transparent"
@@ -134,7 +134,7 @@ function catLabel(cat: { slug: string; name: string }) {
 
         <div class="relative">
           <div
-            class="absolute -inset-4 -z-10 rotate-2 rounded-[2rem] bg-gradient-to-br from-brand-200/60 to-violet-100/40 blur-sm"
+            class="absolute -inset-4 -z-10 rotate-2 rounded-[2rem] home-preview-glow blur-sm"
             aria-hidden="true"
           />
           <div
