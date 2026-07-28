@@ -26,7 +26,7 @@ import { getPool } from "./pool";
 
 const MIGRATIONS_DIR = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "migrations"
+  "migrations",
 );
 
 const SCHEMA_MIGRATIONS_DDL = `
@@ -48,6 +48,7 @@ const ADVISORY_LOCK_TIMEOUT_SECONDS = 30;
 const KNOWN_TABLES_DROP_ORDER = [
   "active_timer",
   "auth_email_verifications",
+  "auth_password_resets",
   "auth_refresh_tokens",
   "story_reactions",
   "story_views",
@@ -74,9 +75,9 @@ const KNOWN_TABLES_DROP_ORDER = [
 // -------------------------------------------------------------------------
 
 export interface MigrationFile {
-  id: string;        // "0001_initial"
-  name: string;      // "initial"
-  filename: string;  // "0001_initial.sql"
+  id: string; // "0001_initial"
+  name: string; // "initial"
+  filename: string; // "0001_initial.sql"
   sql: string;
   checksum: string;
 }
@@ -91,8 +92,8 @@ export interface AppliedMigration {
 
 export interface MigrationDrift {
   id: string;
-  expected: string;  // checksum of the current file on disk
-  actual: string;    // checksum stored when the migration was applied
+  expected: string; // checksum of the current file on disk
+  actual: string; // checksum stored when the migration was applied
 }
 
 export interface MigrationStatus {
@@ -123,7 +124,7 @@ export async function discoverMigrations(): Promise<MigrationFile[]> {
     const match = /^(\d{4,})_([a-z0-9_]+)\.sql$/i.exec(filename);
     if (!match) {
       throw new Error(
-        `Invalid migration filename: "${filename}". Use NNNN_short_name.sql (e.g. 0002_add_archived_at.sql).`
+        `Invalid migration filename: "${filename}". Use NNNN_short_name.sql (e.g. 0002_add_archived_at.sql).`,
       );
     }
     const id = filename.replace(/\.sql$/, "");
@@ -140,7 +141,7 @@ export async function discoverMigrations(): Promise<MigrationFile[]> {
 async function readApplied(conn: Connection): Promise<AppliedMigration[]> {
   await conn.query(SCHEMA_MIGRATIONS_DDL);
   const [rows] = await conn.query<RowDataPacket[]>(
-    "SELECT id, name, checksum, applied_at, duration_ms FROM schema_migrations ORDER BY id ASC"
+    "SELECT id, name, checksum, applied_at, duration_ms FROM schema_migrations ORDER BY id ASC",
   );
   return rows.map((r) => ({
     id: String(r.id),
@@ -192,7 +193,7 @@ export async function verifyMigrationsApplied(): Promise<void> {
     const list = status.pending.map((m) => `  - ${m.id}`).join("\n");
     throw new Error(
       `Schema out of date. Pending migrations:\n${list}\n\n` +
-        `Run \`npm run migrate\` to apply.`
+        `Run \`npm run migrate\` to apply.`,
     );
   }
 }
@@ -231,14 +232,14 @@ export async function runMigrations(): Promise<MigrationRunResult> {
           await conn.query(m.sql);
         } catch (err) {
           throw new Error(
-            `Migration ${m.id} failed: ${(err as Error).message}`
+            `Migration ${m.id} failed: ${(err as Error).message}`,
           );
         }
         const duration = Date.now() - t0;
         await conn.query(
           `INSERT INTO schema_migrations (id, name, checksum, applied_at, duration_ms)
            VALUES (?, ?, ?, ?, ?)`,
-          [m.id, m.name, m.checksum, isoToDB(nowISO()), duration]
+          [m.id, m.name, m.checksum, isoToDB(nowISO()), duration],
         );
         applied.push(m.id);
       }
@@ -257,7 +258,7 @@ export async function runMigrations(): Promise<MigrationRunResult> {
 export async function resetSchema(): Promise<string[]> {
   if (process.env.MIGRATE_RESET_CONFIRM !== "yes") {
     throw new Error(
-      "Refusing to drop schema. Set MIGRATE_RESET_CONFIRM=yes to confirm."
+      "Refusing to drop schema. Set MIGRATE_RESET_CONFIRM=yes to confirm.",
     );
   }
   const pool = getPool();
@@ -297,20 +298,20 @@ async function openMultiStatementConnection(): Promise<Connection> {
 
 async function withAdvisoryLock<T>(
   conn: Connection,
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
 ): Promise<T> {
   // GET_LOCK returns: 1 on success, 0 on timeout, NULL on internal error.
   // The lock is per-connection — releasing it (or closing the connection)
   // is mandatory, so we always go through the finally.
   const [rows] = await conn.query<RowDataPacket[]>(
     "SELECT GET_LOCK(?, ?) AS got",
-    [ADVISORY_LOCK, ADVISORY_LOCK_TIMEOUT_SECONDS]
+    [ADVISORY_LOCK, ADVISORY_LOCK_TIMEOUT_SECONDS],
   );
   const got = rows[0]?.got;
   if (Number(got) !== 1) {
     throw new Error(
       `Could not acquire MySQL lock "${ADVISORY_LOCK}" within ` +
-        `${ADVISORY_LOCK_TIMEOUT_SECONDS}s — another migration is in progress?`
+        `${ADVISORY_LOCK_TIMEOUT_SECONDS}s — another migration is in progress?`,
     );
   }
   try {
@@ -326,7 +327,7 @@ function driftMessage(drift: MigrationDrift[]): string {
   const lines = drift.map(
     (d) =>
       `  - ${d.id}  on-disk=${d.expected.slice(0, 12)}…  ` +
-      `applied=${d.actual.slice(0, 12)}…`
+      `applied=${d.actual.slice(0, 12)}…`,
   );
   return (
     `Migration checksum mismatch:\n${lines.join("\n")}\n\n` +

@@ -4,7 +4,7 @@ All routes are handled by Nitro under `/server/api/`.
 
 **Auth rules (summary):**
 
-- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email}`, `GET /api/categories`.
+- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
@@ -16,13 +16,15 @@ See [`auth.md`](./auth.md) for the token model and client route guard; see [`dat
 
 `server/middleware/rate-limit.ts` applies a sliding-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present).
 
-| Scope                       | Limit        | Window |
-| --------------------------- | ------------ | ------ |
-| Global (all other `/api/*`) | 120 requests | 60 s   |
-| `POST /api/auth/login`      | 10           | 60 s   |
-| `POST /api/auth/signup`     | 5            | 60 s   |
-| `POST /api/auth/refresh`    | 30           | 60 s   |
-| `/api/uploads` (any method) | 30           | 60 s   |
+| Scope                            | Limit        | Window |
+| -------------------------------- | ------------ | ------ |
+| Global (all other `/api/*`)      | 120 requests | 60 s   |
+| `POST /api/auth/login`           | 10           | 60 s   |
+| `POST /api/auth/signup`          | 5            | 60 s   |
+| `POST /api/auth/refresh`         | 30           | 60 s   |
+| `POST /api/auth/forgot-password` | 5            | 60 s   |
+| `POST /api/auth/reset-password`  | 10           | 60 s   |
+| `/api/uploads` (any method)      | 30           | 60 s   |
 
 When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
 
@@ -62,15 +64,17 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 ## Auth
 
-| Method  | Endpoint                 | Description                                                                                                                                                                                                                                                                                                                                                   |
-| ------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                        |
-| `POST`  | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
-| `POST`  | `/api/auth/refresh`      | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/logout`       | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/verify-email` | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
-| `GET`   | `/api/auth/me`           | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
-| `PATCH` | `/api/auth/profile`      | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
+| Method  | Endpoint                    | Description                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`  | `/api/auth/signup`          | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                        |
+| `POST`  | `/api/auth/login`           | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
+| `POST`  | `/api/auth/refresh`         | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/logout`          | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/verify-email`    | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/forgot-password` | Body `{ email }`. Sends a one-shot password-reset link when the account exists and email is verified. Always returns `{ ok: true }` (no account enumeration).                                                                                                                                                                                                 |
+| `POST`  | `/api/auth/reset-password`  | Body `{ token, password }`. Consumes a reset link, updates `password_hash`, revokes all refresh sessions. Returns `{ ok: true }`. User must sign in manually.                                                                                                                                                                                                 |
+| `GET`   | `/api/auth/me`              | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
+| `PATCH` | `/api/auth/profile`         | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
 
 **Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; they live in the HttpOnly `mgmt_rt` cookie (not localStorage). Logout revokes them; refresh rotates them inside one DB transaction.
 

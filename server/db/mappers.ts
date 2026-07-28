@@ -145,6 +145,15 @@ export interface EmailVerificationRow extends RowDataPacket {
   created_at: string;
 }
 
+export interface PasswordResetRow extends RowDataPacket {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  expires_at: string;
+  consumed_at: string | null;
+  created_at: string;
+}
+
 // -------------------------------------------------------------------------
 // Row → domain mappers
 // -------------------------------------------------------------------------
@@ -171,7 +180,7 @@ export function rowToEpic(r: EpicRow): Epic {
 export function rowToTask(
   r: TaskRow,
   blocks: TimeBlock[],
-  checklist: ChecklistItem[]
+  checklist: ChecklistItem[],
 ): Task {
   const estimated =
     r.estimated_hours !== null && r.estimated_hours !== undefined
@@ -224,7 +233,7 @@ export function rowToChecklistItem(r: ChecklistRow): ChecklistItem {
 
 /** Public avatar URL for an upload id, or undefined when unset. */
 export function avatarUrlFromUploadId(
-  uploadId: string | null | undefined
+  uploadId: string | null | undefined,
 ): string | undefined {
   const id = uploadId?.trim();
   return id ? `/api/uploads/${id}` : undefined;
