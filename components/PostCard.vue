@@ -5,6 +5,7 @@ import { TaskStatus } from "~/types/task";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
 import { bodyReferencesUpload } from "~/utils/markdownMedia";
+import { CONTENT_LOCALE_LABELS } from "~/utils/contentLocale";
 
 const props = defineProps<{
   post: Post;
@@ -18,17 +19,69 @@ const emit = defineEmits<{
 }>();
 
 const { t, te } = useI18n();
-const { loadComments, addComment, removeComment } = usePosts();
+const { loadComments, addComment, removeComment, getPost } = usePosts();
 const { saveTask } = useTasks();
 const { pushToast } = useToasts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
 
+/** Active manuscript locale variant shown in this card. */
+const view = ref(props.post);
+watch(
+  () => props.post,
+  (next) => {
+    view.value = next;
+  },
+);
+
+const localeSwitching = ref(false);
+
+const translationOptions = computed(() => {
+  const p = view.value;
+  if (p.format !== "manuscript") return [];
+  const map = new Map<
+    string,
+    { id: string; locale: string; title: string | null }
+  >();
+  if (p.contentLocale && p.contentLocale !== "und") {
+    map.set(p.contentLocale, {
+      id: p.id,
+      locale: p.contentLocale,
+      title: p.title,
+    });
+  }
+  for (const tr of p.translations ?? []) {
+    if (tr.locale && tr.locale !== "und") map.set(tr.locale, tr);
+  }
+  return [...map.values()];
+});
+
+async function switchLocale(locale: string) {
+  if (locale === view.value.contentLocale) return;
+  const target = translationOptions.value.find((tr) => tr.locale === locale);
+  if (!target || target.id === view.value.id) return;
+  localeSwitching.value = true;
+  try {
+    view.value = await getPost(target.id);
+    bodyExpanded.value = false;
+  } catch {
+    pushToast(t("toasts.couldNotLoadFeed"), { tone: "danger" });
+  } finally {
+    localeSwitching.value = false;
+  }
+}
+
+function localeChipLabel(code: string) {
+  return (
+    CONTENT_LOCALE_LABELS[code as keyof typeof CONTENT_LOCALE_LABELS] || code
+  );
+}
+
 /** Gallery tiles: skip images already shown inline in the markdown body. */
 const galleryAttachments = computed(() =>
-  (props.post.attachments ?? []).filter((att) => {
+  (view.value.attachments ?? []).filter((att) => {
     if (att.kind !== "image") return true;
-    return !bodyReferencesUpload(props.post.body || "", att.uploadId, att.url);
+    return !bodyReferencesUpload(view.value.body || "", att.uploadId, att.url);
   }),
 );
 
@@ -70,21 +123,21 @@ const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
 const BODY_COLLAPSE_CHARS = 900;
 const bodyExpanded = ref(false);
 
-const isManuscript = computed(() => props.post.format === "manuscript");
+const isManuscript = computed(() => view.value.format === "manuscript");
 
 const bodyNeedsCollapse = computed(() => {
   if (isManuscript.value) return true;
-  return (props.post.body?.length ?? 0) > BODY_COLLAPSE_CHARS;
+  return (view.value.body?.length ?? 0) > BODY_COLLAPSE_CHARS;
 });
 
 const showExcerptOnly = computed(
   () => isManuscript.value && !bodyExpanded.value,
 );
 
-const excerpt = computed(() => manuscriptExcerpt(props.post.body || "", 220));
+const excerpt = computed(() => manuscriptExcerpt(view.value.body || "", 220));
 
 const readingMinutes = computed(() =>
-  estimateReadingMinutes(props.post.body || "", props.post.title || ""),
+  estimateReadingMinutes(view.value.body || "", view.value.title || ""),
 );
 
 watch(
@@ -386,14 +439,75 @@ async function onPlanClick() {
         </span>
       </div>
 
+      <div
+        v-if="isManuscript && translationOptions.length > 1"
+        class="flex flex-wrap items-center gap-1.5"
+      >
+        <span class="text-[11px] font-medium text-slate-500">{{
+          $t("manuscript.viewLanguage")
+        }}</span>
+        <button
+          v-for="tr in translationOptions"
+          :key="tr.id"
+          type="button"
+          class="rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset transition"
+          :class="
+            tr.locale === view.contentLocale
+              ? 'bg-[#3f6f5a] text-white ring-[#3f6f5a]'
+              : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+          "
+          :disabled="localeSwitching"
+          @click="switchLocale(tr.locale)"
+        >
+          {{ localeChipLabel(tr.locale) }}
+        </button>
+        <NuxtLink
+          v-if="post.canDelete && view.translationGroupId"
+          class="ml-1 text-[11px] font-semibold text-[#3f6f5a] hover:underline"
+          :to="{
+            path: '/feed/write',
+            query: {
+              group: view.translationGroupId,
+              from: view.id,
+            },
+          }"
+        >
+          {{ $t("manuscript.addTranslation") }}
+        </NuxtLink>
+      </div>
+      <div
+        v-else-if="isManuscript && post.canDelete"
+        class="flex flex-wrap items-center gap-2"
+      >
+        <span
+          v-if="view.contentLocale && view.contentLocale !== 'und'"
+          class="rounded-md bg-[#e4efe8] px-2 py-0.5 text-[11px] font-semibold text-[#3f6f5a]"
+        >
+          {{ localeChipLabel(view.contentLocale) }}
+        </span>
+        <NuxtLink
+          v-if="view.translationGroupId"
+          class="text-[11px] font-semibold text-[#3f6f5a] hover:underline"
+          :to="{
+            path: '/feed/write',
+            query: {
+              group: view.translationGroupId,
+              from: view.id,
+            },
+          }"
+        >
+          {{ $t("manuscript.addTranslation") }}
+        </NuxtLink>
+      </div>
+
       <h2
-        v-if="isManuscript && post.title"
+        v-if="isManuscript && view.title"
         class="manuscript-card__title text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
       >
-        {{ post.title }}
+        {{ view.title }}
       </h2>
 
-      <div v-if="post.body" class="relative min-w-0 max-w-full">
+      <div v-if="view.body" class="relative min-w-0 max-w-full">
         <p
           v-if="showExcerptOnly"
           class="manuscript-card__excerpt text-[15px] leading-7 text-slate-700"
@@ -409,9 +523,9 @@ async function onPlanClick() {
           }"
         >
           <PostBody
-            :body="post.body"
-            :font-family="post.fontFamily || 'default'"
-            :text-color="post.textColor || 'default'"
+            :body="view.body"
+            :font-family="view.fontFamily || 'default'"
+            :text-color="view.textColor || 'default'"
           />
         </div>
         <button

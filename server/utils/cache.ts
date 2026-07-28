@@ -236,8 +236,11 @@ export function cacheKeyHash(parts: Record<string, unknown>): string {
 export const CacheKeys = {
   categories: () => "categories:list",
   categoriesPrefix: () => "categories:",
-  feedPublic: (cursor: string | null, categoryId: string | null) =>
-    `feed:public:${cacheKeyHash({ cursor, categoryId })}`,
+  feedPublic: (
+    cursor: string | null,
+    categoryId: string | null,
+    locale: string | null = null,
+  ) => `feed:public:${cacheKeyHash({ cursor, categoryId, locale })}`,
   feedPublicPrefix: () => "feed:public:",
 } as const;
 

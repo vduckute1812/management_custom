@@ -924,6 +924,16 @@
     "inviteTitle": "Viết đúng tầm công việc",
     "inviteBody": "Mở trang riêng cho chương luận văn, bài luận và ghi chú dài — tách biệt khỏi cập nhật ngắn trên bảng tin.",
     "inviteAction": "Vào phòng viết",
-    "loginRequired": "Đăng nhập để mở phòng viết."
+    "loginRequired": "Đăng nhập để mở phòng viết.",
+    "contentLocale": "Ngôn ngữ bản thảo",
+    "addingTranslation": "Bạn đang thêm bản dịch ngôn ngữ khác của bản thảo hiện có.",
+    "viewLanguage": "Ngôn ngữ",
+    "addTranslation": "Thêm bản dịch",
+    "localeNames": {
+      "en": "Tiếng Anh",
+      "vi": "Tiếng Việt",
+      "zh-CN": "Tiếng Trung (Giản thể)",
+      "zh-TW": "Tiếng Trung (Phồn thể)"
+    }
   }
 }

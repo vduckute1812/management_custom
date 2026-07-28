@@ -76,6 +76,8 @@ Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Gu
 Format: `update` (short) \| `manuscript` (long-form; requires `title`).  
 Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images (`![alt](/api/uploads/{id})`) are inserted from the manuscript writing desk and must also be listed in `attachmentIds` for ACL.
 
+Manuscripts may be multilingual: each locale is its own post row sharing `translationGroupId`, with `contentLocale` in `en` / `vi` / `zh-CN` / `zh-TW`. Feed prefers the viewer UI locale; cards can switch variants via `GET /api/posts/:id`.
+
 | Method   | Endpoint                             | Auth     | Description                                                     |
 | -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |
 | `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).  |

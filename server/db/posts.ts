@@ -3,7 +3,11 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
-import { assertOwnedUploads, purgeOrphanedUploads, type UploadRow } from "./uploads";
+import {
+  assertOwnedUploads,
+  purgeOrphanedUploads,
+  type UploadRow,
+} from "./uploads";
 import type {
   Post,
   PostAttachment,
@@ -14,6 +18,7 @@ import type {
   PostFormat,
   PostReactionType,
   PostTextColor,
+  PostTranslationRef,
   PostVisibility,
   SharedPostPreview,
 } from "../../types/post";
@@ -24,6 +29,7 @@ import {
   POST_TEXT_COLORS,
 } from "../../types/post";
 import { getCategoryById } from "./categories";
+import { CONTENT_LOCALES, isContentLocale } from "../../utils/contentLocale";
 
 interface PostRow extends RowDataPacket {
   id: string;
@@ -36,6 +42,8 @@ interface PostRow extends RowDataPacket {
   font_family: string | null;
   text_color: string | null;
   shared_post_id: string | null;
+  translation_group_id: string | null;
+  content_locale: string | null;
   created_at: string;
   updated_at: string;
   author_name: string | null;
@@ -115,7 +123,7 @@ function toAuthor(
     title?: string | null;
     job?: string | null;
     location?: string | null;
-  }
+  },
 ): PostAuthor {
   return {
     id,
@@ -160,6 +168,8 @@ const POST_SELECT = `
     p.font_family,
     p.text_color,
     p.shared_post_id,
+    p.translation_group_id,
+    p.content_locale,
     p.created_at,
     p.updated_at,
     u.name AS author_name,
@@ -211,6 +221,19 @@ function normalizeTitle(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
+function normalizeContentLocale(value: string | null | undefined): string {
+  if (isContentLocale(value)) return value;
+  return "und";
+}
+
+function localeRank(locale: string, preferred: string | null): number {
+  if (preferred && locale === preferred) return 0;
+  if (locale === "en") return 1;
+  if (locale === "vi") return 2;
+  const idx = (CONTENT_LOCALES as readonly string[]).indexOf(locale);
+  return idx >= 0 ? 10 + idx : 100;
+}
+
 function normalizeTextColor(value: string | null | undefined): PostTextColor {
   if (value && (POST_TEXT_COLORS as readonly string[]).includes(value)) {
     return value as PostTextColor;
@@ -229,7 +252,7 @@ function categoryFromRow(row: PostRow): PostCategory | null {
 }
 
 async function loadReactionMaps(
-  postIds: string[]
+  postIds: string[],
 ): Promise<Map<string, Record<PostReactionType, number>>> {
   const map = new Map<string, Record<PostReactionType, number>>();
   for (const id of postIds) map.set(id, emptyReactions());
@@ -242,7 +265,7 @@ async function loadReactionMaps(
      FROM post_reactions
      WHERE post_id IN (${placeholders})
      GROUP BY post_id, reaction`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const bucket = map.get(row.post_id) ?? emptyReactions();
@@ -253,7 +276,7 @@ async function loadReactionMaps(
 }
 
 async function loadAttachments(
-  postIds: string[]
+  postIds: string[],
 ): Promise<Map<string, PostAttachment[]>> {
   const map = new Map<string, PostAttachment[]>();
   for (const id of postIds) map.set(id, []);
@@ -266,7 +289,7 @@ async function loadAttachments(
      FROM post_attachments
      WHERE post_id IN (${placeholders})
      ORDER BY created_at ASC`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const list = map.get(row.post_id) ?? [];
@@ -284,9 +307,7 @@ async function loadAttachments(
   return map;
 }
 
-async function loadAudience(
-  postIds: string[]
-): Promise<Map<string, string[]>> {
+async function loadAudience(postIds: string[]): Promise<Map<string, string[]>> {
   const map = new Map<string, string[]>();
   for (const id of postIds) map.set(id, []);
   if (!postIds.length) return map;
@@ -295,7 +316,7 @@ async function loadAudience(
   const placeholders = postIds.map(() => "?").join(",");
   const [rows] = await pool.query<AudienceRow[]>(
     `SELECT post_id, user_id FROM post_audience WHERE post_id IN (${placeholders})`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const list = map.get(row.post_id) ?? [];
@@ -310,7 +331,7 @@ function rowToPost(
   viewerId: string,
   reactions: Record<PostReactionType, number>,
   attachments: PostAttachment[],
-  audienceUserIds: string[]
+  audienceUserIds: string[],
 ): Post {
   let sharedPost: SharedPostPreview | null = null;
   if (
@@ -334,14 +355,14 @@ function rowToPost(
           title: row.shared_author_title,
           job: row.shared_author_job,
           location: row.shared_author_location,
-        }
+        },
       ),
     };
   }
 
   const reactionCount = POST_REACTION_TYPES.reduce(
     (sum, key) => sum + (reactions[key] ?? 0),
-    0
+    0,
   );
   const myReaction = row.my_reaction ?? null;
 
@@ -354,6 +375,9 @@ function rowToPost(
     category: categoryFromRow(row),
     fontFamily: normalizeFontFamily(row.font_family),
     textColor: normalizeTextColor(row.text_color),
+    contentLocale: normalizeContentLocale(row.content_locale),
+    translationGroupId: row.translation_group_id ?? null,
+    translations: [],
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
     author: toAuthor(row.user_id, row.author_name, row.author_email, {
@@ -375,25 +399,122 @@ function rowToPost(
   };
 }
 
+async function loadTranslationMaps(
+  groupIds: string[],
+): Promise<Map<string, PostTranslationRef[]>> {
+  const map = new Map<string, PostTranslationRef[]>();
+  const unique = [...new Set(groupIds.filter(Boolean))];
+  if (!unique.length) return map;
+
+  const pool = getPool();
+  const placeholders = unique.map(() => "?").join(",");
+  const [rows] = await pool.query<
+    (RowDataPacket & {
+      id: string;
+      translation_group_id: string;
+      content_locale: string;
+      title: string | null;
+    })[]
+  >(
+    `SELECT id, translation_group_id, content_locale, title
+     FROM posts
+     WHERE translation_group_id IN (${placeholders})
+     ORDER BY created_at ASC`,
+    unique,
+  );
+
+  for (const row of rows) {
+    const locale = normalizeContentLocale(row.content_locale);
+    if (locale === "und") continue;
+    const list = map.get(row.translation_group_id) ?? [];
+    list.push({
+      id: row.id,
+      locale,
+      title: normalizeTitle(row.title),
+    });
+    map.set(row.translation_group_id, list);
+  }
+  return map;
+}
+
+/**
+ * Prefer viewer locale within a translation group; drop sibling duplicates
+ * from the current page.
+ */
+function preferLocaleVariants(
+  posts: Post[],
+  preferredLocale: string | null,
+  translationMap: Map<string, PostTranslationRef[]>,
+): Post[] {
+  const bestByGroup = new Map<string, Post>();
+
+  for (const post of posts) {
+    const groupId = post.translationGroupId;
+    const siblings = groupId ? (translationMap.get(groupId) ?? []) : [];
+    const withTranslations: Post = {
+      ...post,
+      translations: siblings,
+    };
+
+    if (!groupId || siblings.length <= 1) {
+      // Standalone or single-locale group — keep in encounter order via sentinel.
+      bestByGroup.set(`solo:${post.id}`, withTranslations);
+      continue;
+    }
+
+    const prev = bestByGroup.get(groupId);
+    if (
+      !prev ||
+      localeRank(withTranslations.contentLocale, preferredLocale) <
+        localeRank(prev.contentLocale, preferredLocale)
+    ) {
+      bestByGroup.set(groupId, withTranslations);
+    }
+  }
+
+  // Preserve original feed order using first occurrence of each key.
+  const emitted = new Set<string>();
+  const out: Post[] = [];
+  for (const post of posts) {
+    const key =
+      post.translationGroupId &&
+      (translationMap.get(post.translationGroupId)?.length ?? 0) > 1
+        ? post.translationGroupId
+        : `solo:${post.id}`;
+    if (emitted.has(key)) continue;
+    const chosen = bestByGroup.get(key);
+    if (!chosen) continue;
+    emitted.add(key);
+    out.push(chosen);
+  }
+  return out;
+}
+
 async function hydratePosts(
   rows: PostRow[],
-  viewerId: string
+  viewerId: string,
+  preferredLocale: string | null = null,
 ): Promise<Post[]> {
   const ids = rows.map((r) => r.id);
-  const [reactions, attachments, audience] = await Promise.all([
+  const groupIds = rows
+    .map((r) => r.translation_group_id)
+    .filter((id): id is string => Boolean(id));
+  const [reactions, attachments, audience, translations] = await Promise.all([
     loadReactionMaps(ids),
     loadAttachments(ids),
     loadAudience(ids),
+    loadTranslationMaps(groupIds),
   ]);
-  return rows.map((r) =>
+  const posts = rows.map((r) =>
     rowToPost(
       r,
       viewerId,
       reactions.get(r.id) ?? emptyReactions(),
       attachments.get(r.id) ?? [],
-      audience.get(r.id) ?? []
-    )
+      audience.get(r.id) ?? [],
+    ),
   );
+  return preferLocaleVariants(posts, preferredLocale, translations);
 }
 
 export async function listFeedPosts(
@@ -402,12 +523,16 @@ export async function listFeedPosts(
     cursor?: string | null;
     limit?: number;
     categoryId?: string | null;
-  } = {}
+    locale?: string | null;
+  } = {},
 ): Promise<{ posts: Post[]; nextCursor: string | null }> {
   const pool = getPool();
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor?.trim() || null;
   const categoryId = options.categoryId?.trim() || null;
+  const preferredLocale = isContentLocale(options.locale)
+    ? options.locale
+    : null;
   const vid = viewerId ?? "";
 
   // POST_SELECT binds viewer id for my_reaction first.
@@ -427,33 +552,34 @@ export async function listFeedPosts(
     where += " AND p.created_at < ?";
     params.push(isoToDB(cursor));
   }
-  params.push(limit + 1);
+  // Over-fetch slightly so locale dedupe still fills a page.
+  params.push(limit * 2 + 1);
 
   const [rows] = await pool.query<PostRow[]>(
     `${POST_SELECT}
      ${where}
      ORDER BY p.created_at DESC
      LIMIT ?`,
-    params
+    params,
   );
 
-  const pageRows = rows.slice(0, limit);
-  const posts = await hydratePosts(pageRows, vid);
+  const hydrated = await hydratePosts(rows, vid, preferredLocale);
+  const posts = hydrated.slice(0, limit);
   const nextCursor =
-    rows.length > limit ? posts[posts.length - 1]?.createdAt ?? null : null;
+    hydrated.length > limit
+      ? (posts[posts.length - 1]?.createdAt ?? null)
+      : null;
   return { posts, nextCursor };
 }
 
 export async function getPostById(
   viewerId: string | null,
-  postId: string
+  postId: string,
 ): Promise<Post | null> {
   const pool = getPool();
   const vid = viewerId ?? "";
   const params: unknown[] = [vid, postId];
-  const acl = viewerId
-    ? visibilityClause("p")
-    : publicOnlyClause("p");
+  const acl = viewerId ? visibilityClause("p") : publicOnlyClause("p");
   if (viewerId) {
     params.push(viewerId, viewerId);
   }
@@ -462,10 +588,10 @@ export async function getPostById(
     `${POST_SELECT}
      WHERE p.id = ? AND ${acl}
      LIMIT 1`,
-    params
+    params,
   );
   if (!rows.length) return null;
-  const [post] = await hydratePosts(rows, vid);
+  const [post] = await hydratePosts(rows, vid, null);
   return post ?? null;
 }
 
@@ -482,7 +608,9 @@ export async function createPost(
     categoryId?: string | null;
     fontFamily?: PostFontFamily | null;
     textColor?: PostTextColor | null;
-  }
+    contentLocale?: string | null;
+    translationGroupId?: string | null;
+  },
 ): Promise<Post> {
   const pool = getPool();
   const id = generateId("post");
@@ -498,13 +626,17 @@ export async function createPost(
   const visibility: PostVisibility = args.visibility ?? "public";
   const audienceUserIds =
     visibility === "shared"
-      ? [...new Set((args.audienceUserIds ?? []).filter((x) => x && x !== userId))]
+      ? [
+          ...new Set(
+            (args.audienceUserIds ?? []).filter((x) => x && x !== userId),
+          ),
+        ]
       : [];
 
   if (visibility === "shared" && audienceUserIds.length === 0) {
     throw Object.assign(
       new Error("Shared posts require at least one audience member"),
-      { statusCode: 400 }
+      { statusCode: 400 },
     );
   }
 
@@ -521,6 +653,51 @@ export async function createPost(
       ? ("serif" as PostFontFamily)
       : normalizeFontFamily(args.fontFamily);
   const textColor = normalizeTextColor(args.textColor);
+
+  let contentLocale = "und";
+  let translationGroupId: string | null = null;
+
+  if (format === "manuscript") {
+    contentLocale = isContentLocale(args.contentLocale)
+      ? args.contentLocale
+      : "vi";
+    const requestedGroup = args.translationGroupId?.trim() || null;
+    if (requestedGroup) {
+      const [groupRows] = await pool.query<
+        (RowDataPacket & {
+          id: string;
+          user_id: string;
+          content_locale: string;
+        })[]
+      >(
+        `SELECT id, user_id, content_locale
+         FROM posts
+         WHERE translation_group_id = ? AND format = 'manuscript'
+         LIMIT 50`,
+        [requestedGroup],
+      );
+      if (!groupRows.length) {
+        throw Object.assign(new Error("Translation group not found"), {
+          statusCode: 404,
+        });
+      }
+      if (groupRows.some((r) => r.user_id !== userId)) {
+        throw Object.assign(
+          new Error("You can only add translations to your own manuscripts"),
+          { statusCode: 403 },
+        );
+      }
+      if (groupRows.some((r) => r.content_locale === contentLocale)) {
+        throw Object.assign(
+          new Error("A translation already exists for this language"),
+          { statusCode: 409 },
+        );
+      }
+      translationGroupId = requestedGroup;
+    } else {
+      translationGroupId = generateId("tgrp");
+    }
+  }
 
   if (args.sharedPostId) {
     const existing = await getPostById(userId, args.sharedPostId);
@@ -539,8 +716,8 @@ export async function createPost(
     await conn.query(
       `INSERT INTO posts
          (id, user_id, body, format, title, visibility, category_id, font_family, text_color,
-          shared_post_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          shared_post_id, translation_group_id, content_locale, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -552,15 +729,17 @@ export async function createPost(
         fontFamily === "default" ? null : fontFamily,
         textColor === "default" ? null : textColor,
         args.sharedPostId ?? null,
+        translationGroupId,
+        contentLocale,
         isoToDB(now),
         isoToDB(now),
-      ]
+      ],
     );
 
     for (const uid of audienceUserIds) {
       await conn.query(
         `INSERT INTO post_audience (post_id, user_id, created_at) VALUES (?, ?, ?)`,
-        [id, uid, isoToDB(now)]
+        [id, uid, isoToDB(now)],
       );
     }
 
@@ -571,6 +750,13 @@ export async function createPost(
     await conn.commit();
   } catch (err) {
     await conn.rollback();
+    const code = (err as { code?: string })?.code;
+    if (code === "ER_DUP_ENTRY") {
+      throw Object.assign(
+        new Error("A translation already exists for this language"),
+        { statusCode: 409 },
+      );
+    }
     throw err;
   } finally {
     conn.release();
@@ -589,7 +775,7 @@ async function insertAttachment(
   },
   postId: string,
   up: UploadRow,
-  now: string
+  now: string,
 ) {
   const attId = generateId("att");
   await conn.query(
@@ -606,19 +792,17 @@ async function insertAttachment(
       up.size_bytes,
       up.storage_key,
       isoToDB(now),
-    ]
+    ],
   );
 }
 
 export async function deletePost(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<boolean> {
   const pool = getPool();
   // Capture attachment upload ids before CASCADE removes post_attachments.
-  const [attRows] = await pool.query<
-    (RowDataPacket & { upload_id: string })[]
-  >(
+  const [attRows] = await pool.query<(RowDataPacket & { upload_id: string })[]>(
     `SELECT pa.upload_id
      FROM post_attachments pa
      INNER JOIN posts p ON p.id = pa.post_id
@@ -628,7 +812,7 @@ export async function deletePost(
 
   const [result] = await pool.query(
     "DELETE FROM posts WHERE id = ? AND user_id = ?",
-    [postId, userId]
+    [postId, userId],
   );
   const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   if (ok && attRows.length) {
@@ -640,7 +824,7 @@ export async function deletePost(
 export async function setPostReaction(
   userId: string,
   postId: string,
-  reaction: PostReactionType
+  reaction: PostReactionType,
 ): Promise<Post> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -655,7 +839,7 @@ export async function setPostReaction(
     `INSERT INTO post_reactions (post_id, user_id, reaction, created_at)
      VALUES (?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE reaction = VALUES(reaction), created_at = VALUES(created_at)`,
-    [postId, userId, reaction, isoToDB(nowISO())]
+    [postId, userId, reaction, isoToDB(nowISO())],
   );
 
   const refreshed = await getPostById(userId, postId);
@@ -667,7 +851,7 @@ export async function setPostReaction(
 
 export async function clearPostReaction(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<Post> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -677,7 +861,7 @@ export async function clearPostReaction(
 
   await pool.query(
     "DELETE FROM post_reactions WHERE post_id = ? AND user_id = ?",
-    [postId, userId]
+    [postId, userId],
   );
 
   const refreshed = await getPostById(userId, postId);
@@ -690,7 +874,7 @@ export async function clearPostReaction(
 /** @deprecated Prefer setPostReaction / clearPostReaction. */
 export async function togglePostLike(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<{ liked: boolean; likeCount: number }> {
   const post = await getPostById(userId, postId);
   if (!post) {
@@ -708,7 +892,7 @@ export async function togglePostLike(
 
 export async function listPostComments(
   viewerId: string | null,
-  postId: string
+  postId: string,
 ): Promise<PostComment[]> {
   const pool = getPool();
   const post = await getPostById(viewerId, postId);
@@ -724,7 +908,7 @@ export async function listPostComments(
      INNER JOIN users u ON u.id = c.user_id
      WHERE c.post_id = ?
      ORDER BY c.created_at ASC`,
-    [postId]
+    [postId],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -740,7 +924,7 @@ export async function listPostComments(
 export async function createPostComment(
   userId: string,
   postId: string,
-  body: string
+  body: string,
 ): Promise<PostComment> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -754,7 +938,7 @@ export async function createPostComment(
   await pool.query(
     `INSERT INTO post_comments (id, post_id, user_id, body, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)]
+    [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)],
   );
 
   const comments = await listPostComments(userId, postId);
@@ -768,7 +952,7 @@ export async function createPostComment(
 export async function deletePostComment(
   userId: string,
   postId: string,
-  commentId: string
+  commentId: string,
 ): Promise<boolean> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -777,7 +961,7 @@ export async function deletePostComment(
   }
   const [result] = await pool.query(
     "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
-    [commentId, postId, userId]
+    [commentId, postId, userId],
   );
   return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
 }
@@ -785,7 +969,7 @@ export async function deletePostComment(
 export async function searchUserDirectory(
   viewerId: string,
   q: string,
-  limit = 20
+  limit = 20,
 ): Promise<PostAuthor[]> {
   const pool = getPool();
   const term = `%${q.trim().toLowerCase()}%`;
@@ -798,7 +982,7 @@ export async function searchUserDirectory(
        )
      ORDER BY name IS NULL, name ASC, email ASC
      LIMIT ?`,
-    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)]
+    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)],
   );
   return rows.map((r) => ({
     id: String(r.id),

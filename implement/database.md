@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales`.
 
 ## Migration system
 
@@ -336,24 +336,24 @@ When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended
 
 Canonical DDL lives in the migration files; this section is the as-built map.
 
-| Table              | Purpose                                                                                                                                                              |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id` |
-| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                   |
-| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                              |
-| `post_comments`    | Threaded comments on a post                                                                                                                                          |
-| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                              |
-| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`  |
-| `uploads`          | Upload metadata + R2 `storage_key`                                                                                                                                   |
-| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                           |
-| `story_views`      | Viewer rollup                                                                                                                                                        |
-| `story_reactions`  | Reactions on stories                                                                                                                                                 |
+| Table              | Purpose                                                                                                                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`, optional `translation_group_id`, `content_locale` |
+| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                                                                      |
+| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                                                                                 |
+| `post_comments`    | Threaded comments on a post                                                                                                                                                                                             |
+| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                                                                                 |
+| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`                                                     |
+| `uploads`          | Upload metadata + R2 `storage_key`                                                                                                                                                                                      |
+| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                                                                              |
+| `story_views`      | Viewer rollup                                                                                                                                                                                                           |
+| `story_reactions`  | Reactions on stories                                                                                                                                                                                                    |
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
 **Media cleanup.** Deleting a post/story, expiring a story, replacing/clearing a profile avatar, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / `purgeExpiredStories` / pre-delete key sweep on `deleteUser`). An upload stays alive while referenced by `post_attachments`, a non-expired story, or `users.avatar_upload_id`. See [`api.md`](./api.md#uploads-r2).
 
-**Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`.
+**Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`. Multilingual manuscripts use one row per locale sharing `translation_group_id` with `content_locale` in `en`/`vi`/`zh-CN`/`zh-TW` (migration `0011`).
 
 **Category display names.** MySQL stores a canonical `name` (admin-editable). Seeded slugs resolve to UI copy via `CATEGORY_I18N_KEYS` + `utils/categoryLabel.ts` (`categories.*` in locale JSON). Custom admin directories without a key keep showing the DB `name`.
 

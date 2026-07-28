@@ -54,9 +54,11 @@ export const usePosts = () => {
     loading.value = true;
     error.value = null;
     try {
+      const { locale } = useI18n();
       const page = await apiFetch<FeedPage>("/api/posts", {
         query: {
           limit: 20,
+          locale: locale.value,
           ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
         },
       });
@@ -82,10 +84,12 @@ export const usePosts = () => {
     if (!nextCursor.value || loadingMore.value) return;
     loadingMore.value = true;
     try {
+      const { locale } = useI18n();
       const page = await apiFetch<FeedPage>("/api/posts", {
         query: {
           limit: 20,
           cursor: nextCursor.value,
+          locale: locale.value,
           ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
         },
       });
@@ -110,6 +114,8 @@ export const usePosts = () => {
     categoryId?: string | null;
     fontFamily?: PostFontFamily;
     textColor?: PostTextColor;
+    contentLocale?: string | null;
+    translationGroupId?: string | null;
   }): Promise<Post> {
     const format = args.format ?? "update";
     const res = await apiFetch<{ post: Post }>("/api/posts", {
@@ -124,6 +130,8 @@ export const usePosts = () => {
         categoryId: args.categoryId ?? null,
         fontFamily: args.fontFamily ?? "default",
         textColor: args.textColor ?? "default",
+        contentLocale: args.contentLocale ?? null,
+        translationGroupId: args.translationGroupId ?? null,
       },
     });
     // Only prepend if it matches the active category filter (or no filter).
@@ -139,6 +147,11 @@ export const usePosts = () => {
         : t("toasts.postShared"),
       { tone: "success", duration: 2500 },
     );
+    return res.post;
+  }
+
+  async function getPost(id: string): Promise<Post> {
+    const res = await apiFetch<{ post: Post }>(`/api/posts/${id}`);
     return res.post;
   }
 
@@ -311,6 +324,7 @@ export const usePosts = () => {
     refresh,
     loadMore,
     createPost,
+    getPost,
     removePost,
     toggleLike,
     setReaction,

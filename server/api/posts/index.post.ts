@@ -13,6 +13,7 @@ import {
 } from "~/utils/postBodyLimits";
 import { UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import { CONTENT_LOCALES } from "~/utils/contentLocale";
 
 const bodySchema = z
   .object({
@@ -41,6 +42,11 @@ const bodySchema = z
       .enum(POST_TEXT_COLORS as unknown as [string, ...string[]])
       .optional()
       .default("default"),
+    contentLocale: z
+      .enum(CONTENT_LOCALES as unknown as [string, ...string[]])
+      .optional()
+      .nullable(),
+    translationGroupId: z.string().min(1).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const max =
@@ -91,6 +97,8 @@ export default defineEventHandler(async (event) => {
       categoryId: parsed.data.categoryId ?? null,
       fontFamily: parsed.data.fontFamily as (typeof POST_FONT_FAMILIES)[number],
       textColor: parsed.data.textColor as (typeof POST_TEXT_COLORS)[number],
+      contentLocale: parsed.data.contentLocale ?? null,
+      translationGroupId: parsed.data.translationGroupId ?? null,
     });
     if (post.visibility === "public") {
       await invalidatePublicFeedCaches();
@@ -99,8 +107,13 @@ export default defineEventHandler(async (event) => {
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;
     const message = (err as Error)?.message;
-    if (statusCode === 400) {
-      throw createError({ statusCode: 400, statusMessage: message });
+    if (
+      statusCode === 400 ||
+      statusCode === 403 ||
+      statusCode === 404 ||
+      statusCode === 409
+    ) {
+      throw createError({ statusCode, statusMessage: message });
     }
     throw err;
   }

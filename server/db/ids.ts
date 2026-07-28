@@ -11,7 +11,8 @@ export type IdPrefix =
   | "upl"
   | "att"
   | "story"
-  | "cat";
+  | "cat"
+  | "tgrp";
 
 export function generateId(prefix: IdPrefix = "task"): string {
   const rand = Math.random().toString(16).slice(2, 10);
