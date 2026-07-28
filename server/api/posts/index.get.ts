@@ -1,6 +1,8 @@
 import { listFeedPosts } from "~/server/utils/db";
 import { getOptionalUser } from "~/server/utils/authContext";
 import { CacheKeys, CacheTTL, cacheGetOrSet } from "~/server/utils/cache";
+import { parseQuery } from "~/server/utils/http";
+import { feedQuerySchema } from "~/server/schemas";
 import { isContentLocale } from "~/utils/contentLocale";
 
 /**
@@ -14,21 +16,12 @@ import { isContentLocale } from "~/utils/contentLocale";
  */
 export default defineEventHandler(async (event) => {
   const user = getOptionalUser(event);
-  const query = getQuery(event);
-  const cursor =
-    typeof query.cursor === "string" && query.cursor.trim()
-      ? query.cursor.trim()
-      : null;
-  const categoryId =
-    typeof query.categoryId === "string" && query.categoryId.trim()
-      ? query.categoryId.trim()
-      : null;
+  const query = parseQuery(event, feedQuerySchema);
+  const cursor = query.cursor?.trim() || null;
+  const categoryId = query.categoryId?.trim() || null;
   const locale =
-    typeof query.locale === "string" && isContentLocale(query.locale)
-      ? query.locale
-      : null;
-  const limitRaw = Number(query.limit);
-  const limit = Number.isFinite(limitRaw) ? limitRaw : 20;
+    query.locale && isContentLocale(query.locale) ? query.locale : null;
+  const limit = query.limit;
 
   if (!user) {
     return cacheGetOrSet(

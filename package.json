@@ -20,7 +20,9 @@
     "migrate:status": "node --env-file=.env --import tsx scripts/migrate.ts status",
     "migrate:reset": "node --env-file=.env --import tsx scripts/migrate.ts reset",
     "migrate:auth": "node --env-file=.env --import tsx scripts/migrate-auth.ts",
-    "check:db": "node --env-file=.env --import tsx scripts/check-db.ts"
+    "check:db": "node --env-file=.env --import tsx scripts/check-db.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,vue,json,css,md,yml,yaml}": "prettier --write"
@@ -58,6 +60,7 @@
     "prettier": "^3.6.2",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
+    "vitest": "^3.2.7",
     "vue-tsc": "^3.3.8"
   }
 }

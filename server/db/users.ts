@@ -85,6 +85,67 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
   return created;
 }
 
+/**
+ * Creates the user row and its email-verification token in one transaction so
+ * a mid-flight failure cannot leave an unverifiable orphan account that blocks
+ * a later signup with the same email.
+ */
+export async function createUserWithEmailVerification(input: {
+  user: CreateUserInput;
+  tokenHash: string;
+  expiresAt: string;
+}): Promise<UserRecord> {
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  const id = generateId("user");
+  const now = nowISO();
+  const role = input.user.role ?? UserRole.Normal;
+  const verified = input.user.emailVerified ? 1 : 0;
+  try {
+    await conn.beginTransaction();
+    await conn.query(
+      `INSERT INTO users
+        (id, email, password_hash, name, role, email_verified, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        input.user.email.toLowerCase(),
+        input.user.passwordHash,
+        input.user.name ?? null,
+        role,
+        verified,
+        isoToDB(now),
+        isoToDB(now),
+      ]
+    );
+    await conn.query(
+      `INSERT INTO auth_email_verifications
+        (id, user_id, token_hash, expires_at, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [
+        generateId("vrfy"),
+        id,
+        input.tokenHash,
+        isoToDB(input.expiresAt),
+        isoToDB(now),
+      ]
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+  const created = await getUserById(id);
+  if (!created) {
+    throw new Error(
+      "createUserWithEmailVerification: row vanished after commit",
+    );
+  }
+  return created;
+}
+
 export async function updateUserRole(
   id: string,
   role: UserRole

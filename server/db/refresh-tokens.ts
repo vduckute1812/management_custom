@@ -1,3 +1,4 @@
+import type { ResultSetHeader } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import type { RefreshTokenRow } from "./mappers";
@@ -70,6 +71,57 @@ export async function revokeRefreshToken(tokenHash: string): Promise<void> {
     "UPDATE auth_refresh_tokens SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL",
     [isoToDB(nowISO()), tokenHash]
   );
+}
+
+/**
+ * Atomically revoke the presented refresh hash and insert its successor in
+ * one transaction. Returns false when the presented token was already
+ * revoked/expired (concurrent refresh lost the race) so the caller can 401
+ * without issuing a second live session.
+ */
+export async function rotateRefreshToken(input: {
+  presentedHash: string;
+  next: IssueRefreshTokenInput;
+}): Promise<boolean> {
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  const revokedAt = isoToDB(nowISO());
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query<ResultSetHeader>(
+      `UPDATE auth_refresh_tokens
+          SET revoked_at = ?
+        WHERE token_hash = ?
+          AND revoked_at IS NULL
+          AND expires_at > UTC_TIMESTAMP(3)`,
+      [revokedAt, input.presentedHash]
+    );
+    if (result.affectedRows !== 1) {
+      await conn.rollback();
+      return false;
+    }
+    await conn.query(
+      `INSERT INTO auth_refresh_tokens
+        (id, user_id, token_hash, expires_at, user_agent, ip, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        generateId("rtok"),
+        input.next.userId,
+        input.next.tokenHash,
+        isoToDB(input.next.expiresAt),
+        input.next.userAgent ?? null,
+        input.next.ip ?? null,
+        revokedAt,
+      ]
+    );
+    await conn.commit();
+    return true;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 export async function revokeAllRefreshTokensForUser(

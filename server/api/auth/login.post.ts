@@ -1,15 +1,5 @@
 /**
- * POST /api/auth/login
- *
- * Body:  { email, password }
- * Reply: { user: AuthUser, accessToken, accessExpiresAt,
- *          refreshToken, refreshExpiresAt }
- *
- * Issues a fresh access + refresh token pair. Both are returned to the
- * client and the refresh token's SHA-256 hash is persisted server-side so we
- * can revoke it on logout. The client is expected to store the access token
- * in memory (or a non-HttpOnly cookie) and re-attach it as `Authorization:
- * Bearer ...` on subsequent requests.
+ * POST /api/auth/login — Zod-validated; sets HttpOnly auth cookies.
  */
 import {
   getUserByEmail,
@@ -25,21 +15,19 @@ import {
   TOKEN_TTL,
   verifyPassword,
 } from "~/server/utils/auth";
-
-interface LoginBody {
-  email?: string;
-  password?: string;
-}
+import {
+  setAccessCookie,
+  setRefreshCookie,
+} from "~/server/utils/refreshCookie";
+import { parseBody } from "~/server/utils/http";
+import { loginBodySchema } from "~/server/schemas";
 
 const GENERIC_INVALID = "Invalid email or password";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<LoginBody>(event);
-  const email = (body?.email ?? "").trim().toLowerCase();
-  const password = body?.password ?? "";
-  if (!email || !password) {
-    throw createError({ statusCode: 400, statusMessage: GENERIC_INVALID });
-  }
+  const body = await parseBody(event, loginBodySchema);
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
 
   const user = await getUserByEmail(email);
   if (!user) {
@@ -76,15 +64,15 @@ export default defineEventHandler(async (event) => {
     ip: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
   });
 
-  // Best-effort: a write failure here must NOT block sign-in. The admin
-  // dashboard simply shows "Never" / a stale value if this UPDATE drops.
+  setRefreshCookie(event, refreshToken);
+  setAccessCookie(event, accessToken);
+
   await recordUserLogin(user.id).catch(() => {});
 
   return {
     user: toAuthUser(user),
     accessToken,
     accessExpiresAt,
-    refreshToken,
     refreshExpiresAt,
   };
 });

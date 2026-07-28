@@ -164,6 +164,7 @@ Requires **TypeScript 5.9.x** (classic compiler API). Do **not** upgrade to nati
 
 ```bash
 npm run check:db
+npm test                 # Vitest unit tests (schemas, security helpers, sanitize)
 ```
 
 Pings the DB, verifies no migrations are pending or have drifted, confirms expected core tables are present, and reports the current user count. Exits non-zero if the schema is incomplete.

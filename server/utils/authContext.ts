@@ -16,6 +16,7 @@
 import type { H3Event } from "h3";
 import { verifyAccessToken, type AccessTokenClaims } from "./auth";
 import { UserRole, isAdminRole } from "./db";
+import { ACCESS_COOKIE } from "./refreshCookie";
 
 declare module "h3" {
   interface H3EventContext {
@@ -32,7 +33,14 @@ export function attachUserFromHeader(event: H3Event): void {
     const match = TOKEN_RE.exec(raw.trim());
     if (match) token = match[1];
   }
-  // Allow ?access_token= for media tags (img/video) that cannot set headers.
+  // HttpOnly access cookie — used by same-origin <img>/<video> media loads
+  // that cannot set Authorization, replacing the legacy ?access_token= leak.
+  if (!token) {
+    const fromCookie = getCookie(event, ACCESS_COOKIE);
+    if (fromCookie && fromCookie.trim()) token = fromCookie.trim();
+  }
+  // Legacy fallback for older clients / cached HTML that still append the
+  // query param. Prefer cookie or Bearer; query tokens show up in logs.
   if (!token) {
     const q = getQuery(event);
     const fromQuery = q.access_token;
