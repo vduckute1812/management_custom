@@ -73,14 +73,14 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area            | Routes                                                              | Auth                                                                       |
-| --------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                     |
-| Feed            | `/feed`, `/feed/write` (manuscript desk)                            | Public browse; write desk requires login; compose/react/comment need login |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                              |
-| Account         | `/settings`, `/profile`                                             | Authenticated                                                              |
-| Admin           | `/admin`                                                            | Admin / superadmin                                                         |
-| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                         |
+| Area            | Routes                                                              | Auth                                                                            |
+| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                          |
+| Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                            | Public browse; write/edit desks require login; compose/react/comment need login |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                                   |
+| Account         | `/settings`, `/profile`                                             | Authenticated                                                                   |
+| Admin           | `/admin`                                                            | Admin / superadmin                                                              |
+| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                              |
 
 Global guard: `middleware/auth.global.ts`.
 

@@ -28,6 +28,19 @@ import {
 const props = defineProps<{
   submitting?: boolean;
   categories?: PostCategory[];
+  /** Prefill when editing an existing manuscript. */
+  initial?: {
+    title?: string | null;
+    body?: string;
+    visibility?: PostVisibility;
+    audience?: PostAuthor[];
+    attachments?: UploadRecord[];
+    categoryId?: string | null;
+    fontFamily?: PostFontFamily;
+    textColor?: PostTextColor;
+  };
+  /** When true, chrome copy and CTA use “save” phrasing. */
+  editing?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -58,15 +71,17 @@ function catLabel(cat: PostCategory) {
   return categoryDisplayName(cat, t, te);
 }
 
-const title = ref("");
-const body = ref("");
-const visibility = ref<PostVisibility>("public");
-const categoryId = ref("");
-const fontFamily = ref<PostFontFamily>("serif");
-const textColor = ref<PostTextColor>("default");
-const audience = ref<PostAuthor[]>([]);
+const title = ref(props.initial?.title ?? "");
+const body = ref(props.initial?.body ?? "");
+const visibility = ref<PostVisibility>(props.initial?.visibility ?? "public");
+const categoryId = ref(props.initial?.categoryId || "");
+const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "serif");
+const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
+const audience = ref<PostAuthor[]>([...(props.initial?.audience ?? [])]);
 const audienceQuery = ref("");
-const attachments = ref<UploadRecord[]>([]);
+const attachments = ref<UploadRecord[]>([
+  ...(props.initial?.attachments ?? []),
+]);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const imageInput = ref<HTMLInputElement | null>(null);
@@ -303,10 +318,18 @@ const bodyStyle = computed(() => ({
           {{ $t("manuscript.studioKicker") }}
         </p>
         <h1 class="manuscript-studio__heading">
-          {{ $t("manuscript.studioTitle") }}
+          {{
+            editing
+              ? $t("manuscript.editStudioTitle")
+              : $t("manuscript.studioTitle")
+          }}
         </h1>
         <p class="manuscript-studio__lede">
-          {{ $t("manuscript.studioLede") }}
+          {{
+            editing
+              ? $t("manuscript.editStudioLede")
+              : $t("manuscript.studioLede")
+          }}
         </p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -323,7 +346,13 @@ const bodyStyle = computed(() => ({
           :disabled="!canSubmit"
         >
           {{
-            submitting ? $t("manuscript.publishing") : $t("manuscript.publish")
+            editing
+              ? submitting
+                ? $t("manuscript.updating")
+                : $t("manuscript.update")
+              : submitting
+                ? $t("manuscript.publishing")
+                : $t("manuscript.publish")
           }}
         </button>
       </div>

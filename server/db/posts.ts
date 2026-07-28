@@ -3,7 +3,11 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
-import { assertOwnedUploads, purgeOrphanedUploads, type UploadRow } from "./uploads";
+import {
+  assertOwnedUploads,
+  purgeOrphanedUploads,
+  type UploadRow,
+} from "./uploads";
 import type {
   Post,
   PostAttachment,
@@ -115,7 +119,7 @@ function toAuthor(
     title?: string | null;
     job?: string | null;
     location?: string | null;
-  }
+  },
 ): PostAuthor {
   return {
     id,
@@ -229,7 +233,7 @@ function categoryFromRow(row: PostRow): PostCategory | null {
 }
 
 async function loadReactionMaps(
-  postIds: string[]
+  postIds: string[],
 ): Promise<Map<string, Record<PostReactionType, number>>> {
   const map = new Map<string, Record<PostReactionType, number>>();
   for (const id of postIds) map.set(id, emptyReactions());
@@ -242,7 +246,7 @@ async function loadReactionMaps(
      FROM post_reactions
      WHERE post_id IN (${placeholders})
      GROUP BY post_id, reaction`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const bucket = map.get(row.post_id) ?? emptyReactions();
@@ -253,7 +257,7 @@ async function loadReactionMaps(
 }
 
 async function loadAttachments(
-  postIds: string[]
+  postIds: string[],
 ): Promise<Map<string, PostAttachment[]>> {
   const map = new Map<string, PostAttachment[]>();
   for (const id of postIds) map.set(id, []);
@@ -266,7 +270,7 @@ async function loadAttachments(
      FROM post_attachments
      WHERE post_id IN (${placeholders})
      ORDER BY created_at ASC`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const list = map.get(row.post_id) ?? [];
@@ -284,9 +288,7 @@ async function loadAttachments(
   return map;
 }
 
-async function loadAudience(
-  postIds: string[]
-): Promise<Map<string, string[]>> {
+async function loadAudience(postIds: string[]): Promise<Map<string, string[]>> {
   const map = new Map<string, string[]>();
   for (const id of postIds) map.set(id, []);
   if (!postIds.length) return map;
@@ -295,7 +297,7 @@ async function loadAudience(
   const placeholders = postIds.map(() => "?").join(",");
   const [rows] = await pool.query<AudienceRow[]>(
     `SELECT post_id, user_id FROM post_audience WHERE post_id IN (${placeholders})`,
-    postIds
+    postIds,
   );
   for (const row of rows) {
     const list = map.get(row.post_id) ?? [];
@@ -310,7 +312,7 @@ function rowToPost(
   viewerId: string,
   reactions: Record<PostReactionType, number>,
   attachments: PostAttachment[],
-  audienceUserIds: string[]
+  audienceUserIds: string[],
 ): Post {
   let sharedPost: SharedPostPreview | null = null;
   if (
@@ -334,14 +336,14 @@ function rowToPost(
           title: row.shared_author_title,
           job: row.shared_author_job,
           location: row.shared_author_location,
-        }
+        },
       ),
     };
   }
 
   const reactionCount = POST_REACTION_TYPES.reduce(
     (sum, key) => sum + (reactions[key] ?? 0),
-    0
+    0,
   );
   const myReaction = row.my_reaction ?? null;
 
@@ -371,13 +373,14 @@ function rowToPost(
     attachments,
     audienceUserIds,
     sharedPost,
-    canDelete: row.user_id === viewerId,
+    canEdit: !!viewerId && row.user_id === viewerId,
+    canDelete: !!viewerId && row.user_id === viewerId,
   };
 }
 
 async function hydratePosts(
   rows: PostRow[],
-  viewerId: string
+  viewerId: string,
 ): Promise<Post[]> {
   const ids = rows.map((r) => r.id);
   const [reactions, attachments, audience] = await Promise.all([
@@ -391,8 +394,8 @@ async function hydratePosts(
       viewerId,
       reactions.get(r.id) ?? emptyReactions(),
       attachments.get(r.id) ?? [],
-      audience.get(r.id) ?? []
-    )
+      audience.get(r.id) ?? [],
+    ),
   );
 }
 
@@ -402,7 +405,7 @@ export async function listFeedPosts(
     cursor?: string | null;
     limit?: number;
     categoryId?: string | null;
-  } = {}
+  } = {},
 ): Promise<{ posts: Post[]; nextCursor: string | null }> {
   const pool = getPool();
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
@@ -434,26 +437,24 @@ export async function listFeedPosts(
      ${where}
      ORDER BY p.created_at DESC
      LIMIT ?`,
-    params
+    params,
   );
 
   const pageRows = rows.slice(0, limit);
   const posts = await hydratePosts(pageRows, vid);
   const nextCursor =
-    rows.length > limit ? posts[posts.length - 1]?.createdAt ?? null : null;
+    rows.length > limit ? (posts[posts.length - 1]?.createdAt ?? null) : null;
   return { posts, nextCursor };
 }
 
 export async function getPostById(
   viewerId: string | null,
-  postId: string
+  postId: string,
 ): Promise<Post | null> {
   const pool = getPool();
   const vid = viewerId ?? "";
   const params: unknown[] = [vid, postId];
-  const acl = viewerId
-    ? visibilityClause("p")
-    : publicOnlyClause("p");
+  const acl = viewerId ? visibilityClause("p") : publicOnlyClause("p");
   if (viewerId) {
     params.push(viewerId, viewerId);
   }
@@ -462,7 +463,7 @@ export async function getPostById(
     `${POST_SELECT}
      WHERE p.id = ? AND ${acl}
      LIMIT 1`,
-    params
+    params,
   );
   if (!rows.length) return null;
   const [post] = await hydratePosts(rows, vid);
@@ -482,7 +483,7 @@ export async function createPost(
     categoryId?: string | null;
     fontFamily?: PostFontFamily | null;
     textColor?: PostTextColor | null;
-  }
+  },
 ): Promise<Post> {
   const pool = getPool();
   const id = generateId("post");
@@ -498,13 +499,17 @@ export async function createPost(
   const visibility: PostVisibility = args.visibility ?? "public";
   const audienceUserIds =
     visibility === "shared"
-      ? [...new Set((args.audienceUserIds ?? []).filter((x) => x && x !== userId))]
+      ? [
+          ...new Set(
+            (args.audienceUserIds ?? []).filter((x) => x && x !== userId),
+          ),
+        ]
       : [];
 
   if (visibility === "shared" && audienceUserIds.length === 0) {
     throw Object.assign(
       new Error("Shared posts require at least one audience member"),
-      { statusCode: 400 }
+      { statusCode: 400 },
     );
   }
 
@@ -554,13 +559,13 @@ export async function createPost(
         args.sharedPostId ?? null,
         isoToDB(now),
         isoToDB(now),
-      ]
+      ],
     );
 
     for (const uid of audienceUserIds) {
       await conn.query(
         `INSERT INTO post_audience (post_id, user_id, created_at) VALUES (?, ?, ?)`,
-        [id, uid, isoToDB(now)]
+        [id, uid, isoToDB(now)],
       );
     }
 
@@ -589,7 +594,7 @@ async function insertAttachment(
   },
   postId: string,
   up: UploadRow,
-  now: string
+  now: string,
 ) {
   const attId = generateId("att");
   await conn.query(
@@ -606,19 +611,165 @@ async function insertAttachment(
       up.size_bytes,
       up.storage_key,
       isoToDB(now),
-    ]
+    ],
   );
+}
+
+export async function updatePost(
+  userId: string,
+  postId: string,
+  args: {
+    body: string;
+    title?: string | null;
+    visibility?: PostVisibility;
+    audienceUserIds?: string[];
+    attachmentIds?: string[];
+    categoryId?: string | null;
+    fontFamily?: PostFontFamily | null;
+    textColor?: PostTextColor | null;
+  },
+): Promise<{ post: Post; previousVisibility: PostVisibility }> {
+  const pool = getPool();
+  const [ownerRows] = await pool.query<
+    (RowDataPacket & {
+      user_id: string;
+      format: string | null;
+      visibility: PostVisibility;
+    })[]
+  >("SELECT user_id, format, visibility FROM posts WHERE id = ? LIMIT 1", [
+    postId,
+  ]);
+  const owner = ownerRows[0];
+  if (!owner || owner.user_id !== userId) {
+    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+  }
+
+  const format = normalizeFormat(owner.format);
+  const trimmed = args.body.trim();
+  if (!trimmed) {
+    throw Object.assign(new Error("Post body is required"), {
+      statusCode: 400,
+    });
+  }
+  const title = normalizeTitle(args.title);
+  if (format === "manuscript" && !title) {
+    throw Object.assign(new Error("Manuscript title is required"), {
+      statusCode: 400,
+    });
+  }
+
+  const visibility: PostVisibility = args.visibility ?? "public";
+  const audienceUserIds =
+    visibility === "shared"
+      ? [
+          ...new Set(
+            (args.audienceUserIds ?? []).filter((x) => x && x !== userId),
+          ),
+        ]
+      : [];
+
+  if (visibility === "shared" && audienceUserIds.length === 0) {
+    throw Object.assign(
+      new Error("Shared posts require at least one audience member"),
+      { statusCode: 400 },
+    );
+  }
+
+  let categoryId: string | null = args.categoryId?.trim() || null;
+  if (categoryId) {
+    const cat = await getCategoryById(categoryId);
+    if (!cat) {
+      throw Object.assign(new Error("Invalid category"), { statusCode: 400 });
+    }
+  }
+
+  const fontFamily =
+    format === "manuscript" && !args.fontFamily
+      ? ("serif" as PostFontFamily)
+      : normalizeFontFamily(args.fontFamily);
+  const textColor = normalizeTextColor(args.textColor);
+  const attachmentIds = [...new Set(args.attachmentIds ?? [])];
+  const uploads = await assertOwnedUploads(userId, attachmentIds);
+  const now = nowISO();
+
+  const [existingAttRows] = await pool.query<
+    (RowDataPacket & { id: string; upload_id: string })[]
+  >(`SELECT id, upload_id FROM post_attachments WHERE post_id = ?`, [postId]);
+  const existingByUpload = new Map(
+    existingAttRows.map((r) => [r.upload_id, r.id]),
+  );
+  const nextUploadSet = new Set(attachmentIds);
+  const removedUploadIds = existingAttRows
+    .filter((r) => !nextUploadSet.has(r.upload_id))
+    .map((r) => r.upload_id);
+  const addedUploads = uploads.filter((u) => !existingByUpload.has(u.id));
+
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(
+      `UPDATE posts
+       SET body = ?, title = ?, visibility = ?, category_id = ?,
+           font_family = ?, text_color = ?, updated_at = ?
+       WHERE id = ? AND user_id = ?`,
+      [
+        trimmed,
+        format === "manuscript" ? title : null,
+        visibility,
+        categoryId,
+        fontFamily === "default" ? null : fontFamily,
+        textColor === "default" ? null : textColor,
+        isoToDB(now),
+        postId,
+        userId,
+      ],
+    );
+
+    await conn.query(`DELETE FROM post_audience WHERE post_id = ?`, [postId]);
+    for (const uid of audienceUserIds) {
+      await conn.query(
+        `INSERT INTO post_audience (post_id, user_id, created_at) VALUES (?, ?, ?)`,
+        [postId, uid, isoToDB(now)],
+      );
+    }
+
+    for (const uploadId of removedUploadIds) {
+      await conn.query(
+        `DELETE FROM post_attachments WHERE post_id = ? AND upload_id = ?`,
+        [postId, uploadId],
+      );
+    }
+    for (const up of addedUploads) {
+      await insertAttachment(conn, postId, up, now);
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  if (removedUploadIds.length) {
+    await purgeOrphanedUploads(removedUploadIds);
+  }
+
+  const updated = await getPostById(userId, postId);
+  if (!updated) {
+    throw new Error("Failed to load updated post");
+  }
+  return { post: updated, previousVisibility: owner.visibility };
 }
 
 export async function deletePost(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<boolean> {
   const pool = getPool();
   // Capture attachment upload ids before CASCADE removes post_attachments.
-  const [attRows] = await pool.query<
-    (RowDataPacket & { upload_id: string })[]
-  >(
+  const [attRows] = await pool.query<(RowDataPacket & { upload_id: string })[]>(
     `SELECT pa.upload_id
      FROM post_attachments pa
      INNER JOIN posts p ON p.id = pa.post_id
@@ -628,7 +779,7 @@ export async function deletePost(
 
   const [result] = await pool.query(
     "DELETE FROM posts WHERE id = ? AND user_id = ?",
-    [postId, userId]
+    [postId, userId],
   );
   const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   if (ok && attRows.length) {
@@ -640,7 +791,7 @@ export async function deletePost(
 export async function setPostReaction(
   userId: string,
   postId: string,
-  reaction: PostReactionType
+  reaction: PostReactionType,
 ): Promise<Post> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -655,7 +806,7 @@ export async function setPostReaction(
     `INSERT INTO post_reactions (post_id, user_id, reaction, created_at)
      VALUES (?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE reaction = VALUES(reaction), created_at = VALUES(created_at)`,
-    [postId, userId, reaction, isoToDB(nowISO())]
+    [postId, userId, reaction, isoToDB(nowISO())],
   );
 
   const refreshed = await getPostById(userId, postId);
@@ -667,7 +818,7 @@ export async function setPostReaction(
 
 export async function clearPostReaction(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<Post> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -677,7 +828,7 @@ export async function clearPostReaction(
 
   await pool.query(
     "DELETE FROM post_reactions WHERE post_id = ? AND user_id = ?",
-    [postId, userId]
+    [postId, userId],
   );
 
   const refreshed = await getPostById(userId, postId);
@@ -690,7 +841,7 @@ export async function clearPostReaction(
 /** @deprecated Prefer setPostReaction / clearPostReaction. */
 export async function togglePostLike(
   userId: string,
-  postId: string
+  postId: string,
 ): Promise<{ liked: boolean; likeCount: number }> {
   const post = await getPostById(userId, postId);
   if (!post) {
@@ -708,7 +859,7 @@ export async function togglePostLike(
 
 export async function listPostComments(
   viewerId: string | null,
-  postId: string
+  postId: string,
 ): Promise<PostComment[]> {
   const pool = getPool();
   const post = await getPostById(viewerId, postId);
@@ -724,7 +875,7 @@ export async function listPostComments(
      INNER JOIN users u ON u.id = c.user_id
      WHERE c.post_id = ?
      ORDER BY c.created_at ASC`,
-    [postId]
+    [postId],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -740,7 +891,7 @@ export async function listPostComments(
 export async function createPostComment(
   userId: string,
   postId: string,
-  body: string
+  body: string,
 ): Promise<PostComment> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -754,7 +905,7 @@ export async function createPostComment(
   await pool.query(
     `INSERT INTO post_comments (id, post_id, user_id, body, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)]
+    [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)],
   );
 
   const comments = await listPostComments(userId, postId);
@@ -768,7 +919,7 @@ export async function createPostComment(
 export async function deletePostComment(
   userId: string,
   postId: string,
-  commentId: string
+  commentId: string,
 ): Promise<boolean> {
   const pool = getPool();
   const post = await getPostById(userId, postId);
@@ -777,7 +928,7 @@ export async function deletePostComment(
   }
   const [result] = await pool.query(
     "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
-    [commentId, postId, userId]
+    [commentId, postId, userId],
   );
   return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
 }
@@ -785,7 +936,7 @@ export async function deletePostComment(
 export async function searchUserDirectory(
   viewerId: string,
   q: string,
-  limit = 20
+  limit = 20,
 ): Promise<PostAuthor[]> {
   const pool = getPool();
   const term = `%${q.trim().toLowerCase()}%`;
@@ -798,11 +949,46 @@ export async function searchUserDirectory(
        )
      ORDER BY name IS NULL, name ASC, email ASC
      LIMIT ?`,
-    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)]
+    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)],
   );
   return rows.map((r) => ({
     id: String(r.id),
     name: (r.name as string | null) ?? null,
     email: String(r.email),
   }));
+}
+
+/** Resolve directory-style author cards for a set of user ids (edit forms). */
+export async function getAuthorsByIds(
+  userIds: string[],
+): Promise<PostAuthor[]> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (!unique.length) return [];
+  const pool = getPool();
+  const placeholders = unique.map(() => "?").join(",");
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT id, name, email, avatar_upload_id, title, job, location
+     FROM users
+     WHERE id IN (${placeholders})`,
+    unique,
+  );
+  const byId = new Map(
+    rows.map((r) => [
+      String(r.id),
+      toAuthor(
+        String(r.id),
+        (r.name as string | null) ?? null,
+        String(r.email),
+        {
+          avatarUploadId: (r.avatar_upload_id as string | null) ?? null,
+          title: (r.title as string | null) ?? null,
+          job: (r.job as string | null) ?? null,
+          location: (r.location as string | null) ?? null,
+        },
+      ),
+    ]),
+  );
+  return unique
+    .map((id) => byId.get(id))
+    .filter((a): a is PostAuthor => Boolean(a));
 }

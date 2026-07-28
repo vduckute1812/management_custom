@@ -268,6 +268,8 @@
       "colorAmber": "Amber"
     },
     "post": {
+      "edit": "Edit",
+      "editTitle": "Edit post",
       "delete": "Delete",
       "deleteTitle": "Delete post",
       "onlyYou": "Only you",
@@ -309,6 +311,13 @@
       "planTaskCreated": "Research task created in Time Management",
       "planTaskOpen": "Open",
       "planTaskFailed": "Could not create the task"
+    },
+    "edit": {
+      "kicker": "Edit post",
+      "title": "Update your post",
+      "lede": "Change the text, visibility, attachments, or category — then save.",
+      "save": "Save changes",
+      "loading": "Loading post…"
     }
   },
   "tasks": {
@@ -684,7 +693,10 @@
     "reload": "Reload",
     "postShared": "Post shared",
     "postDeleted": "Post deleted",
+    "postUpdated": "Post updated",
     "couldNotDeletePost": "Could not delete post",
+    "couldNotUpdatePost": "Could not update post",
+    "couldNotLoadPost": "Could not load post",
     "couldNotUpdateReaction": "Could not update reaction",
     "couldNotClearReaction": "Could not clear reaction",
     "postSharedToFeed": "Post shared to your feed",
@@ -868,7 +880,9 @@
     "signup": "Create account",
     "verifyEmail": "Verify email",
     "manuscriptWrite": "Write manuscript",
-    "manuscriptWriteDescription": "Compose a long-form manuscript for essays and thesis chapters."
+    "manuscriptWriteDescription": "Compose a long-form manuscript for essays and thesis chapters.",
+    "manuscriptEdit": "Edit post",
+    "manuscriptEditDescription": "Update an existing feed post or manuscript."
   },
   "categories": {
     "electronics": "Electronics",
@@ -904,9 +918,13 @@
     "studioKicker": "Writing desk",
     "studioTitle": "Compose a manuscript",
     "studioLede": "A calm page for essays, thesis chapters, and research notes — with room to think.",
+    "editStudioTitle": "Edit manuscript",
+    "editStudioLede": "Revise your manuscript, then save the changes back to the feed.",
     "cancel": "Back to feed",
     "publish": "Publish manuscript",
     "publishing": "Publishing…",
+    "update": "Save changes",
+    "updating": "Saving…",
     "titleLabel": "Manuscript title",
     "titlePlaceholder": "Title of your manuscript",
     "bodyLabel": "Manuscript body",

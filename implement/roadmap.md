@@ -232,6 +232,7 @@ Documented here so the roadmap matches the as-built install (migrations `0003`â€
 - [x] Pin TypeScript to **5.9.x** so `vue-tsc` works (native TS 7 is incompatible with Volar)
 - [x] Fix vue-i18n plural calls to `t(key, named, plural)` and MySQL `RowDataPacket` query generics that failed type-check
 - [x] Docs synced: architecture (SEO + TS), i18n (plural signature), getting-started, roadmap, product README, `.cursor/rules/nuxt3-standards.mdc`
+- [x] Post edit: `PATCH /api/posts/:id`, `GET /api/posts/:id`, `canEdit`, `/feed/edit/:id` (update + manuscript)
 
 ## Phase 14 â€” Cache & durable job queue
 

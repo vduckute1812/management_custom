@@ -268,6 +268,8 @@
       "colorAmber": "琥珀"
     },
     "post": {
+      "edit": "编辑",
+      "editTitle": "编辑帖子",
       "delete": "删除",
       "deleteTitle": "删除帖子",
       "onlyYou": "仅你可见",
@@ -309,6 +311,13 @@
       "planTaskCreated": "已在时间管理中创建研究任务",
       "planTaskOpen": "打开",
       "planTaskFailed": "无法创建任务"
+    },
+    "edit": {
+      "kicker": "编辑帖子",
+      "title": "更新帖子",
+      "lede": "修改正文、可见性、附件或分类，然后保存。",
+      "save": "保存更改",
+      "loading": "正在加载帖子…"
     }
   },
   "tasks": {
@@ -684,7 +693,10 @@
     "reload": "重新加载",
     "postShared": "帖子已分享",
     "postDeleted": "帖子已删除",
+    "postUpdated": "帖子已更新",
     "couldNotDeletePost": "无法删除帖子",
+    "couldNotUpdatePost": "无法更新帖子",
+    "couldNotLoadPost": "无法加载帖子",
     "couldNotUpdateReaction": "无法更新表情",
     "couldNotClearReaction": "无法清除表情",
     "postSharedToFeed": "帖子已分享到你的动态",
@@ -868,7 +880,9 @@
     "signup": "创建账户",
     "verifyEmail": "验证邮箱",
     "manuscriptWrite": "撰写手稿",
-    "manuscriptWriteDescription": "撰写长文手稿，适合论文与研究笔记。"
+    "manuscriptWriteDescription": "撰写长文手稿，适合论文与研究笔记。",
+    "manuscriptEdit": "编辑帖子",
+    "manuscriptEditDescription": "更新动态中的帖子或手稿。"
   },
   "categories": {
     "electronics": "电子",
@@ -904,9 +918,13 @@
     "studioKicker": "写作台",
     "studioTitle": "撰写手稿",
     "studioLede": "安静的页面，适合论文章节、随笔与研究笔记。",
+    "editStudioTitle": "编辑手稿",
+    "editStudioLede": "修订手稿，然后将更改保存回动态。",
     "cancel": "返回动态",
     "publish": "发布手稿",
     "publishing": "发布中…",
+    "update": "保存更改",
+    "updating": "保存中…",
     "titleLabel": "手稿标题",
     "titlePlaceholder": "输入手稿标题",
     "bodyLabel": "手稿正文",
