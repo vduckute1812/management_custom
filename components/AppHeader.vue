@@ -8,6 +8,9 @@ const { t } = useI18n();
 
 const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
+const menuTrigger = ref<HTMLButtonElement | null>(null);
+const menuPanel = ref<HTMLElement | null>(null);
+const menuStyle = ref<Record<string, string>>({});
 
 const displayName = computed(
   () => auth.userUi.value?.name || auth.userUi.value?.email || t("nav.account"),
@@ -30,8 +33,27 @@ function closeMenu() {
   menuOpen.value = false;
 }
 
+function updateMenuPosition() {
+  const el = menuTrigger.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const menuWidth = 208; // w-52
+  const left = Math.min(
+    Math.max(8, rect.right - menuWidth),
+    window.innerWidth - menuWidth - 8,
+  );
+  menuStyle.value = {
+    top: `${rect.bottom + 6}px`,
+    left: `${left}px`,
+    width: `${menuWidth}px`,
+  };
+}
+
 function toggleMenu() {
   menuOpen.value = !menuOpen.value;
+  if (menuOpen.value) {
+    nextTick(() => updateMenuPosition());
+  }
 }
 
 async function onLogout() {
@@ -41,8 +63,11 @@ async function onLogout() {
 }
 
 function onDocClick(e: MouseEvent) {
-  if (!menuOpen.value || !menuRoot.value) return;
-  if (!menuRoot.value.contains(e.target as Node)) closeMenu();
+  if (!menuOpen.value) return;
+  const target = e.target as Node;
+  if (menuRoot.value?.contains(target)) return;
+  if (menuPanel.value?.contains(target)) return;
+  closeMenu();
 }
 
 function onKey(e: KeyboardEvent) {
@@ -52,12 +77,20 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => {
   document.addEventListener("click", onDocClick);
   document.addEventListener("keydown", onKey);
+  window.addEventListener("resize", onViewportChange);
+  window.addEventListener("scroll", onViewportChange, true);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", onDocClick);
   document.removeEventListener("keydown", onKey);
+  window.removeEventListener("resize", onViewportChange);
+  window.removeEventListener("scroll", onViewportChange, true);
 });
+
+function onViewportChange() {
+  if (menuOpen.value) updateMenuPosition();
+}
 
 watch(
   () => route.fullPath,
@@ -133,6 +166,7 @@ watch(
         class="relative shrink-0"
       >
         <button
+          ref="menuTrigger"
           type="button"
           class="flex max-w-[12rem] items-center gap-2 rounded-lg px-1.5 py-1 transition hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 sm:max-w-xs"
           :aria-expanded="menuOpen"
@@ -171,39 +205,43 @@ watch(
           </svg>
         </button>
 
-        <div
-          v-if="menuOpen"
-          role="menu"
-          class="absolute right-0 mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
-        >
-          <NuxtLink
-            to="/profile"
-            role="menuitem"
-            class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            @click="closeMenu"
+        <Teleport to="body">
+          <div
+            v-if="menuOpen"
+            ref="menuPanel"
+            role="menu"
+            class="fixed z-50 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            :style="menuStyle"
           >
-            {{ $t("nav.profile") }}
-          </NuxtLink>
-          <NuxtLink
-            to="/settings"
-            role="menuitem"
-            class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
-            @click="closeMenu"
-          >
-            {{ $t("nav.settings") }}
-          </NuxtLink>
-          <div class="border-t border-slate-100 px-3 py-2" role="none">
-            <LanguageSwitcher variant="select" id="header-language" />
+            <NuxtLink
+              to="/profile"
+              role="menuitem"
+              class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              @click="closeMenu"
+            >
+              {{ $t("nav.profile") }}
+            </NuxtLink>
+            <NuxtLink
+              to="/settings"
+              role="menuitem"
+              class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              @click="closeMenu"
+            >
+              {{ $t("nav.settings") }}
+            </NuxtLink>
+            <div class="border-t border-slate-100 px-3 py-2" role="none">
+              <LanguageSwitcher variant="select" id="header-language" />
+            </div>
+            <button
+              type="button"
+              role="menuitem"
+              class="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
+              @click="onLogout"
+            >
+              {{ $t("nav.logout") }}
+            </button>
           </div>
-          <button
-            type="button"
-            role="menuitem"
-            class="w-full px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50"
-            @click="onLogout"
-          >
-            {{ $t("nav.logout") }}
-          </button>
-        </div>
+        </Teleport>
       </div>
 
       <div v-else class="flex shrink-0 items-center gap-2">

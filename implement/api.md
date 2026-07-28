@@ -8,8 +8,29 @@ All routes are handled by Nitro under `/server/api/`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
+- **Rate limited:** all `/api/*` routes are throttled per client IP (see [Rate limiting](#rate-limiting) below).
 
 See [`auth.md`](./auth.md) for the token model and client route guard; see [`database.md`](./database.md) for the underlying field types.
+
+## Rate limiting
+
+`server/middleware/rate-limit.ts` applies a sliding-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present).
+
+| Scope                            | Limit        | Window |
+| -------------------------------- | ------------ | ------ |
+| Global (all other `/api/*`)      | 120 requests | 60 s   |
+| `POST /api/auth/login`           | 10           | 60 s   |
+| `POST /api/auth/signup`          | 5            | 60 s   |
+| `POST /api/auth/refresh`         | 30           | 60 s   |
+| `POST /api/auth/forgot-password` | 5            | 60 s   |
+| `POST /api/auth/reset-password`  | 10           | 60 s   |
+| `/api/uploads` (any method)      | 30           | 60 s   |
+
+When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
+
+On the client, `useApi().apiFetch` additionally coalesces identical in-flight requests and enforces a **400 ms** minimum gap between repeated calls with the same method + URL — this reduces accidental double-submit spam but does not replace the server cap.
+
+Implementation: `server/utils/rateLimit.ts` (in-memory store; swap for Redis when running multiple Nitro workers).
 
 ## Enum encoding
 

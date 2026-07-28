@@ -60,7 +60,9 @@ Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-orig
 
 `plugins/auth.client.ts` on boot: POST `/api/auth/refresh` with `credentials: 'include'`, then `GET /api/auth/me`. Legacy installs that still have `auth:refreshToken` in `localStorage` send it once in the refresh body, then wipe it.
 
-`useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set.
+`useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set. It also coalesces identical in-flight calls and enforces a 400 ms minimum gap between repeated requests with the same method + URL.
+
+**Brute-force protection:** `POST /api/auth/login`, `signup`, and `refresh` have stricter per-IP rate limits (see [`api.md`](./api.md#rate-limiting)).
 
 ---
 

@@ -267,7 +267,7 @@ async function submitStory() {
           >
             <NuxtLink
               to="/feed/write"
-              class="inline-flex items-center gap-2 rounded-xl border border-[#cfe0d5] bg-[#e4efe8] px-4 py-2.5 text-sm font-semibold text-[#3f6f5a] transition hover:-translate-y-0.5 hover:bg-[#d7e8dd]"
+              class="feed-manuscript-btn inline-flex items-center gap-2 rounded-xl border border-[#cfe0d5] bg-[#e4efe8] px-4 py-2.5 text-sm font-semibold text-[#3f6f5a] transition hover:-translate-y-0.5 hover:bg-[#d7e8dd]"
             >
               {{ $t("manuscript.writeCta") }}
             </NuxtLink>
@@ -350,7 +350,7 @@ async function submitStory() {
           >
             <div class="relative z-[1] max-w-xl">
               <p
-                class="text-[11px] font-bold uppercase tracking-[0.18em] text-[#3f6f5a]"
+                class="feed-manuscript-kicker text-[11px] font-bold uppercase tracking-[0.18em] text-[#3f6f5a]"
               >
                 {{ $t("manuscript.inviteKicker") }}
               </p>
@@ -368,7 +368,7 @@ async function submitStory() {
                 {{ $t("manuscript.inviteBody") }}
               </p>
               <span
-                class="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3f6f5a] transition group-hover:gap-2"
+                class="feed-manuscript-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3f6f5a] transition group-hover:gap-2"
               >
                 {{ $t("manuscript.inviteAction") }}
                 <span aria-hidden="true">→</span>
@@ -745,5 +745,13 @@ html[data-theme="dark"] .manuscript-invite {
     rgba(17, 24, 22, 0.98)
   );
   border-color: #2a332e;
+}
+
+html[data-theme="dark"] .manuscript-invite .text-slate-900 {
+  color: #f1f5f9 !important;
+}
+
+html[data-theme="dark"] .manuscript-invite .text-slate-600 {
+  color: #94a3b8 !important;
 }
 </style>
