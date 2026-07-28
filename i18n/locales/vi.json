@@ -211,7 +211,7 @@
     "composer": {
       "writeAPost": "Viết bài",
       "placeholder": "Viết bài… Markdown (#, *, >, bảng) và $E=mc^2$ / $$…$$ cho LaTeX",
-      "formatHint": "Markdown: # tiêu đề, *nghiêng*, **đậm**, > trích dẫn, - danh sách, bảng, `code`, liên kết và ảnh. LaTeX: $…$ hoặc $$…$$.",
+      "formatHint": "Markdown: # tiêu đề, *nghiêng*, **đậm**, > trích dẫn, - danh sách, bảng, `code`, và liên kết. LaTeX: $…$ hoặc $$…$$.",
       "category": "Danh mục",
       "noCategory": "Không có danh mục",
       "font": "Phông chữ",
