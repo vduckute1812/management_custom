@@ -35,12 +35,12 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 
 ## Token lifecycle
 
-- **Access token** — 15-minute HS256 JWT, signed with `JWT_SECRET`. Stateless: rejection is "signature bad / wrong issuer / expired".
-- **Refresh token** — 30-day opaque base64url, stored as SHA-256 hash only. On `/api/auth/refresh` the presented token is _revoked_ and a new pair is issued (rotation). On `/api/auth/logout` the presented refresh token is revoked outright; with `everywhere: true`, every active refresh token for the caller is revoked.
-- **Email verification** — a one-shot opaque token (also hashed). At sign-up the handler **enqueues** an `email.verification` job; the Nitro job worker sends it via SMTP (with retries). Login is refused with `403` until the user POSTs the token to `/api/auth/verify-email`. See [`cache-queue.md`](./cache-queue.md).
+- **Access token** — 15-minute HS256 JWT, signed with `JWT_SECRET`. Returned in JSON for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin media requests authenticate without putting the JWT in the query string.
+- **Refresh token** — 30-day opaque base64url, stored as SHA-256 hash only, delivered exclusively via HttpOnly `mgmt_rt` (legacy body/`localStorage` still accepted once for migration). On `/api/auth/refresh` the presented token is revoked and a successor inserted **in one transaction** so concurrent refreshes cannot both win. On `/api/auth/logout` the presented refresh token is revoked and cookies cleared; with `everywhere: true`, every active refresh token for the caller is revoked.
+- **Email verification** — a one-shot opaque token (also hashed). At sign-up the handler inserts the user + verification row in one transaction, then **enqueues** an `email.verification` job; the Nitro job worker sends it via SMTP (with retries). Login is refused with `403` until the user POSTs the token to `/api/auth/verify-email`. See [`cache-queue.md`](./cache-queue.md).
 - **Signup password policy** — shared `utils/passwordPolicy.ts`: min 8 chars + lower + upper + digit + special. Enforced on the client (confirm field + checklist) and again on `POST /api/auth/signup`.
 
-The client (`composables/useApi.ts`) auto-attaches the access token on every request, proactively refreshes it within 30 s of expiry, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
+The client (`composables/useApi.ts`) auto-attaches the access token on every request (and always sends credentials), proactively refreshes it within 30 s of expiry via the cookie, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
 
 ---
 

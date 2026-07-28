@@ -1,12 +1,5 @@
 /**
- * POST /api/auth/login
- *
- * Body:  { email, password }
- * Reply: { user: AuthUser, accessToken, accessExpiresAt, refreshExpiresAt }
- *
- * Issues a fresh access + refresh pair. Refresh is set as an HttpOnly cookie
- * (`mgmt_rt`); access is returned in the JSON body (in-memory client use) and
- * mirrored as HttpOnly `mgmt_at` for same-origin media requests.
+ * POST /api/auth/login — Zod-validated; sets HttpOnly auth cookies.
  */
 import {
   getUserByEmail,
@@ -26,21 +19,15 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "~/server/utils/refreshCookie";
-
-interface LoginBody {
-  email?: string;
-  password?: string;
-}
+import { parseBody } from "~/server/utils/http";
+import { loginBodySchema } from "~/server/schemas";
 
 const GENERIC_INVALID = "Invalid email or password";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<LoginBody>(event);
-  const email = (body?.email ?? "").trim().toLowerCase();
-  const password = body?.password ?? "";
-  if (!email || !password) {
-    throw createError({ statusCode: 400, statusMessage: GENERIC_INVALID });
-  }
+  const body = await parseBody(event, loginBodySchema);
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
 
   const user = await getUserByEmail(email);
   if (!user) {
@@ -80,8 +67,6 @@ export default defineEventHandler(async (event) => {
   setRefreshCookie(event, refreshToken);
   setAccessCookie(event, accessToken);
 
-  // Best-effort: a write failure here must NOT block sign-in. The admin
-  // dashboard simply shows "Never" / a stale value if this UPDATE drops.
   await recordUserLogin(user.id).catch(() => {});
 
   return {

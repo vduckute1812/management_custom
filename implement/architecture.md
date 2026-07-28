@@ -8,7 +8,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 | Layer      | Technology                     | Purpose                                                                                             |
 | ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing; hybrid: SSR for `/` + `/feed`, SPA for app chrome                             |
+| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                         |
 | Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                    |
 | i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)             |
 | SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                      |
@@ -21,6 +21,8 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                              |
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                                   |
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` |
+| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                        |
+| Tests      | Vitest                         | `npm test` — schema, security helpers, markdown sanitization                                        |
 
 ## Project facts
 
@@ -29,11 +31,12 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Project Path | `~/Projects/management_custom`                                        |
 | Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                |
 | Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                           |
-| Framework    | Nuxt 3 (Vue 3), client-only SPA                                       |
+| Framework    | Nuxt 3 (Vue 3), **hybrid SSR** for public routes                      |
 | TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)  |
 | Styling      | TailwindCSS v4                                                        |
 | Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)   |
 | Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories) |
+| Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)           |
 | Telemetry    | None                                                                  |
 
 ---
@@ -43,12 +46,18 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 Two product modules share one install: **Feed** (posts/stories) and **Time Management** (tasks/epics/calendar). Auth and admin sit across both.
 
 ```
-Browser (Vue 3 SPA)
+Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
     │
     ▼
 Nuxt 3 / Nitro API Routes (/server/api/...)
     │
+    ├── server/middleware/security-headers.ts  →  CSP + baseline headers
+    ├── server/middleware/auth.ts              →  Bearer / HttpOnly access cookie
+    │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
+    │
+    ├── server/services/*      →  selective workflow orchestration
+    │     (task save, timer start/stop, post create, …)
     │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
     │     tables: users (+ last_login_at, profile fields via 0010), auth_*,
@@ -64,10 +73,13 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 - **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
 - **Schema ownership.** Versioned SQL in `server/db/migrations/`, applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
 - **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `stories`, `uploads`, `categories`, `jobs`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
+- **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction.
 - **Cache & queue.** Hot public reads use the cache facade; signup email and similar side-effects go through the MySQL job queue. Full design: [`cache-queue.md`](./cache-queue.md).
-- **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, etc.) run inside `BEGIN … COMMIT`.
+- **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, signup user+verification, refresh rotate, etc.) run inside `BEGIN … COMMIT`.
 - **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
 - **Auth scoping.** Time-management CRUD is always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
+- **Feed → Tasks seam.** `usePlanPostAsTask` owns "plan this post as a task"; Feed UI components must not call `useTasks` directly for that flow.
 
 ---
 
@@ -163,7 +175,7 @@ Configured in `nuxt.config.ts` for production identity **Da Nang TechX** / `http
 | Page titles          | Still set per-page with `useSeoMeta` + `t('seo.*')` (see [`i18n.md`](./i18n.md#seo-titles))                                                                            |
 | HTML for crawlers    | `/` and `/feed` use **selective SSR** (`routeRules` + short SWR) so the first response includes real copy and public posts — not an empty SPA shell                    |
 
-Auth remains localStorage-based, so SSR always paints the **guest** chrome; `isAuthenticatedUi` reveals the signed-in header/composer after mount to avoid hydration mismatches. App routes (`/tasks`, `/admin`, …) stay `ssr: false`.
+Auth remains cookie/Bearer-based on the client, so SSR always paints the **guest** chrome; `isAuthenticatedUi` reveals the signed-in header/composer after mount to avoid hydration mismatches. App routes (`/tasks`, `/admin`, …) stay `ssr: false`.
 
 After deploy, verify `/`, `/feed`, `/robots.txt`, and `/sitemap.xml` on the live host and submit the sitemap in Google Search Console.
 

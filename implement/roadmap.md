@@ -247,13 +247,14 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Admin ops snapshot `GET /api/admin/queue`
 - [x] Docs: `implement/cache-queue.md`, `cache-queue-spec.md`, architecture / database / api / getting-started / README map
 
-## Phase 15 — R2 media lifecycle cleanup
+## Phase 16 — Structural hardening (auth cookies, validation, services, tests)
 
-Delete Cloudflare objects when media is no longer shown.
-
-- [x] `purgeOrphanedUploads` — drop upload row + R2 key when not on a post, live story, or user avatar
-- [x] Post/story delete paths collect upload ids and purge orphans
-- [x] Profile avatar replace/clear orphan-purges the previous upload id
-- [x] Expired stories: `purgeExpiredStories` on tray load + job-worker maintenance (~2 min)
-- [x] User delete: capture storage keys before CASCADE, then `purgeR2StorageKeys`
-- [x] Docs: api / database / cache-queue job table / auth profile section
+- [x] HttpOnly refresh (`mgmt_rt`) + access (`mgmt_at`) cookies; wipe refresh from localStorage; one-time legacy migration
+- [x] Atomic refresh-token rotation (`rotateRefreshToken` transaction)
+- [x] Signup user + email-verification inserted in one transaction
+- [x] CSP / security-headers Nitro middleware
+- [x] Shared Zod schemas (`server/schemas`) + `parseBody` / `parseQuery` / `DomainError`
+- [x] Selective services: `taskService`, `timerService`, `postService`
+- [x] Vitest suite (`npm test`) for schemas, password/token helpers, markdown sanitize
+- [x] Feed→Tasks seam via `usePlanPostAsTask`; `PostCommentsPanel` extracted from `PostCard`
+- [x] Docs synced: architecture / api / auth / getting-started

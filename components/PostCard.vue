@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { Post, PostComment, PostReactionType } from "~/types/post";
+import type { Post, PostReactionType } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
-import { TaskStatus } from "~/types/task";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
 import { bodyReferencesUpload } from "~/utils/markdownMedia";
@@ -19,11 +18,11 @@ const emit = defineEmits<{
 }>();
 
 const { t, te } = useI18n();
-const { loadComments, addComment, removeComment, getPost } = usePosts();
-const { saveTask } = useTasks();
+const { getPost } = usePosts();
 const { pushToast } = useToasts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
+const { planBusy, planPostAsTask } = usePlanPostAsTask();
 
 /** Active manuscript locale variant shown in this card. */
 const view = ref(props.post);
@@ -86,10 +85,6 @@ const galleryAttachments = computed(() =>
 );
 
 const commentsOpen = ref(false);
-const comments = ref<PostComment[]>([]);
-const commentsLoading = ref(false);
-const commentBody = ref("");
-const commentSubmitting = ref(false);
 const shareOpen = ref(false);
 const shareNote = ref("");
 const shareSubmitting = ref(false);
@@ -198,35 +193,8 @@ const topReactions = computed(() =>
   ),
 );
 
-async function toggleComments() {
+function toggleComments() {
   commentsOpen.value = !commentsOpen.value;
-  if (commentsOpen.value && comments.value.length === 0) {
-    commentsLoading.value = true;
-    try {
-      comments.value = await loadComments(props.post.id);
-    } finally {
-      commentsLoading.value = false;
-    }
-  }
-}
-
-async function onAddComment() {
-  const text = commentBody.value.trim();
-  if (!text || commentSubmitting.value) return;
-  commentSubmitting.value = true;
-  try {
-    const created = await addComment(props.post.id, text);
-    comments.value = [...comments.value, created];
-    commentBody.value = "";
-    commentsOpen.value = true;
-  } finally {
-    commentSubmitting.value = false;
-  }
-}
-
-async function onDeleteComment(comment: PostComment) {
-  await removeComment(props.post.id, comment.id);
-  comments.value = comments.value.filter((c) => c.id !== comment.id);
 }
 
 function onShare() {
@@ -292,52 +260,9 @@ function onShareClick() {
   shareOpen.value = !shareOpen.value;
 }
 
-const planBusy = ref(false);
-
-/**
- * Time Management integration: turn this article into a research task so
- * it can be scheduled, time-tracked, and marked done from /tasks.
- */
 async function onPlanClick() {
-  if (!auth.isAuthenticated.value) {
-    navigateTo({ path: "/login", query: { redirect: "/feed" } });
-    return;
-  }
-  if (planBusy.value) return;
-  planBusy.value = true;
-  try {
-    const excerpt =
-      props.post.title?.trim() ||
-      (props.post.body || "").replace(/\s+/g, " ").trim().slice(0, 80) ||
-      t("feed.post.planUntitled");
-    const tags = [
-      props.post.format === "manuscript" ? "manuscript" : "article",
-    ];
-    if (props.post.category?.slug) tags.push(props.post.category.slug);
-    await saveTask({
-      title: t("feed.post.planTaskTitle", { title: excerpt }),
-      notes: t("feed.post.planTaskNotes", {
-        author: authorLabel(props.post.author.name, props.post.author.email),
-        date: new Date(props.post.createdAt).toLocaleString(),
-        id: props.post.id,
-      }),
-      status: TaskStatus.Todo,
-      tags,
-    });
-    pushToast(t("feed.post.planTaskCreated"), {
-      tone: "success",
-      actionLabel: t("feed.post.planTaskOpen"),
-      onAction: async () => {
-        await navigateTo("/tasks");
-      },
-    });
-  } catch {
-    pushToast(t("feed.post.planTaskFailed"), { tone: "danger" });
-  } finally {
-    planBusy.value = false;
-  }
-}
-</script>
+  await planPostAsTask(props.post);
+}</script>
 
 <template>
   <article
@@ -821,84 +746,7 @@ async function onPlanClick() {
       </div>
     </div>
 
-    <div
-      v-if="commentsOpen"
-      class="border-t border-slate-100 px-4 py-3 space-y-3"
-    >
-      <div v-if="commentsLoading" class="space-y-2" aria-busy="true">
-        <SkeletonBlock height="h-10" rounded="rounded-lg" />
-        <SkeletonBlock height="h-10" rounded="rounded-lg" />
-      </div>
-      <ul v-else class="space-y-3">
-        <li v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
-          <div
-            class="w-7 h-7 rounded-full bg-slate-200 text-slate-600 text-[10px] font-semibold flex items-center justify-center shrink-0"
-            aria-hidden="true"
-          >
-            {{ initialOf(comment.author.name, comment.author.email) }}
-          </div>
-          <div class="flex-1 min-w-0 rounded-lg bg-slate-50 px-3 py-2">
-            <div class="flex items-baseline justify-between gap-2">
-              <p class="text-xs font-semibold text-slate-800 truncate">
-                {{ authorLabel(comment.author.name, comment.author.email) }}
-              </p>
-              <button
-                v-if="comment.canDelete"
-                type="button"
-                class="text-[10px] text-slate-400 hover:text-rose-600"
-                @click="onDeleteComment(comment)"
-              >
-                {{ $t("feed.post.delete") }}
-              </button>
-            </div>
-            <p
-              class="text-sm text-slate-700 whitespace-pre-wrap break-words mt-0.5"
-            >
-              {{ comment.body }}
-            </p>
-          </div>
-        </li>
-        <li v-if="!comments.length" class="text-xs text-slate-400 italic">
-          {{ $t("feed.post.noCommentsYet") }}
-        </li>
-      </ul>
-
-      <form
-        v-if="auth.isAuthenticatedUi.value"
-        class="flex gap-2"
-        @submit.prevent="onAddComment"
-      >
-        <label class="sr-only" :for="`comment-${post.id}`">{{
-          $t("feed.post.writeComment")
-        }}</label>
-        <input
-          :id="`comment-${post.id}`"
-          v-model="commentBody"
-          type="text"
-          maxlength="2000"
-          class="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-          :placeholder="$t('feed.post.writeCommentPlaceholder')"
-          :disabled="commentSubmitting"
-        />
-        <button
-          type="submit"
-          class="rounded-lg bg-brand-600 px-3 py-2 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          :disabled="!commentBody.trim() || commentSubmitting"
-        >
-          {{ $t("feed.post.reply") }}
-        </button>
-      </form>
-      <p v-else class="text-xs text-slate-500">
-        <NuxtLink
-          to="/login"
-          class="font-medium text-brand-700 hover:underline"
-        >
-          {{ $t("feed.post.loginLink") }} </NuxtLink
-        >{{
-          $t("feed.post.loginToComment").slice($t("feed.post.loginLink").length)
-        }}
-      </p>
-    </div>
+    <PostCommentsPanel :post-id="post.id" :open="commentsOpen" />
   </article>
 </template>
 
