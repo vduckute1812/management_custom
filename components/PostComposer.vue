@@ -237,7 +237,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       </div>
       <NuxtLink
         to="/feed/write"
-        class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-[#e4efe8] px-2.5 py-1 text-[10px] font-semibold text-[#3f6f5a] transition hover:bg-[#d7e8dd]"
+        class="ml-auto inline-flex items-center gap-1.5 rounded-full feed-manuscript-chip px-2.5 py-1 text-[10px] font-semibold transition"
       >
         {{ $t("manuscript.openStudioChip") }}
       </NuxtLink>

@@ -262,14 +262,15 @@ function onShareClick() {
 
 async function onPlanClick() {
   await planPostAsTask(props.post);
-}</script>
+}
+</script>
 
 <template>
   <article
     class="group overflow-hidden rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
     :class="
       isManuscript
-        ? 'manuscript-card border-[#d5ddd6] bg-[#f7f8f6] hover:border-[#b9c7bd]'
+        ? 'manuscript-card'
         : 'border-slate-200 bg-white hover:border-slate-300'
     "
   >
@@ -278,7 +279,7 @@ async function onPlanClick() {
         class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-sm font-bold text-white shadow-sm"
         :class="
           isManuscript
-            ? 'rounded-xl bg-[#3f6f5a] ring-4 ring-[#e4efe8]'
+            ? 'rounded-xl manuscript-avatar ring-4'
             : post.author.avatarUrl
               ? 'rounded-full bg-slate-200 ring-4 ring-brand-50'
               : 'rounded-full bg-gradient-to-br from-brand-500 to-brand-700 ring-4 ring-brand-50'
@@ -309,7 +310,7 @@ async function onPlanClick() {
           </time>
           <span
             v-if="isManuscript"
-            class="rounded-full bg-[#e4efe8] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3f6f5a]"
+            class="manuscript-pill rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
           >
             {{ $t("manuscript.badge") }}
           </span>
@@ -365,13 +366,13 @@ async function onPlanClick() {
           class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
           :class="
             isManuscript
-              ? 'bg-[#e4efe8] text-[#3f6f5a] ring-[#cfe0d5]'
+              ? 'manuscript-category ring-1 ring-inset'
               : 'bg-brand-50 text-brand-800 ring-brand-100'
           "
         >
           <span
             class="h-1.5 w-1.5 rounded-full"
-            :class="isManuscript ? 'bg-[#3f6f5a]' : 'bg-brand-500'"
+            :class="isManuscript ? 'manuscript-category__dot' : 'bg-brand-500'"
             aria-hidden="true"
           />
           {{ categoryLabel() }}
@@ -392,7 +393,7 @@ async function onPlanClick() {
           class="rounded-md px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset transition"
           :class="
             tr.locale === view.contentLocale
-              ? 'bg-[#3f6f5a] text-white ring-[#3f6f5a]'
+              ? 'manuscript-locale--active ring-1 ring-inset'
               : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
           "
           :disabled="localeSwitching"
@@ -402,7 +403,7 @@ async function onPlanClick() {
         </button>
         <NuxtLink
           v-if="post.canDelete && view.translationGroupId"
-          class="ml-1 text-[11px] font-semibold text-[#3f6f5a] hover:underline"
+          class="ml-1 text-[11px] font-semibold manuscript-link hover:underline"
           :to="{
             path: '/feed/write',
             query: {
@@ -420,13 +421,13 @@ async function onPlanClick() {
       >
         <span
           v-if="view.contentLocale && view.contentLocale !== 'und'"
-          class="rounded-md bg-[#e4efe8] px-2 py-0.5 text-[11px] font-semibold text-[#3f6f5a]"
+          class="rounded-md manuscript-pill px-2 py-0.5 text-[11px] font-semibold"
         >
           {{ localeChipLabel(view.contentLocale) }}
         </span>
         <NuxtLink
           v-if="view.translationGroupId"
-          class="text-[11px] font-semibold text-[#3f6f5a] hover:underline"
+          class="text-[11px] font-semibold manuscript-link hover:underline"
           :to="{
             path: '/feed/write',
             query: {
@@ -473,7 +474,7 @@ async function onPlanClick() {
           class="mt-2 text-xs font-semibold"
           :class="
             isManuscript
-              ? 'text-[#3f6f5a] hover:text-[#345c4a]'
+              ? 'manuscript-read-more'
               : 'text-brand-700 hover:text-brand-800'
           "
           @click="bodyExpanded = !bodyExpanded"
@@ -545,7 +546,7 @@ async function onPlanClick() {
           </span>
           <span
             v-if="post.sharedPost.format === 'manuscript'"
-            class="ml-1 rounded-full bg-[#e4efe8] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#3f6f5a]"
+            class="ml-1 rounded-full manuscript-pill px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
           >
             {{ $t("manuscript.badge") }}
           </span>
@@ -772,29 +773,6 @@ async function onPlanClick() {
   position: absolute;
   inset: 0 auto 0 0;
   width: 3px;
-  background: linear-gradient(180deg, #3f6f5a, transparent 75%);
-}
-</style>
-
-<!-- Unscoped: keep manuscript paper readable under global dark-theme text remaps. -->
-<style>
-html[data-theme="dark"] .manuscript-card .manuscript-card__title {
-  color: #0f172a !important;
-}
-
-html[data-theme="dark"] .manuscript-card .manuscript-card__excerpt {
-  color: #334155 !important;
-}
-
-html[data-theme="dark"] .manuscript-card .text-slate-900 {
-  color: #0f172a !important;
-}
-
-html[data-theme="dark"] .manuscript-card .text-slate-700 {
-  color: #334155 !important;
-}
-
-html[data-theme="dark"] .manuscript-card .text-slate-600 {
-  color: #475569 !important;
+  background: linear-gradient(180deg, var(--mf-accent), transparent 75%);
 }
 </style>
