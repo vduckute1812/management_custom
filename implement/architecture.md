@@ -8,7 +8,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 | Layer      | Technology                     | Purpose                                                                                             |
 | ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing, SPA via `routeRules` `ssr: false`                                             |
+| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing; hybrid: SSR for `/` + `/feed`, SPA for app chrome                             |
 | Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                    |
 | i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)             |
 | SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                      |
@@ -146,7 +146,7 @@ Global guard: `middleware/auth.global.ts`.
 ├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, categoryLabel, …
 ├── implement/                       # Technical documentation (you are here)
 ├── .env.example
-└── nuxt.config.ts                   # SPA routeRules + @nuxtjs/i18n + @nuxtjs/seo
+└── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```
 
 ---
@@ -161,10 +161,11 @@ Configured in `nuxt.config.ts` for production identity **Da Nang TechX** / `http
 | `/sitemap.xml`       | Indexes `/` and `/feed` only (private app routes excluded)                                                                                                             |
 | Open Graph / Twitter | Text meta via `nuxt-seo-utils`; **dynamic OG image generation is disabled** (`ogImage.enabled: false`) — native `@takumi-rs/core` is not viable on the ARM deploy host |
 | Page titles          | Still set per-page with `useSeoMeta` + `t('seo.*')` (see [`i18n.md`](./i18n.md#seo-titles))                                                                            |
+| HTML for crawlers    | `/` and `/feed` use **selective SSR** (`routeRules` + short SWR) so the first response includes real copy and public posts — not an empty SPA shell                    |
 
-**SPA caveat.** The whole app remains `routeRules: { "/**": { ssr: false } }`. Google can execute JS; many social crawlers do not. `/robots.txt` and `/sitemap.xml` are Nitro routes and work without SSR. Full HTML meta in the first response for `/` and `/feed` would require selective SSR/prerender later.
+Auth remains localStorage-based, so SSR always paints the **guest** chrome; `isAuthenticatedUi` reveals the signed-in header/composer after mount to avoid hydration mismatches. App routes (`/tasks`, `/admin`, …) stay `ssr: false`.
 
-After deploy, verify the two endpoints on the live host and submit the sitemap in Google Search Console.
+After deploy, verify `/`, `/feed`, `/robots.txt`, and `/sitemap.xml` on the live host and submit the sitemap in Google Search Console.
 
 ---
 

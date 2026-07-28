@@ -9,10 +9,11 @@
  *     `redirect` query so we can return them.
  *   - /admin requires `role: admin`; non-admins land on /.
  *
- * The app runs in SPA mode (see nuxt.config.ts), so this only fires on the
- * client. The `auth.client.ts` plugin awaits its hydrate/refresh work before
- * the app mounts, so by the time this middleware runs `isAuthenticated` is
- * already correct — no flash of /login for users with a valid session.
+ * `/` and `/feed` are selectively SSR'd (see nuxt.config.ts); other app
+ * routes stay client-only. The `auth.client.ts` plugin awaits its
+ * hydrate/refresh work before the app mounts, so by the time this
+ * middleware runs on protected SPA routes `isAuthenticated` is already
+ * correct — no flash of /login for users with a valid session.
  */
 const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/verify-email"]);
 const AUTH_FORM_PATHS = new Set(["/login", "/signup"]);

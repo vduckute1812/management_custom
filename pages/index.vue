@@ -14,8 +14,15 @@ useSeoMeta({
   description: computed(() => t("seo.homeDescription")),
 });
 
+// Load topic chips during SSR so the hub HTML Google indexes isn't empty.
+if (import.meta.server || !categories.value.length) {
+  await refreshCategories().catch(() => undefined);
+}
+
 onMounted(() => {
-  refreshCategories().catch(() => undefined);
+  if (!categories.value.length) {
+    refreshCategories().catch(() => undefined);
+  }
 });
 
 function catLabel(cat: { slug: string; name: string }) {
@@ -67,8 +74,8 @@ function catLabel(cat: { slug: string; name: string }) {
             class="mt-6 max-w-2xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl lg:leading-[1.08]"
           >
             {{
-              auth.user.value?.name
-                ? $t("home.welcomeNamed", { name: auth.user.value.name })
+              auth.userUi.value?.name
+                ? $t("home.welcomeNamed", { name: auth.userUi.value.name })
                 : $t("home.welcome")
             }}
           </h1>
@@ -118,7 +125,9 @@ function catLabel(cat: { slug: string; name: string }) {
 
           <p class="mt-4 max-w-xl text-xs leading-5 text-slate-500">
             {{
-              auth.isAuthenticated.value ? $t("home.cta") : $t("home.ctaGuest")
+              auth.isAuthenticatedUi.value
+                ? $t("home.cta")
+                : $t("home.ctaGuest")
             }}
           </p>
         </header>

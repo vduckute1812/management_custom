@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Nuxt 3 Project Standards
 
-This app is a **client-only SPA** (`routeRules: { "/**": { ssr: false } }`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n` + `@nuxtjs/seo`. Runtime: **Node ≥ 24**. TypeScript: classic compiler pinned in `package.json` (required by `vue-tsc`; see below). As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
+This app uses **hybrid rendering**: `/` and `/feed` are SSR'd for crawlers; the rest of the app is a client-only SPA (`routeRules`). Prefer patterns that match the existing stack: Nuxt 3 + Tailwind 4 + Zod + Bearer auth + `@nuxtjs/i18n` + `@nuxtjs/seo`. Runtime: **Node ≥ 24**. TypeScript: classic compiler pinned in `package.json` (required by `vue-tsc`; see below). As-built topology: [`implement/architecture.md`](../../implement/architecture.md).
 
 ## Toolchain compatibility & type safety
 
@@ -66,7 +66,7 @@ if (!parsed.success) {
 ## Performance (SPA-aware)
 
 * Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer.
-* Browser-only APIs (`window`, `localStorage`): safe in this SPA after mount; still avoid running them in shared modules imported by server code.
+* Browser-only APIs (`window`, `localStorage`): guard with `import.meta.client`. On SSR'd public routes, auth chrome must use `isAuthenticatedUi` / `userUi` (ready after mount) so hydration matches the guest HTML.
 * Keep Chart.js and large editors out of the initial critical path when possible.
 
 ## i18n

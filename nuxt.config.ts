@@ -47,15 +47,18 @@ export default defineNuxtConfig({
       "/feed/write",
     ],
   },
-  // SPA mode. Auth tokens live in localStorage; SSR can't read them, so we
-  // disable SSR via routeRules. Public routes (/, /feed) render for guests;
-  // the auth plugin hydrates once, then route middleware gates protected
-  // sections (tasks, settings, admin) without bouncing home to /login.
+  // Hybrid rendering. Auth tokens live in localStorage, so private chrome
+  // stays client-only. Public hub + feed are SSR'd (short SWR) so Google and
+  // other crawlers receive real HTML — the previous full-SPA shell had empty
+  // <body> text and was effectively unindexable. Guest HTML is safe to cache
+  // because SSR never sees a session; `isAuthenticatedUi` paints after mount.
   //
   // Implemented via per-route `routeRules` rather than top-level `ssr: false`
   // because Nuxt 3.21.8 has a regression where the top-level toggle trips
   // `resolveServerEntry` ("No entry found in rollupOptions.input").
   routeRules: {
+    "/": { ssr: true, swr: 120 },
+    "/feed": { ssr: true, swr: 60 },
     "/**": { ssr: false },
   },
   // After a deploy, hashed /_nuxt/* chunks disappear. SPA clients still on an
@@ -102,7 +105,8 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         {
           name: "description",
-          content: "Local-first task and analytics manager built with Nuxt 3.",
+          content:
+            "Da Nang Tech R&D and Networking Portal — feed and time management.",
         },
         // Render with a sensible color scheme even on first paint, before the
         // theme plugin has run.

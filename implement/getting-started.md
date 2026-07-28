@@ -146,6 +146,7 @@ node --env-file=.env .output/server/index.mjs
 
 On the live host, confirm SEO endpoints after deploy:
 
+- `https://dntechx.com/` and `https://dntechx.com/feed` (view-source should show real copy / public posts, not an empty `#__nuxt` shell)
 - `https://dntechx.com/robots.txt`
 - `https://dntechx.com/sitemap.xml` (should list `/` and `/feed` only)
 
