@@ -15,8 +15,15 @@
  * middleware runs on protected SPA routes `isAuthenticated` is already
  * correct — no flash of /login for users with a valid session.
  */
-const PUBLIC_PATHS = new Set(["/", "/login", "/signup", "/verify-email"]);
-const AUTH_FORM_PATHS = new Set(["/login", "/signup"]);
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/login",
+  "/signup",
+  "/verify-email",
+  "/forgot-password",
+  "/reset-password",
+]);
+const AUTH_FORM_PATHS = new Set(["/login", "/signup", "/forgot-password"]);
 
 function isPublicPath(path: string): boolean {
   if (PUBLIC_PATHS.has(path)) return true;

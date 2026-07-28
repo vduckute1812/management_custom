@@ -135,6 +135,22 @@ export const useAuth = () => {
     return data.user;
   }
 
+  async function requestPasswordReset(email: string): Promise<void> {
+    await $fetch("/api/auth/forgot-password", {
+      method: "POST",
+      body: { email },
+      ...CREDENTIALS,
+    });
+  }
+
+  async function resetPassword(token: string, password: string): Promise<void> {
+    await $fetch("/api/auth/reset-password", {
+      method: "POST",
+      body: { token, password },
+      ...CREDENTIALS,
+    });
+  }
+
   async function refresh(): Promise<AuthSession> {
     try {
       const session = await $fetch<AuthSession>("/api/auth/refresh", {
@@ -240,6 +256,8 @@ export const useAuth = () => {
     login,
     signup,
     verifyEmail,
+    requestPasswordReset,
+    resetPassword,
     refresh,
     fetchMe,
     updateProfile,

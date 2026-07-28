@@ -47,6 +47,7 @@ export * from "../db/timer";
 export * from "../db/users";
 export * from "../db/refresh-tokens";
 export * from "../db/email-verifications";
+export * from "../db/password-resets";
 export * from "../db/admin";
 export * from "../db/posts";
 export * from "../db/categories";

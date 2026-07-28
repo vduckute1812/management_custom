@@ -4,7 +4,7 @@ All routes are handled by Nitro under `/server/api/`.
 
 **Auth rules (summary):**
 
-- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email}`, `GET /api/categories`.
+- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
@@ -43,15 +43,17 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 ## Auth
 
-| Method  | Endpoint                 | Description                                                                                                                                                                                                                                                                                                                                                   |
-| ------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                         |
-| `POST`  | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
-| `POST`  | `/api/auth/refresh`      | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/logout`       | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/verify-email` | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
-| `GET`   | `/api/auth/me`           | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
-| `PATCH` | `/api/auth/profile`      | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
+| Method  | Endpoint                    | Description                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`  | `/api/auth/signup`          | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                        |
+| `POST`  | `/api/auth/login`           | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
+| `POST`  | `/api/auth/refresh`         | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/logout`          | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/verify-email`    | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
+| `POST`  | `/api/auth/forgot-password` | Body `{ email }`. Sends a one-shot password-reset link when the account exists and email is verified. Always returns `{ ok: true }` (no account enumeration).                                                                                                                                                                                                 |
+| `POST`  | `/api/auth/reset-password`  | Body `{ token, password }`. Consumes a reset link, updates `password_hash`, revokes all refresh sessions. Returns `{ ok: true }`. User must sign in manually.                                                                                                                                                                                                 |
+| `GET`   | `/api/auth/me`              | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
+| `PATCH` | `/api/auth/profile`         | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
 
 **Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; they live in the HttpOnly `mgmt_rt` cookie (not localStorage). Logout revokes them; refresh rotates them inside one DB transaction.
 
@@ -138,7 +140,7 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 | Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
 | ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |
-| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI. |
+| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI.                                                                                                           |
 
 **Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
 
@@ -162,21 +164,21 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 ## Epics (scoped to authenticated user)
 
-| Method   | Endpoint         | Description                                                                                                               |
-| -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/epics`     | Returns the caller's Epics with derived hours, progress, taskCount.                                                       |
+| Method   | Endpoint         | Description                                                                                                                                        |
+| -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/epics`     | Returns the caller's Epics with derived hours, progress, taskCount.                                                                                |
 | `POST`   | `/api/epics`     | Creates or updates one of the caller's Epics (`epicUpsertBodySchema`). Attempting to POST a body with an `id` owned by someone else returns `404`. |
-| `DELETE` | `/api/epics/:id` | Removes one of the caller's Epics. Cross-user ids `404`. Child tasks have `epicId` cleared.                               |
+| `DELETE` | `/api/epics/:id` | Removes one of the caller's Epics. Cross-user ids `404`. Child tasks have `epicId` cleared.                                                        |
 
 ---
 
 ## Tasks (scoped to authenticated user)
 
-| Method   | Endpoint         | Description                                                                                                                    |
-| -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                              |
+| Method   | Endpoint         | Description                                                                                                                                        |
+| -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                                                  |
 | `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (`taskUpsertBodySchema`, including `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`. |
-| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                       |
+| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                                           |
 
 ---
 

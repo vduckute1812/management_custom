@@ -9,12 +9,10 @@
  * The Nitro plugin `server/plugins/job-worker.ts` claims and runs jobs.
  */
 
-import {
-  enqueueJob,
-  type JobRow,
-} from "~/server/db/jobs";
+import { enqueueJob, type JobRow } from "~/server/db/jobs";
 import {
   sendMail,
+  sendPasswordResetEmail,
   sendVerificationEmail,
   type SendMailArgs,
 } from "~/server/utils/mailer";
@@ -22,6 +20,7 @@ import {
 export const JobTypes = {
   EmailSend: "email.send",
   EmailVerification: "email.verification",
+  EmailPasswordReset: "email.passwordReset",
   CacheInvalidate: "cache.invalidate",
   MediaPurgeExpired: "media.purgeExpired",
 } as const;
@@ -57,6 +56,18 @@ export async function enqueueVerificationEmail(
   });
 }
 
+export async function enqueuePasswordResetEmail(
+  args: { to: string; token: string },
+  opts?: { delaySeconds?: number; maxAttempts?: number },
+): Promise<JobRow> {
+  return enqueueJob({
+    type: JobTypes.EmailPasswordReset,
+    payload: { to: args.to, token: args.token },
+    delaySeconds: opts?.delaySeconds,
+    maxAttempts: opts?.maxAttempts ?? 5,
+  });
+}
+
 export async function enqueueCacheInvalidate(
   prefixes: string[],
   opts?: { delaySeconds?: number },
@@ -69,9 +80,9 @@ export async function enqueueCacheInvalidate(
   });
 }
 
-export async function enqueueMediaPurgeExpired(
-  opts?: { delaySeconds?: number },
-): Promise<JobRow> {
+export async function enqueueMediaPurgeExpired(opts?: {
+  delaySeconds?: number;
+}): Promise<JobRow> {
   return enqueueJob({
     type: JobTypes.MediaPurgeExpired,
     payload: {},
@@ -99,6 +110,15 @@ export async function processJob(job: JobRow): Promise<void> {
         throw new Error("email.verification: missing to/token");
       }
       await sendVerificationEmail({ to, token });
+      return;
+    }
+    case JobTypes.EmailPasswordReset: {
+      const to = String(job.payload.to || "");
+      const token = String(job.payload.token || "");
+      if (!to || !token) {
+        throw new Error("email.passwordReset: missing to/token");
+      }
+      await sendPasswordResetEmail({ to, token });
       return;
     }
     case JobTypes.CacheInvalidate: {

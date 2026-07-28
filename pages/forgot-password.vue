@@ -1,37 +1,31 @@
 <script setup lang="ts">
 definePageMeta({ layout: false });
 
-// Already-authenticated visitors are redirected away by the global auth
-// middleware (see middleware/auth.global.ts), so we only handle the
-// unauthenticated sign-in flow here.
 const auth = useAuth();
-const route = useRoute();
-const router = useRouter();
 const { t } = useI18n();
 
 useSeoMeta({
-  title: computed(() => t("seo.login")),
+  title: computed(() => t("seo.forgotPassword")),
 });
 
 const email = ref("");
-const password = ref("");
 const busy = ref(false);
 const error = ref<string | null>(null);
+const sent = ref(false);
 
 async function onSubmit() {
   if (busy.value) return;
   error.value = null;
   busy.value = true;
   try {
-    await auth.login(email.value.trim(), password.value);
-    const redirect = (route.query.redirect as string) || "/";
-    await router.replace(redirect);
+    await auth.requestPasswordReset(email.value.trim());
+    sent.value = true;
   } catch (err: unknown) {
     error.value =
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
       (err as { statusMessage?: string }).statusMessage ??
-      t("auth.loginFailed");
+      t("auth.forgotPasswordFailed");
   } finally {
     busy.value = false;
   }
@@ -51,42 +45,48 @@ async function onSubmit() {
         </div>
         <div class="text-left">
           <p class="text-base font-semibold text-slate-900 leading-tight">
-            {{ $t("nav.brand") }}
+            {{ $t("auth.forgotPasswordTitle") }}
           </p>
-          <p class="text-xs text-slate-500">{{ $t("auth.signInTitle") }}</p>
+          <p class="text-xs text-slate-500">
+            {{ $t("auth.forgotPasswordSubtitle") }}
+          </p>
         </div>
       </div>
 
+      <div
+        v-if="sent"
+        class="bg-white border border-emerald-200 rounded-xl shadow-sm p-6 space-y-3"
+      >
+        <p class="text-sm font-semibold text-emerald-700">
+          {{ $t("auth.resetLinkSentTitle") }}
+        </p>
+        <p class="text-sm text-slate-700">
+          {{ $t("auth.resetLinkSentBody") }}
+        </p>
+        <NuxtLink
+          to="/login"
+          class="block w-full py-2 rounded-md text-sm font-semibold text-center text-white bg-brand-600 hover:bg-brand-700 transition"
+        >
+          {{ $t("auth.goToSignIn") }}
+        </NuxtLink>
+      </div>
+
       <form
+        v-else
         class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4"
         @submit.prevent="onSubmit"
       >
         <div>
           <label
-            for="login-email"
+            for="forgot-email"
             class="block text-xs font-medium text-slate-600 mb-1"
             >{{ $t("auth.email") }}</label
           >
           <input
-            id="login-email"
+            id="forgot-email"
             v-model="email"
             type="email"
             autocomplete="email"
-            required
-            class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
-          />
-        </div>
-        <div>
-          <label
-            for="login-password"
-            class="block text-xs font-medium text-slate-600 mb-1"
-            >{{ $t("auth.password") }}</label
-          >
-          <input
-            id="login-password"
-            v-model="password"
-            type="password"
-            autocomplete="current-password"
             required
             class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
           />
@@ -104,18 +104,12 @@ async function onSubmit() {
           :disabled="busy"
           class="w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
         >
-          {{ busy ? $t("auth.signingIn") : $t("auth.signIn") }}
+          {{ busy ? $t("auth.sendingResetLink") : $t("auth.sendResetLink") }}
         </button>
 
-        <div class="flex items-center justify-between text-xs">
-          <NuxtLink to="/signup" class="text-brand-600 hover:underline">
-            {{ $t("auth.createAccountLink") }}
-          </NuxtLink>
-          <NuxtLink
-            to="/forgot-password"
-            class="text-brand-600 hover:underline"
-          >
-            {{ $t("auth.forgotPasswordLink") }}
+        <div class="flex items-center justify-center text-xs">
+          <NuxtLink to="/login" class="text-brand-600 hover:underline">
+            {{ $t("auth.backToSignIn") }}
           </NuxtLink>
         </div>
       </form>
