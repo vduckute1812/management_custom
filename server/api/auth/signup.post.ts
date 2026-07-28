@@ -12,8 +12,7 @@
  */
 import {
   UserRole,
-  createEmailVerification,
-  createUser,
+  createUserWithEmailVerification,
   getUserByEmail,
   toAuthUser,
 } from "~/server/utils/db";
@@ -71,17 +70,15 @@ export default defineEventHandler(async (event) => {
   }
 
   const passwordHash = await hashPassword(password);
-  const user = await createUser({
-    email,
-    passwordHash,
-    name,
-    role: UserRole.Normal,
-    emailVerified: false,
-  });
-
   const rawToken = generateOpaqueToken();
-  await createEmailVerification({
-    userId: user.id,
+  const user = await createUserWithEmailVerification({
+    user: {
+      email,
+      passwordHash,
+      name,
+      role: UserRole.Normal,
+      emailVerified: false,
+    },
     tokenHash: hashOpaqueToken(rawToken),
     expiresAt: nowPlusSeconds(VERIFY_TTL_SECONDS),
   });

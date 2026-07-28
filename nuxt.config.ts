@@ -47,9 +47,9 @@ export default defineNuxtConfig({
       "/feed/write",
     ],
   },
-  // Hybrid rendering. Auth tokens live in localStorage, so private chrome
-  // stays client-only. Public hub + feed are SSR'd (short SWR) so Google and
-  // other crawlers receive real HTML — the previous full-SPA shell had empty
+  // Hybrid rendering. Refresh/access secrets are HttpOnly cookies; private
+  // chrome stays client-only. Public hub + feed are SSR'd (short SWR) so Google
+  // and other crawlers receive real HTML — the previous full-SPA shell had empty
   // <body> text and was effectively unindexable. Guest HTML is safe to cache
   // because SSR never sees a session; `isAuthenticatedUi` paints after mount.
   //

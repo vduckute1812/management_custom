@@ -2,14 +2,11 @@
  * POST /api/auth/login
  *
  * Body:  { email, password }
- * Reply: { user: AuthUser, accessToken, accessExpiresAt,
- *          refreshToken, refreshExpiresAt }
+ * Reply: { user: AuthUser, accessToken, accessExpiresAt, refreshExpiresAt }
  *
- * Issues a fresh access + refresh token pair. Both are returned to the
- * client and the refresh token's SHA-256 hash is persisted server-side so we
- * can revoke it on logout. The client is expected to store the access token
- * in memory (or a non-HttpOnly cookie) and re-attach it as `Authorization:
- * Bearer ...` on subsequent requests.
+ * Issues a fresh access + refresh pair. Refresh is set as an HttpOnly cookie
+ * (`mgmt_rt`); access is returned in the JSON body (in-memory client use) and
+ * mirrored as HttpOnly `mgmt_at` for same-origin media requests.
  */
 import {
   getUserByEmail,
@@ -25,6 +22,10 @@ import {
   TOKEN_TTL,
   verifyPassword,
 } from "~/server/utils/auth";
+import {
+  setAccessCookie,
+  setRefreshCookie,
+} from "~/server/utils/refreshCookie";
 
 interface LoginBody {
   email?: string;
@@ -76,6 +77,9 @@ export default defineEventHandler(async (event) => {
     ip: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
   });
 
+  setRefreshCookie(event, refreshToken);
+  setAccessCookie(event, accessToken);
+
   // Best-effort: a write failure here must NOT block sign-in. The admin
   // dashboard simply shows "Never" / a stale value if this UPDATE drops.
   await recordUserLogin(user.id).catch(() => {});
@@ -84,7 +88,6 @@ export default defineEventHandler(async (event) => {
     user: toAuthUser(user),
     accessToken,
     accessExpiresAt,
-    refreshToken,
     refreshExpiresAt,
   };
 });

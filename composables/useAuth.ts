@@ -2,35 +2,37 @@ import { UserRole, type AuthUser } from "~/types/task";
 
 /**
  * Auth state for the client. Owns:
- *   - the cached AuthUser
- *   - the short-lived access token (in memory + mirrored to localStorage so
- *     a page refresh doesn't log the user out for 15 minutes)
- *   - the long-lived refresh token (localStorage only — never sent on every
- *     request, only when explicitly refreshing or logging out)
+ *   - the cached AuthUser (localStorage — non-secret profile chrome)
+ *   - the short-lived access token in memory (mirrored briefly for Bearer
+ *     headers; also set as HttpOnly `mgmt_at` for media)
+ *   - refresh lives ONLY in the HttpOnly `mgmt_rt` cookie — never localStorage
  *
- * localStorage is the pragmatic choice for a single-user local app — it
- * matches the rest of the project's "your data lives on your machine" model.
- * Anyone hardening this for multi-tenant production should move the refresh
- * token into an HttpOnly cookie instead.
+ * On boot the client POSTs `/api/auth/refresh` with credentials; a valid
+ * cookie restores the session without a refresh secret in JS.
  */
 export interface AuthSession {
   user: AuthUser;
   accessToken: string;
   accessExpiresAt: string;
-  refreshToken: string;
-  refreshExpiresAt: string;
+  /** Present only for legacy responses; ignored by the cookie-based client. */
+  refreshToken?: string;
+  refreshExpiresAt?: string;
 }
 
 const KEYS = {
   user: "auth:user",
   accessToken: "auth:accessToken",
   accessExpiresAt: "auth:accessExpiresAt",
+  /** Cleared on hydrate — legacy localStorage refresh secrets. */
   refreshToken: "auth:refreshToken",
+  hasSession: "auth:hasSession",
 } as const;
+
+const CREDENTIALS = { credentials: "include" as const };
 
 /**
  * Public routes (`/`, `/feed`) are selectively SSR'd for Google. Auth still
- * lives in localStorage, so the server always renders the guest chrome.
+ * hydrates on the client, so the server always renders the guest chrome.
  * `sessionUiReady` stays false until after client mount on those pages so
  * hydration matches; SPA routes mark it ready immediately.
  */
@@ -41,7 +43,11 @@ export const useAuth = () => {
     "auth:accessExpiresAt",
     () => null,
   );
-  const refreshToken = useState<string | null>("auth:refreshToken", () => null);
+  /** True when we believe an HttpOnly refresh cookie may still be valid. */
+  const hasRefreshSession = useState<boolean>(
+    "auth:hasRefreshSession",
+    () => false,
+  );
   const sessionUiReady = useState<boolean>("auth:sessionUiReady", () => false);
 
   function persist() {
@@ -50,16 +56,14 @@ export const useAuth = () => {
       const ls = window.localStorage;
       if (user.value) ls.setItem(KEYS.user, JSON.stringify(user.value));
       else ls.removeItem(KEYS.user);
-      if (accessToken.value) ls.setItem(KEYS.accessToken, accessToken.value);
-      else ls.removeItem(KEYS.accessToken);
-      if (accessExpiresAt.value)
-        ls.setItem(KEYS.accessExpiresAt, accessExpiresAt.value);
-      else ls.removeItem(KEYS.accessExpiresAt);
-      if (refreshToken.value) ls.setItem(KEYS.refreshToken, refreshToken.value);
-      else ls.removeItem(KEYS.refreshToken);
+      // Access token stays in memory only — page reload rehydrates via cookie.
+      ls.removeItem(KEYS.accessToken);
+      ls.removeItem(KEYS.accessExpiresAt);
+      ls.removeItem(KEYS.refreshToken);
+      if (hasRefreshSession.value) ls.setItem(KEYS.hasSession, "1");
+      else ls.removeItem(KEYS.hasSession);
     } catch {
-      // Quota errors / privacy modes — non-fatal; session just won't survive
-      // a reload, which is acceptable degradation.
+      // Quota errors / privacy modes — non-fatal.
     }
   }
 
@@ -67,16 +71,13 @@ export const useAuth = () => {
     if (!import.meta.client) return;
     try {
       const ls = window.localStorage;
-      accessToken.value = ls.getItem(KEYS.accessToken);
-      accessExpiresAt.value = ls.getItem(KEYS.accessExpiresAt);
-      refreshToken.value = ls.getItem(KEYS.refreshToken);
+      // Drop any legacy secrets that older builds left behind.
+      ls.removeItem(KEYS.accessToken);
+      ls.removeItem(KEYS.accessExpiresAt);
+      ls.removeItem(KEYS.refreshToken);
+      hasRefreshSession.value = ls.getItem(KEYS.hasSession) === "1";
       const u = ls.getItem(KEYS.user);
       const parsed = u ? (JSON.parse(u) as AuthUser) : null;
-      // Legacy compat: pre-int-enum clients persisted `role` as a string
-      // ("admin" / "normal" / "superadmin"). Drop the cached user in that
-      // case so the next `/api/auth/me` refresh re-seeds with the new shape.
-      // The refresh token still works (it's opaque), so the user stays
-      // signed in across this format upgrade.
       if (parsed && typeof parsed.role !== "number") {
         user.value = null;
         ls.removeItem(KEYS.user);
@@ -92,7 +93,7 @@ export const useAuth = () => {
     user.value = session.user;
     accessToken.value = session.accessToken;
     accessExpiresAt.value = session.accessExpiresAt;
-    refreshToken.value = session.refreshToken;
+    hasRefreshSession.value = true;
     persist();
   }
 
@@ -100,7 +101,7 @@ export const useAuth = () => {
     user.value = null;
     accessToken.value = null;
     accessExpiresAt.value = null;
-    refreshToken.value = null;
+    hasRefreshSession.value = false;
     persist();
   }
 
@@ -108,6 +109,7 @@ export const useAuth = () => {
     const session = await $fetch<AuthSession>("/api/auth/login", {
       method: "POST",
       body: { email, password },
+      ...CREDENTIALS,
     });
     setSession(session);
     return session.user;
@@ -121,39 +123,41 @@ export const useAuth = () => {
     return await $fetch("/api/auth/signup", {
       method: "POST",
       body: input,
+      ...CREDENTIALS,
     });
   }
 
   async function verifyEmail(token: string): Promise<AuthUser> {
     const data = await $fetch<{ ok: boolean; user: AuthUser }>(
       "/api/auth/verify-email",
-      { method: "POST", body: { token } },
+      { method: "POST", body: { token }, ...CREDENTIALS },
     );
     return data.user;
   }
 
   async function refresh(): Promise<AuthSession> {
-    if (!refreshToken.value) {
-      // May run from auth.client plugin (no setup instance after await).
-      const { t } = useSafeI18n();
-      throw createError({
-        statusCode: 401,
-        statusMessage: t("auth.noRefreshToken"),
+    try {
+      const session = await $fetch<AuthSession>("/api/auth/refresh", {
+        method: "POST",
+        body: {},
+        ...CREDENTIALS,
       });
+      setSession(session);
+      return session;
+    } catch (err) {
+      clearSession();
+      throw err;
     }
-    const session = await $fetch<AuthSession>("/api/auth/refresh", {
-      method: "POST",
-      body: { refreshToken: refreshToken.value },
-    });
-    setSession(session);
-    return session;
   }
 
   async function fetchMe(): Promise<AuthUser | null> {
-    if (!accessToken.value) return null;
+    if (!accessToken.value && !hasRefreshSession.value) return null;
     try {
       const { user: fresh } = await $fetch<{ user: AuthUser }>("/api/auth/me", {
-        headers: { Authorization: `Bearer ${accessToken.value}` },
+        headers: accessToken.value
+          ? { Authorization: `Bearer ${accessToken.value}` }
+          : undefined,
+        ...CREDENTIALS,
       });
       user.value = fresh;
       persist();
@@ -178,6 +182,7 @@ export const useAuth = () => {
         headers: accessToken.value
           ? { Authorization: `Bearer ${accessToken.value}` }
           : undefined,
+        ...CREDENTIALS,
       },
     );
     user.value = fresh;
@@ -186,14 +191,14 @@ export const useAuth = () => {
   }
 
   async function logout(opts?: { everywhere?: boolean }) {
-    const rt = refreshToken.value;
     try {
       await $fetch("/api/auth/logout", {
         method: "POST",
-        body: { refreshToken: rt, everywhere: opts?.everywhere ?? false },
+        body: { everywhere: opts?.everywhere ?? false },
         headers: accessToken.value
           ? { Authorization: `Bearer ${accessToken.value}` }
           : undefined,
+        ...CREDENTIALS,
       });
     } catch {
       // Network errors shouldn't trap the user — destroy local state regardless.
@@ -220,7 +225,7 @@ export const useAuth = () => {
     user,
     accessToken,
     accessExpiresAt,
-    refreshToken,
+    hasRefreshSession,
     sessionUiReady,
     isAuthenticated,
     isAuthenticatedUi,

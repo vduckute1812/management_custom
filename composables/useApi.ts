@@ -3,6 +3,7 @@
  * code. It:
  *
  *   - Attaches `Authorization: Bearer <accessToken>` when a token is set.
+ *   - Sends credentials so HttpOnly auth cookies travel with the request.
  *   - Proactively refreshes the access token when it's <30s from expiry,
  *     to keep the next call from making a wasted 401 round-trip.
  *   - On a 401 from the server, attempts ONE refresh-and-retry. If that
@@ -12,15 +13,11 @@
  * A single in-flight refresh promise is shared across concurrent callers so
  * a burst of expired-token requests only triggers one refresh.
  */
-// Loose options bag — we don't extend ofetch's FetchOptions here because
-// its generic constraints (in particular on `body`) make wrapping awkward;
-// we just shovel options through and let `$fetch` validate them at the
-// call site. This sacrifices a bit of compile-time strictness for a
-// dramatically simpler signature at every call site.
 type ApiFetchOptions = Record<string, unknown> & {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
   headers?: HeadersInit;
+  credentials?: RequestCredentials;
 };
 
 let _refreshInFlight: Promise<unknown> | null = null;
@@ -35,9 +32,12 @@ export const useApi = () => {
 
   function withAuthHeaders(
     options: ApiFetchOptions | undefined,
-    token: string | null
+    token: string | null,
   ): ApiFetchOptions {
-    const next: ApiFetchOptions = { ...(options ?? {}) };
+    const next: ApiFetchOptions = {
+      credentials: "include",
+      ...(options ?? {}),
+    };
     if (token) {
       const headers = new Headers(next.headers);
       headers.set("Authorization", `Bearer ${token}`);
@@ -51,7 +51,7 @@ export const useApi = () => {
     const expiresAt = new Date(auth.accessExpiresAt.value).getTime();
     if (Number.isNaN(expiresAt)) return;
     if (expiresAt - Date.now() > 30_000) return;
-    if (!auth.refreshToken.value) return;
+    if (!auth.hasRefreshSession.value) return;
     if (!_refreshInFlight) {
       _refreshInFlight = auth.refresh().finally(() => {
         _refreshInFlight = null;
@@ -76,7 +76,7 @@ export const useApi = () => {
 
   async function apiFetch<T = unknown>(
     url: string,
-    options?: ApiFetchOptions
+    options?: ApiFetchOptions,
   ): Promise<T> {
     if (!isAbsolute(url) && !url.startsWith("/")) {
       url = `/${url}`;
@@ -86,7 +86,10 @@ export const useApi = () => {
     try {
       return (await $fetch(
         url,
-        withAuthHeaders(options, auth.accessToken.value) as Parameters<typeof $fetch>[1]
+        withAuthHeaders(
+          options,
+          auth.accessToken.value,
+        ) as Parameters<typeof $fetch>[1],
       )) as T;
     } catch (err: unknown) {
       const status =
@@ -98,7 +101,7 @@ export const useApi = () => {
       // Anonymous callers (no session) must not be bounced to /login — public
       // pages like / and /feed call optional-auth endpoints that 401 for guests
       // (e.g. stories). Only clear+redirect when we actually had a session.
-      if (!auth.refreshToken.value) {
+      if (!auth.hasRefreshSession.value) {
         if (auth.accessToken.value || auth.user.value) {
           await bounceToLogin();
         }
@@ -117,7 +120,10 @@ export const useApi = () => {
       }
       return (await $fetch(
         url,
-        withAuthHeaders(options, auth.accessToken.value) as Parameters<typeof $fetch>[1]
+        withAuthHeaders(
+          options,
+          auth.accessToken.value,
+        ) as Parameters<typeof $fetch>[1],
       )) as T;
     }
   }

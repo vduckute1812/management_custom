@@ -1,11 +1,13 @@
 /**
- * Hydrates auth state from localStorage at app start (client only).
+ * Hydrates auth state at app start (client only).
  *
- * If the access token is past its expiry we eagerly call `/auth/refresh` so
- * the very first protected request doesn't take the 401-then-retry path.
- * If both tokens fail to validate, we end up with a clean unauthenticated
- * state. Public routes (/, /feed, …) remain reachable; protected routes are
- * gated by `middleware/auth.global.ts`.
+ * Refresh secrets live in the HttpOnly `mgmt_rt` cookie. When
+ * `auth:hasSession` is set (or a cached user exists), we POST `/api/auth/refresh`
+ * with credentials to restore the in-memory access token.
+ *
+ * One-time migration: if an older build left `auth:refreshToken` in
+ * localStorage, send it in the refresh body once so the server can mint the
+ * HttpOnly cookie, then wipe the local secret.
  *
  * Session chrome (`isAuthenticatedUi`) is deferred on selectively SSR'd
  * public paths so the guest HTML Google (and the hydrator) see matches.
@@ -16,40 +18,53 @@ function isSelectiveSsrPath(path: string): boolean {
   return false;
 }
 
+function takeLegacyRefreshToken(): string | null {
+  if (!import.meta.client) return null;
+  try {
+    const ls = window.localStorage;
+    const legacy = ls.getItem("auth:refreshToken");
+    if (legacy) ls.removeItem("auth:refreshToken");
+    return legacy && legacy.trim() ? legacy.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 export default defineNuxtPlugin(async (nuxtApp) => {
   const auth = useAuth();
   const route = useRoute();
+  const legacyRefresh = takeLegacyRefreshToken();
   auth.hydrateFromStorage();
 
-  if (!auth.refreshToken.value) {
-    auth.clearSession();
-  } else {
-    // Either probe with the cached access token, or refresh outright if we
-    // know it's expired. `fetchMe` is a no-op when there's no token.
-    const expiresAt = auth.accessExpiresAt.value
-      ? new Date(auth.accessExpiresAt.value).getTime()
-      : 0;
-    const needsRefresh =
-      !auth.accessToken.value || expiresAt - Date.now() < 30_000;
+  const shouldTryRefresh =
+    Boolean(legacyRefresh) ||
+    auth.hasRefreshSession.value ||
+    Boolean(auth.user.value);
 
-    if (needsRefresh) {
-      try {
+  if (shouldTryRefresh) {
+    try {
+      if (legacyRefresh) {
+        // Body fallback still accepted by /api/auth/refresh; sets cookies.
+        const session = await $fetch<
+          import("~/composables/useAuth").AuthSession
+        >("/api/auth/refresh", {
+          method: "POST",
+          body: { refreshToken: legacyRefresh },
+          credentials: "include",
+        });
+        auth.setSession(session);
+      } else {
         await auth.refresh();
-      } catch {
+      }
+      const me = await auth.fetchMe();
+      if (!me) {
         auth.clearSession();
       }
+    } catch {
+      auth.clearSession();
     }
-
-    if (auth.refreshToken.value) {
-      try {
-        const me = await auth.fetchMe();
-        if (!me) {
-          auth.clearSession();
-        }
-      } catch {
-        auth.clearSession();
-      }
-    }
+  } else {
+    auth.clearSession();
   }
 
   if (isSelectiveSsrPath(route.path)) {
