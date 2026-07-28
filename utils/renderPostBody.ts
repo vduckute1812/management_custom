@@ -54,6 +54,78 @@ function stashEscapedDollars(input: string): {
   };
 }
 
+function isPipeRow(line: string): boolean {
+  const t = line.trim();
+  return t.startsWith("|") && t.endsWith("|") && t.length > 1;
+}
+
+function isSeparatorRow(line: string): boolean {
+  if (!isPipeRow(line)) return false;
+  const cells = line.trim().slice(1, -1).split("|");
+  return cells.length > 0 && cells.every((cell) => /^\s*:?-+:?\s*$/.test(cell));
+}
+
+function columnCount(line: string): number {
+  return line.trim().slice(1, -1).split("|").length;
+}
+
+function makeSeparator(cols: number): string {
+  return `|${Array.from({ length: cols }, () => " --- ").join("|")}|`;
+}
+
+/**
+ * GFM tables break on blank lines and need a separator row.
+ * Collapse blank lines inside pipe-row runs and insert `| --- |` when missing
+ * so pasted thesis tables still render.
+ */
+export function normalizeMarkdownTables(src: string): string {
+  const lines = src.split("\n");
+  const out: string[] = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    if (!isPipeRow(lines[i]!)) {
+      out.push(lines[i]!);
+      i += 1;
+      continue;
+    }
+
+    const block: string[] = [];
+    let j = i;
+    while (j < lines.length) {
+      const line = lines[j]!;
+      if (isPipeRow(line)) {
+        block.push(line);
+        j += 1;
+        continue;
+      }
+      if (line.trim() === "") {
+        let k = j + 1;
+        while (k < lines.length && lines[k]!.trim() === "") k += 1;
+        if (k < lines.length && isPipeRow(lines[k]!)) {
+          j = k;
+          continue;
+        }
+      }
+      break;
+    }
+
+    if (block.length >= 2) {
+      if (!isSeparatorRow(block[1]!)) {
+        const cols = Math.max(1, columnCount(block[0]!));
+        out.push(block[0]!, makeSeparator(cols), ...block.slice(1));
+      } else {
+        out.push(...block);
+      }
+    } else {
+      out.push(...block);
+    }
+    i = j;
+  }
+
+  return out.join("\n");
+}
+
 /**
  * Render post body: GitHub-flavored Markdown + KaTeX ($…$ / $$…$$).
  * Output is sanitized HTML safe for v-html.
@@ -78,6 +150,7 @@ export function renderPostBody(raw: string): string {
   });
 
   text = dollars.restore(text);
+  text = normalizeMarkdownTables(text);
 
   let html = marked.parse(text, { async: false }) as string;
 
