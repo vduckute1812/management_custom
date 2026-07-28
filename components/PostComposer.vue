@@ -172,7 +172,7 @@ async function onImagesSelected(e: Event) {
   for (const file of files) {
     const reason = validateFile(file);
     if (reason) pushToast(reason, { tone: "danger" });
-    else if (!file.type.startsWith("image/")) {
+    else if (resolveUploadRule(file.name, file.type)?.kind !== "image") {
       pushToast(t("feed.composer.imageOnly"), { tone: "danger" });
     } else accepted.push(file);
   }

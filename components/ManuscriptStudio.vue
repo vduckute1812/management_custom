@@ -17,6 +17,7 @@ import {
   UPLOAD_ACCEPT_ATTR,
   UPLOAD_ACCEPT_IMAGES_ATTR,
   UPLOAD_MAX_PER_POST,
+  resolveUploadRule,
 } from "~/utils/uploadPolicy";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import {
@@ -179,7 +180,7 @@ async function onImagesSelected(e: Event) {
   for (const file of files) {
     const reason = validateFile(file);
     if (reason) pushToast(reason, { tone: "danger" });
-    else if (!file.type.startsWith("image/")) {
+    else if (resolveUploadRule(file.name, file.type)?.kind !== "image") {
       pushToast(t("feed.composer.imageOnly"), { tone: "danger" });
     } else accepted.push(file);
   }
