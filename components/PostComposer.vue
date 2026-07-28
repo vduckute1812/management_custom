@@ -9,8 +9,17 @@ import type {
 } from "~/types/post";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
 import { POST_BODY_MAX_UPDATE } from "~/utils/postBodyLimits";
-import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
+import {
+  UPLOAD_ACCEPT_ATTR,
+  UPLOAD_ACCEPT_IMAGES_ATTR,
+  UPLOAD_MAX_PER_POST,
+  resolveUploadRule,
+} from "~/utils/uploadPolicy";
 import { categoryDisplayName } from "~/utils/categoryLabel";
+import {
+  markdownImageForUpload,
+  stripMarkdownImagesForUpload,
+} from "~/utils/markdownMedia";
 
 const props = defineProps<{
   submitting?: boolean;
@@ -55,6 +64,7 @@ const audienceQuery = ref("");
 const attachments = ref<UploadRecord[]>([]);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
+const imageInput = ref<HTMLInputElement | null>(null);
 const textareaEl = ref<HTMLTextAreaElement | null>(null);
 
 const userInitial = computed(() => {
@@ -124,23 +134,69 @@ async function onFilesSelected(e: Event) {
 
 function removeAttachment(id: string) {
   attachments.value = attachments.value.filter((a) => a.id !== id);
+  body.value = stripMarkdownImagesForUpload(body.value, id);
 }
 
-function insertLatex(block = false) {
+function insertAtCursor(snippet: string) {
   const el = textareaEl.value;
-  const snippet = block ? "$$\nE = mc^2\n$$" : "$E = mc^2$";
   if (!el) {
     body.value += snippet;
     return;
   }
   const start = el.selectionStart ?? body.value.length;
   const end = el.selectionEnd ?? start;
-  body.value = body.value.slice(0, start) + snippet + body.value.slice(end);
+  const before = body.value.slice(0, start);
+  const after = body.value.slice(end);
+  const padBefore = before.length === 0 || before.endsWith("\n") ? "" : "\n";
+  const padAfter = after.startsWith("\n") ? "" : "\n";
+  const text = `${padBefore}${snippet}${padAfter}`;
+  body.value = before + text + after;
   nextTick(() => {
-    const pos = start + snippet.length;
+    const pos = start + text.length;
     el.focus();
     el.setSelectionRange(pos, pos);
   });
+}
+
+function insertLatex(block = false) {
+  insertAtCursor(block ? "$$\nE = mc^2\n$$" : "$E = mc^2$");
+}
+
+async function onImagesSelected(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const files = Array.from(input.files ?? []);
+  input.value = "";
+  if (!files.length) return;
+
+  const accepted: File[] = [];
+  for (const file of files) {
+    const reason = validateFile(file);
+    if (reason) pushToast(reason, { tone: "danger" });
+    else if (resolveUploadRule(file.name, file.type)?.kind !== "image") {
+      pushToast(t("feed.composer.imageOnly"), { tone: "danger" });
+    } else accepted.push(file);
+  }
+  if (!accepted.length) return;
+
+  const room = Math.max(UPLOAD_MAX_PER_POST - attachments.value.length, 0);
+  if (accepted.length > room) {
+    pushToast(t("uploads.errors.tooMany", { max: UPLOAD_MAX_PER_POST }), {
+      tone: "danger",
+    });
+  }
+
+  uploading.value = true;
+  try {
+    for (const file of accepted.slice(0, room)) {
+      const uploaded = await uploadFile(file);
+      attachments.value = [...attachments.value, uploaded];
+      insertAtCursor(markdownImageForUpload(uploaded));
+    }
+  } catch {
+    // uploadFile already surfaced a toast.
+  } finally {
+    uploading.value = false;
+  }
 }
 
 function onSubmit() {
@@ -331,6 +387,27 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
         >
           {{ $t("feed.composer.latexBlock") }}
         </button>
+        <button
+          type="button"
+          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          :title="$t('feed.composer.insertImage')"
+          :disabled="uploading || attachments.length >= UPLOAD_MAX_PER_POST"
+          @click="imageInput?.click()"
+        >
+          {{
+            uploading
+              ? $t("feed.composer.uploading")
+              : $t("feed.composer.insertImageShort")
+          }}
+        </button>
+        <input
+          ref="imageInput"
+          type="file"
+          class="hidden"
+          multiple
+          :accept="UPLOAD_ACCEPT_IMAGES_ATTR"
+          @change="onImagesSelected"
+        />
       </div>
 
       <div v-if="attachments.length" class="flex flex-wrap gap-2">

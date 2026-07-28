@@ -4,6 +4,7 @@ import { POST_REACTION_TYPES } from "~/types/post";
 import { TaskStatus } from "~/types/task";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
+import { bodyReferencesUpload } from "~/utils/markdownMedia";
 
 const props = defineProps<{
   post: Post;
@@ -22,6 +23,14 @@ const { saveTask } = useTasks();
 const { pushToast } = useToasts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
+
+/** Gallery tiles: skip images already shown inline in the markdown body. */
+const galleryAttachments = computed(() =>
+  (props.post.attachments ?? []).filter((att) => {
+    if (att.kind !== "image") return true;
+    return !bodyReferencesUpload(props.post.body || "", att.uploadId, att.url);
+  }),
+);
 
 const commentsOpen = ref(false);
 const comments = ref<PostComment[]>([]);
@@ -410,11 +419,11 @@ async function onPlanClick() {
       </div>
 
       <div
-        v-if="post.attachments?.length"
+        v-if="galleryAttachments.length"
         class="grid gap-2"
-        :class="post.attachments.length > 1 ? 'sm:grid-cols-2' : ''"
+        :class="galleryAttachments.length > 1 ? 'sm:grid-cols-2' : ''"
       >
-        <template v-for="att in post.attachments" :key="att.id">
+        <template v-for="att in galleryAttachments" :key="att.id">
           <a
             v-if="att.kind === 'image'"
             :href="mediaUrl(att.url)"

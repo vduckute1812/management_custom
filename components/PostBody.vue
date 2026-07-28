@@ -3,6 +3,7 @@ import "katex/dist/katex.min.css";
 import type { PostFontFamily, PostTextColor } from "~/types/post";
 import { POST_FONT_FAMILY_CSS, POST_TEXT_COLOR_CSS } from "~/types/post";
 import { renderPostBodyHtml } from "~/utils/renderPostBody";
+import { withUploadAccessTokens } from "~/utils/markdownMedia";
 
 const props = withDefaults(
   defineProps<{
@@ -16,7 +17,13 @@ const props = withDefaults(
   },
 );
 
-const html = computed(() => renderPostBodyHtml(props.body));
+const { mediaUrl } = useMediaUrl();
+const auth = useAuth();
+
+const html = computed(() => {
+  void auth.accessToken.value;
+  return withUploadAccessTokens(renderPostBodyHtml(props.body), mediaUrl);
+});
 
 const style = computed(() => ({
   fontFamily: POST_FONT_FAMILY_CSS[props.fontFamily] || "inherit",

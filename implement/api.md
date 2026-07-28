@@ -30,7 +30,7 @@ Request bodies that include these fields must send them as numbers; the server r
 
 | Method | Endpoint                 | Description                                                                                                                               |
 | ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). |
+| `POST` | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`).             |
 | `POST` | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt }`.    |
 | `POST` | `/api/auth/refresh`      | Body `{ refreshToken }`. Rotates: returns a new pair, revokes the presented refresh token.                                                |
 | `POST` | `/api/auth/logout`       | Body `{ refreshToken?, everywhere? }`. Revokes the supplied refresh token; `everywhere: true` revokes all of the caller's refresh tokens. |
@@ -47,7 +47,7 @@ Request bodies that include these fields must send them as numbers; the server r
 | -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/admin/users`          | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
 | `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix, for dashboard charts.                                                                                                                                            |
-| `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                    |
+| `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                   |
 | `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`403`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
 | `DELETE` | `/api/admin/users/:id`      | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
 
@@ -73,7 +73,7 @@ Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*
 
 Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.  
 Format: `update` (short) \| `manuscript` (long-form; requires `title`).  
-Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify).
+Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images use `![alt](/api/uploads/{id})` and must also be listed in `attachmentIds` for ACL.
 
 | Method   | Endpoint                             | Auth     | Description                                                     |
 | -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |
