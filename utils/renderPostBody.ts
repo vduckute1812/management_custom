@@ -54,29 +54,104 @@ function stashEscapedDollars(input: string): {
   };
 }
 
-function isPipeRow(line: string): boolean {
+/** Loose row fragment: contains a cell delimiter (wrapped thesis tables). */
+function isPipeFragment(line: string): boolean {
   const t = line.trim();
-  return t.startsWith("|") && t.endsWith("|") && t.length > 1;
+  if (!t || t.startsWith("```") || t.startsWith("#")) return false;
+  return t.includes("|");
+}
+
+function splitCells(line: string): string[] {
+  let t = line.trim();
+  if (t.startsWith("|")) t = t.slice(1);
+  if (t.endsWith("|")) t = t.slice(0, -1);
+  return t.split("|").map((c) => c.trim());
 }
 
 function isSeparatorRow(line: string): boolean {
-  if (!isPipeRow(line)) return false;
-  const cells = line.trim().slice(1, -1).split("|");
-  return cells.length > 0 && cells.every((cell) => /^\s*:?-+:?\s*$/.test(cell));
+  const cells = splitCells(line);
+  return cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell));
 }
 
 function columnCount(line: string): number {
-  return line.trim().slice(1, -1).split("|").length;
+  return splitCells(line).length;
 }
 
 function makeSeparator(cols: number): string {
   return `|${Array.from({ length: cols }, () => " --- ").join("|")}|`;
 }
 
+function formatRow(cells: string[]): string {
+  return `| ${cells.map((c) => c.trim()).join(" | ")} |`;
+}
+
+function isTableBreakLine(line: string): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (t.startsWith("#")) return true;
+  if (t.startsWith("```")) return true;
+  if (/^(?:[-*+]|\d+\.)\s+/.test(t) && !t.includes("|")) return true;
+  return false;
+}
+
+function rowIsOpen(line: string): boolean {
+  return !line.trim().endsWith("|");
+}
+
 /**
- * GFM tables break on blank lines and need a separator row.
- * Collapse blank lines inside pipe-row runs and insert `| --- |` when missing
- * so pasted thesis tables still render.
+ * Merge physically wrapped table rows until each logical row has `cols` cells.
+ *
+ *   | Điện trở | $R=...$
+ *   (note) | $\frac{1}{R}=...$
+ *   (note) |
+ */
+function coalesceWrappedRows(rawRows: string[], cols: number): string[] {
+  const out: string[] = [];
+  let cells: string[] = [];
+
+  const flush = () => {
+    if (!cells.length) return;
+    while (cells.length < cols) cells.push("");
+    out.push(formatRow(cells.slice(0, cols)));
+    cells = [];
+  };
+
+  for (const line of rawRows) {
+    const part = splitCells(line);
+    if (!cells.length) {
+      cells = part;
+    } else if (line.trim().startsWith("|")) {
+      flush();
+      cells = part;
+    } else {
+      const [first, ...rest] = part;
+      if (first) {
+        const last = cells.length - 1;
+        cells[last] = `${cells[last] ?? ""} ${first}`.trim();
+      } else if (rest.length === 0 && line.trim().endsWith("|")) {
+        // Trailing-only "|" continuation — just closes the row.
+      }
+      cells.push(...rest);
+    }
+
+    if (cells.length > cols) {
+      const extra = cells.slice(cols);
+      cells = cells.slice(0, cols);
+      flush();
+      cells = extra;
+    } else if (cells.length >= cols && line.trim().endsWith("|")) {
+      flush();
+    }
+  }
+  flush();
+  return out;
+}
+
+/**
+ * Repair pasted GFM tables:
+ * - drop blank lines inside a table
+ * - insert a missing separator row
+ * - join rows that were soft-wrapped across lines (common in luận văn paste)
  */
 export function normalizeMarkdownTables(src: string): string {
   const lines = src.split("\n");
@@ -84,42 +159,68 @@ export function normalizeMarkdownTables(src: string): string {
   let i = 0;
 
   while (i < lines.length) {
-    if (!isPipeRow(lines[i]!)) {
-      out.push(lines[i]!);
+    const start = lines[i]!;
+    if (!(start.trim().startsWith("|") && isPipeFragment(start))) {
+      out.push(start);
       i += 1;
       continue;
     }
 
-    const block: string[] = [];
+    const physical: string[] = [];
     let j = i;
+
     while (j < lines.length) {
       const line = lines[j]!;
-      if (isPipeRow(line)) {
-        block.push(line);
+      const trimmed = line.trim();
+
+      if (!trimmed) {
+        let k = j + 1;
+        while (k < lines.length && !lines[k]!.trim()) k += 1;
+        const next = lines[k];
+        if (
+          next == null ||
+          isTableBreakLine(next) ||
+          !(
+            isPipeFragment(next) ||
+            (physical.length > 0 && rowIsOpen(physical[physical.length - 1]!))
+          )
+        ) {
+          break;
+        }
+        j = k;
+        continue;
+      }
+
+      if (isTableBreakLine(line)) break;
+
+      if (isPipeFragment(line)) {
+        physical.push(line);
         j += 1;
         continue;
       }
-      if (line.trim() === "") {
-        let k = j + 1;
-        while (k < lines.length && lines[k]!.trim() === "") k += 1;
-        if (k < lines.length && isPipeRow(lines[k]!)) {
-          j = k;
-          continue;
-        }
+
+      // Text continuation of an open row (no leading pipe on this line).
+      if (physical.length > 0 && rowIsOpen(physical[physical.length - 1]!)) {
+        physical.push(line);
+        j += 1;
+        continue;
       }
+
       break;
     }
 
-    if (block.length >= 2) {
-      if (!isSeparatorRow(block[1]!)) {
-        const cols = Math.max(1, columnCount(block[0]!));
-        out.push(block[0]!, makeSeparator(cols), ...block.slice(1));
-      } else {
-        out.push(...block);
-      }
-    } else {
-      out.push(...block);
+    if (physical.length < 2) {
+      out.push(...physical);
+      i = Math.max(j, i + 1);
+      continue;
     }
+
+    const headerCells = splitCells(physical[0]!);
+    const cols = Math.max(1, headerCells.length);
+    const bodyStart = isSeparatorRow(physical[1]!) ? 2 : 1;
+    const body = coalesceWrappedRows(physical.slice(bodyStart), cols);
+
+    out.push(formatRow(headerCells), makeSeparator(cols), ...body);
     i = j;
   }
 

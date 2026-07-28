@@ -3,10 +3,7 @@ import type { Post, PostComment, PostReactionType } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
 import { TaskStatus } from "~/types/task";
 import { categoryDisplayName } from "~/utils/categoryLabel";
-import {
-  estimateReadingMinutes,
-  manuscriptExcerpt,
-} from "~/utils/manuscript";
+import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
 
 const props = defineProps<{
   post: Post;
@@ -344,7 +341,7 @@ async function onPlanClick() {
       </button>
     </header>
 
-    <div class="space-y-3 px-4 pb-3 pt-4 sm:px-5">
+    <div class="min-w-0 max-w-full space-y-3 px-4 pb-3 pt-4 sm:px-5">
       <div v-if="post.category" class="flex flex-wrap gap-1.5">
         <span
           class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
@@ -370,7 +367,7 @@ async function onPlanClick() {
         {{ post.title }}
       </h2>
 
-      <div v-if="post.body" class="relative">
+      <div v-if="post.body" class="relative min-w-0 max-w-full">
         <p
           v-if="showExcerptOnly"
           class="manuscript-card__excerpt text-[15px] leading-7 text-slate-700"
@@ -379,7 +376,7 @@ async function onPlanClick() {
         </p>
         <div
           v-else
-          class="post-body-clip"
+          class="post-body-clip min-w-0 max-w-full"
           :class="{
             'post-body-clip--collapsed':
               !isManuscript && bodyNeedsCollapse && !bodyExpanded,
@@ -478,7 +475,9 @@ async function onPlanClick() {
           v-if="post.sharedPost.title"
           class="text-sm font-semibold text-slate-900"
           style="
-            font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+            font-family:
+              &quot;Source Serif 4&quot;, Georgia, &quot;Times New Roman&quot;,
+              serif;
           "
         >
           {{ post.sharedPost.title }}
