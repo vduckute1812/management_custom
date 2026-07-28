@@ -942,6 +942,16 @@
     "inviteTitle": "為長文留出空間",
     "inviteBody": "用獨立頁面撰寫論文章節、隨筆與長研究筆記——與短動態分開。",
     "inviteAction": "進入寫作台",
-    "loginRequired": "登入後開啟寫作台。"
+    "loginRequired": "登入後開啟寫作台。",
+    "contentLocale": "文稿語言",
+    "addingTranslation": "正在為既有文稿新增另一種語言版本。",
+    "viewLanguage": "語言",
+    "addTranslation": "新增譯文",
+    "localeNames": {
+      "en": "英語",
+      "vi": "越南語",
+      "zh-CN": "簡體中文",
+      "zh-TW": "繁體中文"
+    }
   }
 }

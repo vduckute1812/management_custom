@@ -108,6 +108,13 @@ export interface SharedPostPreview {
   author: PostAuthor;
 }
 
+/** Sibling locale variant of a multilingual manuscript. */
+export interface PostTranslationRef {
+  id: string;
+  locale: string;
+  title: string | null;
+}
+
 export interface PostAttachment {
   id: string;
   uploadId: string;
@@ -140,6 +147,15 @@ export interface Post {
   category: PostCategory | null;
   fontFamily: PostFontFamily;
   textColor: PostTextColor;
+  /**
+   * Content language for manuscripts (`en` / `vi` / `zh-CN` / `zh-TW`).
+   * Short updates may be `"und"` (unspecified).
+   */
+  contentLocale: string;
+  /** Links locale variants of the same manuscript; null for standalone posts. */
+  translationGroupId: string | null;
+  /** Sibling locale variants (manuscripts). Omitted/empty when monolingual. */
+  translations: PostTranslationRef[];
   createdAt: string;
   updatedAt: string;
   author: PostAuthor;

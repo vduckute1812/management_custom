@@ -3,6 +3,7 @@ import { getOptionalUser } from "~/server/utils/authContext";
 
 /**
  * GET /api/posts/:id — single post when visible to the viewer (or public).
+ * Used for edit prefill and switching manuscript locale variants.
  * When the viewer can edit, also returns hydrated `audience` author cards
  * for the shared-visibility editor.
  */

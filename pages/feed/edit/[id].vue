@@ -8,6 +8,7 @@ import type {
   PostVisibility,
   UploadRecord,
 } from "~/types/post";
+import { isContentLocale } from "~/utils/contentLocale";
 
 definePageMeta({
   layout: "default",
@@ -77,6 +78,9 @@ const manuscriptInitial = computed(() => {
     categoryId: post.value.category?.id ?? null,
     fontFamily: post.value.fontFamily,
     textColor: post.value.textColor,
+    contentLocale: isContentLocale(post.value.contentLocale)
+      ? post.value.contentLocale
+      : null,
   };
 });
 

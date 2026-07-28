@@ -18,6 +18,7 @@ import type {
   PostFormat,
   PostReactionType,
   PostTextColor,
+  PostTranslationRef,
   PostVisibility,
   SharedPostPreview,
 } from "../../types/post";
@@ -28,6 +29,7 @@ import {
   POST_TEXT_COLORS,
 } from "../../types/post";
 import { getCategoryById } from "./categories";
+import { CONTENT_LOCALES, isContentLocale } from "../../utils/contentLocale";
 
 interface PostRow extends RowDataPacket {
   id: string;
@@ -40,6 +42,8 @@ interface PostRow extends RowDataPacket {
   font_family: string | null;
   text_color: string | null;
   shared_post_id: string | null;
+  translation_group_id: string | null;
+  content_locale: string | null;
   created_at: string;
   updated_at: string;
   author_name: string | null;
@@ -164,6 +168,8 @@ const POST_SELECT = `
     p.font_family,
     p.text_color,
     p.shared_post_id,
+    p.translation_group_id,
+    p.content_locale,
     p.created_at,
     p.updated_at,
     u.name AS author_name,
@@ -213,6 +219,19 @@ function normalizeFormat(value: string | null | undefined): PostFormat {
 function normalizeTitle(value: string | null | undefined): string | null {
   const trimmed = typeof value === "string" ? value.trim() : "";
   return trimmed ? trimmed : null;
+}
+
+function normalizeContentLocale(value: string | null | undefined): string {
+  if (isContentLocale(value)) return value;
+  return "und";
+}
+
+function localeRank(locale: string, preferred: string | null): number {
+  if (preferred && locale === preferred) return 0;
+  if (locale === "en") return 1;
+  if (locale === "vi") return 2;
+  const idx = (CONTENT_LOCALES as readonly string[]).indexOf(locale);
+  return idx >= 0 ? 10 + idx : 100;
 }
 
 function normalizeTextColor(value: string | null | undefined): PostTextColor {
@@ -356,6 +375,9 @@ function rowToPost(
     category: categoryFromRow(row),
     fontFamily: normalizeFontFamily(row.font_family),
     textColor: normalizeTextColor(row.text_color),
+    contentLocale: normalizeContentLocale(row.content_locale),
+    translationGroupId: row.translation_group_id ?? null,
+    translations: [],
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
     author: toAuthor(row.user_id, row.author_name, row.author_email, {
@@ -378,17 +400,113 @@ function rowToPost(
   };
 }
 
+async function loadTranslationMaps(
+  groupIds: string[],
+): Promise<Map<string, PostTranslationRef[]>> {
+  const map = new Map<string, PostTranslationRef[]>();
+  const unique = [...new Set(groupIds.filter(Boolean))];
+  if (!unique.length) return map;
+
+  const pool = getPool();
+  const placeholders = unique.map(() => "?").join(",");
+  const [rows] = await pool.query<
+    (RowDataPacket & {
+      id: string;
+      translation_group_id: string;
+      content_locale: string;
+      title: string | null;
+    })[]
+  >(
+    `SELECT id, translation_group_id, content_locale, title
+     FROM posts
+     WHERE translation_group_id IN (${placeholders})
+     ORDER BY created_at ASC`,
+    unique,
+  );
+
+  for (const row of rows) {
+    const locale = normalizeContentLocale(row.content_locale);
+    if (locale === "und") continue;
+    const list = map.get(row.translation_group_id) ?? [];
+    list.push({
+      id: row.id,
+      locale,
+      title: normalizeTitle(row.title),
+    });
+    map.set(row.translation_group_id, list);
+  }
+  return map;
+}
+
+/**
+ * Prefer viewer locale within a translation group; drop sibling duplicates
+ * from the current page.
+ */
+function preferLocaleVariants(
+  posts: Post[],
+  preferredLocale: string | null,
+  translationMap: Map<string, PostTranslationRef[]>,
+): Post[] {
+  const bestByGroup = new Map<string, Post>();
+
+  for (const post of posts) {
+    const groupId = post.translationGroupId;
+    const siblings = groupId ? (translationMap.get(groupId) ?? []) : [];
+    const withTranslations: Post = {
+      ...post,
+      translations: siblings,
+    };
+
+    if (!groupId || siblings.length <= 1) {
+      // Standalone or single-locale group — keep in encounter order via sentinel.
+      bestByGroup.set(`solo:${post.id}`, withTranslations);
+      continue;
+    }
+
+    const prev = bestByGroup.get(groupId);
+    if (
+      !prev ||
+      localeRank(withTranslations.contentLocale, preferredLocale) <
+        localeRank(prev.contentLocale, preferredLocale)
+    ) {
+      bestByGroup.set(groupId, withTranslations);
+    }
+  }
+
+  // Preserve original feed order using first occurrence of each key.
+  const emitted = new Set<string>();
+  const out: Post[] = [];
+  for (const post of posts) {
+    const key =
+      post.translationGroupId &&
+      (translationMap.get(post.translationGroupId)?.length ?? 0) > 1
+        ? post.translationGroupId
+        : `solo:${post.id}`;
+    if (emitted.has(key)) continue;
+    const chosen = bestByGroup.get(key);
+    if (!chosen) continue;
+    emitted.add(key);
+    out.push(chosen);
+  }
+  return out;
+}
+
 async function hydratePosts(
   rows: PostRow[],
   viewerId: string,
+  preferredLocale: string | null = null,
 ): Promise<Post[]> {
   const ids = rows.map((r) => r.id);
-  const [reactions, attachments, audience] = await Promise.all([
+  const groupIds = rows
+    .map((r) => r.translation_group_id)
+    .filter((id): id is string => Boolean(id));
+  const [reactions, attachments, audience, translations] = await Promise.all([
     loadReactionMaps(ids),
     loadAttachments(ids),
     loadAudience(ids),
+    loadTranslationMaps(groupIds),
   ]);
-  return rows.map((r) =>
+  const posts = rows.map((r) =>
     rowToPost(
       r,
       viewerId,
@@ -397,6 +515,7 @@ async function hydratePosts(
       audience.get(r.id) ?? [],
     ),
   );
+  return preferLocaleVariants(posts, preferredLocale, translations);
 }
 
 export async function listFeedPosts(
@@ -405,12 +524,16 @@ export async function listFeedPosts(
     cursor?: string | null;
     limit?: number;
     categoryId?: string | null;
+    locale?: string | null;
   } = {},
 ): Promise<{ posts: Post[]; nextCursor: string | null }> {
   const pool = getPool();
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 50);
   const cursor = options.cursor?.trim() || null;
   const categoryId = options.categoryId?.trim() || null;
+  const preferredLocale = isContentLocale(options.locale)
+    ? options.locale
+    : null;
   const vid = viewerId ?? "";
 
   // POST_SELECT binds viewer id for my_reaction first.
@@ -430,7 +553,8 @@ export async function listFeedPosts(
     where += " AND p.created_at < ?";
     params.push(isoToDB(cursor));
   }
-  params.push(limit + 1);
+  // Over-fetch slightly so locale dedupe still fills a page.
+  params.push(limit * 2 + 1);
 
   const [rows] = await pool.query<PostRow[]>(
     `${POST_SELECT}
@@ -440,10 +564,12 @@ export async function listFeedPosts(
     params,
   );
 
-  const pageRows = rows.slice(0, limit);
-  const posts = await hydratePosts(pageRows, vid);
+  const hydrated = await hydratePosts(rows, vid, preferredLocale);
+  const posts = hydrated.slice(0, limit);
   const nextCursor =
-    rows.length > limit ? (posts[posts.length - 1]?.createdAt ?? null) : null;
+    hydrated.length > limit
+      ? (posts[posts.length - 1]?.createdAt ?? null)
+      : null;
   return { posts, nextCursor };
 }
 
@@ -466,7 +592,7 @@ export async function getPostById(
     params,
   );
   if (!rows.length) return null;
-  const [post] = await hydratePosts(rows, vid);
+  const [post] = await hydratePosts(rows, vid, null);
   return post ?? null;
 }
 
@@ -483,6 +609,8 @@ export async function createPost(
     categoryId?: string | null;
     fontFamily?: PostFontFamily | null;
     textColor?: PostTextColor | null;
+    contentLocale?: string | null;
+    translationGroupId?: string | null;
   },
 ): Promise<Post> {
   const pool = getPool();
@@ -527,6 +655,51 @@ export async function createPost(
       : normalizeFontFamily(args.fontFamily);
   const textColor = normalizeTextColor(args.textColor);
 
+  let contentLocale = "und";
+  let translationGroupId: string | null = null;
+
+  if (format === "manuscript") {
+    contentLocale = isContentLocale(args.contentLocale)
+      ? args.contentLocale
+      : "vi";
+    const requestedGroup = args.translationGroupId?.trim() || null;
+    if (requestedGroup) {
+      const [groupRows] = await pool.query<
+        (RowDataPacket & {
+          id: string;
+          user_id: string;
+          content_locale: string;
+        })[]
+      >(
+        `SELECT id, user_id, content_locale
+         FROM posts
+         WHERE translation_group_id = ? AND format = 'manuscript'
+         LIMIT 50`,
+        [requestedGroup],
+      );
+      if (!groupRows.length) {
+        throw Object.assign(new Error("Translation group not found"), {
+          statusCode: 404,
+        });
+      }
+      if (groupRows.some((r) => r.user_id !== userId)) {
+        throw Object.assign(
+          new Error("You can only add translations to your own manuscripts"),
+          { statusCode: 403 },
+        );
+      }
+      if (groupRows.some((r) => r.content_locale === contentLocale)) {
+        throw Object.assign(
+          new Error("A translation already exists for this language"),
+          { statusCode: 409 },
+        );
+      }
+      translationGroupId = requestedGroup;
+    } else {
+      translationGroupId = generateId("tgrp");
+    }
+  }
+
   if (args.sharedPostId) {
     const existing = await getPostById(userId, args.sharedPostId);
     if (!existing) {
@@ -544,8 +717,8 @@ export async function createPost(
     await conn.query(
       `INSERT INTO posts
          (id, user_id, body, format, title, visibility, category_id, font_family, text_color,
-          shared_post_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          shared_post_id, translation_group_id, content_locale, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -557,6 +730,8 @@ export async function createPost(
         fontFamily === "default" ? null : fontFamily,
         textColor === "default" ? null : textColor,
         args.sharedPostId ?? null,
+        translationGroupId,
+        contentLocale,
         isoToDB(now),
         isoToDB(now),
       ],
@@ -576,6 +751,13 @@ export async function createPost(
     await conn.commit();
   } catch (err) {
     await conn.rollback();
+    const code = (err as { code?: string })?.code;
+    if (code === "ER_DUP_ENTRY") {
+      throw Object.assign(
+        new Error("A translation already exists for this language"),
+        { statusCode: 409 },
+      );
+    }
     throw err;
   } finally {
     conn.release();

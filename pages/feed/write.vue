@@ -5,19 +5,28 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
+import {
+  CONTENT_LOCALES,
+  isContentLocale,
+  type ContentLocale,
+} from "~/utils/contentLocale";
 
 definePageMeta({
   layout: "default",
 });
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const auth = useAuth();
 const router = useRouter();
-const { createPost } = usePosts();
+const route = useRoute();
+const { createPost, getPost } = usePosts();
 const { categories, refresh: refreshCategories } = useCategories();
 
 const submitting = ref(false);
 const studioRef = ref<{ clear: () => void; focus: () => void } | null>(null);
+const translationGroupId = ref<string | null>(null);
+const existingLocales = ref<string[]>([]);
+const initialLocale = ref<ContentLocale | null>(null);
 
 useSeoMeta({
   title: () => t("seo.manuscriptWrite"),
@@ -33,12 +42,71 @@ useHead({
   ],
 });
 
+async function loadTranslationContext() {
+  const group =
+    typeof route.query.group === "string" ? route.query.group.trim() : "";
+  const from =
+    typeof route.query.from === "string" ? route.query.from.trim() : "";
+  const wantLocale =
+    typeof route.query.locale === "string" &&
+    isContentLocale(route.query.locale)
+      ? route.query.locale
+      : null;
+
+  if (wantLocale) initialLocale.value = wantLocale;
+  else if ((CONTENT_LOCALES as readonly string[]).includes(locale.value)) {
+    initialLocale.value = locale.value as ContentLocale;
+  } else {
+    initialLocale.value = "vi";
+  }
+
+  if (!group && !from) {
+    translationGroupId.value = null;
+    existingLocales.value = [];
+    return;
+  }
+
+  try {
+    let groupId = group || null;
+    if (!groupId && from) {
+      const source = await getPost(from);
+      groupId = source.translationGroupId;
+      existingLocales.value = [
+        ...new Set([
+          source.contentLocale,
+          ...source.translations.map((tr) => tr.locale),
+        ]),
+      ].filter((l) => l && l !== "und");
+    }
+    if (groupId) {
+      translationGroupId.value = groupId;
+      // Prefer translations from the source post when available; otherwise
+      // leave empty and let create reject duplicates.
+      if (!existingLocales.value.length && from) {
+        const source = await getPost(from);
+        existingLocales.value = [
+          ...new Set([
+            source.contentLocale,
+            ...source.translations.map((tr) => tr.locale),
+          ]),
+        ].filter((l) => l && l !== "und");
+      }
+    }
+  } catch {
+    translationGroupId.value = null;
+    existingLocales.value = [];
+  }
+}
+
 onMounted(async () => {
   if (!auth.isAuthenticated.value) {
     await navigateTo({ path: "/login", query: { redirect: "/feed/write" } });
     return;
   }
-  await refreshCategories().catch(() => undefined);
+  await Promise.all([
+    refreshCategories().catch(() => undefined),
+    loadTranslationContext(),
+  ]);
 });
 
 async function onPublish(payload: {
@@ -51,6 +119,8 @@ async function onPublish(payload: {
   categoryId: string | null;
   fontFamily: PostFontFamily;
   textColor: PostTextColor;
+  contentLocale: ContentLocale;
+  translationGroupId: string | null;
 }) {
   submitting.value = true;
   try {
@@ -64,6 +134,8 @@ async function onPublish(payload: {
       categoryId: payload.categoryId,
       fontFamily: payload.fontFamily,
       textColor: payload.textColor,
+      contentLocale: payload.contentLocale,
+      translationGroupId: payload.translationGroupId,
     });
     studioRef.value?.clear();
     await router.push("/feed");
@@ -87,6 +159,9 @@ function onCancel() {
         ref="studioRef"
         :submitting="submitting"
         :categories="categories"
+        :translation-group-id="translationGroupId"
+        :existing-locales="existingLocales"
+        :initial-locale="initialLocale"
         @submit="onPublish"
         @cancel="onCancel"
       />
@@ -103,14 +178,21 @@ function onCancel() {
 <style scoped>
 .manuscript-page {
   background:
-    radial-gradient(circle at top left, rgba(63, 111, 90, 0.08), transparent 42%),
-    radial-gradient(circle at 85% 10%, rgba(148, 163, 184, 0.16), transparent 36%),
-    linear-gradient(180deg, #eef1ee 0%, #f7f8f6 42%, #f8fafc 100%);
+    radial-gradient(
+      1200px 500px at 10% -10%,
+      rgba(63, 111, 90, 0.1),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #f3f5f2 0%, #eef1ed 48%, #f7f8f6 100%);
 }
 
 html[data-theme="dark"] .manuscript-page {
   background:
-    radial-gradient(circle at top left, rgba(134, 180, 154, 0.1), transparent 42%),
-    linear-gradient(180deg, #0d110f 0%, #0b1220 100%);
+    radial-gradient(
+      1000px 420px at 12% -8%,
+      rgba(63, 111, 90, 0.18),
+      transparent 55%
+    ),
+    linear-gradient(180deg, #0f1412 0%, #121816 100%);
 }
 </style>

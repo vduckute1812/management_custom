@@ -942,6 +942,16 @@
     "inviteTitle": "Write like it matters",
     "inviteBody": "Start a dedicated page for luận văn chapters, essays, and long research notes — separate from short feed updates.",
     "inviteAction": "Enter writing desk",
-    "loginRequired": "Sign in to open the writing desk."
+    "loginRequired": "Sign in to open the writing desk.",
+    "contentLocale": "Manuscript language",
+    "addingTranslation": "You are adding another language version of an existing manuscript.",
+    "viewLanguage": "Language",
+    "addTranslation": "Add translation",
+    "localeNames": {
+      "en": "English",
+      "vi": "Vietnamese",
+      "zh-CN": "Simplified Chinese",
+      "zh-TW": "Traditional Chinese"
+    }
   }
 }

@@ -24,24 +24,43 @@ import {
   markdownImageForUpload,
   stripMarkdownImagesForUpload,
 } from "~/utils/markdownMedia";
+import {
+  CONTENT_LOCALES,
+  CONTENT_LOCALE_LABELS,
+  type ContentLocale,
+} from "~/utils/contentLocale";
 
-const props = defineProps<{
-  submitting?: boolean;
-  categories?: PostCategory[];
-  /** Prefill when editing an existing manuscript. */
-  initial?: {
-    title?: string | null;
-    body?: string;
-    visibility?: PostVisibility;
-    audience?: PostAuthor[];
-    attachments?: UploadRecord[];
-    categoryId?: string | null;
-    fontFamily?: PostFontFamily;
-    textColor?: PostTextColor;
-  };
-  /** When true, chrome copy and CTA use “save” phrasing. */
-  editing?: boolean;
-}>();
+const props = withDefaults(
+  defineProps<{
+    submitting?: boolean;
+    categories?: PostCategory[];
+    /** Prefill when editing an existing manuscript. */
+    initial?: {
+      title?: string | null;
+      body?: string;
+      visibility?: PostVisibility;
+      audience?: PostAuthor[];
+      attachments?: UploadRecord[];
+      categoryId?: string | null;
+      fontFamily?: PostFontFamily;
+      textColor?: PostTextColor;
+      contentLocale?: ContentLocale | null;
+    };
+    /** When true, chrome copy and CTA use “save” phrasing. */
+    editing?: boolean;
+    /** When adding a translation of an existing manuscript. */
+    translationGroupId?: string | null;
+    /** Locales already published in this group. */
+    existingLocales?: string[];
+    initialLocale?: ContentLocale | null;
+  }>(),
+  {
+    editing: false,
+    translationGroupId: null,
+    existingLocales: () => [],
+    initialLocale: null,
+  },
+);
 
 const emit = defineEmits<{
   (
@@ -56,12 +75,14 @@ const emit = defineEmits<{
       categoryId: string | null;
       fontFamily: PostFontFamily;
       textColor: PostTextColor;
+      contentLocale: ContentLocale;
+      translationGroupId: string | null;
     },
   ): void;
   (e: "cancel"): void;
 }>();
 
-const { t, te } = useI18n();
+const { t, te, locale } = useI18n();
 const auth = useAuth();
 const { uploadFile, validateFile } = useUploads();
 const { pushToast } = useToasts();
@@ -71,8 +92,18 @@ function catLabel(cat: PostCategory) {
   return categoryDisplayName(cat, t, te);
 }
 
+function defaultLocale(): ContentLocale {
+  if (props.initial?.contentLocale) return props.initial.contentLocale;
+  if (props.initialLocale) return props.initialLocale;
+  if ((CONTENT_LOCALES as readonly string[]).includes(locale.value)) {
+    return locale.value as ContentLocale;
+  }
+  return "vi";
+}
+
 const title = ref(props.initial?.title ?? "");
 const body = ref(props.initial?.body ?? "");
+const contentLocale = ref<ContentLocale>(defaultLocale());
 const visibility = ref<PostVisibility>(props.initial?.visibility ?? "public");
 const categoryId = ref(props.initial?.categoryId || "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "serif");
@@ -87,6 +118,13 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const imageInput = ref<HTMLInputElement | null>(null);
 const titleEl = ref<HTMLInputElement | null>(null);
 const bodyEl = ref<HTMLTextAreaElement | null>(null);
+
+const availableLocales = computed(() =>
+  CONTENT_LOCALES.filter(
+    (code) =>
+      code === contentLocale.value || !props.existingLocales.includes(code),
+  ),
+);
 
 const readingMinutes = computed(() =>
   estimateReadingMinutes(body.value, title.value),
@@ -234,12 +272,15 @@ function onSubmit() {
     categoryId: categoryId.value || null,
     fontFamily: fontFamily.value,
     textColor: textColor.value,
+    contentLocale: contentLocale.value,
+    translationGroupId: props.translationGroupId ?? null,
   });
 }
 
 function clear() {
   title.value = "";
   body.value = "";
+  contentLocale.value = defaultLocale();
   visibility.value = "public";
   categoryId.value = "";
   fontFamily.value = "serif";
@@ -413,6 +454,23 @@ const bodyStyle = computed(() => ({
           <h2 class="manuscript-studio__panel-title">
             {{ $t("manuscript.settings") }}
           </h2>
+
+          <label class="manuscript-studio__field" for="ms-locale">
+            <span>{{ $t("manuscript.contentLocale") }}</span>
+            <select id="ms-locale" v-model="contentLocale" :disabled="editing">
+              <option
+                v-for="code in availableLocales"
+                :key="code"
+                :value="code"
+              >
+                {{ CONTENT_LOCALE_LABELS[code] }} —
+                {{ $t(`manuscript.localeNames.${code}`) }}
+              </option>
+            </select>
+          </label>
+          <p v-if="translationGroupId" class="manuscript-studio__locale-hint">
+            {{ $t("manuscript.addingTranslation") }}
+          </p>
 
           <label class="manuscript-studio__field" for="ms-category">
             <span>{{ $t("feed.composer.category") }}</span>
@@ -789,6 +847,13 @@ const bodyStyle = computed(() => ({
   font-family: "Source Sans 3", system-ui, sans-serif;
   font-size: 0.78rem;
   line-height: 1.45;
+  color: #6b7c72;
+}
+
+.manuscript-studio__locale-hint {
+  margin: -0.35rem 0 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
   color: #6b7c72;
 }
 
