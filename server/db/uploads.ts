@@ -122,7 +122,8 @@ export async function signedUploadUrl(storageKey: string): Promise<string> {
 
 /**
  * True if the viewer may fetch this upload.
- * Anonymous viewers only get uploads attached to public posts.
+ * Anonymous viewers only get uploads attached to public posts or used as
+ * anyone's profile avatar (avatars appear on public feed surfaces).
  * Authenticated viewers also get own uploads, shared-audience posts, and live stories.
  */
 export async function canViewerAccessUpload(
@@ -134,6 +135,15 @@ export async function canViewerAccessUpload(
   if (viewerId && row.user_id === viewerId) return true;
 
   const pool = getPool();
+
+  // Profile avatars are intentionally public — they show next to authors on
+  // public posts and stories even for anonymous visitors.
+  const [avatarRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1`,
+    [uploadId],
+  );
+  if (avatarRows.length) return true;
+
   if (!viewerId) {
     const [publicRows] = await pool.query<RowDataPacket[]>(
       `SELECT pa.post_id
@@ -228,8 +238,8 @@ async function safeR2Delete(key: string): Promise<void> {
 }
 
 /**
- * True when the upload is still referenced by a live post attachment or a
- * non-expired story. Expired stories must not keep media alive.
+ * True when the upload is still referenced by a live post attachment, a
+ * non-expired story, or a user avatar. Expired stories must not keep media alive.
  */
 export async function isUploadReferenced(uploadId: string): Promise<boolean> {
   const pool = getPool();
@@ -245,7 +255,13 @@ export async function isUploadReferenced(uploadId: string): Promise<boolean> {
      LIMIT 1`,
     [uploadId],
   );
-  return storyRows.length > 0;
+  if (storyRows.length) return true;
+
+  const [avatarRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1`,
+    [uploadId],
+  );
+  return avatarRows.length > 0;
 }
 
 /**

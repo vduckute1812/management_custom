@@ -88,6 +88,7 @@
     "account": {
       "title": "Tài khoản",
       "subtitle": "Phiên đăng nhập trên trình duyệt này.",
+      "editProfile": "Chỉnh sửa hồ sơ",
       "signOut": "Đăng xuất"
     },
     "appearance": {
@@ -166,7 +167,24 @@
     "memberSince": "Thành viên từ",
     "settings": "Cài đặt",
     "logout": "Đăng xuất",
-    "signInPrompt": "Đăng nhập để xem hồ sơ."
+    "signInPrompt": "Đăng nhập để xem hồ sơ.",
+    "edit": "Chỉnh sửa hồ sơ",
+    "save": "Lưu thay đổi",
+    "saving": "Đang lưu…",
+    "saveFailed": "Không thể lưu hồ sơ.",
+    "changeAvatar": "Đổi ảnh",
+    "removeAvatar": "Xóa ảnh",
+    "avatarMustBeImage": "Ảnh đại diện phải là tệp hình ảnh.",
+    "fields": {
+      "name": "Tên hiển thị",
+      "namePlaceholder": "Tên bạn muốn người khác thấy",
+      "title": "Chức danh",
+      "titlePlaceholder": "vd. Kỹ sư chính",
+      "job": "Công việc",
+      "jobPlaceholder": "vd. Trưởng nhóm Frontend tại Acme",
+      "location": "Địa điểm",
+      "locationPlaceholder": "vd. Đà Nẵng, Việt Nam"
+    }
   },
   "feed": {
     "title": "Bảng tin",
@@ -673,6 +691,7 @@
     "storyPosted": "Đã đăng story",
     "storyDeleted": "Đã xoá story",
     "uploadFailed": "Tải lên thất bại",
+    "profileUpdated": "Đã cập nhật hồ sơ",
     "couldNotLoadFeed": "Không tải được bảng tin.",
     "failedToLoadTasks": "Không tải được công việc",
     "failedToLoadEpics": "Không tải được epic",

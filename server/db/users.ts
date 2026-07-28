@@ -118,6 +118,131 @@ export async function updateUserPassword(
   );
 }
 
+export interface UpdateUserProfileInput {
+  /** Pass `undefined` to leave unchanged; empty/null clears. */
+  name?: string | null;
+  /** Upload id owned by the user; empty/null clears the avatar. */
+  avatarUploadId?: string | null;
+  title?: string | null;
+  job?: string | null;
+  location?: string | null;
+}
+
+function normalizeOptionalText(
+  value: string | null | undefined,
+  max: number
+): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > max) {
+    throw Object.assign(new Error(`Value must be ${max} characters or fewer`), {
+      statusCode: 400,
+    });
+  }
+  return trimmed;
+}
+
+/**
+ * Partial profile update for the account owner. Returns the previous
+ * `avatar_upload_id` when the avatar changes so callers can orphan-purge it.
+ */
+export async function updateUserProfile(
+  id: string,
+  input: UpdateUserProfileInput
+): Promise<{ user: UserRecord; previousAvatarUploadId: string | null }> {
+  const pool = getPool();
+  const [existingRows] = await pool.query<UserRow[]>(
+    "SELECT * FROM users WHERE id = ? LIMIT 1",
+    [id]
+  );
+  if (!existingRows.length) {
+    throw Object.assign(new Error("User not found"), { statusCode: 404 });
+  }
+  const existing = existingRows[0];
+  const previousAvatarUploadId = existing.avatar_upload_id ?? null;
+
+  const name = normalizeOptionalText(input.name, 120);
+  const title = normalizeOptionalText(input.title, 120);
+  const job = normalizeOptionalText(input.job, 120);
+  const location = normalizeOptionalText(input.location, 120);
+
+  let avatarUploadId: string | null | undefined = undefined;
+  if (input.avatarUploadId !== undefined) {
+    if (input.avatarUploadId === null || !String(input.avatarUploadId).trim()) {
+      avatarUploadId = null;
+    } else {
+      avatarUploadId = String(input.avatarUploadId).trim();
+      const { getUploadById } = await import("./uploads");
+      const upload = await getUploadById(avatarUploadId);
+      if (!upload || upload.user_id !== id) {
+        throw Object.assign(new Error("Avatar upload is invalid"), {
+          statusCode: 400,
+        });
+      }
+      if (upload.kind !== "image") {
+        throw Object.assign(new Error("Avatar must be an image"), {
+          statusCode: 400,
+        });
+      }
+    }
+  }
+
+  const sets: string[] = [];
+  const params: unknown[] = [];
+  if (name !== undefined) {
+    sets.push("name = ?");
+    params.push(name);
+  }
+  if (avatarUploadId !== undefined) {
+    sets.push("avatar_upload_id = ?");
+    params.push(avatarUploadId);
+  }
+  if (title !== undefined) {
+    sets.push("title = ?");
+    params.push(title);
+  }
+  if (job !== undefined) {
+    sets.push("job = ?");
+    params.push(job);
+  }
+  if (location !== undefined) {
+    sets.push("location = ?");
+    params.push(location);
+  }
+
+  if (!sets.length) {
+    return {
+      user: rowToUser(existing),
+      previousAvatarUploadId: null,
+    };
+  }
+
+  sets.push("updated_at = ?");
+  params.push(isoToDB(nowISO()));
+  params.push(id);
+
+  await pool.query(
+    `UPDATE users SET ${sets.join(", ")} WHERE id = ?`,
+    params
+  );
+
+  const updated = await getUserById(id);
+  if (!updated) {
+    throw new Error("updateUserProfile: row vanished after update");
+  }
+
+  const avatarChanged =
+    avatarUploadId !== undefined &&
+    avatarUploadId !== previousAvatarUploadId;
+
+  return {
+    user: updated,
+    previousAvatarUploadId: avatarChanged ? previousAvatarUploadId : null,
+  };
+}
+
 /**
  * Stamp `last_login_at` to "now". Called from POST /api/auth/login after a
  * successful credentials + email-verified check. Deliberately does NOT touch

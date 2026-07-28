@@ -9,11 +9,6 @@ const { t } = useI18n();
 const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
 
-const userInitial = computed(() => {
-  const src = auth.user.value?.name || auth.user.value?.email || "";
-  return src.charAt(0).toUpperCase() || "?";
-});
-
 const displayName = computed(
   () => auth.user.value?.name || auth.user.value?.email || t("nav.account"),
 );
@@ -145,12 +140,12 @@ watch(
           :aria-label="$t('nav.accountMenuAria')"
           @click="toggleMenu"
         >
-          <span
-            class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700"
-            aria-hidden="true"
-          >
-            {{ userInitial }}
-          </span>
+          <UserAvatar
+            :name="auth.user.value.name"
+            :email="auth.user.value.email"
+            :avatar-url="auth.user.value.avatarUrl"
+            size="md"
+          />
           <span class="hidden min-w-0 text-left sm:block">
             <span class="block truncate text-xs font-medium text-slate-800">
               {{ displayName }}

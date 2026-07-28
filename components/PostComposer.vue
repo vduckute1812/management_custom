@@ -57,11 +57,6 @@ const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const textareaEl = ref<HTMLTextAreaElement | null>(null);
 
-const userInitial = computed(() => {
-  const source = auth.user.value?.name || auth.user.value?.email || "";
-  return source.charAt(0).toUpperCase() || "?";
-});
-
 const userLabel = computed(
   () => auth.user.value?.name || auth.user.value?.email || t("nav.account"),
 );
@@ -214,12 +209,12 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
     <div
       class="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5"
     >
-      <span
-        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-bold text-white shadow-sm ring-4 ring-brand-50"
-        aria-hidden="true"
-      >
-        {{ userInitial }}
-      </span>
+      <UserAvatar
+        :name="auth.user.value?.name"
+        :email="auth.user.value?.email"
+        :avatar-url="auth.user.value?.avatarUrl"
+        size="md"
+      />
       <div class="min-w-0">
         <p class="truncate text-sm font-semibold text-slate-900">
           {{ userLabel }}

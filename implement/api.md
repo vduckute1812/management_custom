@@ -36,6 +36,7 @@ Request bodies that include these fields must send them as numbers; the server r
 | `POST` | `/api/auth/logout`       | Body `{ refreshToken?, everywhere? }`. Revokes the supplied refresh token; `everywhere: true` revokes all of the caller's refresh tokens. |
 | `POST` | `/api/auth/verify-email` | Body `{ token }`. Consumes a one-shot verification link.                                                                                  |
 | `GET`  | `/api/auth/me`           | Returns the current user as the server knows them.                                                                                        |
+| `PATCH`| `/api/auth/profile`      | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty/`null` clears a field. Avatar must be an image upload owned by the caller. |
 
 **Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; logout revokes them and refresh rotates them.
 

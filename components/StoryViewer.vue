@@ -414,14 +414,12 @@ watch(
                       :key="v.user.id"
                       class="flex items-center gap-3"
                     >
-                      <span
-                        class="flex h-8 w-8 items-center justify-center rounded-full bg-slate-200 text-xs font-semibold text-slate-700"
-                        aria-hidden="true"
-                      >
-                        {{
-                          (v.user.name || v.user.email).charAt(0).toUpperCase()
-                        }}
-                      </span>
+                      <UserAvatar
+                        :name="v.user.name"
+                        :email="v.user.email"
+                        :avatar-url="v.user.avatarUrl"
+                        size="md"
+                      />
                       <div class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium text-slate-800">
                           {{ v.user.name || v.user.email }}

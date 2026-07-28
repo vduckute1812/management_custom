@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
+import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
 import { assertOwnedUploads, purgeOrphanedUploads, purgeR2StorageKeys } from "./uploads";
 import type { PostAuthor, PostReactionType } from "../../types/post";
@@ -26,6 +27,10 @@ interface StoryRow extends RowDataPacket {
   expires_at: string;
   author_name: string | null;
   author_email: string;
+  author_avatar_upload_id: string | null;
+  author_title: string | null;
+  author_job: string | null;
+  author_location: string | null;
   viewed_by_me: number;
   my_reaction: PostReactionType | null;
   view_count: number;
@@ -41,6 +46,10 @@ interface ViewerRow extends RowDataPacket {
   user_id: string;
   name: string | null;
   email: string;
+  avatar_upload_id: string | null;
+  title: string | null;
+  job: string | null;
+  location: string | null;
   viewed_at: string;
   reaction: PostReactionType | null;
 }
@@ -49,6 +58,10 @@ interface ReactionUserRow extends RowDataPacket {
   user_id: string;
   name: string | null;
   email: string;
+  avatar_upload_id: string | null;
+  title: string | null;
+  job: string | null;
+  location: string | null;
   reaction: PostReactionType;
   created_at: string;
 }
@@ -64,8 +77,26 @@ function emptyReactions(): Record<PostReactionType, number> {
   };
 }
 
-function toAuthor(id: string, name: string | null, email: string): PostAuthor {
-  return { id, name, email };
+function toAuthor(
+  id: string,
+  name: string | null,
+  email: string,
+  extras?: {
+    avatarUploadId?: string | null;
+    title?: string | null;
+    job?: string | null;
+    location?: string | null;
+  }
+): PostAuthor {
+  return {
+    id,
+    name,
+    email,
+    avatarUrl: avatarUrlFromUploadId(extras?.avatarUploadId) ?? null,
+    title: extras?.title ?? null,
+    job: extras?.job ?? null,
+    location: extras?.location ?? null,
+  };
 }
 
 async function loadStoryReactionMaps(
@@ -109,7 +140,12 @@ function rowToStory(
     mediaUrl: row.upload_id ? `/api/uploads/${row.upload_id}` : null,
     createdAt: dbToISO(row.created_at),
     expiresAt: dbToISO(row.expires_at),
-    author: toAuthor(row.user_id, row.author_name, row.author_email),
+    author: toAuthor(row.user_id, row.author_name, row.author_email, {
+      avatarUploadId: row.author_avatar_upload_id,
+      title: row.author_title,
+      job: row.author_job,
+      location: row.author_location,
+    }),
     viewedByMe: Number(row.viewed_by_me ?? 0) > 0,
     canDelete: isOwner,
     reactions,
@@ -180,6 +216,10 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
        s.id, s.user_id, s.body, s.upload_id, s.media_storage_key, s.mime,
        s.created_at, s.expires_at,
        u.name AS author_name, u.email AS author_email,
+       u.avatar_upload_id AS author_avatar_upload_id,
+       u.title AS author_title,
+       u.job AS author_job,
+       u.location AS author_location,
        (SELECT COUNT(*) FROM story_views sv
          WHERE sv.story_id = s.id AND sv.user_id = ?) AS viewed_by_me,
        (SELECT sr.reaction FROM story_reactions sr
@@ -377,8 +417,8 @@ export async function getStoryInsights(
 
   const [viewerRows] = await pool.query<ViewerRow[]>(
     `SELECT
-       sv.user_id, u.name, u.email, sv.viewed_at,
-       sr.reaction
+       sv.user_id, u.name, u.email, u.avatar_upload_id, u.title, u.job, u.location,
+       sv.viewed_at, sr.reaction
      FROM story_views sv
      INNER JOIN users u ON u.id = sv.user_id
      LEFT JOIN story_reactions sr
@@ -389,7 +429,12 @@ export async function getStoryInsights(
   );
 
   const viewers: StoryViewerEntry[] = viewerRows.map((r) => ({
-    user: toAuthor(r.user_id, r.name, r.email),
+    user: toAuthor(r.user_id, r.name, r.email, {
+      avatarUploadId: r.avatar_upload_id,
+      title: r.title,
+      job: r.job,
+      location: r.location,
+    }),
     viewedAt: dbToISO(r.viewed_at),
     reaction: r.reaction ?? null,
   }));
@@ -411,7 +456,8 @@ export async function getStoryInsights(
   );
 
   const [reactionUsers] = await pool.query<ReactionUserRow[]>(
-    `SELECT sr.user_id, u.name, u.email, sr.reaction, sr.created_at
+    `SELECT sr.user_id, u.name, u.email, u.avatar_upload_id, u.title, u.job, u.location,
+            sr.reaction, sr.created_at
      FROM story_reactions sr
      INNER JOIN users u ON u.id = sr.user_id
      WHERE sr.story_id = ?
@@ -426,7 +472,12 @@ export async function getStoryInsights(
     reactions,
     reactionCount,
     reactionUsers: reactionUsers.map((r) => ({
-      user: toAuthor(r.user_id, r.name, r.email),
+      user: toAuthor(r.user_id, r.name, r.email, {
+        avatarUploadId: r.avatar_upload_id,
+        title: r.title,
+        job: r.job,
+        location: r.location,
+      }),
       reaction: r.reaction,
       createdAt: dbToISO(r.created_at),
     })),

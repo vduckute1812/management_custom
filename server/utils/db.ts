@@ -40,7 +40,7 @@ export * from "../db/types";
 export * from "../db/pool";
 export * from "../db/ids";
 export * from "../db/compute";
-export { toAuthUser } from "../db/mappers";
+export { avatarUrlFromUploadId, toAuthUser } from "../db/mappers";
 export * from "../db/epics";
 export * from "../db/tasks";
 export * from "../db/timer";

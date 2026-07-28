@@ -1,6 +1,7 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
+import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
 import { assertOwnedUploads, purgeOrphanedUploads, type UploadRow } from "./uploads";
 import type {
@@ -39,6 +40,10 @@ interface PostRow extends RowDataPacket {
   updated_at: string;
   author_name: string | null;
   author_email: string;
+  author_avatar_upload_id: string | null;
+  author_title: string | null;
+  author_job: string | null;
+  author_location: string | null;
   comment_count: number;
   my_reaction: PostReactionType | null;
   category_slug: string | null;
@@ -51,6 +56,10 @@ interface PostRow extends RowDataPacket {
   shared_author_id: string | null;
   shared_author_name: string | null;
   shared_author_email: string | null;
+  shared_author_avatar_upload_id: string | null;
+  shared_author_title: string | null;
+  shared_author_job: string | null;
+  shared_author_location: string | null;
 }
 
 interface CommentRow extends RowDataPacket {
@@ -100,9 +109,23 @@ function emptyReactions(): Record<PostReactionType, number> {
 function toAuthor(
   id: string,
   name: string | null,
-  email: string
+  email: string,
+  extras?: {
+    avatarUploadId?: string | null;
+    title?: string | null;
+    job?: string | null;
+    location?: string | null;
+  }
 ): PostAuthor {
-  return { id, name, email };
+  return {
+    id,
+    name,
+    email,
+    avatarUrl: avatarUrlFromUploadId(extras?.avatarUploadId) ?? null,
+    title: extras?.title ?? null,
+    job: extras?.job ?? null,
+    location: extras?.location ?? null,
+  };
 }
 
 /** ACL for authenticated viewers (public + own + shared-with-me). */
@@ -141,6 +164,10 @@ const POST_SELECT = `
     p.updated_at,
     u.name AS author_name,
     u.email AS author_email,
+    u.avatar_upload_id AS author_avatar_upload_id,
+    u.title AS author_title,
+    u.job AS author_job,
+    u.location AS author_location,
     (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.id) AS comment_count,
     (SELECT pr.reaction FROM post_reactions pr
       WHERE pr.post_id = p.id AND pr.user_id = ? LIMIT 1) AS my_reaction,
@@ -153,7 +180,11 @@ const POST_SELECT = `
     sp.created_at AS shared_created_at,
     su.id AS shared_author_id,
     su.name AS shared_author_name,
-    su.email AS shared_author_email
+    su.email AS shared_author_email,
+    su.avatar_upload_id AS shared_author_avatar_upload_id,
+    su.title AS shared_author_title,
+    su.job AS shared_author_job,
+    su.location AS shared_author_location
   FROM posts p
   INNER JOIN users u ON u.id = p.user_id
   LEFT JOIN post_categories c ON c.id = p.category_id
@@ -297,7 +328,13 @@ function rowToPost(
       author: toAuthor(
         row.shared_author_id,
         row.shared_author_name,
-        row.shared_author_email
+        row.shared_author_email,
+        {
+          avatarUploadId: row.shared_author_avatar_upload_id,
+          title: row.shared_author_title,
+          job: row.shared_author_job,
+          location: row.shared_author_location,
+        }
       ),
     };
   }
@@ -319,7 +356,12 @@ function rowToPost(
     textColor: normalizeTextColor(row.text_color),
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
-    author: toAuthor(row.user_id, row.author_name, row.author_email),
+    author: toAuthor(row.user_id, row.author_name, row.author_email, {
+      avatarUploadId: row.author_avatar_upload_id,
+      title: row.author_title,
+      job: row.author_job,
+      location: row.author_location,
+    }),
     reactions,
     reactionCount,
     myReaction,

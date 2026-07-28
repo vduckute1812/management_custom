@@ -297,15 +297,25 @@ async function onPlanClick() {
   >
     <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
       <div
-        class="flex h-10 w-10 shrink-0 items-center justify-center text-sm font-bold text-white shadow-sm"
+        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-sm font-bold text-white shadow-sm"
         :class="
           isManuscript
             ? 'rounded-xl bg-[#3f6f5a] ring-4 ring-[#e4efe8]'
-            : 'rounded-full bg-gradient-to-br from-brand-500 to-brand-700 ring-4 ring-brand-50'
+            : post.author.avatarUrl
+              ? 'rounded-full bg-slate-200 ring-4 ring-brand-50'
+              : 'rounded-full bg-gradient-to-br from-brand-500 to-brand-700 ring-4 ring-brand-50'
         "
         aria-hidden="true"
       >
-        {{ initialOf(post.author.name, post.author.email) }}
+        <img
+          v-if="post.author.avatarUrl"
+          :src="post.author.avatarUrl"
+          alt=""
+          class="h-full w-full object-cover"
+        />
+        <template v-else>
+          {{ initialOf(post.author.name, post.author.email) }}
+        </template>
       </div>
       <div class="flex-1 min-w-0">
         <div class="flex items-baseline gap-2 min-w-0 flex-wrap">
@@ -336,7 +346,14 @@ async function onPlanClick() {
             {{ $t("manuscript.readingTime", { count: readingMinutes }) }}
             <span aria-hidden="true"> · </span>
           </template>
-          {{ post.author.email }}
+          <template v-if="post.author.title || post.author.job">
+            <span v-if="post.author.title">{{ post.author.title }}</span>
+            <span v-if="post.author.title && post.author.job"> · </span>
+            <span v-if="post.author.job">{{ post.author.job }}</span>
+          </template>
+          <template v-else>
+            {{ post.author.email }}
+          </template>
         </p>
       </div>
       <button

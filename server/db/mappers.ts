@@ -115,6 +115,10 @@ export interface UserRow extends RowDataPacket {
   email: string;
   password_hash: string;
   name: string | null;
+  avatar_upload_id: string | null;
+  title: string | null;
+  job: string | null;
+  location: string | null;
   role: number;
   email_verified: number;
   created_at: string;
@@ -218,11 +222,23 @@ export function rowToChecklistItem(r: ChecklistRow): ChecklistItem {
   return { id: r.id, text: r.text, done: r.done === 1 };
 }
 
+/** Public avatar URL for an upload id, or undefined when unset. */
+export function avatarUrlFromUploadId(
+  uploadId: string | null | undefined
+): string | undefined {
+  const id = uploadId?.trim();
+  return id ? `/api/uploads/${id}` : undefined;
+}
+
 export function rowToUser(r: UserRow): UserRecord {
   return {
     id: r.id,
     email: r.email,
     name: r.name ?? undefined,
+    avatarUrl: avatarUrlFromUploadId(r.avatar_upload_id),
+    title: r.title ?? undefined,
+    job: r.job ?? undefined,
+    location: r.location ?? undefined,
     role: toRole(r.role),
     emailVerified: r.email_verified === 1,
     passwordHash: r.password_hash,
