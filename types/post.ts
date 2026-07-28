@@ -159,6 +159,8 @@ export interface Post {
   audienceUserIds: string[];
   /** Present when this post is a share/repost of another post. */
   sharedPost: SharedPostPreview | null;
+  /** True when the current viewer can edit this post (author). */
+  canEdit: boolean;
   /** True when the current viewer can delete this post. */
   canDelete: boolean;
 }

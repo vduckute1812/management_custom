@@ -268,6 +268,8 @@
       "colorAmber": "Hổ phách"
     },
     "post": {
+      "edit": "Sửa",
+      "editTitle": "Sửa bài viết",
       "delete": "Xoá",
       "deleteTitle": "Xoá bài viết",
       "onlyYou": "Chỉ bạn",
@@ -309,6 +311,13 @@
       "planTaskCreated": "Đã tạo công việc nghiên cứu trong Quản lý thời gian",
       "planTaskOpen": "Mở",
       "planTaskFailed": "Không thể tạo công việc"
+    },
+    "edit": {
+      "kicker": "Sửa bài viết",
+      "title": "Cập nhật bài viết",
+      "lede": "Đổi nội dung, quyền xem, tệp đính kèm hoặc chuyên mục — rồi lưu.",
+      "save": "Lưu thay đổi",
+      "loading": "Đang tải bài viết…"
     }
   },
   "tasks": {
@@ -684,7 +693,10 @@
     "reload": "Tải lại",
     "postShared": "Đã chia sẻ bài",
     "postDeleted": "Đã xoá bài",
+    "postUpdated": "Đã cập nhật bài",
     "couldNotDeletePost": "Không xoá được bài",
+    "couldNotUpdatePost": "Không cập nhật được bài",
+    "couldNotLoadPost": "Không tải được bài viết",
     "couldNotUpdateReaction": "Không cập nhật được cảm xúc",
     "couldNotClearReaction": "Không xoá được cảm xúc",
     "postSharedToFeed": "Đã chia sẻ bài lên bảng tin của bạn",
@@ -868,7 +880,9 @@
     "signup": "Tạo tài khoản",
     "verifyEmail": "Xác minh email",
     "manuscriptWrite": "Soạn bản thảo",
-    "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn."
+    "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn.",
+    "manuscriptEdit": "Sửa bài viết",
+    "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -904,9 +918,13 @@
     "studioKicker": "Phòng viết",
     "studioTitle": "Soạn bản thảo",
     "studioLede": "Không gian yên tĩnh cho bài luận, chương luận văn và ghi chú nghiên cứu — đủ chỗ để nghĩ.",
+    "editStudioTitle": "Sửa bản thảo",
+    "editStudioLede": "Chỉnh sửa bản thảo, rồi lưu thay đổi về bảng tin.",
     "cancel": "Về bảng tin",
     "publish": "Xuất bản bản thảo",
     "publishing": "Đang xuất bản…",
+    "update": "Lưu thay đổi",
+    "updating": "Đang lưu…",
     "titleLabel": "Tiêu đề bản thảo",
     "titlePlaceholder": "Tiêu đề bản thảo của bạn",
     "bodyLabel": "Nội dung bản thảo",

@@ -19,8 +19,9 @@ const AUTH_FORM_PATHS = new Set(["/login", "/signup"]);
 
 function isPublicPath(path: string): boolean {
   if (PUBLIC_PATHS.has(path)) return true;
-  // Feed is browseable anonymously; the writing desk requires a session.
+  // Feed is browseable anonymously; writing / editing requires a session.
   if (path === "/feed/write") return false;
+  if (path.startsWith("/feed/edit")) return false;
   if (path === "/feed" || path.startsWith("/feed/")) return true;
   return false;
 }

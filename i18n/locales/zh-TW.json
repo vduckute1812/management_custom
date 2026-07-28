@@ -268,6 +268,8 @@
       "colorAmber": "琥珀"
     },
     "post": {
+      "edit": "編輯",
+      "editTitle": "編輯貼文",
       "delete": "刪除",
       "deleteTitle": "刪除貼文",
       "onlyYou": "僅你可見",
@@ -309,6 +311,13 @@
       "planTaskCreated": "已在時間管理中建立研究任務",
       "planTaskOpen": "開啟",
       "planTaskFailed": "無法建立任務"
+    },
+    "edit": {
+      "kicker": "編輯貼文",
+      "title": "更新貼文",
+      "lede": "修改正文、可見性、附件或分類，然後儲存。",
+      "save": "儲存變更",
+      "loading": "正在載入貼文…"
     }
   },
   "tasks": {
@@ -684,7 +693,10 @@
     "reload": "重新載入",
     "postShared": "貼文已分享",
     "postDeleted": "貼文已刪除",
+    "postUpdated": "貼文已更新",
     "couldNotDeletePost": "無法刪除貼文",
+    "couldNotUpdatePost": "無法更新貼文",
+    "couldNotLoadPost": "無法載入貼文",
     "couldNotUpdateReaction": "無法更新表情",
     "couldNotClearReaction": "無法清除表情",
     "postSharedToFeed": "貼文已分享到你的動態",
@@ -868,7 +880,9 @@
     "signup": "建立帳戶",
     "verifyEmail": "驗證電子郵件",
     "manuscriptWrite": "撰寫手稿",
-    "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。"
+    "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。",
+    "manuscriptEdit": "編輯貼文",
+    "manuscriptEditDescription": "更新動態中的貼文或手稿。"
   },
   "categories": {
     "electronics": "電子",
@@ -904,9 +918,13 @@
     "studioKicker": "寫作台",
     "studioTitle": "撰寫手稿",
     "studioLede": "安靜的頁面，適合論文章節、隨筆與研究筆記。",
+    "editStudioTitle": "編輯手稿",
+    "editStudioLede": "修訂手稿，然後將變更儲存回動態。",
     "cancel": "返回動態",
     "publish": "發佈手稿",
     "publishing": "發佈中…",
+    "update": "儲存變更",
+    "updating": "儲存中…",
     "titleLabel": "手稿標題",
     "titlePlaceholder": "輸入手稿標題",
     "bodyLabel": "手稿正文",

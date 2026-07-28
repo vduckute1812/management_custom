@@ -356,15 +356,29 @@ async function onPlanClick() {
           </template>
         </p>
       </div>
-      <button
-        v-if="post.canDelete"
-        type="button"
-        class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-        :title="$t('feed.post.deleteTitle')"
-        @click="emit('delete')"
+      <div
+        v-if="post.canEdit || post.canDelete"
+        class="flex shrink-0 items-center gap-0.5"
       >
-        {{ $t("feed.post.delete") }}
-      </button>
+        <button
+          v-if="post.canEdit"
+          type="button"
+          class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          :title="$t('feed.post.editTitle')"
+          @click="navigateTo(`/feed/edit/${post.id}`)"
+        >
+          {{ $t("feed.post.edit") }}
+        </button>
+        <button
+          v-if="post.canDelete"
+          type="button"
+          class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+          :title="$t('feed.post.deleteTitle')"
+          @click="emit('delete')"
+        >
+          {{ $t("feed.post.delete") }}
+        </button>
+      </div>
     </header>
 
     <div class="min-w-0 max-w-full space-y-3 px-4 pb-3 pt-4 sm:px-5">

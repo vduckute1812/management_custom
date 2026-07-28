@@ -76,21 +76,23 @@ Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Gu
 Format: `update` (short) \| `manuscript` (long-form; requires `title`).  
 Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images (`![alt](/api/uploads/{id})`) are inserted from the manuscript writing desk and must also be listed in `attachmentIds` for ACL.
 
-| Method   | Endpoint                             | Auth     | Description                                                     |
-| -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |
-| `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).  |
-| `POST`   | `/api/posts`                         | Required | Create a post/manuscript (body, format, title?, visibility, …). |
-| `DELETE` | `/api/posts/:id`                     | Required | Delete own post.                                                |
-| `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible to the viewer.           |
-| `POST`   | `/api/posts/:id/comments`            | Required | Add a comment.                                                  |
-| `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete own comment (or post owner).                             |
-| `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`like` / `love` / …).                             |
-| `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction.                                                 |
-| `POST`   | `/api/posts/:id/like`                | Required | Legacy like helper (maps onto reactions).                       |
-| `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                            |
+| Method   | Endpoint                             | Auth     | Description                                                                  |
+| -------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------- |
+| `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).               |
+| `POST`   | `/api/posts`                         | Required | Create a post/manuscript (body, format, title?, visibility, …).              |
+| `GET`    | `/api/posts/:id`                     | Optional | Single post when visible; includes `audience` authors when `canEdit`.        |
+| `PATCH`  | `/api/posts/:id`                     | Required | Update own post (body, title?, visibility, attachments, …). Format is fixed. |
+| `DELETE` | `/api/posts/:id`                     | Required | Delete own post.                                                             |
+| `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible to the viewer.                        |
+| `POST`   | `/api/posts/:id/comments`            | Required | Add a comment.                                                               |
+| `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete own comment (or post owner).                                          |
+| `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`like` / `love` / …).                                          |
+| `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction.                                                              |
+| `POST`   | `/api/posts/:id/like`                | Required | Legacy like helper (maps onto reactions).                                    |
+| `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                                         |
 
 DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.  
-Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
+Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
 

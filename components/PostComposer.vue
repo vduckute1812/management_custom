@@ -17,6 +17,16 @@ const props = defineProps<{
   placeholder?: string;
   submitLabel?: string;
   categories?: PostCategory[];
+  /** Prefill when editing an existing update post. */
+  initial?: {
+    body?: string;
+    visibility?: PostVisibility;
+    audience?: PostAuthor[];
+    attachments?: UploadRecord[];
+    categoryId?: string | null;
+    fontFamily?: PostFontFamily;
+    textColor?: PostTextColor;
+  };
 }>();
 
 const emit = defineEmits<{
@@ -45,14 +55,16 @@ function catLabel(cat: PostCategory) {
   return categoryDisplayName(cat, t, te);
 }
 
-const body = ref("");
-const visibility = ref<PostVisibility>("public");
-const categoryId = ref("");
-const fontFamily = ref<PostFontFamily>("default");
-const textColor = ref<PostTextColor>("default");
-const audience = ref<PostAuthor[]>([]);
+const body = ref(props.initial?.body ?? "");
+const visibility = ref<PostVisibility>(props.initial?.visibility ?? "public");
+const categoryId = ref(props.initial?.categoryId ?? "");
+const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "default");
+const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
+const audience = ref<PostAuthor[]>([...(props.initial?.audience ?? [])]);
 const audienceQuery = ref("");
-const attachments = ref<UploadRecord[]>([]);
+const attachments = ref<UploadRecord[]>([
+  ...(props.initial?.attachments ?? []),
+]);
 const uploading = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 const textareaEl = ref<HTMLTextAreaElement | null>(null);

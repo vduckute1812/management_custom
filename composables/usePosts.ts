@@ -1,6 +1,7 @@
 import type {
   FeedPage,
   Post,
+  PostAuthor,
   PostComment,
   PostFontFamily,
   PostFormat,
@@ -140,6 +141,72 @@ export const usePosts = () => {
       { tone: "success", duration: 2500 },
     );
     return res.post;
+  }
+
+  async function getPost(id: string): Promise<Post> {
+    const res = await apiFetch<{ post: Post }>(`/api/posts/${id}`);
+    return res.post;
+  }
+
+  async function getPostForEdit(
+    id: string,
+  ): Promise<{ post: Post; audience: PostAuthor[] }> {
+    const res = await apiFetch<{ post: Post; audience?: PostAuthor[] }>(
+      `/api/posts/${id}`,
+    );
+    if (!res.post.canEdit) {
+      const err = new Error("You cannot edit this post") as Error & {
+        statusCode: number;
+        statusMessage: string;
+      };
+      err.statusCode = 403;
+      err.statusMessage = "You cannot edit this post";
+      throw err;
+    }
+    return { post: res.post, audience: res.audience ?? [] };
+  }
+
+  async function updatePost(
+    id: string,
+    args: {
+      body: string;
+      title?: string | null;
+      visibility?: PostVisibility;
+      audienceUserIds?: string[];
+      attachmentIds?: string[];
+      categoryId?: string | null;
+      fontFamily?: PostFontFamily;
+      textColor?: PostTextColor;
+    },
+  ): Promise<Post> {
+    try {
+      const res = await apiFetch<{ post: Post }>(`/api/posts/${id}`, {
+        method: "PATCH",
+        body: {
+          body: args.body,
+          title: args.title ?? null,
+          visibility: args.visibility ?? "public",
+          audienceUserIds: args.audienceUserIds ?? [],
+          attachmentIds: args.attachmentIds ?? [],
+          categoryId: args.categoryId ?? null,
+          fontFamily: args.fontFamily ?? "default",
+          textColor: args.textColor ?? "default",
+        },
+      });
+      posts.value = patchPost(posts.value, id, res.post);
+      // If the post no longer matches the active category filter, drop it.
+      if (
+        categoryFilter.value &&
+        res.post.category?.id !== categoryFilter.value
+      ) {
+        posts.value = posts.value.filter((p) => p.id !== id);
+      }
+      pushToast(t("toasts.postUpdated"), { tone: "success", duration: 2500 });
+      return res.post;
+    } catch (err) {
+      pushToast(t("toasts.couldNotUpdatePost"), { tone: "danger" });
+      throw err;
+    }
   }
 
   async function removePost(id: string) {
@@ -311,6 +378,9 @@ export const usePosts = () => {
     refresh,
     loadMore,
     createPost,
+    getPost,
+    getPostForEdit,
+    updatePost,
     removePost,
     toggleLike,
     setReaction,
