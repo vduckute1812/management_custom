@@ -81,6 +81,46 @@ restore_previous_tag() {
   fi
 }
 
+# Free Podman/Docker layer storage before a large multi-stage build. Keeps
+# :latest / :previous (and any currently-running containers) intact.
+prune_image_storage() {
+  log "pruning unused ${RUNTIME} images/layers to free disk"
+  df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
+  if [[ "${RUNTIME}" == "podman" ]]; then
+    # Drop dangling layers from failed/partial builds first.
+    podman image prune -f >/dev/null 2>&1 || true
+    # Remove prior SHA tags of this app image except :latest and :previous.
+    # (Failed builds leave many :abcd123 layers that fill /var/tmp on a Pi.)
+    local ref
+    while IFS= read -r ref; do
+      [[ -z "${ref}" ]] && continue
+      case "${ref}" in
+        "${LATEST_TAG}"|"${PREV_TAG}"|"${NEW_TAG}") continue ;;
+      esac
+      log "removing old image ${ref}"
+      podman rmi -f "${ref}" >/dev/null 2>&1 || true
+    done < <(podman images --format '{{.Repository}}:{{.Tag}}' "${IMAGE}" 2>/dev/null || true)
+    podman container prune -f >/dev/null 2>&1 || true
+    # Build cache + unused networks; never prune named volumes (MySQL data).
+    podman system prune -f >/dev/null 2>&1 || true
+  else
+    docker image prune -f >/dev/null 2>&1 || true
+    local ref
+    while IFS= read -r ref; do
+      [[ -z "${ref}" ]] && continue
+      case "${ref}" in
+        "${LATEST_TAG}"|"${PREV_TAG}"|"${NEW_TAG}") continue ;;
+      esac
+      log "removing old image ${ref}"
+      docker rmi -f "${ref}" >/dev/null 2>&1 || true
+    done < <(docker images --format '{{.Repository}}:{{.Tag}}' "${IMAGE}" 2>/dev/null || true)
+    docker container prune -f >/dev/null 2>&1 || true
+    docker builder prune -f >/dev/null 2>&1 || true
+    docker system prune -f >/dev/null 2>&1 || true
+  fi
+  df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
+}
+
 health_ok() {
   # Any HTTP response from the app means Nitro is up. 401/302/200 all count —
   # we only care that the new process is answering, not that auth succeeds.
@@ -310,9 +350,14 @@ else
   log "no existing ${LATEST_TAG} — first deploy, rollback target unavailable"
 fi
 
+# Free space *after* snapshotting :previous so rollback stays available.
+prune_image_storage
+
 # ── Build (failure here leaves the running stack untouched) ──────────────
 log "building ${NEW_TAG} (includes npm ci for app libs)"
 if ! "${RUNTIME}" build -f docker/Dockerfile.prod -t "${NEW_TAG}" .; then
+  # Another prune pass helps the next CI run if this one OOM'd the disk.
+  prune_image_storage
   die "image build failed — running stack was not restarted"
 fi
 tag_image "${NEW_TAG}" "${LATEST_TAG}"
