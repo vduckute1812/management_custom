@@ -26,7 +26,7 @@ const style = computed(() => ({
 
 <template>
   <div
-    class="post-body text-sm text-slate-800 break-words"
+    class="post-body min-w-0 max-w-full text-sm text-slate-800 break-words"
     :style="style"
     v-html="html"
   />
@@ -172,10 +172,12 @@ const style = computed(() => ({
 
 .post-body .md-table-wrap {
   display: block;
+  box-sizing: border-box;
   width: 100%;
   max-width: 100%;
   margin: 0.75em 0;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -183,6 +185,7 @@ const style = computed(() => ({
   display: table;
   width: max-content;
   min-width: 100%;
+  max-width: none;
   margin: 0;
   border-collapse: collapse;
   border-spacing: 0;
@@ -199,6 +202,24 @@ const style = computed(() => ({
   white-space: normal;
   word-break: normal;
   overflow-wrap: anywhere;
+  min-width: 5.5rem;
+}
+
+.post-body th:first-child,
+.post-body td:first-child {
+  min-width: 7rem;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #f8fafc;
+}
+
+.post-body tbody td:first-child {
+  background: #fff;
+}
+
+.post-body tbody tr:nth-child(even) td:first-child {
+  background: #f8fafc;
 }
 
 .post-body th[align="left"],
@@ -269,7 +290,16 @@ html[data-theme="dark"] .post-body th {
   background: #1e293b;
 }
 
+html[data-theme="dark"] .post-body th:first-child,
+html[data-theme="dark"] .post-body tbody td:first-child {
+  background: #1e293b;
+}
+
 html[data-theme="dark"] .post-body tbody tr:nth-child(even) td {
+  background: #0f172a;
+}
+
+html[data-theme="dark"] .post-body tbody tr:nth-child(even) td:first-child {
   background: #0f172a;
 }
 </style>
