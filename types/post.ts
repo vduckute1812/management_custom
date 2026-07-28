@@ -52,7 +52,7 @@ export const POST_TEXT_COLORS = [
 export type PostTextColor = (typeof POST_TEXT_COLORS)[number];
 
 export const POST_TEXT_COLOR_CSS: Record<PostTextColor, string> = {
-  default: "inherit",
+  default: "#1e293b",
   slate: "#334155",
   brand: "#1d4ed8",
   rose: "#e11d48",
