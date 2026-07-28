@@ -17,7 +17,6 @@ const STRICT_ROUTES: Array<{
   { prefix: "/api/auth/login", limit: 10, windowMs: 60_000 },
   { prefix: "/api/auth/signup", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/refresh", limit: 30, windowMs: 60_000 },
-  { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
   { prefix: "/api/uploads", limit: 30, windowMs: 60_000 },
 ];
 

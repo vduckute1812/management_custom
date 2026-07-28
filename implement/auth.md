@@ -35,10 +35,10 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 
 ## HttpOnly cookies
 
-| Cookie    | Purpose                                      | Max-Age   | JS readable |
-| --------- | -------------------------------------------- | --------- | ----------- |
-| `mgmt_rt` | Refresh token (opaque, SHA-256 hash in DB)   | 30 days   | No          |
-| `mgmt_at` | Access JWT (mirrors in-memory Bearer token)  | 15 min    | No          |
+| Cookie    | Purpose                                     | Max-Age | JS readable |
+| --------- | ------------------------------------------- | ------- | ----------- |
+| `mgmt_rt` | Refresh token (opaque, SHA-256 hash in DB)  | 30 days | No          |
+| `mgmt_at` | Access JWT (mirrors in-memory Bearer token) | 15 min  | No          |
 
 Both are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to on in production / when `APP_BASE_URL` is `https://`; override with `COOKIE_SECURE=false` for plain `http://localhost` dev.
 
@@ -50,17 +50,19 @@ Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-orig
 
 ## Client session (`useAuth`)
 
-| Stored where        | Key / surface              | Contents                                      |
-| ------------------- | -------------------------- | --------------------------------------------- |
-| HttpOnly cookie     | `mgmt_rt`                  | Refresh secret (never in `localStorage`)      |
-| HttpOnly cookie     | `mgmt_at`                  | Short-lived JWT for media + same-origin API   |
-| In-memory + `useState`| `useAuth.accessToken`    | Bearer token for `apiFetch`                   |
-| `localStorage`      | `auth:user`                | Cached `AuthUser` profile (non-secret)        |
-| `localStorage`      | `auth:hasSession`          | `1` when a cookie session is expected         |
+| Stored where           | Key / surface         | Contents                                    |
+| ---------------------- | --------------------- | ------------------------------------------- |
+| HttpOnly cookie        | `mgmt_rt`             | Refresh secret (never in `localStorage`)    |
+| HttpOnly cookie        | `mgmt_at`             | Short-lived JWT for media + same-origin API |
+| In-memory + `useState` | `useAuth.accessToken` | Bearer token for `apiFetch`                 |
+| `localStorage`         | `auth:user`           | Cached `AuthUser` profile (non-secret)      |
+| `localStorage`         | `auth:hasSession`     | `1` when a cookie session is expected       |
 
 `plugins/auth.client.ts` on boot: POST `/api/auth/refresh` with `credentials: 'include'`, then `GET /api/auth/me`. Legacy installs that still have `auth:refreshToken` in `localStorage` send it once in the refresh body, then wipe it.
 
-`useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set.
+`useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set. It also coalesces identical in-flight calls and enforces a 400 ms minimum gap between repeated requests with the same method + URL.
+
+**Brute-force protection:** `POST /api/auth/login`, `signup`, and `refresh` have stricter per-IP rate limits (see [`api.md`](./api.md#rate-limiting)).
 
 ---
 
