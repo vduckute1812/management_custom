@@ -17,33 +17,44 @@ import {
 } from "~/utils/postBodyLimits";
 import { UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 import { CONTENT_LOCALES } from "~/utils/contentLocale";
+import {
+  CHAT_BODY_MAX,
+  CHAT_MESSAGE_KINDS,
+  ChatMessageKind,
+} from "~/types/chat";
 
 const statusSchema = z
   .number()
   .int()
-  .refine((v): v is (typeof TASK_STATUSES)[number] =>
-    (TASK_STATUSES as readonly number[]).includes(v),
-  {
-    message: "Invalid status",
-  });
+  .refine(
+    (v): v is (typeof TASK_STATUSES)[number] =>
+      (TASK_STATUSES as readonly number[]).includes(v),
+    {
+      message: "Invalid status",
+    },
+  );
 
 const prioritySchema = z
   .number()
   .int()
-  .refine((v): v is (typeof TASK_PRIORITIES)[number] =>
-    (TASK_PRIORITIES as readonly number[]).includes(v),
-  {
-    message: "Invalid priority",
-  });
+  .refine(
+    (v): v is (typeof TASK_PRIORITIES)[number] =>
+      (TASK_PRIORITIES as readonly number[]).includes(v),
+    {
+      message: "Invalid priority",
+    },
+  );
 
 const recurrenceRuleSchema = z
   .number()
   .int()
-  .refine((v): v is (typeof RECURRENCE_RULES)[number] =>
-    (RECURRENCE_RULES as readonly number[]).includes(v),
-  {
-    message: "Invalid recurrence rule",
-  });
+  .refine(
+    (v): v is (typeof RECURRENCE_RULES)[number] =>
+      (RECURRENCE_RULES as readonly number[]).includes(v),
+    {
+      message: "Invalid recurrence rule",
+    },
+  );
 
 const dateOnly = z
   .string()
@@ -123,11 +134,13 @@ export const epicUpsertBodySchema = z.object({
   status: statusSchema.optional(),
   color: z
     .string()
-    .refine((v): v is (typeof EPIC_COLORS)[number] =>
-      (EPIC_COLORS as readonly string[]).includes(v),
-    {
-      message: "Invalid color",
-    })
+    .refine(
+      (v): v is (typeof EPIC_COLORS)[number] =>
+        (EPIC_COLORS as readonly string[]).includes(v),
+      {
+        message: "Invalid color",
+      },
+    )
     .optional(),
   dueDate: optionalDate,
   tags: z.array(z.string().trim().min(1).max(64)).max(40).optional(),
@@ -201,5 +214,48 @@ export const postCreateBodySchema = z
           message: "Manuscript title is required",
         });
       }
+    }
+  });
+
+export const chatStartBodySchema = z.object({
+  peerUserId: z.string().min(1, "peerUserId is required"),
+});
+
+export const chatMessagesQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  before: z.string().min(1).optional(),
+  after: z.string().min(1).optional(),
+});
+
+export const chatSendBodySchema = z
+  .object({
+    kind: z
+      .number()
+      .int()
+      .refine(
+        (v): v is ChatMessageKind =>
+          (CHAT_MESSAGE_KINDS as readonly number[]).includes(v),
+        { message: "Invalid message kind" },
+      )
+      .optional()
+      .default(ChatMessageKind.Text),
+    body: z.string().trim().max(CHAT_BODY_MAX).optional().nullable(),
+    stickerId: z.string().trim().min(1).max(64).optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.kind === ChatMessageKind.Sticker) {
+      if (!data.stickerId?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["stickerId"],
+          message: "stickerId is required for sticker messages",
+        });
+      }
+    } else if (!data.body?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["body"],
+        message: "Message body is required",
+      });
     }
   });

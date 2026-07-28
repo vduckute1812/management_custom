@@ -91,6 +91,17 @@ const allItems = computed<PaletteItem[]>(() => {
       },
     },
     {
+      id: "view:chat",
+      kind: "view",
+      title: t("commandPalette.goChat"),
+      subtitle: t("commandPalette.goChatSub"),
+      icon: "bolt",
+      shortcut: "g c",
+      run: () => {
+        router.push("/chat");
+      },
+    },
+    {
       id: "view:profile",
       kind: "view",
       title: t("commandPalette.goProfile"),
@@ -233,7 +244,9 @@ function onBackdrop(e: MouseEvent) {
           class="w-full max-w-xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 overflow-hidden flex flex-col"
           @mousedown.stop
         >
-          <div class="px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+          <div
+            class="px-4 py-3 border-b border-slate-200 flex items-center gap-2"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -255,7 +268,9 @@ function onBackdrop(e: MouseEvent) {
               :aria-label="$t('commandPalette.searchAria')"
               @keydown="onKey"
             />
-            <kbd class="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-mono">
+            <kbd
+              class="text-[10px] px-1.5 py-0.5 bg-slate-100 rounded text-slate-500 font-mono"
+            >
               Esc
             </kbd>
           </div>
@@ -311,7 +326,10 @@ function onBackdrop(e: MouseEvent) {
                 stroke-width="2"
                 class="w-4 h-4 text-slate-500 shrink-0"
               >
-                <polygon points="12 2 2 7 12 12 22 7 12 2" stroke-linejoin="round" />
+                <polygon
+                  points="12 2 2 7 12 12 22 7 12 2"
+                  stroke-linejoin="round"
+                />
                 <polyline points="2 17 12 22 22 17" stroke-linejoin="round" />
                 <polyline points="2 12 12 17 22 12" stroke-linejoin="round" />
               </svg>
@@ -325,7 +343,11 @@ function onBackdrop(e: MouseEvent) {
                 class="w-4 h-4 text-slate-500 shrink-0"
               >
                 <path d="M3 3v18h18" stroke-linecap="round" />
-                <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
+                <path
+                  d="M7 14l4-4 4 4 5-7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
               <svg
                 v-else-if="item.icon === 'bolt'"
@@ -341,7 +363,10 @@ function onBackdrop(e: MouseEvent) {
                 <p class="text-sm font-medium text-slate-800 truncate">
                   {{ item.title }}
                 </p>
-                <p v-if="item.subtitle" class="text-[11px] text-slate-500 truncate">
+                <p
+                  v-if="item.subtitle"
+                  class="text-[11px] text-slate-500 truncate"
+                >
                   {{ item.subtitle }}
                 </p>
               </div>
@@ -354,17 +379,28 @@ function onBackdrop(e: MouseEvent) {
             </li>
           </ul>
 
-          <div class="px-3 py-2 border-t border-slate-100 flex items-center gap-3 text-[11px] text-slate-400">
+          <div
+            class="px-3 py-2 border-t border-slate-100 flex items-center gap-3 text-[11px] text-slate-400"
+          >
             <span>
-              <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono">↑↓</kbd>
+              <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono"
+                >↑↓</kbd
+              >
               {{ $t("commandPalette.navigate") }}
             </span>
             <span>
-              <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono">↵</kbd>
+              <kbd class="px-1 bg-slate-100 rounded text-slate-600 font-mono"
+                >↵</kbd
+              >
               {{ $t("commandPalette.open") }}
             </span>
             <span class="ml-auto">
-              {{ $t("commandPalette.countOf", { filtered: filtered.length, total: allItems.length }) }}
+              {{
+                $t("commandPalette.countOf", {
+                  filtered: filtered.length,
+                  total: allItems.length,
+                })
+              }}
             </span>
           </div>
         </div>

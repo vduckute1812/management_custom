@@ -35,7 +35,8 @@
     "themeTitleSystem": "Giao diện: Tự động · hiện tại {effectiveTheme}",
     "themeTitleFixed": "Giao diện: {label}",
     "more": "Thêm",
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "chat": "Chat"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -820,7 +821,9 @@
     "quickCaptureSub": "Nhập một dòng",
     "epicSubtitle": "Epic · {taskCount} công việc · {spent}g / {estimated}g",
     "taskSubtitle": "Công việc",
-    "taskSubtitleWithEpic": "Công việc · {epic}"
+    "taskSubtitleWithEpic": "Công việc · {epic}",
+    "goChat": "Đến Chat",
+    "goChatSub": "Tin nhắn trực tiếp"
   },
   "shortcuts": {
     "title": "Phím tắt",
@@ -903,7 +906,8 @@
     "manuscriptWrite": "Soạn bản thảo",
     "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn.",
     "manuscriptEdit": "Sửa bài viết",
-    "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin."
+    "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin.",
+    "chat": "Chat"
   },
   "categories": {
     "electronics": "Điện tử",
@@ -973,6 +977,65 @@
       "vi": "Tiếng Việt",
       "zh-CN": "Tiếng Trung (Giản thể)",
       "zh-TW": "Tiếng Trung (Phồn thể)"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "subtitle": "Nhắn tin với thành viên khác",
+    "pageDescription": "Tin nhắn trực tiếp kèm emoji và sticker giữa các người dùng đã đăng nhập.",
+    "newChat": "Chat mới",
+    "searchPeople": "Tìm người",
+    "searchPeoplePlaceholder": "Tìm theo tên hoặc email…",
+    "searching": "Đang tìm…",
+    "noPeopleFound": "Không tìm thấy ai",
+    "emptyConversations": "Chưa có cuộc trò chuyện. Bắt đầu chat mới để nhắn tin.",
+    "noMessagesYet": "Chưa có tin nhắn",
+    "stickerPreview": "Sticker",
+    "threadEmpty": "Xin chào — gửi tin nhắn, emoji hoặc sticker.",
+    "loadOlder": "Tải tin nhắn cũ hơn",
+    "loadingOlder": "Đang tải…",
+    "pickConversation": "Chọn cuộc trò chuyện",
+    "pickConversationHint": "Chọn người trong danh sách hoặc bắt đầu chat mới.",
+    "backToList": "Quay lại danh sách",
+    "composeLabel": "Tin nhắn",
+    "composePlaceholder": "Viết tin nhắn…",
+    "send": "Gửi",
+    "sending": "Đang gửi…",
+    "emojiPanel": "Emoji",
+    "stickerPanel": "Sticker",
+    "sendEmoji": "Gửi emoji",
+    "emojiHint": "Nhấp để gửi · chuột phải để chèn vào khung soạn",
+    "stickerCategories": {
+      "gestures": "Cử chỉ",
+      "mood": "Cảm xúc",
+      "celebration": "Ăn mừng",
+      "work": "Công việc"
+    },
+    "stickers": {
+      "wave": "Vẫy tay",
+      "thumbsUp": "Like",
+      "clap": "Vỗ tay",
+      "pray": "Cảm ơn",
+      "ok": "OK",
+      "point": "Chỉ",
+      "smile": "Cười",
+      "laugh": "Cười lớn",
+      "love": "Yêu",
+      "cool": "Ngầu",
+      "think": "Suy nghĩ",
+      "sad": "Buồn",
+      "party": "Tiệc",
+      "fire": "Lửa",
+      "rocket": "Tên lửa",
+      "star": "Sao",
+      "trophy": "Cúp",
+      "heart": "Tim",
+      "laptop": "Laptop",
+      "bulb": "Ý tưởng",
+      "check": "Xong",
+      "memo": "Ghi chú",
+      "coffee": "Cà phê",
+      "clock": "Đồng hồ"
     }
   }
 }

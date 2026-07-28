@@ -35,7 +35,8 @@
     "themeTitleSystem": "主題：自動 · 目前為 {effectiveTheme}",
     "themeTitleFixed": "主題：{label}",
     "more": "更多",
-    "language": "語言"
+    "language": "語言",
+    "chat": "聊天"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -820,7 +821,9 @@
     "quickCaptureSub": "單行輸入",
     "epicSubtitle": "史詩 · {taskCount} 個任務 · {spent}h / {estimated}h",
     "taskSubtitle": "任務",
-    "taskSubtitleWithEpic": "任務 · {epic}"
+    "taskSubtitleWithEpic": "任務 · {epic}",
+    "goChat": "前往聊天",
+    "goChatSub": "私訊"
   },
   "shortcuts": {
     "title": "鍵盤快捷鍵",
@@ -903,7 +906,8 @@
     "manuscriptWrite": "撰寫手稿",
     "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。",
     "manuscriptEdit": "編輯貼文",
-    "manuscriptEditDescription": "更新動態中的貼文或手稿。"
+    "manuscriptEditDescription": "更新動態中的貼文或手稿。",
+    "chat": "聊天"
   },
   "categories": {
     "electronics": "電子",
@@ -973,6 +977,65 @@
       "vi": "越南語",
       "zh-CN": "簡體中文",
       "zh-TW": "繁體中文"
+    }
+  },
+  "chat": {
+    "title": "聊天",
+    "subtitle": "與其他成員私訊",
+    "pageDescription": "已登入使用者之間的私訊，支援表情與貼圖。",
+    "newChat": "新建聊天",
+    "searchPeople": "搜尋使用者",
+    "searchPeoplePlaceholder": "依姓名或電子郵件搜尋…",
+    "searching": "搜尋中…",
+    "noPeopleFound": "找不到使用者",
+    "emptyConversations": "尚無對話。開始新聊天以傳送訊息。",
+    "noMessagesYet": "尚無訊息",
+    "stickerPreview": "貼圖",
+    "threadEmpty": "打聲招呼 — 傳送文字、表情或貼圖。",
+    "loadOlder": "載入較早的訊息",
+    "loadingOlder": "載入中…",
+    "pickConversation": "選擇對話",
+    "pickConversationHint": "從列表選擇聯絡人，或開始新聊天。",
+    "backToList": "返回列表",
+    "composeLabel": "訊息",
+    "composePlaceholder": "輸入訊息…",
+    "send": "傳送",
+    "sending": "傳送中…",
+    "emojiPanel": "表情",
+    "stickerPanel": "貼圖",
+    "sendEmoji": "傳送表情",
+    "emojiHint": "點一下傳送 · 右鍵插入到輸入框",
+    "stickerCategories": {
+      "gestures": "手勢",
+      "mood": "心情",
+      "celebration": "慶祝",
+      "work": "工作"
+    },
+    "stickers": {
+      "wave": "揮手",
+      "thumbsUp": "按讚",
+      "clap": "鼓掌",
+      "pray": "感謝",
+      "ok": "OK",
+      "point": "指向",
+      "smile": "微笑",
+      "laugh": "大笑",
+      "love": "喜愛",
+      "cool": "酷",
+      "think": "思考",
+      "sad": "難過",
+      "party": "派對",
+      "fire": "火",
+      "rocket": "火箭",
+      "star": "星星",
+      "trophy": "獎盃",
+      "heart": "心",
+      "laptop": "電腦",
+      "bulb": "想法",
+      "check": "完成",
+      "memo": "備忘",
+      "coffee": "咖啡",
+      "clock": "時鐘"
     }
   }
 }

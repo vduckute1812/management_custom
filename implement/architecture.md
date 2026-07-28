@@ -172,7 +172,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── stories/                 # 24h stories, views, reactions, insights
 │   │   ├── uploads/                 # R2 upload + signed GET
 │   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
-│   │   └── users/directory.get.ts   # people picker for shared visibility
+│   │   ├── chat/                    # DM conversations, messages, catalog
+│   │   └── users/directory.get.ts   # people picker for shared visibility + chat
 │   ├── schemas/
 │   │   └── index.ts                 # Shared Zod request schemas
 │   ├── services/
@@ -180,7 +181,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── timerService.ts          # Timer start/stop workflow
 │   │   └── postService.ts           # Post create + cache bust
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0011 SQL files
+│   │   └── migrations/              # 0001…0013 SQL files
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
 │   │   ├── rate-limit.ts            # Per-IP sliding-window caps on /api/*
@@ -211,18 +212,21 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── pages/
 │   ├── index.vue                    # Public hub (localized category cards + module blurbs)
 │   ├── feed/index.vue, feed/write, feed/edit/:id
+│   ├── chat/index.vue               # Direct messages (auth required)
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
-│   └── login.vue, signup.vue, verify-email.vue
+│   └── login.vue, signup.vue, verify-email.vue, forgot-password, reset-password
 ├── components/                      # Flat SFC set (calendars, feed, shell, …)
 │   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, UserAvatar.vue, …
 │   ├── PostComposer.vue, PostCard.vue, PostCommentsPanel.vue, StoryTray.vue, …
+│   ├── ChatConversationList.vue, ChatMessageThread.vue, ChatComposer.vue
 │   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
 ├── composables/
 │   ├── useAuth.ts, useApi.ts, useSettings.ts, useToasts.ts, useUiOverlays.ts
 │   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
+│   ├── useChat.ts                   # DM list / thread / poll / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
 ├── middleware/auth.global.ts
@@ -233,7 +237,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── i18n-locale.client.ts
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
-├── types/                           # task.ts, post.ts, story.ts, locale.ts
+├── types/                           # task.ts, post.ts, story.ts, chat.ts, locale.ts
 ├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, …
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts

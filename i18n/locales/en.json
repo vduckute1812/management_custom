@@ -35,7 +35,8 @@
     "themeTitleSystem": "Theme: Auto · currently {effectiveTheme}",
     "themeTitleFixed": "Theme: {label}",
     "more": "More",
-    "language": "Language"
+    "language": "Language",
+    "chat": "Chat"
   },
   "auth": {
     "signInTitle": "Sign in to continue",
@@ -820,7 +821,9 @@
     "quickCaptureSub": "Single-line input",
     "epicSubtitle": "Epic · {taskCount} tasks · {spent}h / {estimated}h",
     "taskSubtitle": "Task",
-    "taskSubtitleWithEpic": "Task · {epic}"
+    "taskSubtitleWithEpic": "Task · {epic}",
+    "goChat": "Go to Chat",
+    "goChatSub": "Direct messages"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -903,7 +906,8 @@
     "manuscriptWrite": "Write manuscript",
     "manuscriptWriteDescription": "Compose a long-form manuscript for essays and thesis chapters.",
     "manuscriptEdit": "Edit post",
-    "manuscriptEditDescription": "Update an existing feed post or manuscript."
+    "manuscriptEditDescription": "Update an existing feed post or manuscript.",
+    "chat": "Chat"
   },
   "categories": {
     "electronics": "Electronics",
@@ -973,6 +977,65 @@
       "vi": "Vietnamese",
       "zh-CN": "Simplified Chinese",
       "zh-TW": "Traditional Chinese"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "subtitle": "Message other members",
+    "pageDescription": "Direct messages with emoji and stickers between signed-in users.",
+    "newChat": "New chat",
+    "searchPeople": "Search people",
+    "searchPeoplePlaceholder": "Search by name or email…",
+    "searching": "Searching…",
+    "noPeopleFound": "No people found",
+    "emptyConversations": "No conversations yet. Start a new chat to message someone.",
+    "noMessagesYet": "No messages yet",
+    "stickerPreview": "Sticker",
+    "threadEmpty": "Say hello — send a message, emoji, or sticker.",
+    "loadOlder": "Load older messages",
+    "loadingOlder": "Loading…",
+    "pickConversation": "Pick a conversation",
+    "pickConversationHint": "Select someone from the list, or start a new chat to begin messaging.",
+    "backToList": "Back to conversations",
+    "composeLabel": "Message",
+    "composePlaceholder": "Write a message…",
+    "send": "Send",
+    "sending": "Sending…",
+    "emojiPanel": "Emoji",
+    "stickerPanel": "Stickers",
+    "sendEmoji": "Send emoji",
+    "emojiHint": "Click to send · right-click to insert into your draft",
+    "stickerCategories": {
+      "gestures": "Gestures",
+      "mood": "Mood",
+      "celebration": "Celebration",
+      "work": "Work"
+    },
+    "stickers": {
+      "wave": "Wave",
+      "thumbsUp": "Thumbs up",
+      "clap": "Clap",
+      "pray": "Thank you",
+      "ok": "OK",
+      "point": "Point",
+      "smile": "Smile",
+      "laugh": "Laugh",
+      "love": "Love",
+      "cool": "Cool",
+      "think": "Thinking",
+      "sad": "Sad",
+      "party": "Party",
+      "fire": "Fire",
+      "rocket": "Rocket",
+      "star": "Star",
+      "trophy": "Trophy",
+      "heart": "Heart",
+      "laptop": "Laptop",
+      "bulb": "Idea",
+      "check": "Done",
+      "memo": "Memo",
+      "coffee": "Coffee",
+      "clock": "Clock"
     }
   }
 }
