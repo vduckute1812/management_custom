@@ -115,10 +115,10 @@ DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
 
 Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API returns ids / signed URLs — not raw bytes inline.
 
-| Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                     |
-| ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). Error `data.code` maps to `uploads.errors.*` on the client. |
-| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object.                                                                                                                                                                      |
+| Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
+| ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |
+| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object.                                                                                                                                                                                                                                                                            |
 
 **Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
 
