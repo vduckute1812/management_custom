@@ -31,8 +31,7 @@ const style = computed(() => {
     const ff = POST_FONT_FAMILY_CSS[props.fontFamily];
     if (ff && ff !== "inherit") out.fontFamily = ff;
   }
-  // Never set color: inherit inline — it overrides Tailwind and picks up
-  // light dark-theme body text on light manuscript paper.
+  // Never set color: inherit inline — it overrides Tailwind utility classes.
   if (props.textColor !== "default") {
     out.color = POST_TEXT_COLOR_CSS[props.textColor];
   }
@@ -62,10 +61,7 @@ html[data-theme="dark"] .post-body {
   color: #e2e8f0;
 }
 
-/* Manuscript cards keep a paper background even in dark mode — keep dark ink. */
-html[data-theme="dark"] .manuscript-card .post-body {
-  color: #1e293b;
-}
+/* Manuscript cards use dark paper in dark mode — inherit standard dark ink. */
 
 .post-body .katex-display {
   margin: 0.75rem 0;

@@ -267,7 +267,7 @@ async function submitStory() {
           >
             <NuxtLink
               to="/feed/write"
-              class="feed-manuscript-btn inline-flex items-center gap-2 rounded-xl border border-[#cfe0d5] bg-[#e4efe8] px-4 py-2.5 text-sm font-semibold text-[#3f6f5a] transition hover:-translate-y-0.5 hover:bg-[#d7e8dd]"
+              class="feed-manuscript-btn inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
             >
               {{ $t("manuscript.writeCta") }}
             </NuxtLink>
@@ -346,11 +346,11 @@ async function submitStory() {
           <NuxtLink
             v-if="auth.isAuthenticatedUi.value"
             to="/feed/write"
-            class="manuscript-invite group relative block overflow-hidden rounded-2xl border border-[#d5ddd6] px-5 py-5 transition hover:-translate-y-0.5 hover:border-[#b9c7bd] hover:shadow-md sm:px-6"
+            class="manuscript-invite group relative block overflow-hidden rounded-2xl border border-[color:var(--mf-border)] px-5 py-5 transition hover:-translate-y-0.5 hover:border-[color:var(--mf-border-hover)] hover:shadow-md sm:px-6"
           >
             <div class="relative z-[1] max-w-xl">
               <p
-                class="feed-manuscript-kicker text-[11px] font-bold uppercase tracking-[0.18em] text-[#3f6f5a]"
+                class="feed-manuscript-kicker text-[11px] font-bold uppercase tracking-[0.18em]"
               >
                 {{ $t("manuscript.inviteKicker") }}
               </p>
@@ -368,7 +368,7 @@ async function submitStory() {
                 {{ $t("manuscript.inviteBody") }}
               </p>
               <span
-                class="feed-manuscript-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#3f6f5a] transition group-hover:gap-2"
+                class="feed-manuscript-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold transition group-hover:gap-2"
               >
                 {{ $t("manuscript.inviteAction") }}
                 <span aria-hidden="true">→</span>
@@ -386,7 +386,7 @@ async function submitStory() {
               class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
               :class="
                 !categoryFilter
-                  ? 'bg-slate-900 text-white shadow-sm'
+                  ? 'feed-category-chip--active shadow-sm'
                   : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
               "
               :disabled="categoriesLoading"
@@ -401,7 +401,7 @@ async function submitStory() {
               class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
               :class="
                 categoryFilter === cat.id
-                  ? 'bg-slate-900 text-white shadow-sm'
+                  ? 'feed-category-chip--active shadow-sm'
                   : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
               "
               @click="onCategoryFilter(cat.id)"
@@ -735,7 +735,7 @@ async function submitStory() {
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: linear-gradient(180deg, #3f6f5a, transparent 80%);
+  background: linear-gradient(180deg, var(--mf-accent), transparent 80%);
 }
 
 html[data-theme="dark"] .manuscript-invite {

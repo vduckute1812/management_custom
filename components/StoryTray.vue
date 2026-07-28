@@ -109,9 +109,9 @@ function labelOf(name: string | null, email: string) {
           :class="
             group.hasUnseen
               ? group.author.avatarUrl
-                ? 'bg-slate-200 ring-2 ring-brand-400 ring-offset-2'
-                : 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-400 ring-offset-2'
-              : 'bg-slate-200 text-slate-600 ring-2 ring-slate-200 ring-offset-2'
+                ? 'bg-slate-200 ring-2 ring-brand-400 ring-offset-2 story-avatar-ring'
+                : 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-400 ring-offset-2 story-avatar-ring'
+              : 'bg-slate-200 text-slate-600 ring-2 ring-slate-200 ring-offset-2 story-avatar-ring'
           "
         >
           <img
