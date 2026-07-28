@@ -1,5 +1,5 @@
-import type { AppLocale } from "~/types/locale";
-import { APP_LOCALES, isAppLocale } from "~/types/locale";
+import type { AppLocale } from "../types/locale";
+import { APP_LOCALES, isAppLocale } from "../types/locale";
 
 /**
  * Locales available for manuscript content (same set as UI languages).
