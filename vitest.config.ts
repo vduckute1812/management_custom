@@ -9,14 +9,11 @@ export default defineConfig({
     },
   },
   esbuild: {
+    // Only options present on esbuild's TsconfigRaw.compilerOptions.
     tsconfigRaw: {
       compilerOptions: {
         target: "ES2022",
-        module: "ESNext",
-        moduleResolution: "bundler",
         strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
       },
     },
   },

@@ -169,9 +169,9 @@ async function onSubmit() {
             v-for="rule in passwordRules"
             :key="rule.id"
             class="flex items-center gap-2"
-            :class="rule.pass ? 'text-emerald-600' : 'text-slate-500'"
+            :class="rule.ok ? 'text-emerald-600' : 'text-slate-500'"
           >
-            <span aria-hidden="true">{{ rule.pass ? "✓" : "○" }}</span>
+            <span aria-hidden="true">{{ rule.ok ? "✓" : "○" }}</span>
             {{ $t(RULE_I18N[rule.id]) }}
           </li>
         </ul>

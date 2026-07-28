@@ -55,7 +55,8 @@ export default defineEventHandler((event) => {
       1,
       Math.ceil((result.resetAt - Date.now()) / 1000),
     );
-    setResponseHeader(event, "Retry-After", String(retryAfter));
+    // h3 TypedHeaders types Retry-After as number (seconds).
+    setResponseHeader(event, "Retry-After", retryAfter);
     throw createError({
       statusCode: 429,
       statusMessage: "Too many requests. Please try again later.",

@@ -1,7 +1,4 @@
-import {
-  listConversations,
-  getUnreadTotal,
-} from "~/server/utils/db";
+import { listConversations, getUnreadTotal } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
 
