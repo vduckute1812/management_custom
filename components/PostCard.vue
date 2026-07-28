@@ -750,7 +750,7 @@ async function onPlanClick() {
       </ul>
 
       <form
-        v-if="auth.isAuthenticated.value"
+        v-if="auth.isAuthenticatedUi.value"
         class="flex gap-2"
         @submit.prevent="onAddComment"
       >

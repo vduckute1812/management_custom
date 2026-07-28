@@ -28,14 +28,21 @@ const KEYS = {
   refreshToken: "auth:refreshToken",
 } as const;
 
+/**
+ * Public routes (`/`, `/feed`) are selectively SSR'd for Google. Auth still
+ * lives in localStorage, so the server always renders the guest chrome.
+ * `sessionUiReady` stays false until after client mount on those pages so
+ * hydration matches; SPA routes mark it ready immediately.
+ */
 export const useAuth = () => {
   const user = useState<AuthUser | null>("auth:user", () => null);
   const accessToken = useState<string | null>("auth:accessToken", () => null);
   const accessExpiresAt = useState<string | null>(
     "auth:accessExpiresAt",
-    () => null
+    () => null,
   );
   const refreshToken = useState<string | null>("auth:refreshToken", () => null);
+  const sessionUiReady = useState<boolean>("auth:sessionUiReady", () => false);
 
   function persist() {
     if (!import.meta.client) return;
@@ -120,7 +127,7 @@ export const useAuth = () => {
   async function verifyEmail(token: string): Promise<AuthUser> {
     const data = await $fetch<{ ok: boolean; user: AuthUser }>(
       "/api/auth/verify-email",
-      { method: "POST", body: { token } }
+      { method: "POST", body: { token } },
     );
     return data.user;
   }
@@ -145,12 +152,9 @@ export const useAuth = () => {
   async function fetchMe(): Promise<AuthUser | null> {
     if (!accessToken.value) return null;
     try {
-      const { user: fresh } = await $fetch<{ user: AuthUser }>(
-        "/api/auth/me",
-        {
-          headers: { Authorization: `Bearer ${accessToken.value}` },
-        }
-      );
+      const { user: fresh } = await $fetch<{ user: AuthUser }>("/api/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken.value}` },
+      });
       user.value = fresh;
       persist();
       return fresh;
@@ -174,7 +178,7 @@ export const useAuth = () => {
         headers: accessToken.value
           ? { Authorization: `Bearer ${accessToken.value}` }
           : undefined,
-      }
+      },
     );
     user.value = fresh;
     persist();
@@ -197,23 +201,35 @@ export const useAuth = () => {
     clearSession();
   }
 
-  const isAuthenticated = computed(
-    () => !!user.value && !!accessToken.value
-  );
+  const isAuthenticated = computed(() => !!user.value && !!accessToken.value);
   const isAdmin = computed(() => (user.value?.role ?? -1) >= UserRole.Admin);
-  const isSuperAdmin = computed(
-    () => user.value?.role === UserRole.Superadmin
+  const isSuperAdmin = computed(() => user.value?.role === UserRole.Superadmin);
+
+  /** Template-safe auth flags — false until session UI is allowed to paint. */
+  const isAuthenticatedUi = computed(
+    () => sessionUiReady.value && isAuthenticated.value,
   );
+  const isAdminUi = computed(() => sessionUiReady.value && isAdmin.value);
+  const userUi = computed(() => (sessionUiReady.value ? user.value : null));
+
+  function markSessionUiReady() {
+    sessionUiReady.value = true;
+  }
 
   return {
     user,
     accessToken,
     accessExpiresAt,
     refreshToken,
+    sessionUiReady,
     isAuthenticated,
+    isAuthenticatedUi,
     isAdmin,
+    isAdminUi,
     isSuperAdmin,
+    userUi,
     hydrateFromStorage,
+    markSessionUiReady,
     setSession,
     clearSession,
     login,

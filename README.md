@@ -473,7 +473,7 @@ A few choices that look opinionated and aren't accidents.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
 - **Language is a device preference, not a URL.** Same model as theme and density: stored in local settings, no `/en/...` prefixes, no server-side user locale. Switching language rewrites chrome only — user content stays as authored.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
-- **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub and Feed only; Time Management / admin / auth forms stay disallowed. The app remains a client SPA — full first-byte HTML for social crawlers would need selective SSR later.
+- **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub and Feed only; Time Management / admin / auth forms stay disallowed. `/` and `/feed` are selectively SSR'd so crawlers get real HTML; the rest of the app stays a client SPA.
 
 ---
 

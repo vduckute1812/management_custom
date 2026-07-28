@@ -74,32 +74,34 @@ useHead({
   ],
 });
 
-onMounted(async () => {
-  const requestedCategory =
-    typeof route.query.category === "string" ? route.query.category : null;
+const requestedCategory =
+  typeof route.query.category === "string" ? route.query.category : null;
 
-  const jobs: Promise<unknown>[] = [refreshCategories().catch(() => undefined)];
-  // When arriving with a ?category= deep link (e.g. from the home page
-  // topic cards) the first posts fetch must already be filtered, so the
-  // unfiltered refresh is skipped and resolved after categories load.
-  if (!requestedCategory && !posts.value.length) {
-    jobs.push(refresh().catch(() => undefined));
+// SSR: ship public posts + categories in the first HTML response so Google
+// indexes real feed content instead of an empty SPA shell.
+await refreshCategories().catch(() => undefined);
+if (requestedCategory) {
+  const match = categories.value.find(
+    (c) => c.slug === requestedCategory || c.id === requestedCategory,
+  );
+  if (match) {
+    await setCategoryFilter(match.id).catch(() => undefined);
+  } else if (!posts.value.length) {
+    await refresh().catch(() => undefined);
   }
+} else if (!posts.value.length) {
+  await refresh().catch(() => undefined);
+}
+
+// Don't ship a transient API failure string into the crawler HTML.
+if (import.meta.server && error.value) {
+  error.value = null;
+}
+
+onMounted(async () => {
   // Stories require auth; skip for guests so we don't spam 401s.
   if (auth.isAuthenticated.value) {
-    jobs.push(refreshStories().catch(() => undefined));
-  }
-  await Promise.all(jobs);
-
-  if (requestedCategory) {
-    const match = categories.value.find(
-      (c) => c.slug === requestedCategory || c.id === requestedCategory,
-    );
-    if (match) {
-      await setCategoryFilter(match.id).catch(() => undefined);
-    } else if (!posts.value.length) {
-      await refresh().catch(() => undefined);
-    }
+    await refreshStories().catch(() => undefined);
   }
 });
 
@@ -250,7 +252,7 @@ async function submitStory() {
               {{ $t("feed.title") }}
             </h1>
             <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-              <template v-if="auth.isAuthenticated.value">
+              <template v-if="auth.isAuthenticatedUi.value">
                 {{ $t("feed.subtitleAuth") }}
               </template>
               <template v-else>
@@ -260,7 +262,7 @@ async function submitStory() {
           </div>
 
           <div
-            v-if="auth.isAuthenticated.value"
+            v-if="auth.isAuthenticatedUi.value"
             class="hidden shrink-0 items-center gap-2 lg:flex"
           >
             <NuxtLink
@@ -303,7 +305,7 @@ async function submitStory() {
         class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px] xl:gap-8"
       >
         <div class="min-w-0 space-y-5">
-          <NuxtErrorBoundary v-if="auth.isAuthenticated.value">
+          <NuxtErrorBoundary v-if="auth.isAuthenticatedUi.value">
             <div
               class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
             >
@@ -334,7 +336,7 @@ async function submitStory() {
           </NuxtErrorBoundary>
 
           <PostComposer
-            v-if="auth.isAuthenticated.value"
+            v-if="auth.isAuthenticatedUi.value"
             ref="composerRef"
             :submitting="submitting"
             :categories="categories"
@@ -342,7 +344,7 @@ async function submitStory() {
           />
 
           <NuxtLink
-            v-if="auth.isAuthenticated.value"
+            v-if="auth.isAuthenticatedUi.value"
             to="/feed/write"
             class="manuscript-invite group relative block overflow-hidden rounded-2xl border border-[#d5ddd6] px-5 py-5 transition hover:-translate-y-0.5 hover:border-[#b9c7bd] hover:shadow-md sm:px-6"
           >
@@ -355,8 +357,9 @@ async function submitStory() {
               <p
                 class="mt-1 font-[family-name:var(--font-manuscript,Georgia,serif)] text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
                 style="
-                  font-family: 'Source Serif 4', Georgia, 'Times New Roman',
-                    serif;
+                  font-family:
+                    &quot;Source Serif 4&quot;, Georgia,
+                    &quot;Times New Roman&quot;, serif;
                 "
               >
                 {{ $t("manuscript.inviteTitle") }}
@@ -445,18 +448,18 @@ async function submitStory() {
             v-else-if="!loading && !posts.length && !error"
             :title="$t('empty.feedNothingYet')"
             :description="
-              auth.isAuthenticated.value
+              auth.isAuthenticatedUi.value
                 ? $t('empty.feedBeFirst')
                 : $t('empty.feedNoPublic')
             "
             illustration="spark"
             :primary-label="
-              auth.isAuthenticated.value
+              auth.isAuthenticatedUi.value
                 ? $t('empty.writeAPost')
                 : $t('empty.login')
             "
             @primary="
-              auth.isAuthenticated.value
+              auth.isAuthenticatedUi.value
                 ? composerRef?.focus()
                 : navigateTo('/login')
             "
@@ -599,13 +602,13 @@ async function submitStory() {
             </p>
             <p class="relative mt-2 text-xs leading-5 text-slate-300">
               {{
-                auth.isAuthenticated.value
+                auth.isAuthenticatedUi.value
                   ? $t("feed.subtitleAuth")
                   : $t("feed.subtitleGuest")
               }}
             </p>
             <button
-              v-if="auth.isAuthenticated.value"
+              v-if="auth.isAuthenticatedUi.value"
               type="button"
               class="relative mt-4 w-full rounded-xl bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
               @click="composerRef?.focus()"
@@ -613,7 +616,7 @@ async function submitStory() {
               {{ $t("feed.composer.writeAPost") }}
             </button>
             <NuxtLink
-              v-if="auth.isAuthenticated.value"
+              v-if="auth.isAuthenticatedUi.value"
               to="/feed/write"
               class="relative mt-2 block w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-white/20"
             >
@@ -639,7 +642,7 @@ async function submitStory() {
     />
 
     <div
-      v-if="storyComposerOpen && auth.isAuthenticated.value"
+      v-if="storyComposerOpen && auth.isAuthenticatedUi.value"
       class="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/50 p-4"
       role="dialog"
       aria-modal="true"
@@ -719,7 +722,11 @@ async function submitStory() {
 <style scoped>
 .manuscript-invite {
   background:
-    linear-gradient(135deg, rgba(228, 239, 232, 0.95), rgba(247, 248, 246, 0.98)),
+    linear-gradient(
+      135deg,
+      rgba(228, 239, 232, 0.95),
+      rgba(247, 248, 246, 0.98)
+    ),
     radial-gradient(circle at 100% 0%, rgba(63, 111, 90, 0.12), transparent 40%);
 }
 
@@ -732,8 +739,11 @@ async function submitStory() {
 }
 
 html[data-theme="dark"] .manuscript-invite {
-  background:
-    linear-gradient(135deg, rgba(36, 49, 42, 0.95), rgba(17, 24, 22, 0.98));
+  background: linear-gradient(
+    135deg,
+    rgba(36, 49, 42, 0.95),
+    rgba(17, 24, 22, 0.98)
+  );
   border-color: #2a332e;
 }
 </style>

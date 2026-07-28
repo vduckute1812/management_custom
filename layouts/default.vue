@@ -6,7 +6,8 @@ const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
 
 type AppSection = "tasks" | "feed" | "other";
-type NavIcon = "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "user";
+type NavIcon =
+  "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "user";
 
 interface NavItem {
   to: string;
@@ -44,7 +45,7 @@ watch(
       activeSection.value = "other";
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const isFeedSection = computed(() => activeSection.value === "feed");
@@ -55,10 +56,14 @@ const showTaskChrome = computed(
     isTasksSection.value &&
     !isHub.value &&
     route.path !== "/profile" &&
-    !route.path.startsWith("/profile/")
+    !route.path.startsWith("/profile/"),
 );
 const showModuleSidebar = computed(() => {
-  if (isHub.value || route.path === "/profile" || route.path.startsWith("/profile/")) {
+  if (
+    isHub.value ||
+    route.path === "/profile" ||
+    route.path.startsWith("/profile/")
+  ) {
     return false;
   }
   return isFeedSection.value || isTasksSection.value;
@@ -70,8 +75,12 @@ const navItems = computed<NavItem[]>(() => {
       { to: "/feed", labelKey: "nav.feed", icon: "feed" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
-    if (auth.isAdmin.value) {
-      feedNav.splice(1, 0, { to: "/admin", labelKey: "nav.admin", icon: "shield" });
+    if (auth.isAdminUi.value) {
+      feedNav.splice(1, 0, {
+        to: "/admin",
+        labelKey: "nav.admin",
+        icon: "shield",
+      });
     }
     return feedNav;
   }
@@ -83,8 +92,12 @@ const navItems = computed<NavItem[]>(() => {
       { to: "/analytics", labelKey: "nav.analytics", icon: "chart" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
-    if (auth.isAdmin.value) {
-      base.splice(3, 0, { to: "/admin", labelKey: "nav.admin", icon: "shield" });
+    if (auth.isAdminUi.value) {
+      base.splice(3, 0, {
+        to: "/admin",
+        labelKey: "nav.admin",
+        icon: "shield",
+      });
     }
     return base;
   }
@@ -108,7 +121,10 @@ function isActive(to: string) {
 // Mount global keyboard shortcuts exactly once.
 useShortcuts();
 
-const themeCycle: Record<typeof settings.value.theme, typeof settings.value.theme> = {
+const themeCycle: Record<
+  typeof settings.value.theme,
+  typeof settings.value.theme
+> = {
   system: "light",
   light: "dark",
   dark: "system",
@@ -120,7 +136,9 @@ function cycleTheme() {
 
 const themeLabel = computed(() => {
   if (settings.value.theme === "system") return t("nav.themeAuto");
-  return settings.value.theme === "dark" ? t("nav.themeDark") : t("nav.themeLight");
+  return settings.value.theme === "dark"
+    ? t("nav.themeDark")
+    : t("nav.themeLight");
 });
 
 const mobileMoreOpen = ref(false);
@@ -142,7 +160,9 @@ function closeMobileMore() {
         class="hidden md:flex w-56 shrink-0 bg-white border-r border-slate-200 flex-col no-print"
       >
         <div class="px-4 py-4 border-b border-slate-200">
-          <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p
+            class="text-xs font-semibold uppercase tracking-wide text-slate-500"
+          >
             {{ sectionLabel }}
           </p>
           <p class="mt-0.5 text-[11px] text-slate-400">
@@ -189,7 +209,10 @@ function closeMobileMore() {
               stroke-width="2"
               class="w-4 h-4"
             >
-              <polygon points="12 2 2 7 12 12 22 7 12 2" stroke-linejoin="round" />
+              <polygon
+                points="12 2 2 7 12 12 22 7 12 2"
+                stroke-linejoin="round"
+              />
               <polyline points="2 17 12 22 22 17" stroke-linejoin="round" />
               <polyline points="2 12 12 17 22 12" stroke-linejoin="round" />
             </svg>
@@ -203,7 +226,9 @@ function closeMobileMore() {
               class="w-4 h-4"
             >
               <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+              <path
+                d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"
+              />
             </svg>
             <svg
               v-else-if="item.icon === 'shield'"
@@ -245,7 +270,11 @@ function closeMobileMore() {
               class="w-4 h-4"
             >
               <path d="M3 3v18h18" stroke-linecap="round" />
-              <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="M7 14l4-4 4 4 5-7"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
             {{ $t(item.labelKey) }}
           </NuxtLink>
@@ -272,8 +301,14 @@ function closeMobileMore() {
               {{ $t("nav.quickJump") }}
             </span>
             <span class="flex items-center gap-0.5">
-              <kbd class="px-1 py-0.5 bg-slate-200 rounded text-[10px] font-mono">⌘</kbd>
-              <kbd class="px-1 py-0.5 bg-slate-200 rounded text-[10px] font-mono">K</kbd>
+              <kbd
+                class="px-1 py-0.5 bg-slate-200 rounded text-[10px] font-mono"
+                >⌘</kbd
+              >
+              <kbd
+                class="px-1 py-0.5 bg-slate-200 rounded text-[10px] font-mono"
+                >K</kbd
+              >
             </span>
           </button>
           <button
@@ -282,7 +317,10 @@ function closeMobileMore() {
             @click="helpOpen = true"
           >
             <span>{{ $t("nav.shortcuts") }}</span>
-            <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono">?</kbd>
+            <kbd
+              class="px-1.5 py-0.5 bg-slate-100 rounded text-[10px] font-mono"
+              >?</kbd
+            >
           </button>
           <button
             type="button"
@@ -371,18 +409,30 @@ function closeMobileMore() {
             <button
               type="button"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
-              @click="paletteOpen = true; closeMobileMore()"
+              @click="
+                paletteOpen = true;
+                closeMobileMore();
+              "
             >
               {{ $t("nav.quickJump") }}
-              <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">⌘K</kbd>
+              <kbd
+                class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500"
+                >⌘K</kbd
+              >
             </button>
             <button
               type="button"
               class="w-full flex items-center gap-3 px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100"
-              @click="helpOpen = true; closeMobileMore()"
+              @click="
+                helpOpen = true;
+                closeMobileMore();
+              "
             >
               {{ $t("nav.shortcuts") }}
-              <kbd class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500">?</kbd>
+              <kbd
+                class="ml-auto text-[10px] px-1.5 py-0.5 bg-slate-100 rounded font-mono text-slate-500"
+                >?</kbd
+              >
             </button>
             <button
               type="button"
@@ -437,7 +487,10 @@ function closeMobileMore() {
             stroke-width="2"
             class="w-5 h-5"
           >
-            <polygon points="12 2 2 7 12 12 22 7 12 2" stroke-linejoin="round" />
+            <polygon
+              points="12 2 2 7 12 12 22 7 12 2"
+              stroke-linejoin="round"
+            />
             <polyline points="2 17 12 22 22 17" stroke-linejoin="round" />
             <polyline points="2 12 12 17 22 12" stroke-linejoin="round" />
           </svg>
@@ -451,7 +504,9 @@ function closeMobileMore() {
             class="w-5 h-5"
           >
             <circle cx="12" cy="12" r="3" />
-            <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            <path
+              d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005.6 15a1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"
+            />
           </svg>
           <svg
             v-else-if="item.icon === 'shield'"
@@ -493,7 +548,11 @@ function closeMobileMore() {
             class="w-5 h-5"
           >
             <path d="M3 3v18h18" stroke-linecap="round" />
-            <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
+            <path
+              d="M7 14l4-4 4 4 5-7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           {{ $t(item.labelKey) }}
         </NuxtLink>

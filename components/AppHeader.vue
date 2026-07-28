@@ -10,7 +10,7 @@ const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
 
 const displayName = computed(
-  () => auth.user.value?.name || auth.user.value?.email || t("nav.account"),
+  () => auth.userUi.value?.name || auth.userUi.value?.email || t("nav.account"),
 );
 
 function isMainActive(to: string) {
@@ -128,7 +128,7 @@ watch(
       </nav>
 
       <div
-        v-if="auth.isAuthenticated.value && auth.user.value"
+        v-if="auth.isAuthenticatedUi.value && auth.userUi.value"
         ref="menuRoot"
         class="relative shrink-0"
       >
@@ -141,9 +141,9 @@ watch(
           @click="toggleMenu"
         >
           <UserAvatar
-            :name="auth.user.value.name"
-            :email="auth.user.value.email"
-            :avatar-url="auth.user.value.avatarUrl"
+            :name="auth.userUi.value.name"
+            :email="auth.userUi.value.email"
+            :avatar-url="auth.userUi.value.avatarUrl"
             size="md"
           />
           <span class="hidden min-w-0 text-left sm:block">
@@ -153,7 +153,7 @@ watch(
             <span
               class="block text-[10px] uppercase tracking-wider text-slate-400"
             >
-              {{ t(ROLE_I18N_KEYS[auth.user.value.role] ?? "roles.normal") }}
+              {{ t(ROLE_I18N_KEYS[auth.userUi.value.role] ?? "roles.normal") }}
             </span>
           </span>
           <svg
