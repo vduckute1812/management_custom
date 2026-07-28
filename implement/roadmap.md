@@ -123,8 +123,8 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 
 **Client**
 
-- [x] `composables/useAuth.ts` — login / signup / verify / refresh / logout + localStorage persistence of `{ user, accessToken, accessExpiresAt, refreshToken }`
-- [x] `composables/useApi.ts` — auto-attaches `Authorization: Bearer …`, proactively refreshes within 30 s of expiry, and on a 401 makes one refresh-and-retry attempt before bouncing to `/login?redirect=…`
+- [x] `composables/useAuth.ts` — login / signup / verify / refresh / logout; HttpOnly cookie session + `localStorage` profile cache (`auth:user`, `auth:hasSession`) — superseded localStorage refresh storage in Phase 16
+- [x] `composables/useApi.ts` — auto-attaches `Authorization: Bearer …`, sends `credentials: 'include'`, proactively refreshes within 30 s of expiry, and on a 401 makes one refresh-and-retry attempt before bouncing to `/login?redirect=…`
 - [x] A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip
 - [x] `useTasks`, `useEpics`, `useTimer` migrated off `$fetch` onto `apiFetch` (so every existing surface now talks to the auth-aware API)
 - [x] `plugins/auth.client.ts` — hydrates session on boot, refreshes the access token if it's near expiry, and falls back to a clean `clearSession()` on any failure

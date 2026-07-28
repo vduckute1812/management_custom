@@ -483,15 +483,16 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 
 | Topic                                            | Document                                                         |
 | ------------------------------------------------ | ---------------------------------------------------------------- |
-| Install, env vars, type-check, SEO endpoints     | [`implement/getting-started.md`](./implement/getting-started.md) |
-| Stack, runtime topology, SEO, project layout     | [`implement/architecture.md`](./implement/architecture.md)       |
-| Database schema (DDL), field references          | [`implement/database.md`](./implement/database.md)               |
-| REST endpoints under `/api/*`                    | [`implement/api.md`](./implement/api.md)                         |
-| JWT / refresh model, admin seed, email transport | [`implement/auth.md`](./implement/auth.md)                       |
-| UI languages, plural `t()`, SEO titles           | [`implement/i18n.md`](./implement/i18n.md)                       |
-| Original Authentication & RBAC feature spec      | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
-| Phase-by-phase engineering progress              | [`implement/roadmap.md`](./implement/roadmap.md)                 |
-| Raspberry Pi CI/CD deploy + rollback             | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |
+| Install, env vars, scripts, type-check, tests, SEO | [`implement/getting-started.md`](./implement/getting-started.md) |
+| Stack, topology, auth cookies, validation, layout  | [`implement/architecture.md`](./implement/architecture.md)       |
+| Database schema (DDL), field references              | [`implement/database.md`](./implement/database.md)               |
+| REST endpoints + Zod validation patterns           | [`implement/api.md`](./implement/api.md)                         |
+| HttpOnly cookies, JWT/refresh, client session        | [`implement/auth.md`](./implement/auth.md)                       |
+| UI languages, plural `t()`, SEO titles             | [`implement/i18n.md`](./implement/i18n.md)                       |
+| Original Authentication & RBAC feature spec          | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
+| Phase-by-phase engineering progress                | [`implement/roadmap.md`](./implement/roadmap.md)                 |
+| Cache & durable job queue                          | [`implement/cache-queue.md`](./implement/cache-queue.md)         |
+| Raspberry Pi CI/CD deploy + rollback               | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |
 
 ---
 

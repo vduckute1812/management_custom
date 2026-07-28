@@ -50,8 +50,9 @@ export function bodyReferencesUpload(
 }
 
 /**
- * Append `?access_token=` to `/api/uploads/...` image srcs so <img> can load
- * private/shared media (browsers cannot send Authorization on image requests).
+ * Append `?access_token=` only as a legacy fallback for non-upload paths.
+ * Prefer cookie-authenticated `/api/uploads/...` URLs (HttpOnly `mgmt_at`) —
+ * `useMediaUrl` returns bare upload paths for same-origin loads.
  */
 export function withUploadAccessTokens(
   html: string,
