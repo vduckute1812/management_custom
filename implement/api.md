@@ -73,7 +73,7 @@ Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*
 
 Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.  
 Format: `update` (short) \| `manuscript` (long-form; requires `title`).  
-Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images use `![alt](/api/uploads/{id})` and must also be listed in `attachmentIds` for ACL.
+Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images (`![alt](/api/uploads/{id})`) are inserted from the manuscript writing desk and must also be listed in `attachmentIds` for ACL.
 
 | Method   | Endpoint                             | Auth     | Description                                                     |
 | -------- | ------------------------------------ | -------- | --------------------------------------------------------------- |

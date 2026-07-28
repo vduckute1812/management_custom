@@ -211,7 +211,7 @@
     "composer": {
       "writeAPost": "写帖子",
       "placeholder": "写帖子… 支持 Markdown（#、*、>、表格）与 $E=mc^2$ / $$…$$ LaTeX",
-      "formatHint": "Markdown：# 标题、*斜体*、**粗体**、> 引用、- 列表、表格、`代码`、链接、图片。LaTeX：$…$ 或 $$…$$。",
+      "formatHint": "Markdown：# 标题、*斜体*、**粗体**、> 引用、- 列表、表格、`代码`、链接。LaTeX：$…$ 或 $$…$$。",
       "category": "分类",
       "noCategory": "无分类",
       "font": "字体",

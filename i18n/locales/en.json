@@ -211,7 +211,7 @@
     "composer": {
       "writeAPost": "Write a post",
       "placeholder": "Write a post… Markdown (#, *, >, tables) and $E=mc^2$ / $$…$$ for LaTeX",
-      "formatHint": "Markdown: # headings, *italic*, **bold**, > quotes, - lists, tables, `code`, links, and images. LaTeX: $…$ or $$…$$.",
+      "formatHint": "Markdown: # headings, *italic*, **bold**, > quotes, - lists, tables, `code`, and links. LaTeX: $…$ or $$…$$.",
       "category": "Category",
       "noCategory": "No category",
       "font": "Font",
