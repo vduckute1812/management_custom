@@ -234,23 +234,41 @@ function doExportICS() {
             </p>
           </header>
           <div class="px-5 py-4 flex items-center gap-3">
-            <div
-              class="w-10 h-10 rounded-full bg-slate-200 text-slate-700 text-sm font-semibold flex items-center justify-center"
-            >
-              {{
-                (auth.user.value.name || auth.user.value.email || "?")
-                  .charAt(0)
-                  .toUpperCase()
-              }}
-            </div>
+            <UserAvatar
+              :name="auth.user.value.name"
+              :email="auth.user.value.email"
+              :avatar-url="auth.user.value.avatarUrl"
+              size="md"
+            />
             <div class="min-w-0 flex-1">
               <p class="text-sm font-medium text-slate-800 truncate">
                 {{ auth.user.value.name || auth.user.value.email }}
               </p>
               <p class="text-[11px] text-slate-500 truncate">
-                {{ auth.user.value.email }}
+                <template v-if="auth.user.value.title || auth.user.value.job">
+                  <span v-if="auth.user.value.title">{{
+                    auth.user.value.title
+                  }}</span>
+                  <span
+                    v-if="auth.user.value.title && auth.user.value.job"
+                  >
+                    ·
+                  </span>
+                  <span v-if="auth.user.value.job">{{
+                    auth.user.value.job
+                  }}</span>
+                </template>
+                <template v-else>
+                  {{ auth.user.value.email }}
+                </template>
               </p>
             </div>
+            <NuxtLink
+              to="/profile"
+              class="text-xs font-medium text-brand-700 hover:text-brand-800 px-3 py-1.5 rounded-lg hover:bg-brand-50"
+            >
+              {{ $t("settings.account.editProfile") }}
+            </NuxtLink>
             <button
               type="button"
               class="text-xs font-medium text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50"

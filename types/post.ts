@@ -92,6 +92,11 @@ export interface PostAuthor {
   id: string;
   name: string | null;
   email: string;
+  /** Proxied upload URL when the author has an avatar. */
+  avatarUrl?: string | null;
+  title?: string | null;
+  job?: string | null;
+  location?: string | null;
 }
 
 export interface SharedPostPreview {

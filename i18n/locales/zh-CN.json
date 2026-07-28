@@ -88,6 +88,7 @@
     "account": {
       "title": "账户",
       "subtitle": "此浏览器中的登录会话。",
+      "editProfile": "编辑资料",
       "signOut": "退出登录"
     },
     "appearance": {
@@ -166,7 +167,24 @@
     "memberSince": "加入时间",
     "settings": "设置",
     "logout": "退出登录",
-    "signInPrompt": "登录后查看个人资料。"
+    "signInPrompt": "登录后查看个人资料。",
+    "edit": "编辑资料",
+    "save": "保存更改",
+    "saving": "保存中…",
+    "saveFailed": "无法保存资料。",
+    "changeAvatar": "更换头像",
+    "removeAvatar": "移除头像",
+    "avatarMustBeImage": "头像必须是图片文件。",
+    "fields": {
+      "name": "显示名称",
+      "namePlaceholder": "其他人看到的名字",
+      "title": "头衔",
+      "titlePlaceholder": "例如：高级工程师",
+      "job": "工作",
+      "jobPlaceholder": "例如：Acme 前端负责人",
+      "location": "地点",
+      "locationPlaceholder": "例如：岘港，越南"
+    }
   },
   "feed": {
     "title": "动态",
@@ -673,6 +691,7 @@
     "storyPosted": "快拍已发布",
     "storyDeleted": "快拍已删除",
     "uploadFailed": "上传失败",
+    "profileUpdated": "资料已更新",
     "couldNotLoadFeed": "无法加载动态。",
     "failedToLoadTasks": "加载任务失败",
     "failedToLoadEpics": "加载史诗失败",

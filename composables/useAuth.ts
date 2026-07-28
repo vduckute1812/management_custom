@@ -159,6 +159,28 @@ export const useAuth = () => {
     }
   }
 
+  async function updateProfile(input: {
+    name?: string | null;
+    avatarUploadId?: string | null;
+    title?: string | null;
+    job?: string | null;
+    location?: string | null;
+  }): Promise<AuthUser> {
+    const { user: fresh } = await $fetch<{ user: AuthUser }>(
+      "/api/auth/profile",
+      {
+        method: "PATCH",
+        body: input,
+        headers: accessToken.value
+          ? { Authorization: `Bearer ${accessToken.value}` }
+          : undefined,
+      }
+    );
+    user.value = fresh;
+    persist();
+    return fresh;
+  }
+
   async function logout(opts?: { everywhere?: boolean }) {
     const rt = refreshToken.value;
     try {
@@ -199,6 +221,7 @@ export const useAuth = () => {
     verifyEmail,
     refresh,
     fetchMe,
+    updateProfile,
     logout,
   };
 };

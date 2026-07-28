@@ -313,6 +313,14 @@ export interface AuthUser {
   id: string;
   email: string;
   name?: string;
+  /** Proxied upload URL (`/api/uploads/…`) when the user set an avatar. */
+  avatarUrl?: string;
+  /** Short professional headline (e.g. "Staff engineer"). */
+  title?: string;
+  /** Job / role at work (e.g. "Frontend lead at Acme"). */
+  job?: string;
+  /** Free-form location (city, timezone, remote, …). */
+  location?: string;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;

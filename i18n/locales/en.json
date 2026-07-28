@@ -88,6 +88,7 @@
     "account": {
       "title": "Account",
       "subtitle": "Signed-in session for this browser.",
+      "editProfile": "Edit profile",
       "signOut": "Sign out"
     },
     "appearance": {
@@ -166,7 +167,24 @@
     "memberSince": "Member since",
     "settings": "Settings",
     "logout": "Logout",
-    "signInPrompt": "Sign in to view your profile."
+    "signInPrompt": "Sign in to view your profile.",
+    "edit": "Edit profile",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "saveFailed": "Could not save profile.",
+    "changeAvatar": "Change photo",
+    "removeAvatar": "Remove photo",
+    "avatarMustBeImage": "Avatar must be an image file.",
+    "fields": {
+      "name": "Display name",
+      "namePlaceholder": "How you appear to others",
+      "title": "Title",
+      "titlePlaceholder": "e.g. Staff engineer",
+      "job": "Job",
+      "jobPlaceholder": "e.g. Frontend lead at Acme",
+      "location": "Location",
+      "locationPlaceholder": "e.g. Da Nang, Vietnam"
+    }
   },
   "feed": {
     "title": "Feed",
@@ -673,6 +691,7 @@
     "storyPosted": "Story posted",
     "storyDeleted": "Story deleted",
     "uploadFailed": "Upload failed",
+    "profileUpdated": "Profile updated",
     "couldNotLoadFeed": "Could not load the feed.",
     "failedToLoadTasks": "Failed to load tasks",
     "failedToLoadEpics": "Failed to load epics",

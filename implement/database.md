@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields`.
 
 ## Migration system
 
@@ -85,13 +85,19 @@ CREATE TABLE users (
   email           VARCHAR(320) NOT NULL,
   password_hash   VARCHAR(255) NOT NULL,
   name            VARCHAR(255) NULL,
+  avatar_upload_id VARCHAR(64) NULL,   -- migration 0010; FK → uploads(id)
+  title           VARCHAR(120) NULL,   -- migration 0010
+  job             VARCHAR(120) NULL,   -- migration 0010
+  location        VARCHAR(120) NULL,   -- migration 0010
   role            TINYINT UNSIGNED NOT NULL DEFAULT 0,
   email_verified  TINYINT(1)    NOT NULL DEFAULT 0,
   created_at      DATETIME(3)   NOT NULL,
   updated_at      DATETIME(3)   NOT NULL,
   last_login_at   DATETIME(3)   NULL,
   UNIQUE KEY uniq_users_email (email),
-  INDEX idx_users_role (role)
+  INDEX idx_users_role (role),
+  CONSTRAINT fk_users_avatar_upload FOREIGN KEY (avatar_upload_id)
+    REFERENCES uploads(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Refresh tokens ------------------------------------------------------
@@ -239,6 +245,26 @@ Tags are free-form strings on both epics and tasks. Modeling them as a separate 
 
 ## Field references
 
+### AuthUser (wire; from `users`)
+
+Public-safe account shape returned by auth routes (`GET /api/auth/me`, `PATCH /api/auth/profile`, login, …). Never includes `passwordHash`.
+
+| Field           | Stored as                       | Required | Description                                                              |
+| --------------- | ------------------------------- | -------- | ------------------------------------------------------------------------ |
+| `id`            | `id`                            | Yes      | `user_<random>`                                                          |
+| `email`         | `email`                         | Yes      | Unique login identity                                                    |
+| `name`          | `name` VARCHAR(255)             | No       | Display name; signup/profile app max **120** chars                       |
+| `avatarUrl`     | derived from `avatar_upload_id` | No       | `/api/uploads/{id}` when set; FK `ON DELETE SET NULL` (migration `0010`) |
+| `title`         | `title` VARCHAR(120)            | No       | Short professional headline                                              |
+| `job`           | `job` VARCHAR(120)              | No       | Job / role at work                                                       |
+| `location`      | `location` VARCHAR(120)         | No       | Free-form location                                                       |
+| `role`          | `role` TINYINT                  | Yes      | `UserRole`: `0` Normal, `1` Admin, `2` Superadmin                        |
+| `emailVerified` | `email_verified`                | Yes      | Login requires `true`                                                    |
+| `createdAt`     | `created_at`                    | Yes      | Account creation                                                         |
+| `updatedAt`     | `updated_at`                    | Yes      | Last profile / role / verification change (not login stamps)             |
+
+See [`auth.md`](./auth.md#profile-editing) for the edit path.
+
 ### Epic
 
 | Field         | Type     | Required | Description                                      |
@@ -310,22 +336,22 @@ When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended
 
 Canonical DDL lives in the migration files; this section is the as-built map.
 
-| Table              | Purpose                                                                                                                                                             |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Table              | Purpose                                                                                                                                                              |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id` |
-| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                  |
-| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                             |
-| `post_comments`    | Threaded comments on a post                                                                                                                                         |
-| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                             |
-| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order` |
-| `uploads`          | Upload metadata + R2 `storage_key`                                                                                                                                  |
-| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                          |
-| `story_views`      | Viewer rollup                                                                                                                                                       |
-| `story_reactions`  | Reactions on stories                                                                                                                                                |
+| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                   |
+| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                              |
+| `post_comments`    | Threaded comments on a post                                                                                                                                          |
+| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                              |
+| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`  |
+| `uploads`          | Upload metadata + R2 `storage_key`                                                                                                                                   |
+| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                           |
+| `story_views`      | Viewer rollup                                                                                                                                                        |
+| `story_reactions`  | Reactions on stories                                                                                                                                                 |
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
-**Media cleanup.** Deleting a post/story, expiring a story, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / `purgeExpiredStories` / pre-delete key sweep on `deleteUser`). See [`api.md`](./api.md#uploads-r2).
+**Media cleanup.** Deleting a post/story, expiring a story, replacing/clearing a profile avatar, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / `purgeExpiredStories` / pre-delete key sweep on `deleteUser`). An upload stays alive while referenced by `post_attachments`, a non-expired story, or `users.avatar_upload_id`. See [`api.md`](./api.md#uploads-r2).
 
 **Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`.
 
@@ -337,8 +363,8 @@ Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.t
 
 ## Jobs queue (migration 0009)
 
-| Table  | Purpose |
-| ------ | ------- |
+| Table  | Purpose                                                                                            |
+| ------ | -------------------------------------------------------------------------------------------------- |
 | `jobs` | Durable background work: `type`, JSON `payload`, `status`, attempts, `available_at`, lock metadata |
 
 Statuses: `pending` → `processing` → `completed`, or retry as `pending`, or `dead` after max attempts. Claimed with `FOR UPDATE SKIP LOCKED`. See [`cache-queue.md`](./cache-queue.md).

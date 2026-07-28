@@ -78,7 +78,11 @@ The "now" indicator ticks every 30 seconds and snaps forward when the tab regain
 
 ### Share on the Feed
 
-Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports.
+Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
+
+### Edit your profile
+
+Open **Profile** from the account menu (or Settings → Edit profile). Update display name, title, job, location, and avatar (image upload when R2 is configured). Changes apply immediately to your session and show on the Feed next to your posts and stories. Role and email are managed separately (admin / verification flows).
 
 ### Switch language
 
@@ -141,6 +145,12 @@ Concrete journeys, each rated by target friction.
 4. Shortcut: open the header account menu and use the language select without leaving the current page.
 
 Engineering detail (message files, sync plugin, key namespaces): [`implement/i18n.md`](./implement/i18n.md).
+
+### Flow 5 — "Update profile" _(target: ≤ 60 seconds)_
+
+1. Open **Profile** from the account menu (or Settings → Edit profile).
+2. Tap **Edit profile**; optionally change the photo, then fill name / title / job / location.
+3. **Save changes** — the header chip and Feed author line update from the PATCH reply without a full reload.
 
 ---
 

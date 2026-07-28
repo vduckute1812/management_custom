@@ -105,14 +105,24 @@ function labelOf(name: string | null, email: string) {
         @click="emit('open', idx)"
       >
         <span
-          class="flex h-14 w-14 items-center justify-center rounded-full text-sm font-bold transition group-hover:scale-105"
+          class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full text-sm font-bold transition group-hover:scale-105"
           :class="
             group.hasUnseen
-              ? 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-400 ring-offset-2'
+              ? group.author.avatarUrl
+                ? 'bg-slate-200 ring-2 ring-brand-400 ring-offset-2'
+                : 'bg-gradient-to-br from-brand-500 to-brand-700 text-white ring-2 ring-brand-400 ring-offset-2'
               : 'bg-slate-200 text-slate-600 ring-2 ring-slate-200 ring-offset-2'
           "
         >
-          {{ initialOf(group.author.name, group.author.email) }}
+          <img
+            v-if="group.author.avatarUrl"
+            :src="group.author.avatarUrl"
+            alt=""
+            class="h-full w-full object-cover"
+          />
+          <template v-else>
+            {{ initialOf(group.author.name, group.author.email) }}
+          </template>
         </span>
         <span class="text-[10px] text-slate-600 truncate w-full text-center">
           {{ labelOf(group.author.name, group.author.email) }}
