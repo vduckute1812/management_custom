@@ -51,8 +51,8 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
     ├── server/utils/cache.ts  →  memory | Redis (optional)
     │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
-    │     tables: users (+ last_login_at), auth_*, epics, tasks,
-    │             time_blocks, checklist_items, active_timer,
+    │     tables: users (+ last_login_at, profile fields via 0010), auth_*,
+    │             epics, tasks, time_blocks, checklist_items, active_timer,
     │             posts, post_*, uploads, stories, story_*,
     │             post_categories, jobs, schema_migrations
     │
@@ -92,7 +92,7 @@ Global guard: `middleware/auth.global.ts`.
 ~/Projects/management_custom/
 ├── server/
 │   ├── api/
-│   │   ├── auth/                    # signup, login, refresh, logout, verify-email, me
+│   │   ├── auth/                    # signup, login, refresh, logout, verify-email, me, profile
 │   │   ├── admin/                   # users, stats, role, DELETE user (superadmin)
 │   │   ├── epics/                   # caller-scoped
 │   │   ├── tasks/                   # caller-scoped
@@ -103,7 +103,7 @@ Global guard: `middleware/auth.global.ts`.
 │   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
 │   │   └── users/directory.get.ts   # people picker for shared visibility
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0006 SQL files
+│   │   └── migrations/              # 0001…0010 SQL files
 │   ├── middleware/auth.ts           # Hydrates event.context.user from Bearer JWT
 │   ├── plugins/db-verify.ts         # Refuses boot if migrations pending/drifted
 │   └── utils/
@@ -125,7 +125,7 @@ Global guard: `middleware/auth.global.ts`.
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
 │   └── login.vue, signup.vue, verify-email.vue
 ├── components/                      # Flat SFC set (calendars, feed, shell, …)
-│   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, …
+│   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, UserAvatar.vue, …
 │   ├── PostComposer.vue, PostCard.vue, StoryTray.vue, StoryViewer.vue, …
 │   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
 ├── composables/

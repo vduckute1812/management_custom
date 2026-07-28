@@ -8,19 +8,19 @@ If you came here to **use** the app, start at the root README. If you came here 
 
 ## Map
 
-| File                                         | What's in it                                                                                  |
-| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| [`getting-started.md`](./getting-started.md) | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                 |
-| [`architecture.md`](./architecture.md)       | Tech stack, SPA topology, SEO (`@nuxtjs/seo`), MySQL + optional R2/Redis, project structure.  |
-| [`cache-queue.md`](./cache-queue.md)         | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).         |
-| [`database.md`](./database.md)               | Schema DDL + feed/stories/jobs tables, field references, migration policy.                    |
-| [`api.md`](./api.md)                         | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin, queue).            |
-| [`auth.md`](./auth.md)                       | Roles, public vs protected client routes, JWT/refresh, bootstrap superadmin, email transport. |
-| [`i18n.md`](./i18n.md)                       | Locales, `no_prefix` routing, plural `t()` shape, Day.js / SEO titles.                        |
-| [`auth-rbac.md`](./auth-rbac.md)             | Original feature spec for Authentication & RBAC (the "what was asked for" document).          |
-| [`cache-queue-spec.md`](./cache-queue-spec.md)| Feature spec for Cache & Queue.                                                              |
-| [`roadmap.md`](./roadmap.md)                 | Phase-by-phase engineering progress through Phase 14 (cache + queue).                         |
-| [`ci-cd.md`](./ci-cd.md)                     | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.                      |
+| File                                           | What's in it                                                                                                   |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| [`getting-started.md`](./getting-started.md)   | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                                  |
+| [`architecture.md`](./architecture.md)         | Tech stack, SPA topology, SEO (`@nuxtjs/seo`), MySQL + optional R2/Redis, project structure.                   |
+| [`cache-queue.md`](./cache-queue.md)           | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).                          |
+| [`database.md`](./database.md)                 | Schema DDL + feed/stories/jobs tables, field references, migration policy.                                     |
+| [`api.md`](./api.md)                           | REST endpoints under `/api/*` (auth, tasks, feed, stories, uploads, admin, queue).                             |
+| [`auth.md`](./auth.md)                         | Roles, public vs protected client routes, JWT/refresh, profile editing, bootstrap superadmin, email transport. |
+| [`i18n.md`](./i18n.md)                         | Locales, `no_prefix` routing, plural `t()` shape, Day.js / SEO titles.                                         |
+| [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                           |
+| [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                                |
+| [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, cache/queue, R2 lifecycle, profile fields).                   |
+| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.                                       |
 
 ## Feature specs vs. implementation docs
 

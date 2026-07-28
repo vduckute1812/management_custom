@@ -63,3 +63,17 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 Outbound mail from product flows should go through the **job queue** (`enqueueVerificationEmail` / `enqueueEmailSend`) so HTTP handlers stay fast and SMTP failures retry with backoff. Direct `sendMail` remains available for scripts and the worker itself.
 
 The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudflare Tunnel). Otherwise it is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.
+
+---
+
+## Profile editing
+
+Authenticated users update display fields via `PATCH /api/auth/profile` (`useAuth.updateProfile` on the client; UI on `/profile`). Editable fields:
+
+| Field                        | Storage                               | Notes                                                                                                       |
+| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `name`                       | `users.name`                          | Optional display name; app max 120 chars (column is `VARCHAR(255)`).                                        |
+| `avatarUrl`                  | derived from `users.avatar_upload_id` | Upload bytes first with `POST /api/uploads`, then pass the upload id. Must be an image owned by the caller. |
+| `title` / `job` / `location` | `VARCHAR(120)` each                   | Free-form; empty/`null` clears.                                                                             |
+
+Role, email, and email-verification state are **not** editable here. JWT claims stay `{ sub, email, role }` — profile fields are refreshed from `GET /api/auth/me` or the PATCH reply and cached in `useAuth`. Feed/story author payloads (`PostAuthor`) include the same optional fields so avatars and titles show on public surfaces.

@@ -28,15 +28,15 @@ Request bodies that include these fields must send them as numbers; the server r
 
 ## Auth
 
-| Method | Endpoint                 | Description                                                                                                                               |
-| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`).             |
-| `POST` | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt }`.    |
-| `POST` | `/api/auth/refresh`      | Body `{ refreshToken }`. Rotates: returns a new pair, revokes the presented refresh token.                                                |
-| `POST` | `/api/auth/logout`       | Body `{ refreshToken?, everywhere? }`. Revokes the supplied refresh token; `everywhere: true` revokes all of the caller's refresh tokens. |
-| `POST` | `/api/auth/verify-email` | Body `{ token }`. Consumes a one-shot verification link.                                                                                  |
-| `GET`  | `/api/auth/me`           | Returns the current user as the server knows them.                                                                                        |
-| `PATCH`| `/api/auth/profile`      | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty/`null` clears a field. Avatar must be an image upload owned by the caller. |
+| Method  | Endpoint                 | Description                                                                                                                                                                                                                                                                                                                                                   |
+| ------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST`  | `/api/auth/signup`       | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`).                                                                                                                                                                                                                                 |
+| `POST`  | `/api/auth/login`        | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshToken, refreshExpiresAt }`.                                                                                                                                                                                                                        |
+| `POST`  | `/api/auth/refresh`      | Body `{ refreshToken }`. Rotates: returns a new pair, revokes the presented refresh token.                                                                                                                                                                                                                                                                    |
+| `POST`  | `/api/auth/logout`       | Body `{ refreshToken?, everywhere? }`. Revokes the supplied refresh token; `everywhere: true` revokes all of the caller's refresh tokens.                                                                                                                                                                                                                     |
+| `POST`  | `/api/auth/verify-email` | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
+| `GET`   | `/api/auth/me`           | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
+| `PATCH` | `/api/auth/profile`      | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
 
 **Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; logout revokes them and refresh rotates them.
 
@@ -126,9 +126,10 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 - User deletes a **post** → orphaned attachments purged from MySQL + R2
 - User deletes a **story** → its upload purged if unused elsewhere
 - **Story expires** (24h) → purged on tray load and every ~2 min by the job worker
+- User **changes or clears their avatar** → previous `avatar_upload_id` is orphan-purged when unused elsewhere
 - Admin **deletes a user** → CASCADE removes DB rows; storage keys are deleted from R2 afterwards
 
-Orphan check: an upload is kept only while referenced by `post_attachments` or a **non-expired** story. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`.
+Orphan check: an upload is kept while referenced by `post_attachments`, a **non-expired** story, or `users.avatar_upload_id`. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`. Profile avatars are intentionally **public** via `canViewerAccessUpload` so anonymous feed readers can load author photos.
 
 ---
 

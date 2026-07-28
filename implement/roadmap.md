@@ -102,6 +102,8 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] `POST /api/auth/logout` (revokes presented refresh token; supports `everywhere: true`)
 - [x] `POST /api/auth/verify-email` (one-shot consumption of the verification token hash)
 - [x] `GET /api/auth/me` (re-validates role against the DB, never returns `passwordHash`)
+- [x] `PATCH /api/auth/profile` — account owner updates `name` / avatar / `title` / `job` / `location` (migration `0010_users_profile_fields`)
+- [x] `pages/profile.vue` edit mode + `useAuth.updateProfile`; avatars via `POST /api/uploads` + `UserAvatar.vue`
 
 **Per-user data scoping** — every existing read/write is now bound to the authenticated user
 
@@ -247,8 +249,9 @@ Pi-friendly caching and background work without making Redis mandatory.
 
 Delete Cloudflare objects when media is no longer shown.
 
-- [x] `purgeOrphanedUploads` — drop upload row + R2 key when not on a post or live story
+- [x] `purgeOrphanedUploads` — drop upload row + R2 key when not on a post, live story, or user avatar
 - [x] Post/story delete paths collect upload ids and purge orphans
+- [x] Profile avatar replace/clear orphan-purges the previous upload id
 - [x] Expired stories: `purgeExpiredStories` on tray load + job-worker maintenance (~2 min)
 - [x] User delete: capture storage keys before CASCADE, then `purgeR2StorageKeys`
-- [x] Docs: api / database / cache-queue job table
+- [x] Docs: api / database / cache-queue job table / auth profile section
