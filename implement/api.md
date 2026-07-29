@@ -186,7 +186,7 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 ## Chat (direct messages)
 
-Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrations `0013_chat` + `0014_chat_media`. Client page: `/chat` with ~3.5s polling while open.
+Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrations `0013_chat` + `0014_chat_media` + `0015_chat_unread_counters`. Client page: `/chat` with ~3.5s polling while open.
 
 | Method | Endpoint                               | Auth     | Description                                                                                                                                                                                                                                                                                                 |
 | ------ | -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -187,7 +187,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── postService.ts           # Post create + cache bust
 │   │   └── chatService.ts           # Chat send/read + inbox SSE push
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0014 SQL files
+│   │   └── migrations/              # 0001…0015 SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
