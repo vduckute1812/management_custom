@@ -29,6 +29,13 @@ function formatTime(iso: string) {
   }
 }
 
+function formatDuration(ms: number | null | undefined) {
+  const total = Math.max(0, Math.round((ms ?? 0) / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
 function stickerEmoji(id: string | null) {
   if (!id) return "❓";
   return getChatSticker(id)?.emoji ?? "❓";
@@ -44,7 +51,6 @@ function isReadByPeer(msg: ChatMessage): boolean {
   );
 }
 
-/** Only annotate the latest outbound message that the peer has read. */
 const lastReadMineId = computed(() => {
   for (let i = props.messages.length - 1; i >= 0; i--) {
     const m = props.messages[i];
@@ -52,6 +58,15 @@ const lastReadMineId = computed(() => {
   }
   return null;
 });
+
+function isMediaBubble(msg: ChatMessage) {
+  return (
+    msg.kind === ChatMessageKind.Sticker ||
+    msg.kind === ChatMessageKind.Emoji ||
+    msg.kind === ChatMessageKind.Image ||
+    msg.kind === ChatMessageKind.Audio
+  );
+}
 
 function onScroll() {
   const el = scroller.value;
@@ -129,8 +144,7 @@ defineExpose({ scrollToBottom });
         <div
           class="max-w-[85%] sm:max-w-[70%]"
           :class="
-            msg.kind === ChatMessageKind.Sticker ||
-            msg.kind === ChatMessageKind.Emoji
+            isMediaBubble(msg)
               ? ''
               : msg.mine
                 ? 'rounded-2xl rounded-br-md bg-brand-600 px-3 py-2 text-white'
@@ -150,6 +164,50 @@ defineExpose({ scrollToBottom });
             <span class="inline-block select-none text-4xl leading-none">
               {{ msg.body }}
             </span>
+          </template>
+          <template v-else-if="msg.kind === ChatMessageKind.Image">
+            <a
+              v-if="msg.attachment?.url"
+              :href="msg.attachment.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="block overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+            >
+              <img
+                :src="msg.attachment.url"
+                :alt="msg.attachment.fileName || t('chat.imagePreview')"
+                class="max-h-72 w-full object-contain"
+                loading="lazy"
+              />
+            </a>
+            <p v-else class="text-sm text-slate-500">
+              {{ t("chat.imageUnavailable") }}
+            </p>
+          </template>
+          <template v-else-if="msg.kind === ChatMessageKind.Audio">
+            <div
+              class="min-w-[12rem] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2"
+              :class="msg.mine ? 'border-brand-200 bg-brand-50' : ''"
+            >
+              <p class="mb-1 text-[11px] font-medium text-slate-500">
+                {{ t("chat.voiceNote") }}
+                <span v-if="msg.durationMs" class="tabular-nums">
+                  · {{ formatDuration(msg.durationMs) }}
+                </span>
+              </p>
+              <audio
+                v-if="msg.attachment?.url"
+                controls
+                preload="metadata"
+                class="w-full max-w-xs"
+                :src="msg.attachment.url"
+              >
+                {{ t("chat.audioUnsupported") }}
+              </audio>
+              <p v-else class="text-sm text-slate-500">
+                {{ t("chat.audioUnavailable") }}
+              </p>
+            </div>
           </template>
           <template v-else>
             <p class="whitespace-pre-wrap break-words text-sm leading-relaxed">

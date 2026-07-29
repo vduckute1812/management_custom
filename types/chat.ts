@@ -6,6 +6,8 @@ export const ChatMessageKind = {
   Text: 0,
   Emoji: 1,
   Sticker: 2,
+  Image: 3,
+  Audio: 4,
 } as const;
 export type ChatMessageKind =
   (typeof ChatMessageKind)[keyof typeof ChatMessageKind];
@@ -14,6 +16,8 @@ export const CHAT_MESSAGE_KINDS = [
   ChatMessageKind.Text,
   ChatMessageKind.Emoji,
   ChatMessageKind.Sticker,
+  ChatMessageKind.Image,
+  ChatMessageKind.Audio,
 ] as const;
 
 export interface ChatPeer {
@@ -23,6 +27,15 @@ export interface ChatPeer {
   avatarUrl?: string | null;
 }
 
+export interface ChatAttachment {
+  id: string;
+  url: string;
+  mime: string;
+  kind: "image" | "audio" | "document";
+  fileName: string;
+  sizeBytes: number;
+}
+
 export interface ChatMessage {
   id: string;
   conversationId: string;
@@ -30,6 +43,9 @@ export interface ChatMessage {
   kind: ChatMessageKind;
   body: string | null;
   stickerId: string | null;
+  uploadId: string | null;
+  durationMs: number | null;
+  attachment: ChatAttachment | null;
   createdAt: string;
   /** True when the authenticated viewer sent this message. */
   mine?: boolean;
@@ -264,3 +280,9 @@ export const CHAT_EMOJI_PICKER = [
 ] as const;
 
 export const CHAT_BODY_MAX = 4000;
+
+/** Max voice note length (2 minutes). */
+export const CHAT_VOICE_MAX_MS = 120_000;
+
+/** Soft client cap before upload; server uses uploadPolicy audio maxBytes. */
+export const CHAT_VOICE_MAX_BYTES = 5 * 1024 * 1024;

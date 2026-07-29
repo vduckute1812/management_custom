@@ -1041,6 +1041,21 @@
     "unreadBadge": "{count} 条未读",
     "newMessageTitle": "来自 {name} 的消息",
     "newMessageBodyFallback": "{count} 条新消息",
-    "openChat": "打开"
+    "openChat": "打开",
+    "attachImage": "发送图片",
+    "recordVoice": "录制语音",
+    "recording": "录音中 {time}",
+    "voiceCancel": "取消",
+    "voiceSend": "发送",
+    "voiceUnsupported": "当前浏览器不支持录音",
+    "voicePermissionDenied": "未获得麦克风权限",
+    "voiceTooShort": "语音过短",
+    "uploading": "上传中…",
+    "imagePreview": "图片",
+    "voicePreview": "语音",
+    "voiceNote": "语音",
+    "imageUnavailable": "图片不可用",
+    "audioUnavailable": "语音不可用",
+    "audioUnsupported": "浏览器无法播放此音频"
   }
 }

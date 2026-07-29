@@ -5,6 +5,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import {
   ChatMessageKind,
   CHAT_STICKER_IDS,
+  CHAT_VOICE_MAX_MS,
+  type ChatAttachment,
   type ChatConversation,
   type ChatMessage,
   type ChatPeer,
@@ -13,6 +15,7 @@ import { isoToDB, dbToISO } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
+import { getUploadById } from "./uploads";
 
 interface ConversationRow extends RowDataPacket {
   id: string;
@@ -29,7 +32,13 @@ interface ConversationRow extends RowDataPacket {
   last_msg_kind: number | null;
   last_msg_body: string | null;
   last_msg_sticker_id: string | null;
+  last_msg_upload_id: string | null;
+  last_msg_duration_ms: number | null;
   last_msg_created_at: string | null;
+  last_upl_file_name: string | null;
+  last_upl_mime: string | null;
+  last_upl_kind: string | null;
+  last_upl_size_bytes: number | null;
   unread_count: number;
   peer_last_read_at: string | null;
 }
@@ -41,14 +50,46 @@ interface MessageRow extends RowDataPacket {
   kind: number;
   body: string | null;
   sticker_id: string | null;
+  upload_id: string | null;
+  duration_ms: number | null;
   created_at: string;
+  upl_file_name: string | null;
+  upl_mime: string | null;
+  upl_kind: string | null;
+  upl_size_bytes: number | null;
 }
 
 function toKind(n: unknown): ChatMessageKind {
   const v = Number(n);
   if (v === ChatMessageKind.Emoji) return ChatMessageKind.Emoji;
   if (v === ChatMessageKind.Sticker) return ChatMessageKind.Sticker;
+  if (v === ChatMessageKind.Image) return ChatMessageKind.Image;
+  if (v === ChatMessageKind.Audio) return ChatMessageKind.Audio;
   return ChatMessageKind.Text;
+}
+
+function toAttachment(args: {
+  uploadId: string | null | undefined;
+  fileName: string | null | undefined;
+  mime: string | null | undefined;
+  kind: string | null | undefined;
+  sizeBytes: number | null | undefined;
+}): ChatAttachment | null {
+  if (!args.uploadId || !args.mime || !args.kind || !args.fileName) return null;
+  const kind =
+    args.kind === "audio"
+      ? "audio"
+      : args.kind === "image"
+        ? "image"
+        : "document";
+  return {
+    id: args.uploadId,
+    url: `/api/uploads/${args.uploadId}`,
+    mime: args.mime,
+    kind,
+    fileName: args.fileName,
+    sizeBytes: Number(args.sizeBytes ?? 0),
+  };
 }
 
 function toPeer(row: {
@@ -66,17 +107,21 @@ function toPeer(row: {
 }
 
 function toMessage(
-  row:
-    | MessageRow
-    | {
-        id: string;
-        conversation_id: string;
-        sender_id: string;
-        kind: number;
-        body: string | null;
-        sticker_id: string | null;
-        created_at: string;
-      },
+  row: {
+    id: string;
+    conversation_id: string;
+    sender_id: string;
+    kind: number;
+    body: string | null;
+    sticker_id: string | null;
+    upload_id?: string | null;
+    duration_ms?: number | null;
+    created_at: string;
+    upl_file_name?: string | null;
+    upl_mime?: string | null;
+    upl_kind?: string | null;
+    upl_size_bytes?: number | null;
+  },
   viewerId?: string,
   peerLastReadAtIso?: string | null,
 ): ChatMessage {
@@ -96,6 +141,18 @@ function toMessage(
     kind: toKind(row.kind),
     body: row.body,
     stickerId: row.sticker_id,
+    uploadId: row.upload_id ?? null,
+    durationMs:
+      row.duration_ms !== null && row.duration_ms !== undefined
+        ? Number(row.duration_ms)
+        : null,
+    attachment: toAttachment({
+      uploadId: row.upload_id,
+      fileName: row.upl_file_name,
+      mime: row.upl_mime,
+      kind: row.upl_kind,
+      sizeBytes: row.upl_size_bytes,
+    }),
     createdAt,
     ...(viewerId ? { mine } : {}),
     ...(readByPeer !== undefined ? { readByPeer } : {}),
@@ -139,7 +196,13 @@ export async function listConversations(
        lm.kind AS last_msg_kind,
        lm.body AS last_msg_body,
        lm.sticker_id AS last_msg_sticker_id,
+       lm.upload_id AS last_msg_upload_id,
+       lm.duration_ms AS last_msg_duration_ms,
        lm.created_at AS last_msg_created_at,
+       lu.file_name AS last_upl_file_name,
+       lu.mime AS last_upl_mime,
+       lu.kind AS last_upl_kind,
+       lu.size_bytes AS last_upl_size_bytes,
        peer_read.last_read_at AS peer_last_read_at,
        (
          SELECT COUNT(*)
@@ -163,6 +226,7 @@ export async function listConversations(
          ORDER BY m2.created_at DESC, m2.id DESC
          LIMIT 1
        )
+     LEFT JOIN uploads lu ON lu.id = lm.upload_id
      WHERE c.user_a_id = ? OR c.user_b_id = ?
      ORDER BY COALESCE(c.last_message_at, c.created_at) DESC`,
     [userId, userId, userId, userId, userId],
@@ -185,7 +249,13 @@ export async function listConversations(
                 kind: row.last_msg_kind ?? 0,
                 body: row.last_msg_body,
                 sticker_id: row.last_msg_sticker_id,
+                upload_id: row.last_msg_upload_id,
+                duration_ms: row.last_msg_duration_ms,
                 created_at: row.last_msg_created_at!,
+                upl_file_name: row.last_upl_file_name,
+                upl_mime: row.last_upl_mime,
+                upl_kind: row.last_upl_kind,
+                upl_size_bytes: row.last_upl_size_bytes,
               },
               userId,
               peerLastReadAt,
@@ -357,8 +427,12 @@ export async function listMessages(
       : "ORDER BY m.created_at DESC, m.id DESC";
 
   const [rows] = await pool.query<MessageRow[]>(
-    `SELECT m.id, m.conversation_id, m.sender_id, m.kind, m.body, m.sticker_id, m.created_at
+    `SELECT m.id, m.conversation_id, m.sender_id, m.kind, m.body, m.sticker_id,
+            m.upload_id, m.duration_ms, m.created_at,
+            u.file_name AS upl_file_name, u.mime AS upl_mime,
+            u.kind AS upl_kind, u.size_bytes AS upl_size_bytes
      FROM chat_messages m
+     LEFT JOIN uploads u ON u.id = m.upload_id
      WHERE m.conversation_id = ?
        ${timeClause}
      ${order}
@@ -382,6 +456,8 @@ export interface SendMessageInput {
   kind: ChatMessageKind;
   body?: string | null;
   stickerId?: string | null;
+  uploadId?: string | null;
+  durationMs?: number | null;
 }
 
 export async function sendMessage(
@@ -401,6 +477,9 @@ export async function sendMessage(
 
   let body: string | null = null;
   let stickerId: string | null = null;
+  let uploadId: string | null = null;
+  let durationMs: number | null = null;
+  let attachment: ChatAttachment | null = null;
 
   if (input.kind === ChatMessageKind.Sticker) {
     const sid = (input.stickerId || "").trim();
@@ -412,6 +491,69 @@ export async function sendMessage(
       throw err;
     }
     stickerId = sid;
+  } else if (
+    input.kind === ChatMessageKind.Image ||
+    input.kind === ChatMessageKind.Audio
+  ) {
+    const uid = (input.uploadId || "").trim();
+    if (!uid) {
+      const err = new Error("uploadId is required") as Error & {
+        statusCode?: number;
+      };
+      err.statusCode = 400;
+      throw err;
+    }
+    const upload = await getUploadById(uid);
+    if (!upload || upload.user_id !== userId) {
+      const err = new Error("Upload not found") as Error & {
+        statusCode?: number;
+      };
+      err.statusCode = 400;
+      throw err;
+    }
+    const expectedKind =
+      input.kind === ChatMessageKind.Image ? "image" : "audio";
+    if (upload.kind !== expectedKind) {
+      const err = new Error(
+        `Upload must be an ${expectedKind} file`,
+      ) as Error & { statusCode?: number };
+      err.statusCode = 400;
+      throw err;
+    }
+    // Refuse reuse of an upload already linked to another chat message.
+    const poolCheck = getPool();
+    const [used] = await poolCheck.query<RowDataPacket[]>(
+      `SELECT 1 FROM chat_messages WHERE upload_id = ? LIMIT 1`,
+      [uid],
+    );
+    if (used.length) {
+      const err = new Error(
+        "Upload is already attached to a message",
+      ) as Error & {
+        statusCode?: number;
+      };
+      err.statusCode = 400;
+      throw err;
+    }
+    uploadId = uid;
+    if (input.kind === ChatMessageKind.Audio) {
+      const d = Number(input.durationMs ?? 0);
+      if (!Number.isFinite(d) || d < 200 || d > CHAT_VOICE_MAX_MS) {
+        const err = new Error("Invalid voice duration") as Error & {
+          statusCode?: number;
+        };
+        err.statusCode = 400;
+        throw err;
+      }
+      durationMs = Math.round(d);
+    }
+    attachment = toAttachment({
+      uploadId: uid,
+      fileName: upload.file_name,
+      mime: upload.mime,
+      kind: upload.kind,
+      sizeBytes: upload.size_bytes,
+    });
   } else {
     const text = (input.body || "").trim();
     if (!text) {
@@ -432,9 +574,19 @@ export async function sendMessage(
     await conn.beginTransaction();
     await conn.query(
       `INSERT INTO chat_messages
-         (id, conversation_id, sender_id, kind, body, sticker_id, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, conversationId, userId, input.kind, body, stickerId, isoToDB(now)],
+         (id, conversation_id, sender_id, kind, body, sticker_id, upload_id, duration_ms, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        conversationId,
+        userId,
+        input.kind,
+        body,
+        stickerId,
+        uploadId,
+        durationMs,
+        isoToDB(now),
+      ],
     );
     await conn.query(
       `UPDATE chat_conversations SET last_message_at = ? WHERE id = ?`,
@@ -462,6 +614,9 @@ export async function sendMessage(
     kind: input.kind,
     body,
     stickerId,
+    uploadId,
+    durationMs,
+    attachment,
     createdAt: now,
     mine: true,
     readByPeer: false,
@@ -561,6 +716,10 @@ export async function getUnreadInbox(
     preview = "🎨";
   } else if (kind === ChatMessageKind.Emoji) {
     preview = String(row.body ?? "");
+  } else if (kind === ChatMessageKind.Image) {
+    preview = "📷";
+  } else if (kind === ChatMessageKind.Audio) {
+    preview = "🎤";
   } else {
     preview = String(row.body ?? "").trim();
     if (preview.length > 80) preview = `${preview.slice(0, 80)}…`;

@@ -19,6 +19,8 @@ export default defineEventHandler(async (event) => {
       kind: body.kind as ChatMessageKind,
       body: body.body,
       stickerId: body.stickerId,
+      uploadId: body.uploadId,
+      durationMs: body.durationMs,
     });
     return { message };
   } catch (err) {

@@ -171,7 +171,7 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 - User **changes or clears their avatar** → previous `avatar_upload_id` is orphan-purged when unused elsewhere
 - Admin **deletes a user** → CASCADE removes DB rows; storage keys are deleted from R2 afterwards
 
-Orphan check: an upload is kept while referenced by `post_attachments`, a **non-expired** story, or `users.avatar_upload_id`. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`. Profile avatars are intentionally **public** via `canViewerAccessUpload` so anonymous feed readers can load author photos.
+Orphan check: an upload is kept while referenced by `post_attachments`, a **non-expired** story, `users.avatar_upload_id`, or `chat_messages.upload_id`. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`. Profile avatars are intentionally **public** via `canViewerAccessUpload` so anonymous feed readers can load author photos. Chat media is private to conversation participants.
 
 ---
 
@@ -185,19 +185,19 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 ## Chat (direct messages)
 
-Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migration `0013_chat`. Client page: `/chat` with ~3.5s polling while open.
+Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrations `0013_chat` + `0014_chat_media`. Client page: `/chat` with ~3.5s polling while open.
 
 | Method | Endpoint | Auth | Description |
 | ------ | -------- | ---- | ----------- |
 | `GET` | `/api/chat/conversations` | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`. |
 | `POST` | `/api/chat/conversations` | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown). |
-| `GET` | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Each outbound message includes `readByPeer` when the peer's read cursor covers it. Marks read unless `after` is set (poll). Non-participants get `404`. |
-| `POST` | `/api/chat/conversations/:id/messages` | Required | Body `{ kind?, body?, stickerId? }`. `kind`: `0` text (default), `1` emoji, `2` sticker. Text/emoji require `body` (max 4000). Stickers require a catalog `stickerId`. |
+| `GET` | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (poll). Non-participants get `404`. |
+| `POST` | `/api/chat/conversations/:id/messages` | Required | Body `{ kind?, body?, stickerId?, uploadId?, durationMs? }`. `kind`: `0` text, `1` emoji, `2` sticker, `3` image, `4` audio. Text/emoji need `body`. Stickers need `stickerId`. Image/audio need a prior `POST /api/uploads` `uploadId` (owned; matching kind). Audio also needs `durationMs` (200–120000). |
 | `POST` | `/api/chat/conversations/:id/read` | Required | Set the caller's `last_read_at` to now. |
 | `GET` | `/api/chat/unread` | Required | Lightweight inbox pulse: `{ unreadTotal, latest }` for nav badge + toast notifications. |
 | `GET` | `/api/chat/catalog` | Required | Built-in `{ stickers, emoji }` lists for the picker UI. |
 
-Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers still send immediately. Read receipts use `chat_conversation_reads` (`peerLastReadAt` / `readByPeer`). A client plugin (`plugins/chat-inbox.client.ts`) polls unread every ~10s while signed in.
+Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. A client plugin (`plugins/chat-inbox.client.ts`) polls unread every ~10s while signed in. Chat media requires R2 (same as feed uploads).
 
 ---
 

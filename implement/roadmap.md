@@ -273,3 +273,4 @@ Signed-in 1:1 messaging between install members. Spec: [`chat-spec.md`](./chat-s
 - [x] Emoji picker inserts into the composer draft (does not auto-send)
 - [x] Read receipts via `peerLastReadAt` / `readByPeer` on outbound messages
 - [x] Unread badge on nav Chat + `GET /api/chat/unread` inbox pulse with toast / desktop notify
+- [x] Chat media: image + voice notes (`0014_chat_media`, `uploads.kind=audio`, composer picker/recorder)

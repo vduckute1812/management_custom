@@ -241,6 +241,8 @@ export const chatSendBodySchema = z
       .default(ChatMessageKind.Text),
     body: z.string().trim().max(CHAT_BODY_MAX).optional().nullable(),
     stickerId: z.string().trim().min(1).max(64).optional().nullable(),
+    uploadId: z.string().trim().min(1).max(64).optional().nullable(),
+    durationMs: z.number().int().min(200).max(120_000).optional().nullable(),
   })
   .superRefine((data, ctx) => {
     if (data.kind === ChatMessageKind.Sticker) {
@@ -249,6 +251,24 @@ export const chatSendBodySchema = z
           code: z.ZodIssueCode.custom,
           path: ["stickerId"],
           message: "stickerId is required for sticker messages",
+        });
+      }
+    } else if (
+      data.kind === ChatMessageKind.Image ||
+      data.kind === ChatMessageKind.Audio
+    ) {
+      if (!data.uploadId?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["uploadId"],
+          message: "uploadId is required for media messages",
+        });
+      }
+      if (data.kind === ChatMessageKind.Audio && data.durationMs == null) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["durationMs"],
+          message: "durationMs is required for voice messages",
         });
       }
     } else if (!data.body?.trim()) {

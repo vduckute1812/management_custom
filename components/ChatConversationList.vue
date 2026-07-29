@@ -28,6 +28,12 @@ function preview(c: ChatConversation): string {
   if (msg.kind === ChatMessageKind.Emoji) {
     return msg.body || "";
   }
+  if (msg.kind === ChatMessageKind.Image) {
+    return t("chat.imagePreview");
+  }
+  if (msg.kind === ChatMessageKind.Audio) {
+    return t("chat.voicePreview");
+  }
   const text = (msg.body || "").trim();
   return text.length > 60 ? `${text.slice(0, 60)}…` : text;
 }

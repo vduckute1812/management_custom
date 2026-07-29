@@ -82,7 +82,7 @@ Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **publi
 
 ### Chat with other members
 
-Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text or stickers; emoji from the picker insert into your draft before you send. Conversations stay private to the two participants. When the other person has read your messages, a **Read** label appears. Unread counts show on the conversation list and as a badge on **Chat** in the header; new messages also trigger an in-app toast (and a desktop notification if you have granted permission).
+Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text, stickers, **photos**, or **voice notes**; emoji from the picker insert into your draft before you send. Images and audio go through the same upload pipeline as the Feed (Cloudflare R2). Conversations stay private to the two participants. When the other person has read your messages, a **Read** label appears. Unread counts show on the conversation list and as a badge on **Chat** in the header; new messages also trigger an in-app toast (and a desktop notification if you have granted permission).
 
 ### Edit your profile
 
