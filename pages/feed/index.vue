@@ -125,11 +125,16 @@ if (import.meta.server && error.value) {
   error.value = null;
 }
 
-onMounted(async () => {
-  // Stories require auth; skip for guests so we don't spam 401s.
-  if (auth.isAuthenticated.value) {
-    await refreshStories().catch(() => undefined);
-  }
+onMounted(() => {
+  // Stories need auth. Refresh may still be in flight on SSR public paths,
+  // so watch rather than a one-shot isAuthenticated check.
+  watch(
+    () => auth.isAuthenticated.value,
+    (ok) => {
+      if (ok) void refreshStories().catch(() => undefined);
+    },
+    { immediate: true },
+  );
 });
 
 // Same page component is reused for `/feed` ↔ `/feed?category=…`.

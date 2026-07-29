@@ -287,3 +287,9 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Drop unused `server/utils/rateLimit` shim and deprecated post-body aliases
 - [x] Expand `.cursor/rules/nuxt3-standards.mdc` (rate-limit, cache/queue, chat, manuscript, ConfirmDialog, decomposition triggers, secrets logging)
 - [x] Sync `implement/architecture.md` + `implement/api.md` (chat tables, inbox plugin, no legacy like route)
+
+## Phase 19 — Page-load performance (sprint 1)
+
+- [x] Auth boot: drop redundant `GET /api/auth/me` after refresh; non-blocking restore on `/` + `/feed`
+- [x] `getAllTasks` / `getTaskById`: load blocks + checklists in parallel
+- [x] Settings: lazy-load tasks/epics for export (no blocking hydrate on enter)

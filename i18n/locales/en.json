@@ -159,6 +159,8 @@
       "title": "Your data",
       "counts": "{epicCount} epic · {taskCount} task",
       "countsPlural": "{epicCount} epics · {taskCount} tasks",
+      "loadingCounts": "Loading export counts…",
+      "countsHint": "Download a snapshot of your tasks and epics.",
       "jsonSnapshot": "JSON snapshot",
       "tasksCsv": "Tasks CSV",
       "epicsCsv": "Epics CSV",

@@ -159,6 +159,8 @@
       "title": "你的数据",
       "counts": "{epicCount} 个史诗 · {taskCount} 个任务",
       "countsPlural": "{epicCount} 个史诗 · {taskCount} 个任务",
+      "loadingCounts": "正在加载导出数量…",
+      "countsHint": "下载任务与史诗快照。",
       "jsonSnapshot": "JSON 快照",
       "tasksCsv": "任务 CSV",
       "epicsCsv": "史诗 CSV",

@@ -10,10 +10,11 @@
  *   - /admin requires `role: admin`; non-admins land on /.
  *
  * `/` and `/feed` are selectively SSR'd (see nuxt.config.ts); other app
- * routes stay client-only. The `auth.client.ts` plugin awaits its
- * hydrate/refresh work before the app mounts, so by the time this
- * middleware runs on protected SPA routes `isAuthenticated` is already
- * correct — no flash of /login for users with a valid session.
+ * routes stay client-only. On protected SPA routes the `auth.client.ts`
+ * plugin awaits cookie refresh before mount so `isAuthenticated` is correct
+ * here — no flash of /login for users with a valid session. On `/` and
+ * `/feed`, restore is non-blocking (public) and chrome paints via
+ * `isAuthenticatedUi` after mount.
  */
 const PUBLIC_PATHS = new Set([
   "/",
