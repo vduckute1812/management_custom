@@ -204,32 +204,21 @@ export async function listConversations(
        lu.kind AS last_upl_kind,
        lu.size_bytes AS last_upl_size_bytes,
        peer_read.last_read_at AS peer_last_read_at,
-       (
-         SELECT COUNT(*)
-         FROM chat_messages m
-         LEFT JOIN chat_conversation_reads r
-           ON r.conversation_id = c.id AND r.user_id = ?
-         WHERE m.conversation_id = c.id
-           AND m.sender_id <> ?
-           AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
-       ) AS unread_count
+       COALESCE(my_read.unread_count, 0) AS unread_count
      FROM chat_conversations c
      INNER JOIN users peer
        ON peer.id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)
      LEFT JOIN chat_conversation_reads peer_read
        ON peer_read.conversation_id = c.id
       AND peer_read.user_id = peer.id
-     LEFT JOIN chat_messages lm
-       ON lm.id = (
-         SELECT m2.id FROM chat_messages m2
-         WHERE m2.conversation_id = c.id
-         ORDER BY m2.created_at DESC, m2.id DESC
-         LIMIT 1
-       )
+     LEFT JOIN chat_conversation_reads my_read
+       ON my_read.conversation_id = c.id
+      AND my_read.user_id = ?
+     LEFT JOIN chat_messages lm ON lm.id = c.last_message_id
      LEFT JOIN uploads lu ON lu.id = lm.upload_id
      WHERE c.user_a_id = ? OR c.user_b_id = ?
      ORDER BY COALESCE(c.last_message_at, c.created_at) DESC`,
-    [userId, userId, userId, userId, userId],
+    [userId, userId, userId, userId],
   );
 
   return rows.map((row) => {
@@ -578,6 +567,7 @@ export async function sendMessage(
 
   const id = generateId("msg");
   const now = nowISO();
+  const peerId = conv.user_a_id === userId ? conv.user_b_id : conv.user_a_id;
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
@@ -599,15 +589,28 @@ export async function sendMessage(
       ],
     );
     await conn.query(
-      `UPDATE chat_conversations SET last_message_at = ? WHERE id = ?`,
-      [isoToDB(now), conversationId],
+      `UPDATE chat_conversations
+       SET last_message_at = ?, last_message_id = ?
+       WHERE id = ?`,
+      [isoToDB(now), id, conversationId],
     );
-    // Sender has read up to now
+    // Sender has read up to now; clear their unread counter.
     await conn.query(
-      `INSERT INTO chat_conversation_reads (conversation_id, user_id, last_read_at)
-       VALUES (?, ?, ?)
-       ON DUPLICATE KEY UPDATE last_read_at = VALUES(last_read_at)`,
+      `INSERT INTO chat_conversation_reads
+         (conversation_id, user_id, last_read_at, unread_count)
+       VALUES (?, ?, ?, 0)
+       ON DUPLICATE KEY UPDATE
+         last_read_at = VALUES(last_read_at),
+         unread_count = 0`,
       [conversationId, userId, isoToDB(now)],
+    );
+    // Peer: bump denormalized unread (epoch last_read if first row).
+    await conn.query(
+      `INSERT INTO chat_conversation_reads
+         (conversation_id, user_id, last_read_at, unread_count)
+       VALUES (?, ?, ?, 1)
+       ON DUPLICATE KEY UPDATE unread_count = unread_count + 1`,
+      [conversationId, peerId, isoToDB("1970-01-01T00:00:00.000Z")],
     );
     await conn.commit();
   } catch (err) {
@@ -650,9 +653,12 @@ export async function markConversationRead(
   const now = nowISO();
   const pool = getPool();
   await pool.query(
-    `INSERT INTO chat_conversation_reads (conversation_id, user_id, last_read_at)
-     VALUES (?, ?, ?)
-     ON DUPLICATE KEY UPDATE last_read_at = VALUES(last_read_at)`,
+    `INSERT INTO chat_conversation_reads
+       (conversation_id, user_id, last_read_at, unread_count)
+     VALUES (?, ?, ?, 0)
+     ON DUPLICATE KEY UPDATE
+       last_read_at = VALUES(last_read_at),
+       unread_count = 0`,
     [conversationId, userId, isoToDB(now)],
   );
   return { lastReadAt: now };
@@ -661,15 +667,10 @@ export async function markConversationRead(
 export async function getUnreadTotal(userId: string): Promise<number> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT COUNT(*) AS n
-     FROM chat_messages m
-     INNER JOIN chat_conversations c ON c.id = m.conversation_id
-     LEFT JOIN chat_conversation_reads r
-       ON r.conversation_id = c.id AND r.user_id = ?
-     WHERE (c.user_a_id = ? OR c.user_b_id = ?)
-       AND m.sender_id <> ?
-       AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)`,
-    [userId, userId, userId, userId],
+    `SELECT COALESCE(SUM(unread_count), 0) AS n
+     FROM chat_conversation_reads
+     WHERE user_id = ?`,
+    [userId],
   );
   return Number(rows[0]?.n ?? 0);
 }
@@ -686,11 +687,16 @@ export interface ChatUnreadPreview {
 export async function getUnreadInbox(
   userId: string,
 ): Promise<{ unreadTotal: number; latest: ChatUnreadPreview | null }> {
+  const unreadTotal = await getUnreadTotal(userId);
+  if (unreadTotal <= 0) {
+    return { unreadTotal: 0, latest: null };
+  }
+
   const pool = getPool();
-  // One pass: window count + latest unread preview (MySQL 8+).
+  // Preview only among conversations that still have unread — counters keep
+  // the SUM cheap; this query only runs when the badge is non-zero.
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
-       COUNT(*) OVER() AS unread_total,
        m.conversation_id AS conversation_id,
        m.kind AS kind,
        m.body AS body,
@@ -698,26 +704,26 @@ export async function getUnreadInbox(
        m.created_at AS created_at,
        peer.name AS peer_name,
        peer.email AS peer_email
-     FROM chat_messages m
-     INNER JOIN chat_conversations c ON c.id = m.conversation_id
+     FROM chat_conversation_reads r
+     INNER JOIN chat_messages m
+       ON m.conversation_id = r.conversation_id
+      AND m.sender_id <> r.user_id
+      AND m.created_at > r.last_read_at
+     INNER JOIN chat_conversations c ON c.id = r.conversation_id
      INNER JOIN users peer
-       ON peer.id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)
-     LEFT JOIN chat_conversation_reads r
-       ON r.conversation_id = c.id AND r.user_id = ?
-     WHERE (c.user_a_id = ? OR c.user_b_id = ?)
-       AND m.sender_id <> ?
-       AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+       ON peer.id = IF(c.user_a_id = r.user_id, c.user_b_id, c.user_a_id)
+     WHERE r.user_id = ?
+       AND r.unread_count > 0
      ORDER BY m.created_at DESC, m.id DESC
      LIMIT 1`,
-    [userId, userId, userId, userId, userId],
+    [userId],
   );
 
   if (!rows.length) {
-    return { unreadTotal: 0, latest: null };
+    return { unreadTotal, latest: null };
   }
 
   const row = rows[0];
-  const unreadTotal = Number(row.unread_total ?? 0);
   const kind = Number(row.kind ?? 0);
   let preview = "";
   if (kind === ChatMessageKind.Sticker) {

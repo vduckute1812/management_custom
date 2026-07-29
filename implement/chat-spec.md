@@ -39,12 +39,12 @@ Let members of the same install message each other privately from `/chat`, witho
 
 ## Data
 
-- `chat_conversations` — unique ordered pair `(user_a_id, user_b_id)`
+- `chat_conversations` — unique ordered pair `(user_a_id, user_b_id)`; `last_message_at` + denormalized `last_message_id`
 - `chat_messages` — body and/or `sticker_id` and/or `upload_id` (+ `duration_ms` for voice)
-- `chat_conversation_reads` — per-user `last_read_at`
+- `chat_conversation_reads` — per-user `last_read_at` + denormalized `unread_count`
 - `uploads.kind` includes `audio` (migration `0014`)
 
-Migration: `0013_chat.sql`, `0014_chat_media.sql`.
+Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sql`.
 
 ## API (summary)
 

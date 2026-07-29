@@ -299,3 +299,15 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Stories tray GET: no inline `purgeExpiredStories` (worker already sweeps ~2 min)
 - [x] `/feed`: after auth restore, refetch posts once for signed-in ACL + load stories
 - [x] `apiFetch`: drop 400ms delay throttle; keep in-flight coalescing only
+
+## Phase 19 — Page-load performance (sprint 3)
+
+- [x] Migration `0015_chat_unread_counters`: `unread_count` on reads + `last_message_id` on conversations
+- [x] Send/read paths maintain counters; `listConversations` / `getUnreadTotal` / inbox use them
+
+### Later (out of sprint 3)
+
+- Defer Google Fonts on `/feed` critical path
+- Denormalize post `comment_count` (feed SQL)
+- Lightweight tasks list API (blocks on demand)
+- Replace `/chat` 3.5s message poll with SSE/WS thread push

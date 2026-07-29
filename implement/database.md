@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters`.
 
 ## Migration system
 
@@ -362,17 +362,17 @@ Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.t
 
 ---
 
-## Chat (migrations 0013–0014)
+## Chat (migrations 0013–0015)
 
 Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.md).
 
 | Table | Purpose |
 | ----- | ------- |
-| `chat_conversations` | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` |
+| `chat_conversations` | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` + denormalized `last_message_id` |
 | `chat_messages` | Messages: `kind` (`0` text / `1` emoji / `2` sticker / `3` image / `4` audio), optional `body`, `sticker_id`, `upload_id`, `duration_ms` |
-| `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` for unread counts |
+| `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` + denormalized `unread_count` for badge/list |
 
-Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
+Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
 Wire DTOs + sticker catalog: `~/types/chat.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
 
