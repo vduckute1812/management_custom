@@ -1,9 +1,13 @@
 /**
- * Background chat inbox pulse for signed-in users.
+ * Background chat inbox stream for signed-in users.
  *
- * Polls `/api/chat/unread` so the nav badge stays fresh outside `/chat`,
- * and fires an in-app toast (+ optional desktop notification) when new
- * unread messages arrive while the user is not already looking at that thread.
+ * Opens an SSE connection to `/api/chat/inbox/stream` so the nav badge stays
+ * fresh outside `/chat`, and fires an in-app toast (+ optional desktop
+ * notification) when new unread messages arrive. Auth uses the HttpOnly
+ * access cookie (EventSource cannot set Authorization).
+ *
+ * Connection is deferred slightly after sign-in so Feed / other page APIs
+ * win the first-paint race instead of competing with an unread COUNT query.
  */
 export default defineNuxtPlugin(() => {
   if (!import.meta.client) return;
@@ -14,12 +18,17 @@ export default defineNuxtPlugin(() => {
   const { t } = useSafeI18n();
   const { pushToast } = useToasts();
   const chat = useChat();
-  const { apiFetch } = useApi();
 
-  const POLL_MS = 10_000;
-  let timer: ReturnType<typeof setInterval> | null = null;
+  const STREAM_URL = "/api/chat/inbox/stream";
+  const START_DELAY_MS = 400;
+  const RECONNECT_MS = 5_000;
+
+  let source: EventSource | null = null;
+  let startTimer: ReturnType<typeof setTimeout> | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let lastNotifiedKey: string | null = null;
   let primed = false;
+  let intentionalClose = false;
 
   type UnreadPayload = {
     unreadTotal: number;
@@ -32,10 +41,23 @@ export default defineNuxtPlugin(() => {
     } | null;
   };
 
+  function clearTimers() {
+    if (startTimer) {
+      clearTimeout(startTimer);
+      startTimer = null;
+    }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  }
+
   function stop() {
-    if (timer) {
-      clearInterval(timer);
-      timer = null;
+    intentionalClose = true;
+    clearTimers();
+    if (source) {
+      source.close();
+      source = null;
     }
   }
 
@@ -98,28 +120,87 @@ export default defineNuxtPlugin(() => {
     fireDesktop(title, body, `chat:${latest.conversationId}`);
   }
 
-  async function tick() {
-    if (!auth.isAuthenticated.value) return;
-    try {
-      const res = await apiFetch<UnreadPayload>("/api/chat/unread");
-      const prev = chat.unreadTotal.value;
-      chat.unreadTotal.value = res.unreadTotal;
-      if (primed && res.unreadTotal > prev) {
-        notify(res);
-      }
-      primed = true;
-    } catch {
-      // Session may be mid-refresh; ignore.
+  function applyInbox(payload: UnreadPayload) {
+    const prev = chat.unreadTotal.value;
+    chat.unreadTotal.value = payload.unreadTotal;
+    if (primed && payload.unreadTotal > prev) {
+      notify(payload);
     }
+    primed = true;
+  }
+
+  function scheduleReconnect() {
+    if (!auth.isAuthenticated.value || reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      void connect();
+    }, RECONNECT_MS);
+  }
+
+  async function connect() {
+    if (!auth.isAuthenticated.value) return;
+    if (
+      source &&
+      (source.readyState === EventSource.OPEN ||
+        source.readyState === EventSource.CONNECTING)
+    ) {
+      return;
+    }
+
+    intentionalClose = false;
+    if (source) {
+      source.close();
+      source = null;
+    }
+
+    // Refresh access cookie before opening the stream — EventSource cannot
+    // send Authorization and will 401 if mgmt_at is stale.
+    try {
+      if (auth.hasRefreshSession.value) {
+        const expiresAt = auth.accessExpiresAt.value
+          ? new Date(auth.accessExpiresAt.value).getTime()
+          : 0;
+        if (!expiresAt || expiresAt - Date.now() < 60_000) {
+          await auth.refresh();
+        }
+      }
+    } catch {
+      // Connect anyway; cookie may still be valid.
+    }
+
+    const es = new EventSource(STREAM_URL);
+    source = es;
+
+    es.addEventListener("inbox", (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data) as UnreadPayload;
+        applyInbox(payload);
+      } catch {
+        // ignore malformed frames
+      }
+    });
+
+    es.addEventListener("ping", () => {
+      // heartbeat — no-op; keeps the connection marked active
+    });
+
+    es.onerror = () => {
+      if (intentionalClose) return;
+      es.close();
+      if (source === es) source = null;
+      scheduleReconnect();
+    };
   }
 
   function start() {
     stop();
+    intentionalClose = false;
     if (!auth.isAuthenticated.value) return;
-    void tick();
-    timer = setInterval(() => {
-      void tick();
-    }, POLL_MS);
+    // Defer so Feed categories/posts (and other page APIs) go first.
+    startTimer = setTimeout(() => {
+      startTimer = null;
+      void connect();
+    }, START_DELAY_MS);
   }
 
   watch(
@@ -140,8 +221,13 @@ export default defineNuxtPlugin(() => {
   );
 
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && auth.isAuthenticated.value) {
-      void tick();
+    if (document.visibilityState !== "visible") return;
+    if (!auth.isAuthenticated.value) return;
+    if (
+      !source ||
+      source.readyState === EventSource.CLOSED
+    ) {
+      void connect();
     }
   });
 });

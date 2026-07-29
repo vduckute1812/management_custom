@@ -1,4 +1,4 @@
-import { markConversationRead } from "~/server/utils/db";
+import { markChatConversationRead } from "~/server/services/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
 
@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
     });
   }
   try {
-    const result = await markConversationRead(user.sub, id);
+    const result = await markChatConversationRead(user.sub, id);
     return result;
   } catch (err) {
     mapDomainError(err);

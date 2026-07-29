@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
 * Message kinds are **integer enums** (`ChatMessageKind`). Validate with shared Zod schemas.
 * Participant ACL on every conversation/message route — never trust client-supplied peer ids without membership checks.
 * Media (image / voice) uses the same upload pipeline as Feed (`uploads` + R2). Composer must clean up `MediaRecorder` streams and object URLs on unmount.
-* Polling: thread poll (~3.5s) and inbox unread poll (~10s) — avoid stacking duplicate unread fetches while the chat page is active; clear timers on unmount / route leave.
+* Polling: thread poll (~3.5s) while `/chat` is open; inbox badge uses SSE (`/api/chat/inbox/stream`) — do not reintroduce a global unread HTTP poll. Clear EventSource / timers on sign-out.
 * Read receipts: prefer server projection (`readByPeer` / `peerLastReadAt`); keep any client helper pure and shared if both sides need the same math.
 
 ## Manuscript & post editing
