@@ -352,7 +352,7 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
-**Media cleanup.** Deleting a post/story, expiring a story, replacing/clearing a profile avatar, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / `purgeExpiredStories` / pre-delete key sweep on `deleteUser`). An upload stays alive while referenced by `post_attachments`, a non-expired story, or `users.avatar_upload_id`. See [`api.md`](./api.md#uploads-r2).
+**Media cleanup.** Deleting a post/story, replacing/clearing a profile avatar, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / pre-delete key sweep on `deleteUser`). Expired stories are filtered out of the tray by `expires_at`; physical delete + R2 sweep runs in the job worker (~2 min) via `purgeExpiredStories` (also available as `media.purgeExpired`). An upload stays alive while referenced by `post_attachments`, a non-expired story, or `users.avatar_upload_id`. See [`api.md`](./api.md#uploads-r2).
 
 **Manuscripts.** `format = manuscript` requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`. Multilingual manuscripts use one row per locale sharing `translation_group_id` with `content_locale` in `en`/`vi`/`zh-CN`/`zh-TW` (migration `0011`).
 

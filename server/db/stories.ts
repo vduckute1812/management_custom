@@ -196,20 +196,8 @@ export async function purgeExpiredStories(): Promise<{
 
 export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
   const pool = getPool();
-  // Lazy cleanup of expired stories + their R2 objects (best-effort).
-  try {
-    const purged = await purgeExpiredStories();
-    if (purged.stories > 0) {
-      console.info(
-        `[stories] purged expired stories=${purged.stories} uploads=${purged.uploads}`,
-      );
-    }
-  } catch (err) {
-    console.warn(
-      "[stories] expired purge failed:",
-      (err as Error)?.message || err,
-    );
-  }
+  // Expired rows are filtered below (`expires_at > now`). Physical delete +
+  // R2 cleanup runs in the job worker (~2 min), not on this read path.
 
   const [rows] = await pool.query<StoryRow[]>(
     `SELECT

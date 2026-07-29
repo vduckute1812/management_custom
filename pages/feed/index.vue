@@ -126,12 +126,22 @@ if (import.meta.server && error.value) {
 }
 
 onMounted(() => {
-  // Stories need auth. Refresh may still be in flight on SSR public paths,
-  // so watch rather than a one-shot isAuthenticated check.
+  // Auth restore is non-blocking on /feed — wait until the session is real
+  // before loading stories / re-fetching the ACL-aware post list.
+  let authedFeedSynced = false;
   watch(
     () => auth.isAuthenticated.value,
     (ok) => {
-      if (ok) void refreshStories().catch(() => undefined);
+      if (!ok) {
+        authedFeedSynced = false;
+        return;
+      }
+      void refreshStories().catch(() => undefined);
+      if (!authedFeedSynced) {
+        authedFeedSynced = true;
+        // SSR shipped the public (guest) feed; refresh once for private posts.
+        void refresh().catch(() => undefined);
+      }
     },
     { immediate: true },
   );

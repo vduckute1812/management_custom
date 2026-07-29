@@ -254,7 +254,7 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Atomic refresh-token rotation (`rotateRefreshToken` transaction)
 - [x] Signup user + email-verification inserted in one transaction
 - [x] CSP / security-headers Nitro middleware
-- [x] API rate limiting (`server/rate-limit/` + middleware) + client `apiFetch` throttle/dedup
+- [x] API rate limiting (`server/rate-limit/` + middleware) + client `apiFetch` in-flight coalescing
 - [x] Shared Zod schemas (`server/schemas`) + `parseBody` / `parseQuery` / `DomainError`
 - [x] Selective services: `taskService`, `timerService`, `postService`
 - [x] Vitest suite (`npm test`) for schemas, password/token helpers, markdown sanitize
@@ -293,3 +293,9 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Auth boot: drop redundant `GET /api/auth/me` after refresh; non-blocking restore on `/` + `/feed`
 - [x] `getAllTasks` / `getTaskById`: load blocks + checklists in parallel
 - [x] Settings: lazy-load tasks/epics for export (no blocking hydrate on enter)
+
+## Phase 19 — Page-load performance (sprint 2)
+
+- [x] Stories tray GET: no inline `purgeExpiredStories` (worker already sweeps ~2 min)
+- [x] `/feed`: after auth restore, refetch posts once for signed-in ACL + load stories
+- [x] `apiFetch`: drop 400ms delay throttle; keep in-flight coalescing only
