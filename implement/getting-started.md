@@ -93,17 +93,17 @@ Cache & queue design notes: [`cache-queue.md`](./cache-queue.md).
 
 ## npm scripts (common)
 
-| Script              | Purpose                                                                 |
-| ------------------- | ----------------------------------------------------------------------- |
-| `npm run dev`       | Development server (`http://localhost:3000`)                            |
-| `npm run build`     | Production build → `.output/`                                           |
-| `npm run migrate`   | Apply pending SQL migrations                                            |
-| `npm run migrate:auth` | Seed superadmin (idempotent)                                         |
-| `npm run check:db`  | Verify schema + migration checksums + user count                      |
-| `npm test`          | Vitest unit tests (schemas, security helpers, markdown sanitize)        |
-| `npm run test:watch` | Vitest watch mode                                                      |
-| `npm run format`    | Prettier write                                                          |
-| `npm run scan:secrets` | Scan repo for accidental secrets                                     |
+| Script                 | Purpose                                                          |
+| ---------------------- | ---------------------------------------------------------------- |
+| `npm run dev`          | Development server (`http://localhost:3000`)                     |
+| `npm run build`        | Production build → `.output/`                                    |
+| `npm run migrate`      | Apply pending SQL migrations                                     |
+| `npm run migrate:auth` | Seed superadmin (idempotent)                                     |
+| `npm run check:db`     | Verify schema + migration checksums + user count                 |
+| `npm test`             | Vitest unit tests (schemas, security helpers, markdown sanitize) |
+| `npm run test:watch`   | Vitest watch mode                                                |
+| `npm run format`       | Prettier write                                                   |
+| `npm run scan:secrets` | Scan repo for accidental secrets                                 |
 
 Type-check (not an npm script): `npx vue-tsc --noEmit -p tsconfig.json` — see below.
 
@@ -170,6 +170,7 @@ On the live host, confirm SEO endpoints after deploy:
 - `https://dntechx.com/` and `https://dntechx.com/feed` (view-source should show real copy / public posts, not an empty `#__nuxt` shell)
 - `https://dntechx.com/robots.txt`
 - `https://dntechx.com/sitemap.xml` (should list `/` and `/feed` only)
+- `https://dntechx.com/llms.txt` (Markdown with an H1 + absolute links)
 
 Then submit the sitemap in Google Search Console. Details: [`architecture.md`](./architecture.md#seo-nuxtjsseo).
 

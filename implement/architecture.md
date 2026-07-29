@@ -130,7 +130,7 @@ Add new services only for workflows that span several DB calls or need shared tr
 
 `server/middleware/security-headers.ts` sets baseline headers on every response:
 
-- `Content-Security-Policy` (self-hosted scripts/styles; `unsafe-inline` for theme boot + Vue)
+- `Content-Security-Policy` (self-hosted scripts/styles; `unsafe-inline` for theme boot + Vue; Cloudflare Insights beacon + Google Fonts allowlisted)
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-Frame-Options: SAMEORIGIN`
@@ -253,15 +253,16 @@ Configured in `nuxt.config.ts` for production identity **Da Nang TechX** / `http
 
 | Surface              | Behavior                                                                                                                                                               |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/robots.txt`        | Allows crawl of public surfaces; `Disallow` for `/tasks`, `/epics`, `/analytics`, `/admin`, `/settings`, `/profile`, `/login`, `/signup`, `/verify-email`              |
-| `/sitemap.xml`       | Indexes `/` and `/feed` only (private app routes excluded)                                                                                                             |
+| `/robots.txt`        | Allows crawl of public surfaces; `Disallow` for private app/auth routes including `/chat`, `/feed/write`, `/feed/edit`                                                 |
+| `/sitemap.xml`       | Indexes `/` and `/feed` only (private app routes excluded, including `/chat`)                                                                                          |
+| `/llms.txt`          | Static Markdown at `public/llms.txt` — H1 + summary + absolute links for AI/agent crawlers                                                                             |
 | Open Graph / Twitter | Text meta via `nuxt-seo-utils`; **dynamic OG image generation is disabled** (`ogImage.enabled: false`) — native `@takumi-rs/core` is not viable on the ARM deploy host |
 | Page titles          | Still set per-page with `useSeoMeta` + `t('seo.*')` (see [`i18n.md`](./i18n.md#seo-titles))                                                                            |
 | HTML for crawlers    | `/` and `/feed` use **selective SSR** (`routeRules` + short SWR) so the first response includes real copy and public posts — not an empty SPA shell                    |
 
 Auth remains cookie/Bearer-based on the client, so SSR always paints the **guest** chrome; `isAuthenticatedUi` reveals the signed-in header/composer after mount to avoid hydration mismatches. App routes (`/tasks`, `/admin`, …) stay `ssr: false`.
 
-After deploy, verify `/`, `/feed`, `/robots.txt`, and `/sitemap.xml` on the live host and submit the sitemap in Google Search Console.
+After deploy, verify `/`, `/feed`, `/robots.txt`, `/sitemap.xml`, and `/llms.txt` on the live host and submit the sitemap in Google Search Console.
 
 ---
 

@@ -29,6 +29,8 @@ export default defineNuxtConfig({
       "/forgot-password",
       "/reset-password",
       "/feed/write",
+      "/feed/edit",
+      "/chat",
     ],
   },
   // Dynamic OG image rendering needs a native renderer (@takumi-rs/core) that
@@ -49,6 +51,9 @@ export default defineNuxtConfig({
       "/forgot-password",
       "/reset-password",
       "/feed/write",
+      "/feed/edit/**",
+      "/chat",
+      "/chat/**",
     ],
   },
   // Hybrid rendering. Refresh/access secrets are HttpOnly cookies; private

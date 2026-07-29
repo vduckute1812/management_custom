@@ -1,0 +1,16 @@
+# Da Nang TechX
+
+> Da Nang Tech R&D and Networking Portal — public feed and time management for the Da Nang tech community.
+
+Public surfaces are crawlable. Signed-in app routes (tasks, epics, analytics, admin, settings, profile, auth forms, chat) are private and should not be treated as documentation.
+
+## Pages
+
+- [Home](https://dntechx.com/): Public hub for Da Nang TechX.
+- [Feed](https://dntechx.com/feed): Public manuscript feed of community posts and R&D notes.
+- [Sitemap](https://dntechx.com/sitemap.xml): Machine-readable list of indexable URLs.
+- [Robots](https://dntechx.com/robots.txt): Crawl rules for public vs private surfaces.
+
+## Optional
+
+- [Chat](https://dntechx.com/chat): Private messaging (requires sign-in; noindex).
