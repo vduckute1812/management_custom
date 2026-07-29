@@ -105,7 +105,7 @@ export default defineEventHandler(async (event) => {
 * Message kinds are **integer enums** (`ChatMessageKind`). Validate with shared Zod schemas.
 * Participant ACL on every conversation/message route — never trust client-supplied peer ids without membership checks.
 * Media (image / voice) uses the same upload pipeline as Feed (`uploads` + R2). Composer must clean up `MediaRecorder` streams and object URLs on unmount.
-* Thread live updates: SSE on `/api/chat/conversations/:id/stream` while a conversation is open — do not reintroduce a fixed 3.5s message poll. Keep a slow REST `?after=` fallback only when the stream is down. Inbox badge uses `/api/chat/inbox/stream`. Clear EventSource / timers on sign-out / leave `/chat`.
+* Thread live updates: SSE on `/api/chat/conversations/:id/stream` while a conversation is open — do not reintroduce a fixed 3.5s message poll. Keep a slow REST `?after=` fallback only when the stream is down. Connection state for the thread EventSource must be **module-scoped** (shared across `useChat()` callers: page + inbox plugin). Catch up with `?after=` on every SSE `ready`. Inbox badge uses `/api/chat/inbox/stream`. Clear EventSource / timers on sign-out / leave `/chat`.
 * Unread totals and per-conversation `unreadCount` come from denormalized `chat_conversation_reads.unread_count` (migration `0015`); send/read must keep counters in sync.
 * Read receipts: prefer server projection (`readByPeer` / `peerLastReadAt`); keep any client helper pure and shared if both sides need the same math.
 

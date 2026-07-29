@@ -6,6 +6,25 @@ const FALLBACK_POLL_MS = 15_000;
 const RECONNECT_MS = 5_000;
 const FALLBACK_AFTER_FAILURES = 3;
 
+/**
+ * Module-scoped live connection — `useChat()` is called from the chat page
+ * and from `chat-inbox.client.ts`; per-call `let`s would desync the stream
+ * from the shared `useState` thread.
+ */
+const threadLive = {
+  enabled: false,
+  source: null as EventSource | null,
+  conversationId: null as string | null,
+  reconnectTimer: null as ReturnType<typeof setTimeout> | null,
+  fallbackTimer: null as ReturnType<typeof setInterval> | null,
+  failures: 0,
+  /** Bumps on every connect/disconnect so stale onerror cannot clobber state. */
+  generation: 0,
+  onMessage: null as ((message: ChatMessage) => void) | null,
+  onRead: null as ((userId: string, lastReadAt: string) => void) | null,
+  onCatchUp: null as (() => void | Promise<void>) | null,
+};
+
 function applyPeerRead(
   list: ChatMessage[],
   peerLastReadAt: string | null,
@@ -23,6 +42,126 @@ function applyPeerRead(
       readByPeer: new Date(m.createdAt).getTime() <= readAt,
     };
   });
+}
+
+function clearReconnectTimer() {
+  if (threadLive.reconnectTimer) {
+    clearTimeout(threadLive.reconnectTimer);
+    threadLive.reconnectTimer = null;
+  }
+}
+
+function stopFallbackPoll() {
+  if (threadLive.fallbackTimer) {
+    clearInterval(threadLive.fallbackTimer);
+    threadLive.fallbackTimer = null;
+  }
+}
+
+function startFallbackPoll() {
+  if (threadLive.fallbackTimer || !threadLive.enabled) return;
+  threadLive.fallbackTimer = setInterval(() => {
+    void threadLive.onCatchUp?.();
+  }, FALLBACK_POLL_MS);
+}
+
+function disconnectThreadStream() {
+  threadLive.generation += 1;
+  clearReconnectTimer();
+  stopFallbackPoll();
+  if (threadLive.source) {
+    threadLive.source.close();
+    threadLive.source = null;
+  }
+  threadLive.conversationId = null;
+}
+
+function scheduleReconnect(conversationId: string) {
+  if (!threadLive.enabled || threadLive.reconnectTimer) return;
+  threadLive.reconnectTimer = setTimeout(() => {
+    threadLive.reconnectTimer = null;
+    if (threadLive.enabled) connectThreadStream(conversationId);
+  }, RECONNECT_MS);
+}
+
+function connectThreadStream(conversationId: string) {
+  if (!import.meta.client || !threadLive.enabled || !conversationId) return;
+
+  if (
+    threadLive.source &&
+    threadLive.conversationId === conversationId &&
+    (threadLive.source.readyState === EventSource.OPEN ||
+      threadLive.source.readyState === EventSource.CONNECTING)
+  ) {
+    return;
+  }
+
+  const generation = ++threadLive.generation;
+  clearReconnectTimer();
+  if (threadLive.source) {
+    threadLive.source.close();
+    threadLive.source = null;
+  }
+
+  const es = new EventSource(
+    `/api/chat/conversations/${conversationId}/stream`,
+  );
+  threadLive.source = es;
+  threadLive.conversationId = conversationId;
+
+  es.addEventListener("ready", () => {
+    if (generation !== threadLive.generation) return;
+    threadLive.failures = 0;
+    stopFallbackPoll();
+    // Catch up anything missed between REST history load / disconnect and SSE.
+    void threadLive.onCatchUp?.();
+  });
+
+  es.addEventListener("message", (ev) => {
+    if (generation !== threadLive.generation) return;
+    try {
+      const payload = JSON.parse((ev as MessageEvent).data) as {
+        type: "message";
+        message: ChatMessage;
+      };
+      if (payload?.message) threadLive.onMessage?.(payload.message);
+    } catch {
+      // ignore malformed frames
+    }
+  });
+
+  es.addEventListener("read", (ev) => {
+    if (generation !== threadLive.generation) return;
+    try {
+      const payload = JSON.parse((ev as MessageEvent).data) as {
+        type: "read";
+        userId: string;
+        lastReadAt: string;
+      };
+      if (payload?.lastReadAt) {
+        threadLive.onRead?.(payload.userId, payload.lastReadAt);
+      }
+    } catch {
+      // ignore malformed frames
+    }
+  });
+
+  es.addEventListener("ping", () => {
+    // heartbeat
+  });
+
+  es.onerror = () => {
+    if (generation !== threadLive.generation) return;
+    es.close();
+    if (threadLive.source === es) threadLive.source = null;
+    threadLive.failures += 1;
+    if (threadLive.failures >= FALLBACK_AFTER_FAILURES) {
+      startFallbackPoll();
+    }
+    // Keep conversationId so reconnect can retarget the same thread.
+    threadLive.conversationId = conversationId;
+    scheduleReconnect(conversationId);
+  };
 }
 
 export const useChat = () => {
@@ -56,14 +195,6 @@ export const useChat = () => {
   const stickers = useState<ChatSticker[]>("chat:stickers", () => []);
   const emoji = useState<string[]>("chat:emoji", () => []);
   const error = useState<string | null>("chat:error", () => null);
-
-  let liveEnabled = false;
-  let source: EventSource | null = null;
-  let streamConversationId: string | null = null;
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  let fallbackTimer: ReturnType<typeof setInterval> | null = null;
-  let streamFailures = 0;
-  let intentionalClose = false;
 
   const activeConversation = computed(
     () => conversations.value.find((c) => c.id === activeId.value) ?? null,
@@ -104,6 +235,96 @@ export const useChat = () => {
     stickers.value = res.stickers;
     emoji.value = res.emoji;
   }
+
+  function touchSidebar(message: ChatMessage) {
+    const conv = conversations.value.find(
+      (c) => c.id === message.conversationId,
+    );
+    if (!conv) return;
+    conv.lastMessage = message;
+    conv.lastMessageAt = message.createdAt;
+    conversations.value = [
+      conv,
+      ...conversations.value.filter((c) => c.id !== conv.id),
+    ];
+  }
+
+  function ingestMessage(message: ChatMessage, opts?: { fromSelf?: boolean }) {
+    if (messages.value.some((m) => m.id === message.id)) return;
+    const myId = auth.user.value?.id;
+    const mine =
+      opts?.fromSelf === true ||
+      (myId != null && message.senderId === myId);
+    const normalized: ChatMessage = {
+      ...message,
+      mine,
+      readByPeer: mine ? false : undefined,
+    };
+    const withRead = applyPeerRead(
+      [...messages.value, normalized],
+      peerLastReadAt.value,
+    );
+    messages.value = withRead;
+    touchSidebar(withRead[withRead.length - 1] ?? normalized);
+
+    if (
+      !mine &&
+      activeId.value &&
+      message.conversationId === activeId.value
+    ) {
+      void apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
+        method: "POST",
+      }).catch(() => undefined);
+      void refreshConversations().catch(() => undefined);
+    }
+  }
+
+  function applyReadEvent(userId: string, lastReadAt: string) {
+    const myId = auth.user.value?.id;
+    if (!myId || userId === myId) return;
+    peerLastReadAt.value = lastReadAt;
+    messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
+    const conv = conversations.value.find((c) => c.id === activeId.value);
+    if (conv) conv.peerLastReadAt = lastReadAt;
+  }
+
+  async function pollNewMessages() {
+    if (!activeId.value) return;
+    const last = messages.value[messages.value.length - 1];
+    if (!last) {
+      await openConversation(activeId.value);
+      return;
+    }
+    try {
+      const res = await apiFetch<{
+        messages: ChatMessage[];
+        hasMore: boolean;
+        peerLastReadAt: string | null;
+      }>(`/api/chat/conversations/${activeId.value}/messages`, {
+        query: { limit: 50, after: last.id },
+      });
+      if (res.peerLastReadAt !== undefined) {
+        peerLastReadAt.value = res.peerLastReadAt;
+      }
+      messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
+
+      if (!res.messages.length) return;
+
+      const existing = new Set(messages.value.map((m) => m.id));
+      const fresh = res.messages.filter((m) => !existing.has(m.id));
+      for (const msg of fresh) {
+        ingestMessage(msg);
+      }
+    } catch {
+      // Fallback / catch-up failures are non-fatal
+    }
+  }
+
+  // Keep singleton handlers pointed at this call's closures (shared useState).
+  threadLive.onMessage = (message) => ingestMessage(message);
+  threadLive.onRead = (userId, lastReadAt) =>
+    applyReadEvent(userId, lastReadAt);
+  threadLive.onCatchUp = () => pollNewMessages();
 
   async function startConversation(peerUserId: string) {
     const res = await apiFetch<{ conversation: ChatConversation }>(
@@ -153,7 +374,8 @@ export const useChat = () => {
     } finally {
       loadingMessages.value = false;
     }
-    if (liveEnabled) connectThreadStream();
+    // Always retarget when live is on — works across page + inbox plugin calls.
+    if (threadLive.enabled) connectThreadStream(id);
   }
 
   async function loadOlderMessages() {
@@ -184,211 +406,15 @@ export const useChat = () => {
     messagesHasMore.value = res.hasMore;
   }
 
-  function touchSidebar(message: ChatMessage) {
-    const conv = conversations.value.find(
-      (c) => c.id === message.conversationId,
-    );
-    if (!conv) return;
-    conv.lastMessage = message;
-    conv.lastMessageAt = message.createdAt;
-    conversations.value = [
-      conv,
-      ...conversations.value.filter((c) => c.id !== conv.id),
-    ];
-  }
-
-  function ingestMessage(message: ChatMessage, opts?: { fromSelf?: boolean }) {
-    if (messages.value.some((m) => m.id === message.id)) return;
-    const myId = auth.user.value?.id;
-    const mine =
-      opts?.fromSelf === true ||
-      (myId != null && message.senderId === myId);
-    const normalized: ChatMessage = {
-      ...message,
-      mine,
-      readByPeer: mine ? false : undefined,
-    };
-    const withRead = applyPeerRead(
-      [...messages.value, normalized],
-      peerLastReadAt.value,
-    );
-    messages.value = withRead;
-    touchSidebar(withRead[withRead.length - 1] ?? normalized);
-
-    if (
-      !mine &&
-      activeId.value &&
-      message.conversationId === activeId.value
-    ) {
-      void apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
-        method: "POST",
-      }).catch(() => undefined);
-      void refreshConversations().catch(() => undefined);
-    }
-  }
-
-  async function pollNewMessages() {
-    if (!activeId.value) return;
-    const last = messages.value[messages.value.length - 1];
-    if (!last) {
-      await openConversation(activeId.value);
-      return;
-    }
-    try {
-      const res = await apiFetch<{
-        messages: ChatMessage[];
-        hasMore: boolean;
-        peerLastReadAt: string | null;
-      }>(`/api/chat/conversations/${activeId.value}/messages`, {
-        query: { limit: 50, after: last.id },
-      });
-      if (res.peerLastReadAt !== undefined) {
-        peerLastReadAt.value = res.peerLastReadAt;
-      }
-      messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-
-      if (!res.messages.length) return;
-
-      const existing = new Set(messages.value.map((m) => m.id));
-      const fresh = res.messages.filter((m) => !existing.has(m.id));
-      for (const msg of fresh) {
-        ingestMessage(msg);
-      }
-    } catch {
-      // Fallback poll failures are non-fatal
-    }
-  }
-
-  function stopFallbackPoll() {
-    if (fallbackTimer) {
-      clearInterval(fallbackTimer);
-      fallbackTimer = null;
-    }
-  }
-
-  function startFallbackPoll() {
-    if (fallbackTimer || !liveEnabled) return;
-    fallbackTimer = setInterval(() => {
-      void pollNewMessages();
-    }, FALLBACK_POLL_MS);
-  }
-
-  function clearReconnectTimer() {
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-  }
-
-  function disconnectThreadStream() {
-    intentionalClose = true;
-    clearReconnectTimer();
-    stopFallbackPoll();
-    if (source) {
-      source.close();
-      source = null;
-    }
-    streamConversationId = null;
-    intentionalClose = false;
-  }
-
-  function scheduleReconnect() {
-    if (!liveEnabled || !activeId.value || reconnectTimer) return;
-    reconnectTimer = setTimeout(() => {
-      reconnectTimer = null;
-      connectThreadStream();
-    }, RECONNECT_MS);
-  }
-
-  function connectThreadStream() {
-    if (!import.meta.client || !liveEnabled || !activeId.value) return;
-    const id = activeId.value;
-    if (
-      source &&
-      streamConversationId === id &&
-      (source.readyState === EventSource.OPEN ||
-        source.readyState === EventSource.CONNECTING)
-    ) {
-      return;
-    }
-
-    intentionalClose = true;
-    if (source) {
-      source.close();
-      source = null;
-    }
-    streamConversationId = null;
-    intentionalClose = false;
-    clearReconnectTimer();
-
-    const es = new EventSource(`/api/chat/conversations/${id}/stream`);
-    source = es;
-    streamConversationId = id;
-
-    es.addEventListener("ready", () => {
-      streamFailures = 0;
-      stopFallbackPoll();
-    });
-
-    es.addEventListener("message", (ev) => {
-      try {
-        const payload = JSON.parse((ev as MessageEvent).data) as {
-          type: "message";
-          message: ChatMessage;
-        };
-        if (payload?.message) ingestMessage(payload.message);
-      } catch {
-        // ignore malformed frames
-      }
-    });
-
-    es.addEventListener("read", (ev) => {
-      try {
-        const payload = JSON.parse((ev as MessageEvent).data) as {
-          type: "read";
-          userId: string;
-          lastReadAt: string;
-        };
-        if (!payload?.lastReadAt) return;
-        const myId = auth.user.value?.id;
-        // Peer read receipt for our outbound messages.
-        if (myId && payload.userId !== myId) {
-          peerLastReadAt.value = payload.lastReadAt;
-          messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-          const conv = conversations.value.find((c) => c.id === id);
-          if (conv) conv.peerLastReadAt = payload.lastReadAt;
-        }
-      } catch {
-        // ignore malformed frames
-      }
-    });
-
-    es.addEventListener("ping", () => {
-      // heartbeat
-    });
-
-    es.onerror = () => {
-      if (intentionalClose) return;
-      es.close();
-      if (source === es) source = null;
-      streamConversationId = null;
-      streamFailures += 1;
-      if (streamFailures >= FALLBACK_AFTER_FAILURES) {
-        startFallbackPoll();
-      }
-      scheduleReconnect();
-    };
-  }
-
   /** Enable live thread updates (SSE, with slow REST fallback). */
   function startPolling() {
-    liveEnabled = true;
-    connectThreadStream();
+    threadLive.enabled = true;
+    if (activeId.value) connectThreadStream(activeId.value);
   }
 
   function stopPolling() {
-    liveEnabled = false;
-    streamFailures = 0;
+    threadLive.enabled = false;
+    threadLive.failures = 0;
     disconnectThreadStream();
   }
 
