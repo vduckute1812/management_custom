@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count`.
 
 ## Migration system
 
@@ -339,7 +339,7 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 
 | Table              | Purpose                                                                                                                                                                                                                 |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`, optional `translation_group_id`, `content_locale` |
+| `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`, optional `translation_group_id`, `content_locale`, denormalized `comment_count` (migration `0016`) |
 | `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                                                                      |
 | `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                                                                                 |
 | `post_comments`    | Threaded comments on a post                                                                                                                                                                                             |

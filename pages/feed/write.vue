@@ -33,14 +33,7 @@ useSeoMeta({
   description: () => t("seo.manuscriptWriteDescription"),
 });
 
-useHead({
-  link: [
-    {
-      rel: "stylesheet",
-      href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap",
-    },
-  ],
-});
+useManuscriptFont();
 
 async function loadTranslationContext() {
   const group =

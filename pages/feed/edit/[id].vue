@@ -34,14 +34,7 @@ useSeoMeta({
   description: () => t("seo.manuscriptEditDescription"),
 });
 
-useHead({
-  link: [
-    {
-      rel: "stylesheet",
-      href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap",
-    },
-  ],
-});
+useManuscriptFont();
 
 function toUploadRecords(p: Post): UploadRecord[] {
   return (p.attachments ?? []).map((a) => ({

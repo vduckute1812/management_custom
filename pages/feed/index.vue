@@ -67,14 +67,7 @@ useSeoMeta({
   description: () => t("seo.feedDescription"),
 });
 
-useHead({
-  link: [
-    {
-      rel: "stylesheet",
-      href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap",
-    },
-  ],
-});
+useManuscriptFont();
 
 function categoryIdFromRoute(): string | null {
   const raw = route.query.category;

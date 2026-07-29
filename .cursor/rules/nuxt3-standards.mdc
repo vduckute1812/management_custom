@@ -114,6 +114,7 @@ export default defineEventHandler(async (event) => {
 * Edit desk: `/feed/edit/:id`. Format is **fixed** after create; validate with shared schemas / service logic.
 * Manuscripts carry `contentLocale` + optional `translationGroupId` / `translations`. Preserve translation-group invariants when creating locale variants.
 * Prefer shared editor pieces between `PostComposer` and `ManuscriptStudio` (audience, attachments, font/color maps from `~/types/post`) instead of copying conditional CSS maps.
+* Load Source Serif 4 via `useManuscriptFont()` (deferred stylesheet) — do not add a render-blocking Google Fonts `<link rel="stylesheet">` on Feed / write / edit.
 * Lazy-load heavy editor UI when it is not on the critical path.
 
 ## ConfirmDialog & destructive actions
