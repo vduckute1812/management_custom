@@ -98,8 +98,27 @@ async function syncFeedFromRoute() {
 
 // SSR: ship public posts + categories in the first HTML response so Google
 // indexes real feed content instead of an empty SPA shell.
-await refreshCategories().catch(() => undefined);
-await syncFeedFromRoute().catch(() => undefined);
+// When there is no category query, categories and posts are independent —
+// fetch them in parallel to cut first-paint wait.
+const categoryQuery = route.query.category;
+const needsCategoryLookup =
+  typeof categoryQuery === "string" && categoryQuery.length > 0;
+
+if (needsCategoryLookup) {
+  await refreshCategories().catch(() => undefined);
+  await syncFeedFromRoute().catch(() => undefined);
+} else {
+  await Promise.all([
+    refreshCategories().catch(() => undefined),
+    (async () => {
+      if (categoryFilter.value) {
+        await setCategoryFilter(null);
+      } else if (!posts.value.length) {
+        await refresh();
+      }
+    })().catch(() => undefined),
+  ]);
+}
 
 // Don't ship a transient API failure string into the crawler HTML.
 if (import.meta.server && error.value) {

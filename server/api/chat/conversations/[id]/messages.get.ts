@@ -1,4 +1,5 @@
-import { listMessages, markConversationRead } from "~/server/utils/db";
+import { listMessages } from "~/server/utils/db";
+import { markChatConversationRead } from "~/server/services/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { parseQuery, mapDomainError } from "~/server/utils/http";
 import { chatMessagesQuerySchema } from "~/server/schemas";
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
     });
     // Opening the thread marks it read (unless this is a silent poll with after=)
     if (!query.after) {
-      await markConversationRead(user.sub, id);
+      await markChatConversationRead(user.sub, id);
     }
     return result;
   } catch (err) {

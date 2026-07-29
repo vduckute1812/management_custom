@@ -334,6 +334,16 @@ export async function getOrCreateDirectConversation(
   return created;
 }
 
+export async function getPeerUserId(
+  conversationId: string,
+  userId: string,
+): Promise<string | null> {
+  const conv = await loadConversationRow(conversationId);
+  if (!conv) return null;
+  if (conv.user_a_id !== userId && conv.user_b_id !== userId) return null;
+  return conv.user_a_id === userId ? conv.user_b_id : conv.user_a_id;
+}
+
 async function loadConversationRow(
   conversationId: string,
 ): Promise<{ id: string; user_a_id: string; user_b_id: string } | null> {
@@ -672,18 +682,15 @@ export interface ChatUnreadPreview {
   createdAt: string;
 }
 
-/** Lightweight inbox pulse for nav badge + toast notifications. */
+/** Lightweight inbox snapshot for nav badge + toast notifications. */
 export async function getUnreadInbox(
   userId: string,
 ): Promise<{ unreadTotal: number; latest: ChatUnreadPreview | null }> {
-  const unreadTotal = await getUnreadTotal(userId);
-  if (unreadTotal <= 0) {
-    return { unreadTotal: 0, latest: null };
-  }
-
   const pool = getPool();
+  // One pass: window count + latest unread preview (MySQL 8+).
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
+       COUNT(*) OVER() AS unread_total,
        m.conversation_id AS conversation_id,
        m.kind AS kind,
        m.body AS body,
@@ -706,10 +713,11 @@ export async function getUnreadInbox(
   );
 
   if (!rows.length) {
-    return { unreadTotal, latest: null };
+    return { unreadTotal: 0, latest: null };
   }
 
   const row = rows[0];
+  const unreadTotal = Number(row.unread_total ?? 0);
   const kind = Number(row.kind ?? 0);
   let preview = "";
   if (kind === ChatMessageKind.Sticker) {

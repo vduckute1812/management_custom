@@ -1,4 +1,4 @@
-import { sendMessage } from "~/server/utils/db";
+import { sendChatMessage } from "~/server/services/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { chatSendBodySchema } from "~/server/schemas";
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   }
   const body = await parseBody(event, chatSendBodySchema);
   try {
-    const message = await sendMessage(user.sub, id, {
+    const message = await sendChatMessage(user.sub, id, {
       kind: body.kind as ChatMessageKind,
       body: body.body,
       stickerId: body.stickerId,

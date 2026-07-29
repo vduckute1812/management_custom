@@ -191,34 +191,24 @@ export const useChat = () => {
       if (res.peerLastReadAt !== undefined) {
         peerLastReadAt.value = res.peerLastReadAt;
       }
-      if (res.messages.length) {
-        const existing = new Set(messages.value.map((m) => m.id));
-        const fresh = res.messages.filter((m) => !existing.has(m.id));
-        if (fresh.length) {
-          messages.value = applyPeerRead(
-            [...messages.value, ...fresh],
-            peerLastReadAt.value,
-          );
-          await apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
-            method: "POST",
-          });
-        } else {
-          messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-        }
-      } else {
-        messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-      }
-      const list = await apiFetch<{
-        conversations: ChatConversation[];
-        unreadTotal: number;
-      }>("/api/chat/conversations");
-      conversations.value = list.conversations;
-      unreadTotal.value = list.unreadTotal;
-      const active = list.conversations.find((c) => c.id === activeId.value);
-      if (active?.peerLastReadAt) {
-        peerLastReadAt.value = active.peerLastReadAt;
-        messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-      }
+      messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
+
+      if (!res.messages.length) return;
+
+      const existing = new Set(messages.value.map((m) => m.id));
+      const fresh = res.messages.filter((m) => !existing.has(m.id));
+      if (!fresh.length) return;
+
+      messages.value = applyPeerRead(
+        [...messages.value, ...fresh],
+        peerLastReadAt.value,
+      );
+      await apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
+        method: "POST",
+      });
+      // Sidebar last-message preview only needs a full list refresh when
+      // something new arrived. Unread totals come from the inbox SSE stream.
+      await refreshConversations().catch(() => undefined);
     } catch {
       // Poll failures are non-fatal
     }

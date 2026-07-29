@@ -123,8 +123,9 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 | `taskService`  | `saveTaskForUser` — ownership guards + upsert      |
 | `timerService` | `startTimerForUser` / `stopTimerForUser`           |
 | `postService`  | `createPostForUser` + public-feed cache invalidate |
+| `chatService`  | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out |
 
-Auth signup / refresh / password-reset, post update/share, chat send, and admin role policy are still mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
+Auth signup / refresh / password-reset, post update/share, and admin role policy are still mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
 
 Add new services only for workflows that span several DB calls or need shared transaction boundaries — not for every CRUD route.
 
@@ -183,7 +184,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── services/
 │   │   ├── taskService.ts           # Task upsert workflow
 │   │   ├── timerService.ts          # Timer start/stop workflow
-│   │   └── postService.ts           # Post create + cache bust
+│   │   ├── postService.ts           # Post create + cache bust
+│   │   └── chatService.ts           # Chat send/read + inbox SSE push
 │   ├── db/                          # SQL domain modules + migrator + pool
 │   │   └── migrations/              # 0001…0014 SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
@@ -196,6 +198,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   └── job-worker.ts            # MySQL jobs worker
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
+│       ├── chatInbox.ts             # In-process SSE fan-out for unread badge
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
@@ -239,7 +242,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── auth.client.ts               # Cookie session hydrate + legacy LS migration
 │   ├── theme.client.ts
 │   ├── i18n-locale.client.ts
-│   ├── chat-inbox.client.ts         # Unread badge / toast / desktop notify poll
+│   ├── chat-inbox.client.ts         # Unread badge / toast via SSE inbox stream
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
 ├── types/                           # task.ts, post.ts, story.ts, chat.ts, locale.ts
@@ -249,6 +252,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── .env.example
 └── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```
+
+Note: chat send/read orchestration (+ inbox SSE fan-out) lives in `server/services/chatService.ts`; the SSE bus is `server/utils/chatInbox.ts`.
 
 ---
 
