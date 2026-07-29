@@ -1,13 +1,8 @@
-import { z } from "zod";
 import { setPostReaction } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
-import { POST_REACTION_TYPES } from "~/types/post";
-
-const bodySchema = z.object({
-  reaction: z.enum(
-    POST_REACTION_TYPES as unknown as [string, ...string[]]
-  ),
-});
+import { parseBody, mapDomainError } from "~/server/utils/http";
+import { postReactionBodySchema } from "~/server/schemas";
+import type { PostReactionType } from "~/types/post";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
@@ -16,34 +11,21 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Post id required" });
   }
 
-  const raw = await readBody(event);
-  const parsed = bodySchema.safeParse(raw);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Invalid reaction",
-    });
-  }
+  const body = await parseBody(event, postReactionBodySchema);
 
   try {
     const post = await setPostReaction(
       user.sub,
       id,
-      parsed.data.reaction as (typeof POST_REACTION_TYPES)[number]
+      body.reaction as PostReactionType,
     );
     return {
       post,
-      liked: post.myReaction === "like",
-      likeCount: post.reactions.like,
       myReaction: post.myReaction,
       reactions: post.reactions,
       reactionCount: post.reactionCount,
     };
   } catch (err: unknown) {
-    const statusCode = (err as { statusCode?: number })?.statusCode;
-    if (statusCode === 404) {
-      throw createError({ statusCode: 404, statusMessage: "Post not found" });
-    }
-    throw err;
+    mapDomainError(err);
   }
 });

@@ -140,7 +140,11 @@ export const useApi = () => {
     }
 
     // Throttle maps are process-global — unsafe across concurrent SSR users.
-    if (import.meta.server) {
+    // FormData uploads must not coalesce: identical URL + method would return
+    // the wrong file's response when several uploads run in parallel.
+    const isMultipart =
+      typeof FormData !== "undefined" && options?.body instanceof FormData;
+    if (import.meta.server || isMultipart) {
       return doFetch<T>(url, options);
     }
 

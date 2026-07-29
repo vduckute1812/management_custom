@@ -389,8 +389,6 @@ function rowToPost(
     reactions,
     reactionCount,
     myReaction,
-    likeCount: reactions.like ?? 0,
-    likedByMe: myReaction === "like",
     commentCount: Number(row.comment_count ?? 0),
     attachments,
     audienceUserIds,
@@ -1020,25 +1018,6 @@ export async function clearPostReaction(
   return refreshed;
 }
 
-/** @deprecated Prefer setPostReaction / clearPostReaction. */
-export async function togglePostLike(
-  userId: string,
-  postId: string,
-): Promise<{ liked: boolean; likeCount: number }> {
-  const post = await getPostById(userId, postId);
-  if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
-  }
-  const next =
-    post.myReaction === "like"
-      ? await clearPostReaction(userId, postId)
-      : await setPostReaction(userId, postId, "like");
-  return {
-    liked: next.myReaction === "like",
-    likeCount: next.reactions.like,
-  };
-}
-
 export async function listPostComments(
   viewerId: string | null,
   postId: string,
@@ -1137,9 +1116,9 @@ export async function searchUserDirectory(
     id: String(r.id),
     name: (r.name as string | null) ?? null,
     email: String(r.email),
-    avatarUrl: avatarUrlFromUploadId(
-      (r.avatar_upload_id as string | null) ?? null,
-    ) ?? null,
+    avatarUrl:
+      avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
+      null,
   }));
 }
 

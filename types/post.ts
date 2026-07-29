@@ -165,10 +165,6 @@ export interface Post {
   reactionCount: number;
   /** Current viewer's reaction, if any. */
   myReaction: PostReactionType | null;
-  /** @deprecated Prefer reactionCount / myReaction — kept for older UI. */
-  likeCount: number;
-  /** @deprecated Prefer myReaction === 'like'. */
-  likedByMe: boolean;
   commentCount: number;
   attachments: PostAttachment[];
   /** Audience user ids when visibility is shared (author-only detail optional). */

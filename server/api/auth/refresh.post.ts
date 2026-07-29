@@ -29,15 +29,11 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "~/server/utils/refreshCookie";
-
-interface RefreshBody {
-  refreshToken?: string;
-}
+import { parseBody } from "~/server/utils/http";
+import { refreshBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<RefreshBody>(event).catch(
-    () => ({} as RefreshBody),
-  );
+  const body = await parseBody(event, refreshBodySchema);
   const usedCookie = Boolean(getCookie(event, REFRESH_COOKIE)?.trim());
   assertSameOriginForCookieAuth(event, usedCookie);
 

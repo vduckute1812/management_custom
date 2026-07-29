@@ -1,5 +1,5 @@
 ---
-description: Nuxt 3 hybrid app conventions — architecture, API, HttpOnly auth cookies, i18n, SEO, validation, and TypeScript/vue-tsc compatibility
+description: Nuxt 3 hybrid app conventions — architecture, API, HttpOnly auth cookies, i18n, SEO, validation, rate-limit, chat, manuscript, and TypeScript/vue-tsc compatibility
 globs: "**/*.{vue,ts,json}"
 alwaysApply: false
 ---
@@ -13,34 +13,49 @@ This app uses **hybrid rendering**: `/` and `/feed` are SSR'd for crawlers; the 
 General principles — they apply to any dependency, not just today's versions:
 
 * **Type-check is the gate.** `npx vue-tsc --noEmit -p tsconfig.json` must pass before committing changes to `.vue` / `.ts` files. Never "fix" a failing check by skipping it, loosening `tsconfig`, or patching files inside `node_modules`.
-* **Unit tests:** `npm test` (Vitest) for schemas, security helpers, and markdown sanitization — run after changing `server/schemas`, `server/utils/http.ts`, or `renderPostBody`.
+* **Unit tests:** `npm test` (Vitest) for schemas, security helpers, rate-limit, and markdown sanitization — run after changing `server/schemas`, `server/utils/http.ts`, `server/rate-limit/`, or `renderPostBody`.
 * **Upgrade tools together.** The type-checker, its compiler, and the framework plugins form one toolchain. Before bumping any of them (e.g. `typescript`, `vue-tsc`, i18n modules), confirm the new versions support each other — check release notes, then run the type-check to prove it. If a new major of a compiler/runtime is not yet supported by the surrounding tooling, stay on the latest supported line and note why in `package.json` history / docs.
 * **Reproduce, don't assume.** When a tool crashes after a dependency change, verify whether it's a tooling break or a real code error by running the check with a known-good toolchain first. Fix real code errors immediately; roll back incompatible tool versions rather than working around them.
 * **Follow library call signatures, not intuition.** When a typed API has overloads (i18n `t(...)`, DB `query<T>(...)`, etc.), match the library's documented parameter order and generic constraints; if the checker rejects a call, read the overload — do not cast or `any` it away. Prefer the library's own row/result types over hand-rolled shapes.
 * **Docs follow the code.** When a compatibility constraint is discovered, record it in `implement/` (getting-started / architecture) so the next upgrade attempt sees it.
+* **No suppressions.** Do not add `@ts-ignore` / `@ts-expect-error`. Prefer fixing types or narrowing. Avoid new `any` except at a typed boundary that is immediately narrowed.
 
 ## Architecture
 
-* **Modules:** public hub `/`, **Feed** `/feed`, **Time Management** `/tasks` (+ epics/analytics). Do not assume every page requires login.
+* **Modules:** public hub `/`, **Feed** `/feed`, **Time Management** `/tasks` (+ epics/analytics), **Chat** `/chat`. Do not assume every page requires login.
 * **`pages/` / `components/`**: UI only. Extract data, multi-step flows, and shared state into `composables/`.
 * **`composables/`**: Vue/Nuxt context (`ref`, `useState`, `useRoute`, `apiFetch`). Always pass an explicit key to `useState('unique-key', factory)`.
 * **`utils/`** (client) / pure helpers: deterministic functions only — no `useNuxtApp()`, `useRoute()`, or `useRuntimeConfig()` at module top level.
 * **`server/api/`**: Thin handlers. Auth → `parseBody`/`parseQuery` → domain `server/db` or `server/services` → return JSON or `mapDomainError`.
-* **`server/schemas/`**: Shared Zod request schemas — add new body/query shapes here first.
-* **`server/services/`**: Multi-step workflows only (task save, timer start/stop, post create) — not every CRUD route.
-* **`server/db/`**: SQL / domain persistence (barrel via `server/utils/db.ts`). **`server/utils/`**: auth, cookies, http helpers, mailer, R2.
-* **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/locale.ts`).
+* **`server/schemas/`**: Shared Zod request schemas — add new body/query shapes here first; reuse create/update fragments instead of duplicating fields.
+* **`server/services/`**: Multi-step workflows only (task save, timer start/stop, post create/update/share, auth signup/refresh/reset, chat send, admin role policy, upload persist after multipart parse) — not every CRUD route.
+* **`server/db/`**: SQL / persistence (barrel via `server/utils/db.ts`). Keep business orchestration out of DB modules when a service already owns the workflow. Prefer splitting a DB module before it exceeds ~500 lines (e.g. read / write / social).
+* **`server/utils/`**: auth, cookies, http helpers, mailer, R2, cache, queue — not a second home for domain SQL.
+* **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/chat.ts`, `types/locale.ts`).
 * **Feed → Tasks:** use `usePlanPostAsTask` — do not call `useTasks` directly from feed presentation components for "plan as task".
+
+### File size / decomposition triggers
+
+Split or extract when any of these hold (review, don't force a big-bang rewrite):
+
+* Vue SFC ≳ **400** lines, or `<script setup>` ≳ **200** lines
+* `server/db/*.ts` ≳ **500** lines
+* Two composers / editors share audience, attachment, style, or submit logic → shared composable / child components
+* A page owns fetch + charts + CRUD + dialogs → extract composables and presentational children
+
+Prefer domain-named children (`PostReactionBar`, `FeedCategoryFilter`, `useVoiceRecorder`) over generic `utils.vue`.
 
 ## Data fetching & auth (client)
 
 * Authenticated API calls: use `apiFetch` from `useApi()` — not raw `$fetch` (attaches Bearer, `credentials: 'include'`, refresh-on-401).
-* `$fetch` with `credentials: 'include'` is OK for auth endpoints (`login` / `signup` / `refresh` / `logout` / `verify-email`) from `useAuth`.
+* `$fetch` with `credentials: 'include'` is OK for auth bootstrap endpoints (`login` / `signup` / `refresh` / `logout` / `verify-email` / `forgot-password` / `reset-password`) from `useAuth` only — document any new exception next to the call.
+* **Multipart uploads:** use `apiFetch` with a `FormData` body. Do **not** set `Content-Type` manually. `apiFetch` skips in-flight coalescing / throttle for `FormData` so parallel uploads do not share responses.
 * **Never** persist refresh tokens in `localStorage`. Access token is in-memory; cookies are HttpOnly (`mgmt_rt`, `mgmt_at`).
-* Client guard: `middleware/auth.global.ts` — public `/`, `/feed`, auth forms; protect `/tasks`, settings, admin, …
+* Client guard: `middleware/auth.global.ts` — public `/`, `/feed`, auth forms; protect `/tasks`, `/chat`, settings, admin, …
 * Server: `requireUser` / `requireAdmin` / `requireSuperAdmin`; feed list/detail GETs may use `getOptionalUser`.
 * Media: same-origin `/api/uploads/*` uses `mgmt_at` cookie — avoid new `?access_token=` URLs.
-* Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, `usePosts`, …).
+* Do not introduce Pinia unless necessary; follow existing composable stores (`useAuth`, `useTasks`, `usePosts`, `useChat`, …).
+* API errors: prefer `apiErrorMessage(err, fallback)` from `~/utils/apiErrorMessage` over ad-hoc `data.statusMessage` casts.
 
 ## Nitro API handlers
 
@@ -62,9 +77,50 @@ export default defineEventHandler(async (event) => {
 
 * Prefer `parseBody` / `parseQuery` from `~/server/utils/http.ts` with schemas from `~/server/schemas`.
 * Use `requireUser` / `requireAdmin` from `~/server/utils/authContext` — do not re-parse JWT in each route.
-* Integer enums (`status`, `priority`, `role`, …) must be numbers on the wire — reject strings with `400`.
+* Integer enums (`status`, `priority`, `role`, message `kind`, …) must be numbers on the wire — reject strings with `400`.
 * Prefer semantic status codes: `400` validation, `401` unauthenticated, `403` forbidden, `404` missing, `500` unexpected.
-* Never log passwords, tokens, or raw Authorization headers.
+* Never log passwords, tokens, verify/reset URLs, or raw Authorization headers. On queue/mail failures, log the error only — not the one-time link.
+* Prefer `DomainError` + `mapDomainError` over `Object.assign(new Error(...), { statusCode })` in new code.
+* **Multipart exception:** upload routes use `readMultipartFormData` + shared `uploadPolicy` / magic-byte checks — not `parseBody`. Keep transport parsing in the handler; move validated persistence to a service when the flow spans policy + DB + R2.
+
+## Rate limiting
+
+* Module: `server/rate-limit/` (policies, keying, store, check). Middleware: `server/middleware/rate-limit.ts`.
+* Import from `~/server/rate-limit` — do not reintroduce a `server/utils/rateLimit` shim.
+* Counters are **in-memory / per process**. Do not assume Redis-backed rate limits; Redis is for the cache facade only (`REDIS_URL`). Multi-instance deploys need a distributed atomic store before raising traffic assumptions.
+* Client IP uses `X-Forwarded-For` — only safe behind a trusted proxy. Document proxy trust when changing `clientIp`.
+* When changing policies or keying, extend `tests/rate-limit.test.ts` (scope, window, prefix matching).
+
+## Cache, Redis, and queue
+
+* Cache facade: `server/utils/cache.ts` (memory default; Redis when `REDIS_URL` is set; fail-open).
+* Do not call Redis clients outside the cache infrastructure.
+* Mutations that affect cached public reads must invalidate via the existing cache-bust helpers / `cache.invalidate` jobs — see [`implement/cache-queue.md`](../../implement/cache-queue.md).
+* Background work (email, cache bust) goes through MySQL `jobs` + `server/plugins/job-worker.ts` — do not await SMTP inline on request paths.
+
+## Chat
+
+* Spec / as-built: [`implement/chat-spec.md`](../../implement/chat-spec.md), [`implement/api.md`](../../implement/api.md).
+* Routes under `/api/chat/*`; DB in `server/db/chat.ts`; UI `/chat` + `useChat` + `plugins/chat-inbox.client.ts`.
+* Message kinds are **integer enums** (`ChatMessageKind`). Validate with shared Zod schemas.
+* Participant ACL on every conversation/message route — never trust client-supplied peer ids without membership checks.
+* Media (image / voice) uses the same upload pipeline as Feed (`uploads` + R2). Composer must clean up `MediaRecorder` streams and object URLs on unmount.
+* Polling: thread poll (~3.5s) and inbox unread poll (~10s) — avoid stacking duplicate unread fetches while the chat page is active; clear timers on unmount / route leave.
+* Read receipts: prefer server projection (`readByPeer` / `peerLastReadAt`); keep any client helper pure and shared if both sides need the same math.
+
+## Manuscript & post editing
+
+* Formats: `update` (short) vs `manuscript` (long). Body ceilings: `POST_BODY_MAX_UPDATE` / `POST_BODY_MAX_MANUSCRIPT` via `postBodyMaxForFormat` — do not reintroduce deprecated short/long aliases.
+* Edit desk: `/feed/edit/:id`. Format is **fixed** after create; validate with shared schemas / service logic.
+* Manuscripts carry `contentLocale` + optional `translationGroupId` / `translations`. Preserve translation-group invariants when creating locale variants.
+* Prefer shared editor pieces between `PostComposer` and `ManuscriptStudio` (audience, attachments, font/color maps from `~/types/post`) instead of copying conditional CSS maps.
+* Lazy-load heavy editor UI when it is not on the critical path.
+
+## ConfirmDialog & destructive actions
+
+* Use `ConfirmDialog` (or the same accessible pattern) for destructive confirms — not native `confirm()` / `prompt()` for product UI.
+* Requirements: focus trap + restore, Escape / backdrop dismiss where appropriate, busy/disabled while the mutation runs, clear confirm vs cancel labels, no accidental double-submit.
+* Non-destructive prompts (e.g. rename) should still use an accessible dialog, not `window.prompt`.
 
 ## UI / UX (practical)
 
@@ -76,12 +132,19 @@ export default defineEventHandler(async (event) => {
 * Motion: 150–300ms; honor `prefers-reduced-motion`.
 * a11y: visible labels, keyboard focus rings, meaningful `statusMessage` / inline errors on forms.
 * Page titles: `useSeoMeta({ title })` on pages that need a distinct document title.
+* Browser resources: always tear down intervals, `MediaRecorder`, object URLs, and document-level listeners in `onBeforeUnmount` / route leave.
 
 ## Performance (SPA-aware)
 
-* Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer.
+* Lazy-load heavy / conditional UI: `<Lazy*>` or `defineAsyncComponent` for modals, charts, story viewer, manuscript studio.
 * Browser-only APIs (`window`, `localStorage`): guard with `import.meta.client`. On SSR'd public routes, auth chrome must use `isAuthenticatedUi` / `userUi` (ready after mount) so hydration matches the guest HTML. Only non-secret prefs and profile chrome go in `localStorage` — not tokens.
 * Keep Chart.js and large editors out of the initial critical path when possible.
+
+## Dead code & deprecations
+
+* Remove unused routes, composable exports, and compatibility shims in the same change that replaces them (or a fast follow).
+* Do not leave `@deprecated` aliases indefinitely once callers are gone.
+* Prefer deleting legacy endpoints (e.g. old `/like` helpers) once reactions cover the behavior — update `implement/api.md` in the same PR.
 
 ## i18n
 

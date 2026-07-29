@@ -14,17 +14,12 @@ import {
   toAuthUser,
 } from "~/server/utils/db";
 import { hashOpaqueToken } from "~/server/utils/auth";
-
-interface VerifyBody {
-  token?: string;
-}
+import { parseBody } from "~/server/utils/http";
+import { verifyEmailBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<VerifyBody>(event);
-  const presented = body?.token ?? "";
-  if (!presented) {
-    throw createError({ statusCode: 400, statusMessage: "token is required" });
-  }
+  const body = await parseBody(event, verifyEmailBodySchema);
+  const presented = body.token;
 
   const userId = await consumeEmailVerification(hashOpaqueToken(presented));
   if (!userId) {

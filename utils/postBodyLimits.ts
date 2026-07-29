@@ -12,22 +12,8 @@ export const POST_BODY_MAX = POST_BODY_MAX_MANUSCRIPT;
 
 export const POST_TITLE_MAX = 160;
 
-/** @deprecated Use POST_BODY_MAX_UPDATE / POST_BODY_MAX_MANUSCRIPT. */
-export const POST_BODY_MAX_SHORT = POST_BODY_MAX_UPDATE;
-/** @deprecated Use POST_BODY_MAX_MANUSCRIPT. */
-export const POST_BODY_MAX_LONG = POST_BODY_MAX_MANUSCRIPT;
-
-export type PostWriteMode = "short" | "long";
-
-export function postBodyMaxForFormat(
-  format: "update" | "manuscript",
-): number {
+export function postBodyMaxForFormat(format: "update" | "manuscript"): number {
   return format === "manuscript"
     ? POST_BODY_MAX_MANUSCRIPT
     : POST_BODY_MAX_UPDATE;
-}
-
-/** @deprecated Prefer postBodyMaxForFormat. */
-export function postBodyMaxForMode(mode: PostWriteMode): number {
-  return mode === "long" ? POST_BODY_MAX_MANUSCRIPT : POST_BODY_MAX_UPDATE;
 }

@@ -275,3 +275,15 @@ Signed-in 1:1 messaging between install members. Spec: [`chat-spec.md`](./chat-s
 - [x] Read receipts via `peerLastReadAt` / `readByPeer` on outbound messages
 - [x] Unread badge on nav Chat + `GET /api/chat/unread` inbox pulse with toast / desktop notify
 - [x] Chat media: image + voice notes (`0014_chat_media`, `uploads.kind=audio`, composer picker/recorder)
+
+## Phase 18 — System hygiene (clean code + Cursor skill)
+
+Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
+
+- [x] Stop logging raw verify/reset URLs on queue enqueue failure
+- [x] Auth JSON routes use shared Zod schemas via `parseBody` (signup/refresh/logout/verify/forgot/reset)
+- [x] Reactions use shared `postReactionBodySchema`; remove legacy `POST /api/posts/:id/like` + `togglePostLike` / `toggleLike`
+- [x] Uploads go through `apiFetch` (FormData skips coalescing); shared `apiErrorMessage` helper
+- [x] Drop unused `server/utils/rateLimit` shim and deprecated post-body aliases
+- [x] Expand `.cursor/rules/nuxt3-standards.mdc` (rate-limit, cache/queue, chat, manuscript, ConfirmDialog, decomposition triggers, secrets logging)
+- [x] Sync `implement/architecture.md` + `implement/api.md` (chat tables, inbox plugin, no legacy like route)

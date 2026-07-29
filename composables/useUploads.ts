@@ -3,6 +3,7 @@ import {
   compressImageForUpload,
   willAttemptImageCompress,
 } from "~/utils/compressImage";
+import { apiErrorMessage } from "~/utils/apiErrorMessage";
 import {
   checkUploadMeta,
   type UploadRejectionCode,
@@ -23,7 +24,7 @@ function isRejectionCode(value: unknown): value is UploadRejectionCode {
 export const useUploads = () => {
   const { t } = useI18n();
   const { pushToast } = useToasts();
-  const auth = useAuth();
+  const { apiFetch } = useApi();
 
   /**
    * Localized reason this file can't be uploaded, or `null` if it's fine.
@@ -54,11 +55,7 @@ export const useUploads = () => {
       return t(`uploads.errors.${detail.code}`, detail.params ?? {});
     }
 
-    return (
-      (body?.statusMessage as string | undefined) ||
-      (err as { statusMessage?: string })?.statusMessage ||
-      t("toasts.uploadFailed")
-    );
+    return apiErrorMessage(err, t("toasts.uploadFailed"));
   }
 
   /**
@@ -80,12 +77,10 @@ export const useUploads = () => {
 
     try {
       // Multipart must not set Content-Type manually (boundary).
-      const res = await $fetch<{ upload: UploadRecord }>("/api/uploads", {
+      // apiFetch skips in-flight coalescing for FormData bodies.
+      const res = await apiFetch<{ upload: UploadRecord }>("/api/uploads", {
         method: "POST",
         body: form,
-        headers: auth.accessToken.value
-          ? { Authorization: `Bearer ${auth.accessToken.value}` }
-          : undefined,
       });
       return res.upload;
     } catch (err: unknown) {

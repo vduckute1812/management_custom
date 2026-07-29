@@ -8,6 +8,7 @@ import {
 import {
   POST_FONT_FAMILIES,
   POST_FORMATS,
+  POST_REACTION_TYPES,
   POST_TEXT_COLORS,
 } from "~/types/post";
 import {
@@ -110,6 +111,23 @@ export const logoutBodySchema = z
   })
   .optional()
   .default({});
+
+export const verifyEmailBodySchema = z.object({
+  token: z.string().min(1, "token is required"),
+});
+
+export const forgotPasswordBodySchema = z.object({
+  email: z.string().trim().email("A valid email is required"),
+});
+
+export const resetPasswordBodySchema = z.object({
+  token: z.string().min(1, "token is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const postReactionBodySchema = z.object({
+  reaction: z.enum(POST_REACTION_TYPES as unknown as [string, ...string[]]),
+});
 
 export const taskUpsertBodySchema = z.object({
   id: z.string().min(1).optional(),

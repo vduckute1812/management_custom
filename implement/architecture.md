@@ -64,7 +64,8 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
     │     tables: users (+ last_login_at, profile fields via 0010), auth_*,
     │             epics, tasks, time_blocks, checklist_items, active_timer,
     │             posts, post_*, uploads, stories, story_*,
-    │             post_categories, jobs, schema_migrations
+    │             post_categories, jobs, schema_migrations,
+    │             chat_conversations, chat_messages, chat_conversation_reads
     │
     ├── server/plugins/job-worker.ts  →  claims `jobs` → mailer / cache bust
     │
@@ -86,14 +87,15 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area            | Routes                                                              | Auth                                                                            |
-| --------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Hub             | `/`                                                                 | Public (localized category cards → `/feed?category=…`)                          |
-| Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                            | Public browse; write/edit desks require login; compose/react/comment need login |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics` | Authenticated                                                                   |
-| Account         | `/settings`, `/profile`                                             | Authenticated                                                                   |
-| Admin           | `/admin`                                                            | Admin / superadmin                                                              |
-| Auth forms      | `/login`, `/signup`, `/verify-email`                                | Public; authed users bounce to `/`                                              |
+| Area            | Routes                                                                      | Auth                                                                            |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Hub             | `/`                                                                         | Public (localized category cards → `/feed?category=…`)                          |
+| Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                   |
+| Account         | `/settings`, `/profile`                                                     | Authenticated                                                                   |
+| Admin           | `/admin`                                                                    | Admin / superadmin                                                              |
+| Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                              |
+| Chat            | `/chat`                                                                     | Authenticated                                                                   |
 
 Global guard: `middleware/auth.global.ts`.
 
@@ -121,6 +123,8 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 | `taskService`  | `saveTaskForUser` — ownership guards + upsert      |
 | `timerService` | `startTimerForUser` / `stopTimerForUser`           |
 | `postService`  | `createPostForUser` + public-feed cache invalidate |
+
+Auth signup / refresh / password-reset, post update/share, chat send, and admin role policy are still mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
 
 Add new services only for workflows that span several DB calls or need shared transaction boundaries — not for every CRUD route.
 
@@ -193,7 +197,6 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
-│       ├── rateLimit.ts             # Re-export of server/rate-limit
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
@@ -236,6 +239,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── auth.client.ts               # Cookie session hydrate + legacy LS migration
 │   ├── theme.client.ts
 │   ├── i18n-locale.client.ts
+│   ├── chat-inbox.client.ts         # Unread badge / toast / desktop notify poll
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
 ├── types/                           # task.ts, post.ts, story.ts, chat.ts, locale.ts

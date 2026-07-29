@@ -2,11 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   epicUpsertBodySchema,
   feedQuerySchema,
+  forgotPasswordBodySchema,
   loginBodySchema,
+  logoutBodySchema,
+  postReactionBodySchema,
+  refreshBodySchema,
+  resetPasswordBodySchema,
+  signupBodySchema,
   taskUpsertBodySchema,
   timerStartBodySchema,
   chatSendBodySchema,
   chatStartBodySchema,
+  verifyEmailBodySchema,
 } from "../server/schemas";
 import { TaskPriority, TaskStatus } from "../types/task";
 import { ChatMessageKind } from "../types/chat";
@@ -23,6 +30,54 @@ describe("loginBodySchema", () => {
   it("rejects missing password", () => {
     const parsed = loginBodySchema.safeParse({ email: "a@b.com" });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("signup / refresh / logout schemas", () => {
+  it("accepts signup with optional name", () => {
+    const parsed = signupBodySchema.safeParse({
+      email: "a@b.com",
+      password: "Secret1!",
+      name: "Ada",
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("defaults empty refresh/logout bodies", () => {
+    expect(refreshBodySchema.safeParse(undefined).success).toBe(true);
+    expect(logoutBodySchema.safeParse(undefined).success).toBe(true);
+  });
+});
+
+describe("verify / forgot / reset schemas", () => {
+  it("requires token for verify and reset", () => {
+    expect(verifyEmailBodySchema.safeParse({}).success).toBe(false);
+    expect(
+      resetPasswordBodySchema.safeParse({ password: "Secret1!" }).success,
+    ).toBe(false);
+  });
+
+  it("requires a valid email for forgot-password", () => {
+    expect(forgotPasswordBodySchema.safeParse({ email: "nope" }).success).toBe(
+      false,
+    );
+    expect(
+      forgotPasswordBodySchema.safeParse({ email: "a@b.com" }).success,
+    ).toBe(true);
+  });
+});
+
+describe("postReactionBodySchema", () => {
+  it("accepts known reactions", () => {
+    expect(postReactionBodySchema.safeParse({ reaction: "like" }).success).toBe(
+      true,
+    );
+  });
+
+  it("rejects unknown reactions", () => {
+    expect(postReactionBodySchema.safeParse({ reaction: "fire" }).success).toBe(
+      false,
+    );
   });
 });
 

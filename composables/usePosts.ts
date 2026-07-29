@@ -276,8 +276,6 @@ export const usePosts = () => {
       reactions,
       reactionCount,
       myReaction: reaction,
-      likedByMe: reaction === "like",
-      likeCount: reactions.like,
     };
     posts.value = patchPost(posts.value, id, optimistic);
 
@@ -315,16 +313,6 @@ export const usePosts = () => {
 
   async function clearReaction(id: string) {
     await mutateReaction(id, null);
-  }
-
-  async function toggleLike(id: string) {
-    const post = posts.value.find((p) => p.id === id);
-    if (!post) return;
-    if (post.myReaction === "like") {
-      await clearReaction(id);
-    } else {
-      await setReaction(id, "like");
-    }
   }
 
   async function sharePost(
@@ -397,7 +385,6 @@ export const usePosts = () => {
     getPostForEdit,
     updatePost,
     removePost,
-    toggleLike,
     setReaction,
     clearReaction,
     sharePost,
