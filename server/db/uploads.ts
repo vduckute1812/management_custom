@@ -54,8 +54,10 @@ export async function createUpload(args: {
   const yyyy = String(d.getUTCFullYear());
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const safeName = args.fileName.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 180);
-  // S3/R2 keys always use forward slashes.
-  const storageKey = `uploads/${yyyy}/${mm}/${id}_${safeName}`;
+  // S3/R2 keys always use forward slashes. Group by attachment/message kind
+  // (`image` / `document` / `audio`) so chat media and feed assets are easy
+  // to browse in the bucket. Existing rows keep their legacy keys as stored.
+  const storageKey = `uploads/${args.kind}/${yyyy}/${mm}/${id}_${safeName}`;
 
   await r2PutObject({
     key: storageKey,
