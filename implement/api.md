@@ -158,6 +158,8 @@ DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
 
 Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API returns ids / signed URLs — not raw bytes inline.
 
+**Object key layout.** New uploads use `uploads/{kind}/{yyyy}/{mm}/{id}_{fileName}` where `kind` is the attachment kind (`image` / `document` / `audio` — same as `uploads.kind` and chat image/audio message media). Older objects may still use the legacy `uploads/{yyyy}/{mm}/…` prefix; the DB `storage_key` is authoritative either way.
+
 | Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
 | ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |

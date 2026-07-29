@@ -17,7 +17,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                              |
 | Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                  |
 | Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate); see [`cache-queue.md`](./cache-queue.md)         |
-| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story uploads (`server/utils/r2.ts`)                               |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
 | Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                              |
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                                   |
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` |
