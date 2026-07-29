@@ -178,7 +178,7 @@ const POST_SELECT = `
     u.title AS author_title,
     u.job AS author_job,
     u.location AS author_location,
-    (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_id = p.id) AS comment_count,
+    p.comment_count AS comment_count,
     (SELECT pr.reaction FROM post_reactions pr
       WHERE pr.post_id = p.id AND pr.user_id = ? LIMIT 1) AS my_reaction,
     c.slug AS category_slug,
@@ -1068,6 +1068,10 @@ export async function createPostComment(
      VALUES (?, ?, ?, ?, ?, ?)`,
     [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)],
   );
+  await pool.query(
+    `UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?`,
+    [postId],
+  );
 
   const comments = await listPostComments(userId, postId);
   const created = comments.find((c) => c.id === id);
@@ -1091,7 +1095,17 @@ export async function deletePostComment(
     "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
     [commentId, postId, userId],
   );
-  return ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const deleted =
+    ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  if (deleted) {
+    await pool.query(
+      `UPDATE posts
+       SET comment_count = GREATEST(CAST(comment_count AS SIGNED) - 1, 0)
+       WHERE id = ?`,
+      [postId],
+    );
+  }
+  return deleted;
 }
 
 export async function searchUserDirectory(

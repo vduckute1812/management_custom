@@ -187,7 +187,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── postService.ts           # Post create + cache bust
 │   │   └── chatService.ts           # Chat send/read + inbox SSE push
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0015 SQL files
+│   │   └── migrations/              # 0001…0016 SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
@@ -233,6 +233,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
+│   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
 │   ├── useChat.ts                   # DM list / thread / poll / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts

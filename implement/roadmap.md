@@ -305,9 +305,12 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Migration `0015_chat_unread_counters`: `unread_count` on reads + `last_message_id` on conversations
 - [x] Send/read paths maintain counters; `listConversations` / `getUnreadTotal` / inbox use them
 
-### Later (out of sprint 3)
+## Phase 19 — Page-load performance (sprint 4)
 
-- Defer Google Fonts on `/feed` critical path
-- Denormalize post `comment_count` (feed SQL)
+- [x] Defer Source Serif 4 (Google Fonts) on Feed / write / edit via `useManuscriptFont`
+- [x] Migration `0016_posts_comment_count`: denormalized `posts.comment_count`; feed SELECT uses column
+
+### Later (out of sprint 4)
+
 - Lightweight tasks list API (blocks on demand)
 - Replace `/chat` 3.5s message poll with SSE/WS thread push
