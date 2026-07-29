@@ -1003,8 +1003,7 @@
     "sending": "Sending…",
     "emojiPanel": "Emoji",
     "stickerPanel": "Stickers",
-    "sendEmoji": "Send emoji",
-    "emojiHint": "Click to send · right-click to insert into your draft",
+    "emojiHint": "Click an emoji to add it to your message, then press Send.",
     "stickerCategories": {
       "gestures": "Gestures",
       "mood": "Mood",
@@ -1036,6 +1035,12 @@
       "memo": "Memo",
       "coffee": "Coffee",
       "clock": "Clock"
-    }
+    },
+    "insertEmoji": "Insert emoji",
+    "readReceipt": "Read",
+    "unreadBadge": "{count} unread",
+    "newMessageTitle": "Message from {name}",
+    "newMessageBodyFallback": "{count} new messages",
+    "openChat": "Open"
   }
 }

@@ -31,6 +31,7 @@ interface ConversationRow extends RowDataPacket {
   last_msg_sticker_id: string | null;
   last_msg_created_at: string | null;
   unread_count: number;
+  peer_last_read_at: string | null;
 }
 
 interface MessageRow extends RowDataPacket {
@@ -77,7 +78,17 @@ function toMessage(
         created_at: string;
       },
   viewerId?: string,
+  peerLastReadAtIso?: string | null,
 ): ChatMessage {
+  const createdAt = dbToISO(row.created_at);
+  const mine = viewerId ? row.sender_id === viewerId : false;
+  let readByPeer: boolean | undefined;
+  if (mine && peerLastReadAtIso) {
+    readByPeer =
+      new Date(createdAt).getTime() <= new Date(peerLastReadAtIso).getTime();
+  } else if (mine) {
+    readByPeer = false;
+  }
   return {
     id: row.id,
     conversationId: row.conversation_id,
@@ -85,8 +96,9 @@ function toMessage(
     kind: toKind(row.kind),
     body: row.body,
     stickerId: row.sticker_id,
-    createdAt: dbToISO(row.created_at),
-    ...(viewerId ? { mine: row.sender_id === viewerId } : {}),
+    createdAt,
+    ...(viewerId ? { mine } : {}),
+    ...(readByPeer !== undefined ? { readByPeer } : {}),
   };
 }
 
@@ -128,6 +140,7 @@ export async function listConversations(
        lm.body AS last_msg_body,
        lm.sticker_id AS last_msg_sticker_id,
        lm.created_at AS last_msg_created_at,
+       peer_read.last_read_at AS peer_last_read_at,
        (
          SELECT COUNT(*)
          FROM chat_messages m
@@ -140,6 +153,9 @@ export async function listConversations(
      FROM chat_conversations c
      INNER JOIN users peer
        ON peer.id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)
+     LEFT JOIN chat_conversation_reads peer_read
+       ON peer_read.conversation_id = c.id
+      AND peer_read.user_id = peer.id
      LEFT JOIN chat_messages lm
        ON lm.id = (
          SELECT m2.id FROM chat_messages m2
@@ -152,28 +168,35 @@ export async function listConversations(
     [userId, userId, userId, userId, userId],
   );
 
-  return rows.map((row) => ({
-    id: row.id,
-    peer: toPeer(row),
-    lastMessage:
-      row.last_msg_id && row.last_msg_sender_id != null
-        ? toMessage(
-            {
-              id: row.last_msg_id,
-              conversation_id: row.id,
-              sender_id: row.last_msg_sender_id,
-              kind: row.last_msg_kind ?? 0,
-              body: row.last_msg_body,
-              sticker_id: row.last_msg_sticker_id,
-              created_at: row.last_msg_created_at!,
-            },
-            userId,
-          )
-        : null,
-    lastMessageAt: row.last_message_at ? dbToISO(row.last_message_at) : null,
-    unreadCount: Number(row.unread_count ?? 0),
-    createdAt: dbToISO(row.created_at),
-  }));
+  return rows.map((row) => {
+    const peerLastReadAt = row.peer_last_read_at
+      ? dbToISO(row.peer_last_read_at)
+      : null;
+    return {
+      id: row.id,
+      peer: toPeer(row),
+      lastMessage:
+        row.last_msg_id && row.last_msg_sender_id != null
+          ? toMessage(
+              {
+                id: row.last_msg_id,
+                conversation_id: row.id,
+                sender_id: row.last_msg_sender_id,
+                kind: row.last_msg_kind ?? 0,
+                body: row.last_msg_body,
+                sticker_id: row.last_msg_sticker_id,
+                created_at: row.last_msg_created_at!,
+              },
+              userId,
+              peerLastReadAt,
+            )
+          : null,
+      lastMessageAt: row.last_message_at ? dbToISO(row.last_message_at) : null,
+      unreadCount: Number(row.unread_count ?? 0),
+      peerLastReadAt,
+      createdAt: dbToISO(row.created_at),
+    };
+  });
 }
 
 export async function getOrCreateDirectConversation(
@@ -261,7 +284,11 @@ export async function listMessages(
   userId: string,
   conversationId: string,
   options: { limit?: number; before?: string; after?: string } = {},
-): Promise<{ messages: ChatMessage[]; hasMore: boolean }> {
+): Promise<{
+  messages: ChatMessage[];
+  hasMore: boolean;
+  peerLastReadAt: string | null;
+}> {
   const conv = await loadConversationRow(conversationId);
   if (!conv) {
     const err = new Error("Conversation not found") as Error & {
@@ -272,8 +299,18 @@ export async function listMessages(
   }
   assertParticipant(conv, userId);
 
-  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const peerId = conv.user_a_id === userId ? conv.user_b_id : conv.user_a_id;
   const pool = getPool();
+  const [peerReadRows] = await pool.query<RowDataPacket[]>(
+    `SELECT last_read_at FROM chat_conversation_reads
+     WHERE conversation_id = ? AND user_id = ? LIMIT 1`,
+    [conversationId, peerId],
+  );
+  const peerLastReadAt = peerReadRows[0]?.last_read_at
+    ? dbToISO(String(peerReadRows[0].last_read_at))
+    : null;
+
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
 
   const params: unknown[] = [conversationId];
   let timeClause = "";
@@ -335,8 +372,9 @@ export async function listMessages(
   const chronological = options.after ? slice : [...slice].reverse();
 
   return {
-    messages: chronological.map((r) => toMessage(r, userId)),
+    messages: chronological.map((r) => toMessage(r, userId, peerLastReadAt)),
     hasMore: options.after ? false : hasMore,
+    peerLastReadAt,
   };
 }
 
@@ -426,6 +464,7 @@ export async function sendMessage(
     stickerId,
     createdAt: now,
     mine: true,
+    readByPeer: false,
   };
 }
 
@@ -468,4 +507,73 @@ export async function getUnreadTotal(userId: string): Promise<number> {
     [userId, userId, userId, userId],
   );
   return Number(rows[0]?.n ?? 0);
+}
+
+export interface ChatUnreadPreview {
+  conversationId: string;
+  peerName: string | null;
+  peerEmail: string;
+  preview: string;
+  createdAt: string;
+}
+
+/** Lightweight inbox pulse for nav badge + toast notifications. */
+export async function getUnreadInbox(
+  userId: string,
+): Promise<{ unreadTotal: number; latest: ChatUnreadPreview | null }> {
+  const unreadTotal = await getUnreadTotal(userId);
+  if (unreadTotal <= 0) {
+    return { unreadTotal: 0, latest: null };
+  }
+
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT
+       m.conversation_id AS conversation_id,
+       m.kind AS kind,
+       m.body AS body,
+       m.sticker_id AS sticker_id,
+       m.created_at AS created_at,
+       peer.name AS peer_name,
+       peer.email AS peer_email
+     FROM chat_messages m
+     INNER JOIN chat_conversations c ON c.id = m.conversation_id
+     INNER JOIN users peer
+       ON peer.id = IF(c.user_a_id = ?, c.user_b_id, c.user_a_id)
+     LEFT JOIN chat_conversation_reads r
+       ON r.conversation_id = c.id AND r.user_id = ?
+     WHERE (c.user_a_id = ? OR c.user_b_id = ?)
+       AND m.sender_id <> ?
+       AND (r.last_read_at IS NULL OR m.created_at > r.last_read_at)
+     ORDER BY m.created_at DESC, m.id DESC
+     LIMIT 1`,
+    [userId, userId, userId, userId, userId],
+  );
+
+  if (!rows.length) {
+    return { unreadTotal, latest: null };
+  }
+
+  const row = rows[0];
+  const kind = Number(row.kind ?? 0);
+  let preview = "";
+  if (kind === ChatMessageKind.Sticker) {
+    preview = "🎨";
+  } else if (kind === ChatMessageKind.Emoji) {
+    preview = String(row.body ?? "");
+  } else {
+    preview = String(row.body ?? "").trim();
+    if (preview.length > 80) preview = `${preview.slice(0, 80)}…`;
+  }
+
+  return {
+    unreadTotal,
+    latest: {
+      conversationId: String(row.conversation_id),
+      peerName: (row.peer_name as string | null) ?? null,
+      peerEmail: String(row.peer_email),
+      preview,
+      createdAt: dbToISO(String(row.created_at)),
+    },
+  };
 }

@@ -15,6 +15,7 @@ const {
   activeId,
   activeConversation,
   messages,
+  peerLastReadAt,
   messagesHasMore,
   loadingConversations,
   loadingMessages,
@@ -27,7 +28,6 @@ const {
   openConversation,
   loadOlderMessages,
   sendText,
-  sendEmoji,
   sendSticker,
   startPolling,
   stopPolling,
@@ -249,6 +249,7 @@ function backToList() {
             :has-more="messagesHasMore"
             :loading="loadingMessages"
             :loading-more="loadingMore"
+            :peer-last-read-at="peerLastReadAt"
             @load-more="onLoadMore"
           />
 
@@ -257,7 +258,6 @@ function backToList() {
             :stickers="stickers"
             :sending="sending"
             @send-text="sendText"
-            @send-emoji="sendEmoji"
             @send-sticker="sendSticker"
           />
         </template>

@@ -7,6 +7,7 @@ const props = defineProps<{
   hasMore?: boolean;
   loading?: boolean;
   loadingMore?: boolean;
+  peerLastReadAt?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -32,6 +33,25 @@ function stickerEmoji(id: string | null) {
   if (!id) return "❓";
   return getChatSticker(id)?.emoji ?? "❓";
 }
+
+function isReadByPeer(msg: ChatMessage): boolean {
+  if (!msg.mine) return false;
+  if (typeof msg.readByPeer === "boolean") return msg.readByPeer;
+  if (!props.peerLastReadAt) return false;
+  return (
+    new Date(msg.createdAt).getTime() <=
+    new Date(props.peerLastReadAt).getTime()
+  );
+}
+
+/** Only annotate the latest outbound message that the peer has read. */
+const lastReadMineId = computed(() => {
+  for (let i = props.messages.length - 1; i >= 0; i--) {
+    const m = props.messages[i];
+    if (m.mine && isReadByPeer(m)) return m.id;
+  }
+  return null;
+});
 
 function onScroll() {
   const el = scroller.value;
@@ -136,16 +156,29 @@ defineExpose({ scrollToBottom });
               {{ msg.body }}
             </p>
           </template>
-          <p
-            class="mt-1 text-[10px]"
+          <div
+            class="mt-1 flex items-center gap-1.5 text-[10px]"
             :class="
               msg.mine && msg.kind === ChatMessageKind.Text
-                ? 'text-brand-100'
-                : 'text-slate-400'
+                ? 'justify-end text-brand-100'
+                : msg.mine
+                  ? 'justify-end text-slate-400'
+                  : 'text-slate-400'
             "
           >
-            {{ formatTime(msg.createdAt) }}
-          </p>
+            <span>{{ formatTime(msg.createdAt) }}</span>
+            <span
+              v-if="msg.mine && msg.id === lastReadMineId"
+              class="font-medium"
+              :class="
+                msg.kind === ChatMessageKind.Text
+                  ? 'text-brand-50'
+                  : 'text-brand-600'
+              "
+            >
+              · {{ t("chat.readReceipt") }}
+            </span>
+          </div>
         </div>
       </li>
     </ul>

@@ -1003,8 +1003,7 @@
     "sending": "傳送中…",
     "emojiPanel": "表情",
     "stickerPanel": "貼圖",
-    "sendEmoji": "傳送表情",
-    "emojiHint": "點一下傳送 · 右鍵插入到輸入框",
+    "emojiHint": "點一下表情插入到訊息中，然後按傳送。",
     "stickerCategories": {
       "gestures": "手勢",
       "mood": "心情",
@@ -1036,6 +1035,12 @@
       "memo": "備忘",
       "coffee": "咖啡",
       "clock": "時鐘"
-    }
+    },
+    "insertEmoji": "插入表情",
+    "readReceipt": "已讀",
+    "unreadBadge": "{count} 則未讀",
+    "newMessageTitle": "來自 {name} 的訊息",
+    "newMessageBodyFallback": "{count} 則新訊息",
+    "openChat": "開啟"
   }
 }

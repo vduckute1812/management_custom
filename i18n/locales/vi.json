@@ -1003,8 +1003,7 @@
     "sending": "Đang gửi…",
     "emojiPanel": "Emoji",
     "stickerPanel": "Sticker",
-    "sendEmoji": "Gửi emoji",
-    "emojiHint": "Nhấp để gửi · chuột phải để chèn vào khung soạn",
+    "emojiHint": "Nhấp emoji để thêm vào tin nhắn, rồi nhấn Gửi.",
     "stickerCategories": {
       "gestures": "Cử chỉ",
       "mood": "Cảm xúc",
@@ -1036,6 +1035,12 @@
       "memo": "Ghi chú",
       "coffee": "Cà phê",
       "clock": "Đồng hồ"
-    }
+    },
+    "insertEmoji": "Chèn emoji",
+    "readReceipt": "Đã xem",
+    "unreadBadge": "{count} chưa đọc",
+    "newMessageTitle": "Tin nhắn từ {name}",
+    "newMessageBodyFallback": "{count} tin nhắn mới",
+    "openChat": "Mở"
   }
 }
