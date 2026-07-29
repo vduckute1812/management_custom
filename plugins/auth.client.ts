@@ -3,7 +3,12 @@
  *
  * Refresh secrets live in the HttpOnly `mgmt_rt` cookie. When
  * `auth:hasSession` is set (or a cached user exists), we POST `/api/auth/refresh`
- * with credentials to restore the in-memory access token.
+ * with credentials to restore the in-memory access token. The refresh reply
+ * already includes `user`, so we do not follow up with `GET /api/auth/me`.
+ *
+ * On selectively SSR'd public paths (`/`, `/feed`) the restore runs in the
+ * background so first paint is not blocked. Protected SPA routes still await
+ * restore so `auth.global` middleware sees a real session before navigating.
  *
  * One-time migration: if an older build left `auth:refreshToken` in
  * localStorage, send it in the refresh body once so the server can mint the
@@ -41,7 +46,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     auth.hasRefreshSession.value ||
     Boolean(auth.user.value);
 
-  if (shouldTryRefresh) {
+  async function restoreSession() {
     try {
       if (legacyRefresh) {
         // Body fallback still accepted by /api/auth/refresh; sets cookies.
@@ -56,12 +61,20 @@ export default defineNuxtPlugin(async (nuxtApp) => {
       } else {
         await auth.refresh();
       }
-      const me = await auth.fetchMe();
-      if (!me) {
+      // `setSession` already applied refresh.user — no /api/auth/me round-trip.
+      if (!auth.user.value || !auth.accessToken.value) {
         auth.clearSession();
       }
     } catch {
       auth.clearSession();
+    }
+  }
+
+  if (shouldTryRefresh) {
+    if (isSelectiveSsrPath(route.path)) {
+      void restoreSession();
+    } else {
+      await restoreSession();
     }
   } else {
     auth.clearSession();

@@ -70,8 +70,10 @@ export async function getAllTasks(userId: string): Promise<Task[]> {
     [userId]
   );
   const ids = taskRows.map((r) => r.id);
-  const blocks = await loadBlocksByTask(pool, ids);
-  const checklists = await loadChecklistByTask(pool, ids);
+  const [blocks, checklists] = await Promise.all([
+    loadBlocksByTask(pool, ids),
+    loadChecklistByTask(pool, ids),
+  ]);
   return taskRows.map((r) =>
     rowToTask(r, blocks.get(r.id) ?? [], checklists.get(r.id) ?? [])
   );
@@ -87,8 +89,10 @@ export async function getTaskById(
     [id, userId]
   );
   if (!taskRows.length) return null;
-  const blocks = await loadBlocksByTask(pool, [id]);
-  const checklists = await loadChecklistByTask(pool, [id]);
+  const [blocks, checklists] = await Promise.all([
+    loadBlocksByTask(pool, [id]),
+    loadChecklistByTask(pool, [id]),
+  ]);
   return rowToTask(
     taskRows[0],
     blocks.get(id) ?? [],

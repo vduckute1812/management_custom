@@ -159,6 +159,8 @@
       "title": "Dữ liệu của bạn",
       "counts": "{epicCount} epic · {taskCount} công việc",
       "countsPlural": "{epicCount} epic · {taskCount} công việc",
+      "loadingCounts": "Đang tải số lượng xuất…",
+      "countsHint": "Tải ảnh chụp công việc và epic của bạn.",
       "jsonSnapshot": "Ảnh chụp JSON",
       "tasksCsv": "CSV công việc",
       "epicsCsv": "CSV epic",

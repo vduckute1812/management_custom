@@ -58,7 +58,7 @@ Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-orig
 | `localStorage`         | `auth:user`           | Cached `AuthUser` profile (non-secret)      |
 | `localStorage`         | `auth:hasSession`     | `1` when a cookie session is expected       |
 
-`plugins/auth.client.ts` on boot: POST `/api/auth/refresh` with `credentials: 'include'`, then `GET /api/auth/me`. Legacy installs that still have `auth:refreshToken` in `localStorage` send it once in the refresh body, then wipe it.
+`plugins/auth.client.ts` on boot: POST `/api/auth/refresh` with `credentials: 'include'` and applies `user` from that reply (no follow-up `GET /api/auth/me`). On `/` and `/feed` the restore is non-blocking so SSR first paint is not held; protected SPA routes still await refresh before mount. Legacy installs that still have `auth:refreshToken` in `localStorage` send it once in the refresh body, then wipe it.
 
 `useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set. It also coalesces identical in-flight calls and enforces a 400 ms minimum gap between repeated requests with the same method + URL.
 
@@ -110,4 +110,4 @@ Authenticated users update display fields via `PATCH /api/auth/profile` (`useAut
 | `avatarUrl`                  | derived from `users.avatar_upload_id` | Upload bytes first with `POST /api/uploads`, then pass the upload id. Must be an image owned by the caller. |
 | `title` / `job` / `location` | `VARCHAR(120)` each                   | Free-form; empty/`null` clears.                                                                             |
 
-Role, email, and email-verification state are **not** editable here. JWT claims stay `{ sub, email, role }` — profile fields are refreshed from `GET /api/auth/me` or the PATCH reply and cached in `useAuth`. Feed/story author payloads (`PostAuthor`) include the same optional fields so avatars and titles show on public surfaces.
+Role, email, and email-verification state are **not** editable here. JWT claims stay `{ sub, email, role }` — profile fields come from the refresh/login/`PATCH /api/auth/profile` reply (or an explicit `GET /api/auth/me` on the profile page) and are cached in `useAuth`. Feed/story author payloads (`PostAuthor`) include the same optional fields so avatars and titles show on public surfaces.

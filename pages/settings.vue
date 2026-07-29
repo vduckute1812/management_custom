@@ -101,6 +101,11 @@ const canRequestDesktop = computed(
 );
 
 const dataCountsLabel = computed(() => {
+  if (!exportDataReady.value) {
+    return exportDataLoading.value
+      ? t("settings.data.loadingCounts")
+      : t("settings.data.countsHint");
+  }
   const epicCount = epics.value.length;
   const taskCount = tasks.value.length;
   const key =
@@ -177,32 +182,60 @@ const themeOptions = computed(() => [
   { value: "dark" as const, label: t("settings.appearance.dark"), icon: MoonIcon },
 ]);
 
-// Make sure the export has fresh data even if the user came here cold.
-await useAsyncData("settings:hydrate", async () => {
-  await Promise.all([fetchTasks(), fetchEpics()]);
-  return { ok: true };
+// Export data is loaded lazily — settings chrome must not wait on full
+// tasks/epics payloads at route enter.
+const exportDataReady = ref(false);
+const exportDataLoading = ref(false);
+let exportDataInflight: Promise<void> | null = null;
+
+async function ensureExportData() {
+  if (exportDataReady.value) return;
+  if (exportDataInflight) {
+    await exportDataInflight;
+    return;
+  }
+  exportDataLoading.value = true;
+  exportDataInflight = (async () => {
+    try {
+      await Promise.all([fetchTasks(), fetchEpics()]);
+      exportDataReady.value = true;
+    } finally {
+      exportDataLoading.value = false;
+      exportDataInflight = null;
+    }
+  })();
+  await exportDataInflight;
+}
+
+onMounted(() => {
+  // Warm counts in the background after paint; export buttons still await.
+  void ensureExportData().catch(() => undefined);
 });
 
 function announce(message: string) {
   pushToast(message, { tone: "success", duration: 2200 });
 }
 
-function doExportJSON() {
+async function doExportJSON() {
+  await ensureExportData();
   exportJSON();
   announce(t("toasts.downloadedJson"));
 }
 
-function doExportCSV() {
+async function doExportCSV() {
+  await ensureExportData();
   exportCSV();
   announce(t("toasts.downloadedTasksCsv"));
 }
 
-function doExportEpics() {
+async function doExportEpics() {
+  await ensureExportData();
   exportEpicsCSV();
   announce(t("toasts.downloadedEpicsCsv"));
 }
 
-function doExportICS() {
+async function doExportICS() {
+  await ensureExportData();
   exportICS();
   announce(t("toasts.downloadedIcal"));
 }
