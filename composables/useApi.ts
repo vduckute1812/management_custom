@@ -13,23 +13,22 @@
  * A single in-flight refresh promise is shared across concurrent callers so
  * a burst of expired-token requests only triggers one refresh.
  */
+import { requestKey } from "~/utils/apiRequestKey";
+
 type ApiFetchOptions = Record<string, unknown> & {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
+  query?: Record<string, unknown>;
   headers?: HeadersInit;
   credentials?: RequestCredentials;
 };
 
 let _refreshInFlight: Promise<unknown> | null = null;
 
-/** Minimum gap between identical client requests (method + url). */
+/** Minimum gap between identical client requests (method + url + query). */
 const CLIENT_THROTTLE_MS = 400;
 const _lastRequestAt = new Map<string, number>();
 const _inFlight = new Map<string, Promise<unknown>>();
-
-function requestKey(url: string, method: string): string {
-  return `${method.toUpperCase()}:${url}`;
-}
 
 function isAbsolute(url: string): boolean {
   return /^https?:\/\//i.test(url);
@@ -83,6 +82,55 @@ export const useApi = () => {
     }
   }
 
+  async function doFetch<T>(
+    url: string,
+    options: ApiFetchOptions | undefined,
+  ): Promise<T> {
+    await ensureFreshAccessToken();
+
+    try {
+      return (await $fetch(
+        url,
+        withAuthHeaders(options, auth.accessToken.value) as Parameters<
+          typeof $fetch
+        >[1],
+      )) as T;
+    } catch (err: unknown) {
+      const status =
+        (err as { status?: number; statusCode?: number })?.status ??
+        (err as { statusCode?: number })?.statusCode;
+      if (status !== 401) {
+        throw err;
+      }
+      // Anonymous callers (no session) must not be bounced to /login — public
+      // pages like / and /feed call optional-auth endpoints that 401 for guests
+      // (e.g. stories). Only clear+redirect when we actually had a session.
+      if (!auth.hasRefreshSession.value) {
+        if (auth.accessToken.value || auth.user.value) {
+          await bounceToLogin();
+        }
+        throw err;
+      }
+      try {
+        if (!_refreshInFlight) {
+          _refreshInFlight = auth.refresh().finally(() => {
+            _refreshInFlight = null;
+          });
+        }
+        await _refreshInFlight;
+      } catch {
+        await bounceToLogin();
+        throw err;
+      }
+      return (await $fetch(
+        url,
+        withAuthHeaders(options, auth.accessToken.value) as Parameters<
+          typeof $fetch
+        >[1],
+      )) as T;
+    }
+  }
+
   async function apiFetch<T = unknown>(
     url: string,
     options?: ApiFetchOptions,
@@ -91,69 +139,29 @@ export const useApi = () => {
       url = `/${url}`;
     }
 
-    const method = (options?.method ?? "GET").toUpperCase();
-    const key = requestKey(url, method);
+    // Throttle maps are process-global — unsafe across concurrent SSR users.
+    if (import.meta.server) {
+      return doFetch<T>(url, options);
+    }
 
-    // Coalesce identical in-flight requests so rapid double-clicks share one call.
+    const method = (options?.method ?? "GET").toUpperCase();
+    const key = requestKey(url, method, options?.query);
+
     const existing = _inFlight.get(key);
     if (existing) {
       return existing as Promise<T>;
     }
 
-    const now = Date.now();
-    const lastAt = _lastRequestAt.get(key) ?? 0;
-    const waitMs = CLIENT_THROTTLE_MS - (now - lastAt);
+    const waitMs =
+      CLIENT_THROTTLE_MS - (Date.now() - (_lastRequestAt.get(key) ?? 0));
     if (waitMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, waitMs));
+      const afterWait = _inFlight.get(key);
+      if (afterWait) return afterWait as Promise<T>;
     }
     _lastRequestAt.set(key, Date.now());
 
-    const run = (async () => {
-      await ensureFreshAccessToken();
-
-      try {
-        return (await $fetch(
-          url,
-          withAuthHeaders(options, auth.accessToken.value) as Parameters<
-            typeof $fetch
-          >[1],
-        )) as T;
-      } catch (err: unknown) {
-        const status =
-          (err as { status?: number; statusCode?: number })?.status ??
-          (err as { statusCode?: number })?.statusCode;
-        if (status !== 401) {
-          throw err;
-        }
-        // Anonymous callers (no session) must not be bounced to /login — public
-        // pages like / and /feed call optional-auth endpoints that 401 for guests
-        // (e.g. stories). Only clear+redirect when we actually had a session.
-        if (!auth.hasRefreshSession.value) {
-          if (auth.accessToken.value || auth.user.value) {
-            await bounceToLogin();
-          }
-          throw err;
-        }
-        try {
-          if (!_refreshInFlight) {
-            _refreshInFlight = auth.refresh().finally(() => {
-              _refreshInFlight = null;
-            });
-          }
-          await _refreshInFlight;
-        } catch {
-          await bounceToLogin();
-          throw err;
-        }
-        return (await $fetch(
-          url,
-          withAuthHeaders(options, auth.accessToken.value) as Parameters<
-            typeof $fetch
-          >[1],
-        )) as T;
-      }
-    })();
-
+    const run = doFetch<T>(url, options);
     _inFlight.set(key, run);
     try {
       return await run;

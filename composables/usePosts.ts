@@ -35,9 +35,13 @@ function patchPost(list: Post[], id: string, next: Post): Post[] {
  * overwrite fresher optimistic UI or corrupt counts.
  */
 const reactionRequestTokens = new Map<string, number>();
+/** Ignores overlapping refresh results so rapid category switches stay consistent. */
+let feedRefreshGeneration = 0;
 
 export const usePosts = () => {
-  const { t } = useI18n();
+  // Bind locale in setup — calling useI18n() again from click handlers throws
+  // in production (MUST_BE_CALL_SETUP_TOP → "Could not load the feed").
+  const { t, locale } = useI18n();
   const { apiFetch } = useApi();
   const { pushToast } = useToasts();
 
@@ -51,28 +55,37 @@ export const usePosts = () => {
     () => null,
   );
 
+  function feedListQuery(extra: { cursor?: string } = {}) {
+    return {
+      limit: 20,
+      locale: locale.value,
+      ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
+      ...extra,
+    };
+  }
+
   async function refresh() {
+    const generation = ++feedRefreshGeneration;
     loading.value = true;
     error.value = null;
     try {
-      const { locale } = useI18n();
       const page = await apiFetch<FeedPage>("/api/posts", {
-        query: {
-          limit: 20,
-          locale: locale.value,
-          ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
-        },
+        query: feedListQuery(),
       });
+      if (generation !== feedRefreshGeneration) return;
       posts.value = page.posts;
       nextCursor.value = page.nextCursor;
     } catch (err: unknown) {
+      if (generation !== feedRefreshGeneration) return;
       const msg =
         (err as { statusMessage?: string })?.statusMessage ||
         t("toasts.couldNotLoadFeed");
       error.value = msg;
       throw err;
     } finally {
-      loading.value = false;
+      if (generation === feedRefreshGeneration) {
+        loading.value = false;
+      }
     }
   }
 
@@ -85,14 +98,8 @@ export const usePosts = () => {
     if (!nextCursor.value || loadingMore.value) return;
     loadingMore.value = true;
     try {
-      const { locale } = useI18n();
       const page = await apiFetch<FeedPage>("/api/posts", {
-        query: {
-          limit: 20,
-          cursor: nextCursor.value,
-          locale: locale.value,
-          ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
-        },
+        query: feedListQuery({ cursor: nextCursor.value }),
       });
       const seen = new Set(posts.value.map((p) => p.id));
       posts.value = [
