@@ -74,6 +74,7 @@ const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
 const baseline = ref("");
 const discardConfirmOpen = ref(false);
+const deleteConfirmOpen = ref(false);
 
 function describeRecurrenceLabel(r?: Recurrence | null): string {
   if (!r) return t("common.doesNotRepeat");
@@ -190,16 +191,17 @@ watch(
       errorMsg.value = null;
       justSaved.value = false;
       discardConfirmOpen.value = false;
+      deleteConfirmOpen.value = false;
       nextTick(() => snapshotForm());
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const totalSpent = computed(() => {
   const sum = form.value.timeBlocks.reduce(
     (acc, b) => acc + (typeof b.spentHours === "number" ? b.spentHours : 0),
-    0
+    0,
   );
   return Math.round(sum * 100) / 100;
 });
@@ -216,7 +218,7 @@ async function onSubmit() {
     if (form.value.recurs) {
       const interval = Math.max(
         1,
-        Math.round(Number(form.value.recurrenceInterval) || 1)
+        Math.round(Number(form.value.recurrenceInterval) || 1),
       );
       recurrence = {
         rule: form.value.recurrenceRule,
@@ -265,6 +267,11 @@ async function onSubmit() {
   }
 }
 
+function requestDelete() {
+  if (!form.value.id || submitting.value) return;
+  deleteConfirmOpen.value = true;
+}
+
 async function onDelete() {
   if (!form.value.id) return;
   const id = form.value.id;
@@ -272,6 +279,7 @@ async function onDelete() {
   submitting.value = true;
   try {
     const removed = await deleteTask(id);
+    deleteConfirmOpen.value = false;
     emit("deleted", id);
     emit("close");
     if (removed) {
@@ -282,7 +290,10 @@ async function onDelete() {
         onAction: async () => {
           try {
             await saveTask(removed);
-            pushToast(t("toasts.restored"), { tone: "success", duration: 2000 });
+            pushToast(t("toasts.restored"), {
+              tone: "success",
+              duration: 2000,
+            });
           } catch {
             pushToast(t("toasts.couldNotRestore"), { tone: "danger" });
           }
@@ -326,7 +337,9 @@ function onKeydown(e: KeyboardEvent) {
     onSubmit();
   } else if (e.key === "Escape") {
     e.preventDefault();
-    if (discardConfirmOpen.value) {
+    if (deleteConfirmOpen.value) {
+      deleteConfirmOpen.value = false;
+    } else if (discardConfirmOpen.value) {
       discardConfirmOpen.value = false;
     } else {
       requestClose();
@@ -357,14 +370,12 @@ function onKeydown(e: KeyboardEvent) {
               id="task-modal-title"
               class="text-lg font-semibold text-slate-900 min-w-0 truncate"
             >
-              {{ form.id ? $t("tasks.modal.editTask") : $t("tasks.modal.newTask") }}
+              {{
+                form.id ? $t("tasks.modal.editTask") : $t("tasks.modal.newTask")
+              }}
             </h2>
             <div class="flex items-center gap-2 shrink-0">
-              <TaskTimerButton
-                v-if="task && form.id"
-                :task="task"
-                size="md"
-              />
+              <TaskTimerButton v-if="task && form.id" :task="task" size="md" />
               <button
                 type="button"
                 class="text-slate-400 hover:text-slate-700 transition"
@@ -411,7 +422,9 @@ function onKeydown(e: KeyboardEvent) {
                   v-model="form.epicId"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
-                  <option value="">{{ $t("tasks.modal.standaloneTask") }}</option>
+                  <option value="">
+                    {{ $t("tasks.modal.standaloneTask") }}
+                  </option>
                   <option v-for="epic in epics" :key="epic.id" :value="epic.id">
                     {{ epic.title }}
                   </option>
@@ -575,7 +588,9 @@ function onKeydown(e: KeyboardEvent) {
                     type="checkbox"
                     :checked="item.done"
                     class="accent-brand-600 w-4 h-4 shrink-0"
-                    :aria-label="$t('tasks.modal.toggleItem', { text: item.text })"
+                    :aria-label="
+                      $t('tasks.modal.toggleItem', { text: item.text })
+                    "
                     @change="toggleChecklistItem(idx)"
                   />
                   <input
@@ -583,13 +598,17 @@ function onKeydown(e: KeyboardEvent) {
                     type="text"
                     class="flex-1 bg-transparent text-sm outline-none border-none px-0 py-0"
                     :class="
-                      item.done ? 'line-through text-slate-400' : 'text-slate-800'
+                      item.done
+                        ? 'line-through text-slate-400'
+                        : 'text-slate-800'
                     "
                   />
                   <button
                     type="button"
                     class="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    :aria-label="$t('tasks.modal.removeItem', { text: item.text })"
+                    :aria-label="
+                      $t('tasks.modal.removeItem', { text: item.text })
+                    "
                     @click="removeChecklistItem(idx)"
                   >
                     <svg
@@ -663,7 +682,9 @@ function onKeydown(e: KeyboardEvent) {
                 </div>
 
                 <div class="flex items-center gap-2 flex-wrap text-xs">
-                  <span class="text-slate-600">{{ $t("tasks.modal.every") }}</span>
+                  <span class="text-slate-600">{{
+                    $t("tasks.modal.every")
+                  }}</span>
                   <input
                     v-model.number="form.recurrenceInterval"
                     type="number"
@@ -686,7 +707,9 @@ function onKeydown(e: KeyboardEvent) {
                       {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Monthly]) }}
                     </option>
                   </select>
-                  <span class="text-slate-500">{{ $t("tasks.modal.until") }}</span>
+                  <span class="text-slate-500">{{
+                    $t("tasks.modal.until")
+                  }}</span>
                   <input
                     v-model="form.recurrenceUntil"
                     type="date"
@@ -702,10 +725,7 @@ function onKeydown(e: KeyboardEvent) {
                   </button>
                 </div>
 
-                <p
-                  v-if="recurrenceSummary"
-                  class="text-[11px] text-slate-500"
-                >
+                <p v-if="recurrenceSummary" class="text-[11px] text-slate-500">
                   {{ recurrenceSummary }}
                 </p>
               </div>
@@ -727,13 +747,15 @@ function onKeydown(e: KeyboardEvent) {
               type="button"
               :disabled="submitting"
               class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
-              @click="onDelete"
+              @click="requestDelete"
             >
               {{ $t("tasks.modal.delete") }}
             </button>
             <span v-else class="text-[11px] text-slate-400">
               <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono">⌘</kbd>
-              <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1">↵</kbd>
+              <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1"
+                >↵</kbd
+              >
               {{ $t("tasks.modal.toSave") }}
             </span>
             <div class="flex items-center gap-2">
@@ -759,16 +781,20 @@ function onKeydown(e: KeyboardEvent) {
                   stroke-width="3"
                   class="w-4 h-4"
                 >
-                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round" />
+                  <polyline
+                    points="20 6 9 17 4 12"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 {{
                   justSaved
                     ? $t("tasks.modal.saved")
                     : submitting
-                    ? $t("tasks.modal.saving")
-                    : form.id
-                    ? $t("tasks.modal.saveChanges")
-                    : $t("tasks.modal.createTask")
+                      ? $t("tasks.modal.saving")
+                      : form.id
+                        ? $t("tasks.modal.saveChanges")
+                        : $t("tasks.modal.createTask")
                 }}
               </button>
             </div>
@@ -781,7 +807,9 @@ function onKeydown(e: KeyboardEvent) {
             aria-labelledby="task-discard-title"
             aria-describedby="task-discard-desc"
           >
-            <div class="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 p-5 max-w-sm w-full">
+            <div
+              class="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 p-5 max-w-sm w-full"
+            >
               <h3
                 id="task-discard-title"
                 class="text-sm font-semibold text-slate-900"
@@ -813,6 +841,15 @@ function onKeydown(e: KeyboardEvent) {
       </div>
     </Transition>
   </Teleport>
+
+  <ConfirmDialog
+    :open="deleteConfirmOpen"
+    :title="$t('tasks.modal.deleteConfirmTitle')"
+    :description="$t('tasks.modal.deleteConfirm')"
+    :busy="submitting"
+    @cancel="deleteConfirmOpen = false"
+    @confirm="onDelete"
+  />
 </template>
 
 <style scoped>

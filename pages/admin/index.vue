@@ -42,6 +42,8 @@ const days = ref<number>(30);
 const error = ref<string | null>(null);
 const roleBusy = ref<string | null>(null);
 const removeBusy = ref<string | null>(null);
+const pendingDeleteUser = ref<AdminUserSummary | null>(null);
+const pendingDeleteCategory = ref<PostCategory | null>(null);
 
 useSeoMeta({
   title: () => t("seo.admin"),
@@ -114,13 +116,18 @@ async function setRole(
   }
 }
 
-async function removeUser(user: AdminUserSummary) {
-  if (!confirm(t("admin.deleteConfirm", { name: user.name || user.email }))) {
-    return;
-  }
+function requestRemoveUser(user: AdminUserSummary) {
+  if (removeBusy.value) return;
+  pendingDeleteUser.value = user;
+}
+
+async function confirmRemoveUser() {
+  const user = pendingDeleteUser.value;
+  if (!user) return;
   removeBusy.value = user.id;
   try {
     await apiFetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+    pendingDeleteUser.value = null;
     pushToast(t("toasts.userRemoved"), { tone: "success" });
     await refresh();
   } catch (err: unknown) {
@@ -195,20 +202,18 @@ async function onRenameCategory(cat: PostCategory) {
   }
 }
 
-async function onDeleteCategory(cat: PostCategory) {
-  if (
-    !confirm(
-      t("admin.categoryDeleteConfirm", {
-        name: cat.name,
-        count: cat.postCount ?? 0,
-      }),
-    )
-  ) {
-    return;
-  }
+function requestDeleteCategory(cat: PostCategory) {
+  if (categoryBusy.value) return;
+  pendingDeleteCategory.value = cat;
+}
+
+async function confirmDeleteCategory() {
+  const cat = pendingDeleteCategory.value;
+  if (!cat) return;
   categoryBusy.value = cat.id;
   try {
     await removeCategory(cat.id);
+    pendingDeleteCategory.value = null;
     pushToast(t("admin.categoryDeleted"), { tone: "success" });
   } catch (err: unknown) {
     pushToast(apiErrorMessage(err, t("admin.categorySaveFailed")), {
@@ -605,7 +610,7 @@ function formatDateTime(iso?: string): string {
                     type="button"
                     class="text-[11px] px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                     :disabled="roleBusy === u.id || removeBusy === u.id"
-                    @click="removeUser(u)"
+                    @click="requestRemoveUser(u)"
                   >
                     {{ $t("admin.remove") }}
                   </button>
@@ -693,7 +698,7 @@ function formatDateTime(iso?: string): string {
                     type="button"
                     class="text-[11px] px-2 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                     :disabled="categoryBusy === cat.id"
-                    @click="onDeleteCategory(cat)"
+                    @click="requestDeleteCategory(cat)"
                   >
                     {{ $t("admin.remove") }}
                   </button>
@@ -713,5 +718,37 @@ function formatDateTime(iso?: string): string {
         {{ $t("admin.loading") }}
       </p>
     </div>
+
+    <ConfirmDialog
+      :open="!!pendingDeleteUser"
+      :title="$t('admin.deleteConfirmTitle')"
+      :description="
+        pendingDeleteUser
+          ? $t('admin.deleteConfirm', {
+              name: pendingDeleteUser.name || pendingDeleteUser.email,
+            })
+          : ''
+      "
+      :busy="!!removeBusy"
+      :confirm-label="$t('admin.remove')"
+      @cancel="pendingDeleteUser = null"
+      @confirm="confirmRemoveUser"
+    />
+
+    <ConfirmDialog
+      :open="!!pendingDeleteCategory"
+      :title="$t('admin.categoryDeleteConfirmTitle')"
+      :description="
+        pendingDeleteCategory
+          ? $t('admin.categoryDeleteConfirm', {
+              name: pendingDeleteCategory.name,
+              count: pendingDeleteCategory.postCount ?? 0,
+            })
+          : ''
+      "
+      :busy="!!categoryBusy"
+      @cancel="pendingDeleteCategory = null"
+      @confirm="confirmDeleteCategory"
+    />
   </div>
 </template>

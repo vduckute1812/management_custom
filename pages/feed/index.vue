@@ -59,6 +59,8 @@ const storySubmitting = ref(false);
 const storyFileInput = ref<HTMLInputElement | null>(null);
 const storyUploadId = ref<string | null>(null);
 const storyFileName = ref("");
+const pendingDeletePostId = ref<string | null>(null);
+const deletePostBusy = ref(false);
 
 useSeoMeta({
   title: () => t("seo.feed"),
@@ -152,6 +154,23 @@ async function onShare(id: string, note: string) {
     await sharePost(id, note);
   } catch {
     // handled upstream
+  }
+}
+
+function requestDeletePost(id: string) {
+  if (deletePostBusy.value) return;
+  pendingDeletePostId.value = id;
+}
+
+async function confirmDeletePost() {
+  const id = pendingDeletePostId.value;
+  if (!id || deletePostBusy.value) return;
+  deletePostBusy.value = true;
+  try {
+    await removePost(id);
+    pendingDeletePostId.value = null;
+  } finally {
+    deletePostBusy.value = false;
   }
 }
 
@@ -472,7 +491,7 @@ async function submitStory() {
               :post="post"
               @react="(r) => setReaction(post.id, r)"
               @clear-react="clearReaction(post.id)"
-              @delete="removePost(post.id)"
+              @delete="requestDeletePost(post.id)"
               @share="(note) => onShare(post.id, note)"
             />
 
@@ -639,6 +658,15 @@ async function submitStory() {
       :groups="tray.groups"
       :start-group-index="viewerGroupIndex"
       @close="viewerOpen = false"
+    />
+
+    <ConfirmDialog
+      :open="!!pendingDeletePostId"
+      :title="$t('feed.post.deleteConfirmTitle')"
+      :description="$t('feed.post.deleteConfirm')"
+      :busy="deletePostBusy"
+      @cancel="pendingDeletePostId = null"
+      @confirm="confirmDeletePost"
     />
 
     <div

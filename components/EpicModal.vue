@@ -48,6 +48,7 @@ const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
 const baseline = ref("");
 const discardConfirmOpen = ref(false);
+const deleteConfirmOpen = ref(false);
 
 function colorLabel(c: EpicColor): string {
   return t(`epics.colors.${c}`);
@@ -85,10 +86,11 @@ watch(
       errorMsg.value = null;
       justSaved.value = false;
       discardConfirmOpen.value = false;
+      deleteConfirmOpen.value = false;
       nextTick(() => snapshotForm());
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 async function onSubmit() {
@@ -126,13 +128,17 @@ async function onSubmit() {
   }
 }
 
+function requestDelete() {
+  if (!form.value.id || submitting.value) return;
+  deleteConfirmOpen.value = true;
+}
+
 async function onDelete() {
   if (!form.value.id) return;
-  // Epic delete cascades epicId removal; we keep the confirm dialog per spec.
-  if (!confirm(t("epics.modal.deleteConfirm"))) return;
   submitting.value = true;
   try {
     await deleteEpic(form.value.id);
+    deleteConfirmOpen.value = false;
     pushToast(t("toasts.epicDeletedPreserved"), { tone: "info" });
     emit("deleted", form.value.id);
     emit("close");
@@ -168,7 +174,9 @@ function onKeydown(e: KeyboardEvent) {
     onSubmit();
   } else if (e.key === "Escape") {
     e.preventDefault();
-    if (discardConfirmOpen.value) {
+    if (deleteConfirmOpen.value) {
+      deleteConfirmOpen.value = false;
+    } else if (discardConfirmOpen.value) {
       discardConfirmOpen.value = false;
     } else {
       requestClose();
@@ -195,13 +203,18 @@ function onKeydown(e: KeyboardEvent) {
           <header
             class="flex items-center justify-between px-6 py-4 border-b border-slate-200"
           >
-            <h2 id="epic-modal-title" class="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <h2
+              id="epic-modal-title"
+              class="text-lg font-semibold text-slate-900 flex items-center gap-2"
+            >
               <span
                 class="w-2.5 h-2.5 rounded-full"
                 :class="EPIC_COLOR_CLASSES[form.color].solid"
                 aria-hidden="true"
               />
-              {{ form.id ? $t("epics.modal.editEpic") : $t("epics.modal.newEpic") }}
+              {{
+                form.id ? $t("epics.modal.editEpic") : $t("epics.modal.newEpic")
+              }}
             </h2>
             <button
               type="button"
@@ -266,7 +279,9 @@ function onKeydown(e: KeyboardEvent) {
                   class="w-8 h-8 rounded-lg ring-1 ring-slate-200 hover:scale-105 transition flex items-center justify-center"
                   :class="EPIC_COLOR_CLASSES[c].solid"
                   :title="colorLabel(c)"
-                  :aria-label="$t('epics.modal.useColor', { color: colorLabel(c) })"
+                  :aria-label="
+                    $t('epics.modal.useColor', { color: colorLabel(c) })
+                  "
                   :aria-pressed="form.color === c"
                   @click="form.color = c"
                 >
@@ -279,7 +294,11 @@ function onKeydown(e: KeyboardEvent) {
                     stroke-width="3"
                     class="w-4 h-4"
                   >
-                    <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round" />
+                    <polyline
+                      points="20 6 9 17 4 12"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
                   </svg>
                 </button>
               </div>
@@ -345,7 +364,7 @@ function onKeydown(e: KeyboardEvent) {
               type="button"
               :disabled="submitting"
               class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
-              @click="onDelete"
+              @click="requestDelete"
             >
               {{ $t("epics.modal.deleteEpic") }}
             </button>
@@ -373,16 +392,20 @@ function onKeydown(e: KeyboardEvent) {
                   stroke-width="3"
                   class="w-4 h-4"
                 >
-                  <polyline points="20 6 9 17 4 12" stroke-linecap="round" stroke-linejoin="round" />
+                  <polyline
+                    points="20 6 9 17 4 12"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 {{
                   justSaved
                     ? $t("epics.modal.saved")
                     : submitting
-                    ? $t("epics.modal.saving")
-                    : form.id
-                    ? $t("epics.modal.saveChanges")
-                    : $t("epics.modal.createEpic")
+                      ? $t("epics.modal.saving")
+                      : form.id
+                        ? $t("epics.modal.saveChanges")
+                        : $t("epics.modal.createEpic")
                 }}
               </button>
             </div>
@@ -395,7 +418,9 @@ function onKeydown(e: KeyboardEvent) {
             aria-labelledby="epic-discard-title"
             aria-describedby="epic-discard-desc"
           >
-            <div class="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 p-5 max-w-sm w-full">
+            <div
+              class="bg-white rounded-xl shadow-xl ring-1 ring-slate-200 p-5 max-w-sm w-full"
+            >
               <h3
                 id="epic-discard-title"
                 class="text-sm font-semibold text-slate-900"
@@ -427,6 +452,15 @@ function onKeydown(e: KeyboardEvent) {
       </div>
     </Transition>
   </Teleport>
+
+  <ConfirmDialog
+    :open="deleteConfirmOpen"
+    :title="$t('epics.modal.deleteConfirmTitle')"
+    :description="$t('epics.modal.deleteConfirm')"
+    :busy="submitting"
+    @cancel="deleteConfirmOpen = false"
+    @confirm="onDelete"
+  />
 </template>
 
 <style scoped>
