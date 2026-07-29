@@ -1041,6 +1041,21 @@
     "unreadBadge": "{count} chưa đọc",
     "newMessageTitle": "Tin nhắn từ {name}",
     "newMessageBodyFallback": "{count} tin nhắn mới",
-    "openChat": "Mở"
+    "openChat": "Mở",
+    "attachImage": "Gửi hình ảnh",
+    "recordVoice": "Ghi âm",
+    "recording": "Đang ghi {time}",
+    "voiceCancel": "Hủy",
+    "voiceSend": "Gửi",
+    "voiceUnsupported": "Trình duyệt không hỗ trợ ghi âm",
+    "voicePermissionDenied": "Không có quyền dùng micro",
+    "voiceTooShort": "Đoạn ghi âm quá ngắn",
+    "uploading": "Đang tải lên…",
+    "imagePreview": "Hình ảnh",
+    "voicePreview": "Ghi âm",
+    "voiceNote": "Ghi âm",
+    "imageUnavailable": "Không xem được hình",
+    "audioUnavailable": "Không nghe được ghi âm",
+    "audioUnsupported": "Trình duyệt không phát được âm thanh này"
   }
 }

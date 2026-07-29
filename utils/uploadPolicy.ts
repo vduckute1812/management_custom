@@ -86,6 +86,34 @@ export const UPLOAD_RULES: readonly UploadTypeRule[] = [
     maxBytes: 512 * KB,
     label: "Markdown",
   },
+  {
+    mime: "audio/webm",
+    kind: "audio",
+    extensions: [".webm"],
+    maxBytes: 5 * MB,
+    label: "WebM audio",
+  },
+  {
+    mime: "audio/ogg",
+    kind: "audio",
+    extensions: [".ogg", ".oga"],
+    maxBytes: 5 * MB,
+    label: "Ogg audio",
+  },
+  {
+    mime: "audio/mp4",
+    kind: "audio",
+    extensions: [".m4a", ".mp4"],
+    maxBytes: 5 * MB,
+    label: "M4A audio",
+  },
+  {
+    mime: "audio/mpeg",
+    kind: "audio",
+    extensions: [".mp3"],
+    maxBytes: 5 * MB,
+    label: "MP3",
+  },
 ];
 
 const RULE_BY_MIME = new Map(UPLOAD_RULES.map((r) => [r.mime, r]));
@@ -118,6 +146,13 @@ export const UPLOAD_ACCEPT_ATTR = [
 /** Same, restricted to images (story composer). */
 export const UPLOAD_ACCEPT_IMAGES_ATTR = UPLOAD_RULES.filter(
   (r) => r.kind === "image",
+)
+  .flatMap((r) => [...r.extensions, r.mime])
+  .join(",");
+
+/** Audio accept list for voice notes / chat. */
+export const UPLOAD_ACCEPT_AUDIO_ATTR = UPLOAD_RULES.filter(
+  (r) => r.kind === "audio",
 )
   .flatMap((r) => [...r.extensions, r.mime])
   .join(",");

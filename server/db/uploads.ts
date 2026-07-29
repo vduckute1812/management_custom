@@ -184,7 +184,19 @@ export async function canViewerAccessUpload(
      LIMIT 1`,
     [uploadId],
   );
-  return storyRows.length > 0;
+  if (storyRows.length) return true;
+
+  // Chat attachments: either participant of the conversation may fetch.
+  const [chatRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1
+     FROM chat_messages m
+     INNER JOIN chat_conversations c ON c.id = m.conversation_id
+     WHERE m.upload_id = ?
+       AND (c.user_a_id = ? OR c.user_b_id = ?)
+     LIMIT 1`,
+    [uploadId, viewerId, viewerId],
+  );
+  return chatRows.length > 0;
 }
 
 export async function assertOwnedUploads(
@@ -261,7 +273,13 @@ export async function isUploadReferenced(uploadId: string): Promise<boolean> {
     `SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1`,
     [uploadId],
   );
-  return avatarRows.length > 0;
+  if (avatarRows.length) return true;
+
+  const [chatRows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 FROM chat_messages WHERE upload_id = ? LIMIT 1`,
+    [uploadId],
+  );
+  return chatRows.length > 0;
 }
 
 /**
@@ -283,10 +301,7 @@ export async function purgeOrphanedUploads(
     if (!row) continue;
     await safeR2Delete(row.storage_key);
     const pool = getPool();
-    const [result] = await pool.query(
-      `DELETE FROM uploads WHERE id = ?`,
-      [id],
-    );
+    const [result] = await pool.query(`DELETE FROM uploads WHERE id = ?`, [id]);
     if (((result as { affectedRows?: number }).affectedRows ?? 0) > 0) {
       purged += 1;
     }

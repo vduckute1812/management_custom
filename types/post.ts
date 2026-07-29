@@ -60,7 +60,7 @@ export const POST_TEXT_COLOR_CSS: Record<PostTextColor, string> = {
   amber: "#d97706",
 };
 
-export type AttachmentKind = "image" | "document";
+export type AttachmentKind = "image" | "document" | "audio";
 
 export interface PostCategory {
   id: string;

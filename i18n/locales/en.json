@@ -1041,6 +1041,21 @@
     "unreadBadge": "{count} unread",
     "newMessageTitle": "Message from {name}",
     "newMessageBodyFallback": "{count} new messages",
-    "openChat": "Open"
+    "openChat": "Open",
+    "attachImage": "Send image",
+    "recordVoice": "Record voice note",
+    "recording": "Recording {time}",
+    "voiceCancel": "Cancel",
+    "voiceSend": "Send",
+    "voiceUnsupported": "Voice recording is not supported in this browser",
+    "voicePermissionDenied": "Microphone permission denied",
+    "voiceTooShort": "Voice note is too short",
+    "uploading": "Uploading…",
+    "imagePreview": "Photo",
+    "voicePreview": "Voice note",
+    "voiceNote": "Voice note",
+    "imageUnavailable": "Image unavailable",
+    "audioUnavailable": "Audio unavailable",
+    "audioUnsupported": "Your browser cannot play this audio"
   }
 }

@@ -181,7 +181,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── timerService.ts          # Timer start/stop workflow
 │   │   └── postService.ts           # Post create + cache bust
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0013 SQL files
+│   │   └── migrations/              # 0001…0014 SQL files
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
 │   │   ├── rate-limit.ts            # Per-IP sliding-window caps on /api/*

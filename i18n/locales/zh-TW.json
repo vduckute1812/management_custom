@@ -1041,6 +1041,21 @@
     "unreadBadge": "{count} 則未讀",
     "newMessageTitle": "來自 {name} 的訊息",
     "newMessageBodyFallback": "{count} 則新訊息",
-    "openChat": "開啟"
+    "openChat": "開啟",
+    "attachImage": "傳送圖片",
+    "recordVoice": "錄製語音",
+    "recording": "錄音中 {time}",
+    "voiceCancel": "取消",
+    "voiceSend": "傳送",
+    "voiceUnsupported": "目前瀏覽器不支援錄音",
+    "voicePermissionDenied": "未取得麥克風權限",
+    "voiceTooShort": "語音過短",
+    "uploading": "上傳中…",
+    "imagePreview": "圖片",
+    "voicePreview": "語音",
+    "voiceNote": "語音",
+    "imageUnavailable": "圖片無法使用",
+    "audioUnavailable": "語音無法使用",
+    "audioUnsupported": "瀏覽器無法播放此音訊"
   }
 }

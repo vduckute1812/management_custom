@@ -29,6 +29,8 @@ const {
   loadOlderMessages,
   sendText,
   sendSticker,
+  sendImage,
+  sendAudio,
   startPolling,
   stopPolling,
   closeConversation,
@@ -259,6 +261,8 @@ function backToList() {
             :sending="sending"
             @send-text="sendText"
             @send-sticker="sendSticker"
+            @send-image="sendImage"
+            @send-audio="sendAudio"
           />
         </template>
 

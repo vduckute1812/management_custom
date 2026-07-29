@@ -69,6 +69,31 @@ function isText(buf: Buffer): boolean {
   }
 }
 
+function isWebm(buf: Buffer): boolean {
+  // EBML header used by WebM / Matroska
+  return startsWith(buf, [0x1a, 0x45, 0xdf, 0xa3]);
+}
+
+function isOgg(buf: Buffer): boolean {
+  return buf.length >= 4 && buf.subarray(0, 4).toString("latin1") === "OggS";
+}
+
+function isMp3(buf: Buffer): boolean {
+  if (buf.length < 3) return false;
+  if (buf.subarray(0, 3).toString("latin1") === "ID3") return true;
+  // MPEG frame sync
+  return buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0;
+}
+
+function isMp4Audio(buf: Buffer): boolean {
+  // ISO BMFF: size(4) + 'ftyp'(4) somewhere in the first bytes
+  if (buf.length < 12) return false;
+  if (buf.subarray(4, 8).toString("latin1") === "ftyp") return true;
+  // Some recorders write a larger box first; scan a short window.
+  const window = buf.subarray(0, Math.min(buf.length, 64));
+  return window.includes(Buffer.from("ftyp"));
+}
+
 const VERIFIERS: Record<string, (buf: Buffer) => boolean> = {
   "image/jpeg": isJpeg,
   "image/png": isPng,
@@ -79,6 +104,10 @@ const VERIFIERS: Record<string, (buf: Buffer) => boolean> = {
     isDocx,
   "text/plain": isText,
   "text/markdown": isText,
+  "audio/webm": isWebm,
+  "audio/ogg": isOgg,
+  "audio/mpeg": isMp3,
+  "audio/mp4": isMp4Audio,
 };
 
 /**

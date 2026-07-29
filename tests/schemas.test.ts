@@ -138,4 +138,29 @@ describe("chatSendBodySchema", () => {
       chatSendBodySchema.safeParse({ kind: "text", body: "x" }).success,
     ).toBe(false);
   });
+
+  it("requires uploadId for image and audio", () => {
+    expect(
+      chatSendBodySchema.safeParse({ kind: ChatMessageKind.Image }).success,
+    ).toBe(false);
+    expect(
+      chatSendBodySchema.safeParse({
+        kind: ChatMessageKind.Image,
+        uploadId: "upl_abc",
+      }).success,
+    ).toBe(true);
+    expect(
+      chatSendBodySchema.safeParse({
+        kind: ChatMessageKind.Audio,
+        uploadId: "upl_abc",
+      }).success,
+    ).toBe(false);
+    expect(
+      chatSendBodySchema.safeParse({
+        kind: ChatMessageKind.Audio,
+        uploadId: "upl_abc",
+        durationMs: 1500,
+      }).success,
+    ).toBe(true);
+  });
 });

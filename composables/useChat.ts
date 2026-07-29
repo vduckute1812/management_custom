@@ -275,6 +275,40 @@ export const useChat = () => {
     }
   }
 
+  async function sendImage(uploadId: string) {
+    if (!activeId.value || sending.value) return;
+    sending.value = true;
+    try {
+      const res = await apiFetch<{ message: ChatMessage }>(
+        `/api/chat/conversations/${activeId.value}/messages`,
+        {
+          method: "POST",
+          body: { kind: ChatMessageKind.Image, uploadId },
+        },
+      );
+      appendMessage(res.message);
+    } finally {
+      sending.value = false;
+    }
+  }
+
+  async function sendAudio(uploadId: string, durationMs: number) {
+    if (!activeId.value || sending.value) return;
+    sending.value = true;
+    try {
+      const res = await apiFetch<{ message: ChatMessage }>(
+        `/api/chat/conversations/${activeId.value}/messages`,
+        {
+          method: "POST",
+          body: { kind: ChatMessageKind.Audio, uploadId, durationMs },
+        },
+      );
+      appendMessage(res.message);
+    } finally {
+      sending.value = false;
+    }
+  }
+
   function appendMessage(message: ChatMessage) {
     if (messages.value.some((m) => m.id === message.id)) return;
     const withRead = applyPeerRead(
@@ -323,6 +357,8 @@ export const useChat = () => {
     loadOlderMessages,
     sendText,
     sendSticker,
+    sendImage,
+    sendAudio,
     startPolling,
     stopPolling,
     closeConversation,
