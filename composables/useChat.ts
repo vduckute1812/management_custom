@@ -1,7 +1,10 @@
 import type { ChatConversation, ChatMessage, ChatSticker } from "~/types/chat";
 import { ChatMessageKind } from "~/types/chat";
 
-const POLL_MS = 3500;
+/** Slow REST fallback while the thread SSE stream is down. */
+const FALLBACK_POLL_MS = 15_000;
+const RECONNECT_MS = 5_000;
+const FALLBACK_AFTER_FAILURES = 3;
 
 function applyPeerRead(
   list: ChatMessage[],
@@ -24,6 +27,7 @@ function applyPeerRead(
 
 export const useChat = () => {
   const { apiFetch } = useApi();
+  const auth = useAuth();
 
   const conversations = useState<ChatConversation[]>(
     "chat:conversations",
@@ -53,7 +57,13 @@ export const useChat = () => {
   const emoji = useState<string[]>("chat:emoji", () => []);
   const error = useState<string | null>("chat:error", () => null);
 
-  let pollTimer: ReturnType<typeof setInterval> | null = null;
+  let liveEnabled = false;
+  let source: EventSource | null = null;
+  let streamConversationId: string | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let fallbackTimer: ReturnType<typeof setInterval> | null = null;
+  let streamFailures = 0;
+  let intentionalClose = false;
 
   const activeConversation = computed(
     () => conversations.value.find((c) => c.id === activeId.value) ?? null,
@@ -143,6 +153,7 @@ export const useChat = () => {
     } finally {
       loadingMessages.value = false;
     }
+    if (liveEnabled) connectThreadStream();
   }
 
   async function loadOlderMessages() {
@@ -173,6 +184,49 @@ export const useChat = () => {
     messagesHasMore.value = res.hasMore;
   }
 
+  function touchSidebar(message: ChatMessage) {
+    const conv = conversations.value.find(
+      (c) => c.id === message.conversationId,
+    );
+    if (!conv) return;
+    conv.lastMessage = message;
+    conv.lastMessageAt = message.createdAt;
+    conversations.value = [
+      conv,
+      ...conversations.value.filter((c) => c.id !== conv.id),
+    ];
+  }
+
+  function ingestMessage(message: ChatMessage, opts?: { fromSelf?: boolean }) {
+    if (messages.value.some((m) => m.id === message.id)) return;
+    const myId = auth.user.value?.id;
+    const mine =
+      opts?.fromSelf === true ||
+      (myId != null && message.senderId === myId);
+    const normalized: ChatMessage = {
+      ...message,
+      mine,
+      readByPeer: mine ? false : undefined,
+    };
+    const withRead = applyPeerRead(
+      [...messages.value, normalized],
+      peerLastReadAt.value,
+    );
+    messages.value = withRead;
+    touchSidebar(withRead[withRead.length - 1] ?? normalized);
+
+    if (
+      !mine &&
+      activeId.value &&
+      message.conversationId === activeId.value
+    ) {
+      void apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
+        method: "POST",
+      }).catch(() => undefined);
+      void refreshConversations().catch(() => undefined);
+    }
+  }
+
   async function pollNewMessages() {
     if (!activeId.value) return;
     const last = messages.value[messages.value.length - 1];
@@ -197,36 +251,145 @@ export const useChat = () => {
 
       const existing = new Set(messages.value.map((m) => m.id));
       const fresh = res.messages.filter((m) => !existing.has(m.id));
-      if (!fresh.length) return;
-
-      messages.value = applyPeerRead(
-        [...messages.value, ...fresh],
-        peerLastReadAt.value,
-      );
-      await apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
-        method: "POST",
-      });
-      // Sidebar last-message preview only needs a full list refresh when
-      // something new arrived. Unread totals come from the inbox SSE stream.
-      await refreshConversations().catch(() => undefined);
+      for (const msg of fresh) {
+        ingestMessage(msg);
+      }
     } catch {
-      // Poll failures are non-fatal
+      // Fallback poll failures are non-fatal
     }
   }
 
-  function startPolling() {
-    stopPolling();
-    if (!import.meta.client) return;
-    pollTimer = setInterval(() => {
+  function stopFallbackPoll() {
+    if (fallbackTimer) {
+      clearInterval(fallbackTimer);
+      fallbackTimer = null;
+    }
+  }
+
+  function startFallbackPoll() {
+    if (fallbackTimer || !liveEnabled) return;
+    fallbackTimer = setInterval(() => {
       void pollNewMessages();
-    }, POLL_MS);
+    }, FALLBACK_POLL_MS);
+  }
+
+  function clearReconnectTimer() {
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  }
+
+  function disconnectThreadStream() {
+    intentionalClose = true;
+    clearReconnectTimer();
+    stopFallbackPoll();
+    if (source) {
+      source.close();
+      source = null;
+    }
+    streamConversationId = null;
+    intentionalClose = false;
+  }
+
+  function scheduleReconnect() {
+    if (!liveEnabled || !activeId.value || reconnectTimer) return;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connectThreadStream();
+    }, RECONNECT_MS);
+  }
+
+  function connectThreadStream() {
+    if (!import.meta.client || !liveEnabled || !activeId.value) return;
+    const id = activeId.value;
+    if (
+      source &&
+      streamConversationId === id &&
+      (source.readyState === EventSource.OPEN ||
+        source.readyState === EventSource.CONNECTING)
+    ) {
+      return;
+    }
+
+    intentionalClose = true;
+    if (source) {
+      source.close();
+      source = null;
+    }
+    streamConversationId = null;
+    intentionalClose = false;
+    clearReconnectTimer();
+
+    const es = new EventSource(`/api/chat/conversations/${id}/stream`);
+    source = es;
+    streamConversationId = id;
+
+    es.addEventListener("ready", () => {
+      streamFailures = 0;
+      stopFallbackPoll();
+    });
+
+    es.addEventListener("message", (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data) as {
+          type: "message";
+          message: ChatMessage;
+        };
+        if (payload?.message) ingestMessage(payload.message);
+      } catch {
+        // ignore malformed frames
+      }
+    });
+
+    es.addEventListener("read", (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data) as {
+          type: "read";
+          userId: string;
+          lastReadAt: string;
+        };
+        if (!payload?.lastReadAt) return;
+        const myId = auth.user.value?.id;
+        // Peer read receipt for our outbound messages.
+        if (myId && payload.userId !== myId) {
+          peerLastReadAt.value = payload.lastReadAt;
+          messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
+          const conv = conversations.value.find((c) => c.id === id);
+          if (conv) conv.peerLastReadAt = payload.lastReadAt;
+        }
+      } catch {
+        // ignore malformed frames
+      }
+    });
+
+    es.addEventListener("ping", () => {
+      // heartbeat
+    });
+
+    es.onerror = () => {
+      if (intentionalClose) return;
+      es.close();
+      if (source === es) source = null;
+      streamConversationId = null;
+      streamFailures += 1;
+      if (streamFailures >= FALLBACK_AFTER_FAILURES) {
+        startFallbackPoll();
+      }
+      scheduleReconnect();
+    };
+  }
+
+  /** Enable live thread updates (SSE, with slow REST fallback). */
+  function startPolling() {
+    liveEnabled = true;
+    connectThreadStream();
   }
 
   function stopPolling() {
-    if (pollTimer) {
-      clearInterval(pollTimer);
-      pollTimer = null;
-    }
+    liveEnabled = false;
+    streamFailures = 0;
+    disconnectThreadStream();
   }
 
   async function sendText(text: string) {
@@ -242,7 +405,7 @@ export const useChat = () => {
           body: { kind: ChatMessageKind.Text, body },
         },
       );
-      appendMessage(res.message);
+      ingestMessage(res.message, { fromSelf: true });
     } finally {
       sending.value = false;
     }
@@ -259,7 +422,7 @@ export const useChat = () => {
           body: { kind: ChatMessageKind.Sticker, stickerId },
         },
       );
-      appendMessage(res.message);
+      ingestMessage(res.message, { fromSelf: true });
     } finally {
       sending.value = false;
     }
@@ -276,7 +439,7 @@ export const useChat = () => {
           body: { kind: ChatMessageKind.Image, uploadId },
         },
       );
-      appendMessage(res.message);
+      ingestMessage(res.message, { fromSelf: true });
     } finally {
       sending.value = false;
     }
@@ -293,33 +456,14 @@ export const useChat = () => {
           body: { kind: ChatMessageKind.Audio, uploadId, durationMs },
         },
       );
-      appendMessage(res.message);
+      ingestMessage(res.message, { fromSelf: true });
     } finally {
       sending.value = false;
     }
   }
 
-  function appendMessage(message: ChatMessage) {
-    if (messages.value.some((m) => m.id === message.id)) return;
-    const withRead = applyPeerRead(
-      [...messages.value, { ...message, mine: true, readByPeer: false }],
-      peerLastReadAt.value,
-    );
-    messages.value = withRead;
-    const conv = conversations.value.find(
-      (c) => c.id === message.conversationId,
-    );
-    if (conv) {
-      conv.lastMessage = withRead[withRead.length - 1] ?? message;
-      conv.lastMessageAt = message.createdAt;
-      conversations.value = [
-        conv,
-        ...conversations.value.filter((c) => c.id !== conv.id),
-      ];
-    }
-  }
-
   function closeConversation() {
+    disconnectThreadStream();
     activeId.value = null;
     messages.value = [];
     messagesHasMore.value = false;

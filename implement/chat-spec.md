@@ -35,7 +35,8 @@ Let members of the same install message each other privately from `/chat`, witho
 5. Image picker + in-browser voice recorder (max ~2 minutes; needs mic permission + R2)
 6. Outbound messages show a **Read** receipt once the peer's `last_read_at` covers them
 7. Nav Chat badge + toast (and desktop notification when permitted) for new unread mail
-8. Poll ~3.5s for thread updates while `/chat` is open; inbox badge via `GET /api/chat/inbox/stream` (SSE) while signed in
+8. While `/chat` is open on a thread, live updates via `GET /api/chat/conversations/:id/stream` (SSE); slow REST fallback if the stream is down
+9. Inbox badge via `GET /api/chat/inbox/stream` (SSE) while signed in
 
 ## Data
 
@@ -52,7 +53,8 @@ Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sq
 | ------ | -------------------------------------- | -------------------------------------------------------- |
 | `GET`  | `/api/chat/conversations`              | List + `unreadTotal` + `peerLastReadAt`                  |
 | `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`                            |
-| `GET`  | `/api/chat/conversations/:id/messages` | History / poll; includes `peerLastReadAt` / `readByPeer` |
+| `GET`  | `/api/chat/conversations/:id/messages` | History / cursors; includes `peerLastReadAt` / `readByPeer` |
+| `GET`  | `/api/chat/conversations/:id/stream`   | SSE: `message` + `read` (+ `ping`) for the open thread     |
 | `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker / image / audio |
 | `POST` | `/api/chat/conversations/:id/read`     | Mark read                                                |
 | `GET`  | `/api/chat/unread`                     | REST snapshot (fallback / tools); same payload as SSE `inbox` event |

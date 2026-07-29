@@ -310,7 +310,11 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Defer Source Serif 4 (Google Fonts) on Feed / write / edit via `useManuscriptFont`
 - [x] Migration `0016_posts_comment_count`: denormalized `posts.comment_count`; feed SELECT uses column
 
-### Later (out of sprint 4)
+## Phase 19 — Page-load performance (sprint 5)
+
+- [x] Conversation SSE `GET /api/chat/conversations/:id/stream` (`message` + `read`)
+- [x] `useChat` uses EventSource while a thread is open; 15s REST fallback after repeated stream failures
+
+### Later (out of sprint 5)
 
 - Lightweight tasks list API (blocks on demand)
-- Replace `/chat` 3.5s message poll with SSE/WS thread push

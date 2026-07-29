@@ -199,6 +199,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
 │       ├── chatInbox.ts             # In-process SSE fan-out for unread badge
+│       ├── chatThread.ts            # In-process SSE fan-out for open thread
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
@@ -234,7 +235,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
 │   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
-│   ├── useChat.ts                   # DM list / thread / poll / send
+│   ├── useChat.ts                   # DM list / thread / SSE live / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
 ├── middleware/auth.global.ts
