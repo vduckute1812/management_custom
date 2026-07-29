@@ -14,13 +14,15 @@ Let members of the same install message each other privately from `/chat`, witho
 - Message kinds: text (`0`), emoji (`1`), sticker (`2`) — integer enums end-to-end
 - Built-in sticker catalog + emoji picker (no custom sticker uploads)
 - Unread counts per conversation + install-wide total
+- Read receipts (`peerLastReadAt` / `readByPeer`)
+- In-app toast + nav badge for new messages (desktop Notification when permitted)
 - Auth required; participants only
 
 **Out (later)**
 
 - Group / channel chat
 - File / image attachments in chat
-- Push / email notifications for new DMs
+- Email push for new DMs
 - WebSocket / SSE realtime
 
 ## UX
@@ -28,7 +30,10 @@ Let members of the same install message each other privately from `/chat`, witho
 1. Header **Chat** link (signed-in only) and shortcut `g c`
 2. Left: conversation list + “New chat” people search (`GET /api/users/directory`)
 3. Right: message thread + composer with emoji / sticker panels
-4. Poll ~3.5s for new messages while the page is open
+4. Emoji clicks **insert into the draft**; stickers send immediately
+5. Outbound messages show a **Read** receipt once the peer's `last_read_at` covers them
+6. Nav Chat badge + toast (and desktop notification when permitted) for new unread mail
+7. Poll ~3.5s for thread updates while `/chat` is open; inbox pulse ~10s globally while signed in
 
 ## Data
 
@@ -40,13 +45,14 @@ Migration: `0013_chat.sql`.
 
 ## API (summary)
 
-| Method | Path                                   | Purpose                             |
-| ------ | -------------------------------------- | ----------------------------------- |
-| `GET`  | `/api/chat/conversations`              | List + `unreadTotal`                |
-| `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`       |
-| `GET`  | `/api/chat/conversations/:id/messages` | History / poll (`before` / `after`) |
-| `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker         |
-| `POST` | `/api/chat/conversations/:id/read`     | Mark read                           |
-| `GET`  | `/api/chat/catalog`                    | Stickers + emoji list               |
+| Method | Path                                   | Purpose                                                  |
+| ------ | -------------------------------------- | -------------------------------------------------------- |
+| `GET`  | `/api/chat/conversations`              | List + `unreadTotal` + `peerLastReadAt`                  |
+| `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`                            |
+| `GET`  | `/api/chat/conversations/:id/messages` | History / poll; includes `peerLastReadAt` / `readByPeer` |
+| `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker                              |
+| `POST` | `/api/chat/conversations/:id/read`     | Mark read                                                |
+| `GET`  | `/api/chat/unread`                     | Inbox pulse for badge + toast                            |
+| `GET`  | `/api/chat/catalog`                    | Stickers + emoji list                                    |
 
 See [`api.md`](./api.md#chat-direct-messages) and [`database.md`](./database.md) for the as-built reference.

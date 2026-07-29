@@ -33,6 +33,8 @@ export interface ChatMessage {
   createdAt: string;
   /** True when the authenticated viewer sent this message. */
   mine?: boolean;
+  /** True when the peer's last_read_at is at or after this message (mine only). */
+  readByPeer?: boolean;
 }
 
 export interface ChatConversation {
@@ -41,6 +43,8 @@ export interface ChatConversation {
   lastMessage: ChatMessage | null;
   lastMessageAt: string | null;
   unreadCount: number;
+  /** When the other participant last read this thread (ISO), if known. */
+  peerLastReadAt: string | null;
   createdAt: string;
 }
 

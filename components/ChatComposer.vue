@@ -10,7 +10,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   sendText: [text: string];
-  sendEmoji: [emoji: string];
   sendSticker: [stickerId: string];
 }>();
 
@@ -38,15 +37,24 @@ function togglePanel(which: "emoji" | "sticker") {
   panel.value = panel.value === which ? null : which;
 }
 
+/** Insert emoji into the draft at the caret (does not send). */
 function insertEmoji(char: string) {
-  draft.value += char;
-  panel.value = null;
-  nextTick(() => inputEl.value?.focus());
-}
-
-function onSendEmojiDirect(char: string) {
-  emit("sendEmoji", char);
-  panel.value = null;
+  const el = inputEl.value;
+  if (el && typeof el.selectionStart === "number") {
+    const start = el.selectionStart;
+    const end = el.selectionEnd ?? start;
+    const before = draft.value.slice(0, start);
+    const after = draft.value.slice(end);
+    draft.value = `${before}${char}${after}`;
+    nextTick(() => {
+      el.focus();
+      const pos = start + char.length;
+      el.setSelectionRange(pos, pos);
+    });
+  } else {
+    draft.value += char;
+    nextTick(() => inputEl.value?.focus());
+  }
 }
 
 function onSendSticker(id: string) {
@@ -88,10 +96,9 @@ function onKeydown(e: KeyboardEvent) {
             :key="char"
             type="button"
             class="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition hover:bg-slate-100"
-            :title="t('chat.sendEmoji')"
+            :title="t('chat.insertEmoji')"
             :disabled="disabled || sending"
-            @click="onSendEmojiDirect(char)"
-            @contextmenu.prevent="insertEmoji(char)"
+            @click="insertEmoji(char)"
           >
             {{ char }}
           </button>

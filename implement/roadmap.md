@@ -270,3 +270,6 @@ Signed-in 1:1 messaging between install members. Spec: [`chat-spec.md`](./chat-s
 - [x] UI `/chat` — conversation list, thread, emoji + sticker pickers, ~3.5s polling
 - [x] Nav + shortcuts (`g c`) + command palette; directory search returns avatars
 - [x] Docs: `chat-spec.md`, api / database / architecture / roadmap / product README / i18n
+- [x] Emoji picker inserts into the composer draft (does not auto-send)
+- [x] Read receipts via `peerLastReadAt` / `readByPeer` on outbound messages
+- [x] Unread badge on nav Chat + `GET /api/chat/unread` inbox pulse with toast / desktop notify

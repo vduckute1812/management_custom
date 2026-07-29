@@ -1003,8 +1003,7 @@
     "sending": "发送中…",
     "emojiPanel": "表情",
     "stickerPanel": "贴纸",
-    "sendEmoji": "发送表情",
-    "emojiHint": "单击发送 · 右键插入到输入框",
+    "emojiHint": "点击表情插入到消息中，然后点击发送。",
     "stickerCategories": {
       "gestures": "手势",
       "mood": "心情",
@@ -1036,6 +1035,12 @@
       "memo": "备忘",
       "coffee": "咖啡",
       "clock": "时钟"
-    }
+    },
+    "insertEmoji": "插入表情",
+    "readReceipt": "已读",
+    "unreadBadge": "{count} 条未读",
+    "newMessageTitle": "来自 {name} 的消息",
+    "newMessageBodyFallback": "{count} 条新消息",
+    "openChat": "打开"
   }
 }

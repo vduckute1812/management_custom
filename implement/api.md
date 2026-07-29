@@ -189,14 +189,15 @@ Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrati
 
 | Method | Endpoint | Auth | Description |
 | ------ | -------- | ---- | ----------- |
-| `GET` | `/api/chat/conversations` | Required | List the caller's conversations (peer, last message, `unreadCount`) plus `unreadTotal`. |
+| `GET` | `/api/chat/conversations` | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`. |
 | `POST` | `/api/chat/conversations` | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown). |
-| `GET` | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore }` chronological. Marks read unless `after` is set (poll). Non-participants get `404`. |
+| `GET` | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Each outbound message includes `readByPeer` when the peer's read cursor covers it. Marks read unless `after` is set (poll). Non-participants get `404`. |
 | `POST` | `/api/chat/conversations/:id/messages` | Required | Body `{ kind?, body?, stickerId? }`. `kind`: `0` text (default), `1` emoji, `2` sticker. Text/emoji require `body` (max 4000). Stickers require a catalog `stickerId`. |
 | `POST` | `/api/chat/conversations/:id/read` | Required | Set the caller's `last_read_at` to now. |
+| `GET` | `/api/chat/unread` | Required | Lightweight inbox pulse: `{ unreadTotal, latest }` for nav badge + toast notifications. |
 | `GET` | `/api/chat/catalog` | Required | Built-in `{ stickers, emoji }` lists for the picker UI. |
 
-Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`).
+Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers still send immediately. Read receipts use `chat_conversation_reads` (`peerLastReadAt` / `readByPeer`). A client plugin (`plugins/chat-inbox.client.ts`) polls unread every ~10s while signed in.
 
 ---
 

@@ -5,6 +5,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
 const { t } = useI18n();
+const { unreadTotal } = useChat();
 
 const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
@@ -149,7 +150,7 @@ watch(
         <NuxtLink
           v-if="auth.isAuthenticatedUi.value"
           to="/chat"
-          class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          class="relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
           :class="
             isMainActive('/chat')
               ? 'bg-brand-50 text-brand-700'
@@ -157,6 +158,13 @@ watch(
           "
         >
           {{ $t("nav.chat") }}
+          <span
+            v-if="unreadTotal > 0"
+            class="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-none text-white"
+            :aria-label="$t('chat.unreadBadge', { count: unreadTotal })"
+          >
+            {{ unreadTotal > 99 ? "99+" : unreadTotal }}
+          </span>
         </NuxtLink>
         <NuxtLink
           to="/tasks"
