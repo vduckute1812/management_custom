@@ -116,6 +116,10 @@ watch(
         >
           M
         </div>
+        <!-- Mobile hides the brand visually (`hidden sm:inline`), which left this
+             link with no accessible name (M is aria-hidden). Keep an sr-only
+             label below the sm breakpoint so agents/AT still get discernible text. -->
+        <span class="sr-only sm:hidden">{{ $t("nav.brand") }}</span>
         <span class="hidden text-sm font-semibold text-slate-900 sm:inline">
           {{ $t("nav.brand") }}
         </span>
