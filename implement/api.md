@@ -28,7 +28,7 @@ See [`auth.md`](./auth.md) for the token model and client route guard; see [`dat
 
 When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
 
-On the client, `useApi().apiFetch` additionally coalesces identical in-flight requests and enforces a **400 ms** minimum gap between repeated calls with the same method + URL — this reduces accidental double-submit spam but does not replace the server cap.
+On the client, `useApi().apiFetch` coalesces identical in-flight requests (same method + URL + query) so bursts share one network call. It does **not** delay the first request. Server-side caps still apply separately.
 
 Implementation: `server/rate-limit/` module (policies, in-memory store, check) + `server/middleware/rate-limit.ts`. In-memory counters are correct for a single Nitro process.
 
@@ -141,7 +141,7 @@ Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds 
 
 | Method   | Endpoint                     | Auth     | Description                            |
 | -------- | ---------------------------- | -------- | -------------------------------------- |
-| `GET`    | `/api/stories`               | Required | Active stories tray for the install.   |
+| `GET`    | `/api/stories`               | Required | Active stories tray for the install (expired rows filtered in SQL; physical purge runs in the job worker). |
 | `POST`   | `/api/stories`               | Required | Create a story (text and/or media).    |
 | `DELETE` | `/api/stories/:id`           | Required | Delete own story.                      |
 | `POST`   | `/api/stories/:id/view`      | Required | Record a view.                         |

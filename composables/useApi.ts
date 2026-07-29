@@ -9,6 +9,8 @@
  *   - On a 401 from the server, attempts ONE refresh-and-retry. If that
  *     also fails, the session is cleared and the user is bounced to /login
  *     with a `redirect` query so we can come back after they re-auth.
+ *   - Coalesces identical in-flight client GETs (same method + url + query)
+ *     so bursts share one network call — without delaying the first request.
  *
  * A single in-flight refresh promise is shared across concurrent callers so
  * a burst of expired-token requests only triggers one refresh.
@@ -24,10 +26,6 @@ type ApiFetchOptions = Record<string, unknown> & {
 };
 
 let _refreshInFlight: Promise<unknown> | null = null;
-
-/** Minimum gap between identical client requests (method + url + query). */
-const CLIENT_THROTTLE_MS = 400;
-const _lastRequestAt = new Map<string, number>();
 const _inFlight = new Map<string, Promise<unknown>>();
 
 function isAbsolute(url: string): boolean {
@@ -139,7 +137,7 @@ export const useApi = () => {
       url = `/${url}`;
     }
 
-    // Throttle maps are process-global — unsafe across concurrent SSR users.
+    // Coalesce maps are process-global — unsafe across concurrent SSR users.
     // FormData uploads must not coalesce: identical URL + method would return
     // the wrong file's response when several uploads run in parallel.
     const isMultipart =
@@ -155,15 +153,6 @@ export const useApi = () => {
     if (existing) {
       return existing as Promise<T>;
     }
-
-    const waitMs =
-      CLIENT_THROTTLE_MS - (Date.now() - (_lastRequestAt.get(key) ?? 0));
-    if (waitMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, waitMs));
-      const afterWait = _inFlight.get(key);
-      if (afterWait) return afterWait as Promise<T>;
-    }
-    _lastRequestAt.set(key, Date.now());
 
     const run = doFetch<T>(url, options);
     _inFlight.set(key, run);

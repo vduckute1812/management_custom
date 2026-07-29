@@ -158,7 +158,7 @@ Boot flow (`plugins/auth.client.ts`): POST `/api/auth/refresh` with `credentials
 
 All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer when in memory). Same-origin `/api/uploads/*` loads authenticate via `mgmt_at` without `?access_token=` in the URL.
 
-`apiFetch` also deduplicates identical in-flight requests and throttles rapid repeats of the same method + URL (400 ms gap). Server-side caps are enforced separately by `server/middleware/rate-limit.ts` + `server/rate-limit/` — see [`api.md`](./api.md#rate-limiting).
+`apiFetch` also deduplicates identical in-flight requests (same method + URL + query) without a fixed delay on the first call. Server-side caps are enforced separately by `server/middleware/rate-limit.ts` + `server/rate-limit/` — see [`api.md`](./api.md#rate-limiting).
 
 ---
 

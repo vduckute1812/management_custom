@@ -1,5 +1,5 @@
 /**
- * Stable identity for client-side apiFetch throttle / in-flight coalescing.
+ * Stable identity for client-side apiFetch in-flight coalescing.
  * Query must be part of the key so filtered and unfiltered GETs stay distinct.
  */
 
