@@ -92,6 +92,12 @@ describe("feedQuerySchema", () => {
     expect(feedQuerySchema.safeParse({ limit: 0 }).success).toBe(false);
     expect(feedQuerySchema.safeParse({ limit: 51 }).success).toBe(false);
   });
+
+  it("accepts optional categoryId", () => {
+    expect(
+      feedQuerySchema.parse({ categoryId: "cat_electronics" }).categoryId,
+    ).toBe("cat_electronics");
+  });
 });
 
 describe("chatStartBodySchema", () => {

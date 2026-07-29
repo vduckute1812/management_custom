@@ -76,24 +76,30 @@ useHead({
   ],
 });
 
-const requestedCategory =
-  typeof route.query.category === "string" ? route.query.category : null;
+function categoryIdFromRoute(): string | null {
+  const raw = route.query.category;
+  const requested = typeof raw === "string" ? raw : null;
+  if (!requested) return null;
+  return (
+    categories.value.find((c) => c.slug === requested || c.id === requested)
+      ?.id ?? null
+  );
+}
+
+/** Keep feed posts aligned with `?category=` (URL is the source of truth). */
+async function syncFeedFromRoute() {
+  const id = categoryIdFromRoute();
+  if (id !== categoryFilter.value) {
+    await setCategoryFilter(id);
+  } else if (!posts.value.length) {
+    await refresh();
+  }
+}
 
 // SSR: ship public posts + categories in the first HTML response so Google
 // indexes real feed content instead of an empty SPA shell.
 await refreshCategories().catch(() => undefined);
-if (requestedCategory) {
-  const match = categories.value.find(
-    (c) => c.slug === requestedCategory || c.id === requestedCategory,
-  );
-  if (match) {
-    await setCategoryFilter(match.id).catch(() => undefined);
-  } else if (!posts.value.length) {
-    await refresh().catch(() => undefined);
-  }
-} else if (!posts.value.length) {
-  await refresh().catch(() => undefined);
-}
+await syncFeedFromRoute().catch(() => undefined);
 
 // Don't ship a transient API failure string into the crawler HTML.
 if (import.meta.server && error.value) {
@@ -106,6 +112,14 @@ onMounted(async () => {
     await refreshStories().catch(() => undefined);
   }
 });
+
+// Same page component is reused for `/feed` ↔ `/feed?category=…`.
+watch(
+  () => route.query.category,
+  () => {
+    void syncFeedFromRoute().catch(() => undefined);
+  },
+);
 
 async function onCreate(payload: {
   format?: "update" | "manuscript";
@@ -141,7 +155,13 @@ async function onCreate(payload: {
 }
 
 async function onCategoryFilter(id: string | null) {
-  await setCategoryFilter(id);
+  const slug = id
+    ? (categories.value.find((c) => c.id === id)?.slug ?? null)
+    : null;
+  await navigateTo({
+    path: "/feed",
+    query: slug ? { category: slug } : {},
+  });
 }
 
 function catLabel(cat: { slug: string; name: string }) {
