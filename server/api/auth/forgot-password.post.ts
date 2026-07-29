@@ -18,26 +18,15 @@ import {
   hashOpaqueToken,
   nowPlusSeconds,
 } from "~/server/utils/auth";
-import { buildResetUrl } from "~/server/utils/mailer";
 import { enqueuePasswordResetEmail } from "~/server/utils/queue";
+import { parseBody } from "~/server/utils/http";
+import { forgotPasswordBodySchema } from "~/server/schemas";
 
-interface ForgotPasswordBody {
-  email?: string;
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const RESET_TTL_SECONDS = 3600;
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<ForgotPasswordBody>(event);
-  const email = (body?.email ?? "").trim().toLowerCase();
-
-  if (!EMAIL_RE.test(email)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "A valid email is required",
-    });
-  }
+  const body = await parseBody(event, forgotPasswordBodySchema);
+  const email = body.email.trim().toLowerCase();
 
   const user = await getUserByEmail(email);
   if (user?.emailVerified) {
@@ -52,10 +41,8 @@ export default defineEventHandler(async (event) => {
     try {
       await enqueuePasswordResetEmail({ to: email, token: rawToken });
     } catch (err) {
+      // Never log the raw token / reset URL.
       console.error("[forgot-password] failed to enqueue reset email", err);
-      console.error(
-        `[forgot-password] reset link (enqueue failed; one-time, expires in 1h):\n${buildResetUrl(rawToken)}`,
-      );
     }
   }
 

@@ -22,40 +22,25 @@ import {
   hashPassword,
   nowPlusSeconds,
 } from "~/server/utils/auth";
-import { buildVerifyUrl } from "~/server/utils/mailer";
 import { enqueueVerificationEmail } from "~/server/utils/queue";
+import { parseBody } from "~/server/utils/http";
+import { signupBodySchema } from "~/server/schemas";
 import { passwordStrengthError } from "~/utils/passwordPolicy";
 
-interface SignupBody {
-  email?: string;
-  password?: string;
-  name?: string;
-}
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const VERIFY_TTL_SECONDS = 24 * 3600;
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<SignupBody>(event);
-  const email = (body?.email ?? "").trim().toLowerCase();
-  const password = body?.password ?? "";
-  const name = body?.name?.trim() || undefined;
+  const body = await parseBody(event, signupBodySchema);
+  const email = body.email.trim().toLowerCase();
+  const password = body.password;
+  const name = body.name?.trim() || undefined;
 
-  if (!EMAIL_RE.test(email)) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "A valid email is required",
-    });
-  }
   const strengthError = passwordStrengthError(password);
   if (strengthError) {
     throw createError({
       statusCode: 400,
       statusMessage: strengthError,
     });
-  }
-  if (name && name.length > 120) {
-    throw createError({ statusCode: 400, statusMessage: "Name too long" });
   }
 
   const existing = await getUserByEmail(email);
@@ -89,12 +74,8 @@ export default defineEventHandler(async (event) => {
     await enqueueVerificationEmail({ to: email, token: rawToken });
   } catch (err) {
     // Queue insert failures shouldn't block sign-up — the user + verification
-    // row already exist. Log the one-time link so an operator can finish
-    // verify from the server console (token is never returned to the browser).
+    // row already exist. Never log the raw token / verify URL.
     console.error("[signup] failed to enqueue verification email", err);
-    console.error(
-      `[signup] verification link (enqueue failed; one-time, expires in 24h):\n${buildVerifyUrl(rawToken)}`,
-    );
     verificationSent = false;
   }
 

@@ -4,7 +4,7 @@
  * Body:  { token, password }
  * Reply: { ok: true }
  *
- * Consumes a one-time password-reset token, updates the password hash, and
+ * Consumes a one-shot password-reset token, updates the password hash, and
  * revokes all refresh sessions so the user must sign in again everywhere.
  */
 import {
@@ -13,21 +13,14 @@ import {
   updateUserPassword,
 } from "~/server/utils/db";
 import { hashOpaqueToken, hashPassword } from "~/server/utils/auth";
+import { parseBody } from "~/server/utils/http";
+import { resetPasswordBodySchema } from "~/server/schemas";
 import { passwordStrengthError } from "~/utils/passwordPolicy";
 
-interface ResetPasswordBody {
-  token?: string;
-  password?: string;
-}
-
 export default defineEventHandler(async (event) => {
-  const body = await readBody<ResetPasswordBody>(event);
-  const presented = body?.token ?? "";
-  const password = body?.password ?? "";
-
-  if (!presented) {
-    throw createError({ statusCode: 400, statusMessage: "token is required" });
-  }
+  const body = await parseBody(event, resetPasswordBodySchema);
+  const presented = body.token;
+  const password = body.password;
 
   const strengthError = passwordStrengthError(password);
   if (strengthError) {

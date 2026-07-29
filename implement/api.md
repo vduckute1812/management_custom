@@ -128,7 +128,6 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 | `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete own comment (or post owner).                                          |
 | `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`like` / `love` / …).                                          |
 | `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction.                                                              |
-| `POST`   | `/api/posts/:id/like`                | Required | Legacy like helper (maps onto reactions).                                    |
 | `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                                         |
 
 DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.  

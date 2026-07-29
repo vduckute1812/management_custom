@@ -20,16 +20,11 @@ import {
   clearAuthCookies,
   readPresentedRefreshToken,
 } from "~/server/utils/refreshCookie";
-
-interface LogoutBody {
-  refreshToken?: string;
-  everywhere?: boolean;
-}
+import { parseBody } from "~/server/utils/http";
+import { logoutBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<LogoutBody>(event).catch(
-    () => ({} as LogoutBody),
-  );
+  const body = await parseBody(event, logoutBodySchema);
   const usedCookie = Boolean(getCookie(event, REFRESH_COOKIE)?.trim());
   assertSameOriginForCookieAuth(event, usedCookie);
 
