@@ -27,6 +27,8 @@ const insightsOpen = ref(false);
 const insightsLoading = ref(false);
 const insights = ref<StoryInsights | null>(null);
 const reacting = ref(false);
+const deleteConfirmOpen = ref(false);
+const deleteBusy = ref(false);
 
 const REACTION_EMOJI: Record<PostReactionType, string> = {
   like: "👍",
@@ -125,12 +127,30 @@ function prev() {
   }
 }
 
+function requestDelete() {
+  if (!story.value?.canDelete || deleteBusy.value) return;
+  clearTimer();
+  deleteConfirmOpen.value = true;
+}
+
 async function onDelete() {
   if (!story.value?.canDelete) return;
   const id = story.value.id;
-  clearTimer();
-  await removeStory(id);
-  emit("close");
+  deleteBusy.value = true;
+  try {
+    clearTimer();
+    await removeStory(id);
+    deleteConfirmOpen.value = false;
+    emit("close");
+  } finally {
+    deleteBusy.value = false;
+  }
+}
+
+function cancelDelete() {
+  if (deleteBusy.value) return;
+  deleteConfirmOpen.value = false;
+  void startTimer();
 }
 
 async function onReact(reaction: PostReactionType) {
@@ -161,13 +181,17 @@ function closeInsights() {
 
 function onKey(e: KeyboardEvent) {
   if (e.key === "Escape") {
+    if (deleteConfirmOpen.value) {
+      cancelDelete();
+      return;
+    }
     if (insightsOpen.value) {
       closeInsights();
       return;
     }
     emit("close");
   }
-  if (insightsOpen.value) return;
+  if (insightsOpen.value || deleteConfirmOpen.value) return;
   if (e.key === "ArrowRight") next();
   if (e.key === "ArrowLeft") prev();
 }
@@ -269,7 +293,7 @@ watch(
             v-if="story.canDelete"
             type="button"
             class="text-xs text-white/70 hover:text-rose-300"
-            @click="onDelete"
+            @click="requestDelete"
           >
             {{ $t("feed.stories.delete") }}
           </button>
@@ -492,6 +516,15 @@ watch(
         </div>
       </Transition>
     </Teleport>
+
+    <ConfirmDialog
+      :open="deleteConfirmOpen"
+      :title="$t('feed.stories.deleteConfirmTitle')"
+      :description="$t('feed.stories.deleteConfirm')"
+      :busy="deleteBusy"
+      @cancel="cancelDelete"
+      @confirm="onDelete"
+    />
   </div>
 </template>
 

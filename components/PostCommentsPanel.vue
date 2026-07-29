@@ -15,6 +15,8 @@ const commentsLoading = ref(false);
 const commentBody = ref("");
 const commentSubmitting = ref(false);
 const loadedFor = ref<string | null>(null);
+const pendingDelete = ref<PostComment | null>(null);
+const deleteBusy = ref(false);
 
 function authorLabel(name: string | null, email: string) {
   return name?.trim() || email;
@@ -62,9 +64,22 @@ async function onAddComment() {
   }
 }
 
-async function onDeleteComment(comment: PostComment) {
-  await removeComment(props.postId, comment.id);
-  comments.value = comments.value.filter((c) => c.id !== comment.id);
+function requestDeleteComment(comment: PostComment) {
+  if (deleteBusy.value) return;
+  pendingDelete.value = comment;
+}
+
+async function confirmDeleteComment() {
+  const comment = pendingDelete.value;
+  if (!comment || deleteBusy.value) return;
+  deleteBusy.value = true;
+  try {
+    await removeComment(props.postId, comment.id);
+    comments.value = comments.value.filter((c) => c.id !== comment.id);
+    pendingDelete.value = null;
+  } finally {
+    deleteBusy.value = false;
+  }
 }
 </script>
 
@@ -91,7 +106,7 @@ async function onDeleteComment(comment: PostComment) {
               v-if="comment.canDelete"
               type="button"
               class="text-[10px] text-slate-400 hover:text-rose-600"
-              @click="onDeleteComment(comment)"
+              @click="requestDeleteComment(comment)"
             >
               {{ t("feed.post.delete") }}
             </button>
@@ -140,5 +155,14 @@ async function onDeleteComment(comment: PostComment) {
         t("feed.post.loginToComment").slice(t("feed.post.loginLink").length)
       }}
     </p>
+
+    <ConfirmDialog
+      :open="!!pendingDelete"
+      :title="t('feed.post.deleteCommentConfirmTitle')"
+      :description="t('feed.post.deleteCommentConfirm')"
+      :busy="deleteBusy"
+      @cancel="pendingDelete = null"
+      @confirm="confirmDeleteComment"
+    />
   </div>
 </template>
