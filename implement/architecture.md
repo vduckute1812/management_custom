@@ -52,7 +52,7 @@ Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
 Nuxt 3 / Nitro API Routes (/server/api/...)
     │
     ├── server/middleware/security-headers.ts  →  CSP + baseline headers
-    ├── server/middleware/rate-limit.ts      →  per-IP sliding-window caps on /api/*
+    ├── server/middleware/rate-limit.ts      →  per-IP fixed-window caps on /api/*
     ├── server/middleware/auth.ts              →  Bearer / HttpOnly access cookie
     │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
@@ -153,7 +153,7 @@ Boot flow (`plugins/auth.client.ts`): POST `/api/auth/refresh` with `credentials
 
 All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer when in memory). Same-origin `/api/uploads/*` loads authenticate via `mgmt_at` without `?access_token=` in the URL.
 
-`apiFetch` also deduplicates identical in-flight requests and throttles rapid repeats of the same method + URL (400 ms gap). Server-side caps are enforced separately by `server/middleware/rate-limit.ts` — see [`api.md`](./api.md#rate-limiting).
+`apiFetch` also deduplicates identical in-flight requests and throttles rapid repeats of the same method + URL (400 ms gap). Server-side caps are enforced separately by `server/middleware/rate-limit.ts` + `server/rate-limit/` — see [`api.md`](./api.md#rate-limiting).
 
 ---
 
@@ -182,9 +182,10 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   └── postService.ts           # Post create + cache bust
 │   ├── db/                          # SQL domain modules + migrator + pool
 │   │   └── migrations/              # 0001…0014 SQL files
+│   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
-│   │   ├── rate-limit.ts            # Per-IP sliding-window caps on /api/*
+│   │   ├── rate-limit.ts            # Per-IP fixed-window caps on /api/*
 │   │   └── security-headers.ts      # CSP + baseline security headers
 │   ├── plugins/
 │   │   ├── db-verify.ts             # Refuses boot if migrations pending/drifted
@@ -192,7 +193,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   └── utils/
 │       ├── db.ts                    # Barrel over server/db/*
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
-│       ├── rateLimit.ts             # In-memory sliding-window rate limiter
+│       ├── rateLimit.ts             # Re-export of server/rate-limit
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred

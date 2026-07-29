@@ -254,7 +254,7 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Atomic refresh-token rotation (`rotateRefreshToken` transaction)
 - [x] Signup user + email-verification inserted in one transaction
 - [x] CSP / security-headers Nitro middleware
-- [x] API rate limiting (`server/middleware/rate-limit.ts`) + client `apiFetch` throttle/dedup
+- [x] API rate limiting (`server/rate-limit/` + middleware) + client `apiFetch` throttle/dedup
 - [x] Shared Zod schemas (`server/schemas`) + `parseBody` / `parseQuery` / `DomainError`
 - [x] Selective services: `taskService`, `timerService`, `postService`
 - [x] Vitest suite (`npm test`) for schemas, password/token helpers, markdown sanitize

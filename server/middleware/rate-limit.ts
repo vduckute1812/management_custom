@@ -1,34 +1,16 @@
 /**
  * Global API rate limiting. Returns 429 when a client exceeds the
- * configured request budget within the sliding window.
+ * configured request budget within the window.
+ *
+ * Keys are per client IP: strict auth/upload paths get their own bucket;
+ * all other `/api/*` routes share `ip:global`. See `server/rate-limit/`.
  */
-import { checkRateLimit, clientIp } from "~/server/utils/rateLimit";
-
-/** Default: 120 requests per minute per IP+path prefix. */
-const DEFAULT_LIMIT = 120;
-const DEFAULT_WINDOW_MS = 60_000;
-
-/** Stricter caps for auth-sensitive endpoints. */
-const STRICT_ROUTES: Array<{
-  prefix: string;
-  limit: number;
-  windowMs: number;
-}> = [
-  { prefix: "/api/auth/login", limit: 10, windowMs: 60_000 },
-  { prefix: "/api/auth/signup", limit: 5, windowMs: 60_000 },
-  { prefix: "/api/auth/refresh", limit: 30, windowMs: 60_000 },
-  { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
-  { prefix: "/api/auth/reset-password", limit: 10, windowMs: 60_000 },
-  { prefix: "/api/uploads", limit: 30, windowMs: 60_000 },
-];
-
-function resolvePolicy(path: string) {
-  const match = STRICT_ROUTES.find((r) => path.startsWith(r.prefix));
-  if (match) {
-    return { limit: match.limit, windowMs: match.windowMs };
-  }
-  return { limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS };
-}
+import {
+  checkRateLimit,
+  clientIp,
+  rateLimitKey,
+  resolvePolicy,
+} from "~/server/rate-limit";
 
 export default defineEventHandler((event) => {
   const path = event.path;
@@ -36,10 +18,7 @@ export default defineEventHandler((event) => {
 
   const policy = resolvePolicy(path);
   const ip = clientIp(event);
-  const scope = STRICT_ROUTES.some((r) => path.startsWith(r.prefix))
-    ? path
-    : "global";
-  const key = `${ip}:${scope}`;
+  const key = rateLimitKey(ip, path);
   const result = checkRateLimit(key, policy);
 
   setResponseHeader(event, "X-RateLimit-Limit", String(result.limit));

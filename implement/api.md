@@ -14,7 +14,7 @@ See [`auth.md`](./auth.md) for the token model and client route guard; see [`dat
 
 ## Rate limiting
 
-`server/middleware/rate-limit.ts` applies a sliding-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present).
+`server/middleware/rate-limit.ts` applies a fixed-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present). Strict auth/upload paths get their own buckets; all other `/api/*` routes share `ip:global`.
 
 | Scope                            | Limit        | Window |
 | -------------------------------- | ------------ | ------ |
@@ -30,7 +30,7 @@ When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-Af
 
 On the client, `useApi().apiFetch` additionally coalesces identical in-flight requests and enforces a **400 ms** minimum gap between repeated calls with the same method + URL — this reduces accidental double-submit spam but does not replace the server cap.
 
-Implementation: `server/utils/rateLimit.ts` (in-memory store; swap for Redis when running multiple Nitro workers).
+Implementation: `server/rate-limit/` module (policies, in-memory store, check) + `server/middleware/rate-limit.ts`. In-memory counters are correct for a single Nitro process.
 
 ## Enum encoding
 
@@ -179,8 +179,8 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 ## Users directory
 
-| Method | Endpoint               | Auth     | Description                                              |
-| ------ | ---------------------- | -------- | -------------------------------------------------------- |
+| Method | Endpoint               | Auth     | Description                                                                                                              |
+| ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `GET`  | `/api/users/directory` | Required | Searchable people list for “share with specific people” and starting a chat. Returns `id`, `name`, `email`, `avatarUrl`. |
 
 ---
@@ -189,15 +189,15 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrations `0013_chat` + `0014_chat_media`. Client page: `/chat` with ~3.5s polling while open.
 
-| Method | Endpoint | Auth | Description |
-| ------ | -------- | ---- | ----------- |
-| `GET` | `/api/chat/conversations` | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`. |
-| `POST` | `/api/chat/conversations` | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown). |
-| `GET` | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (poll). Non-participants get `404`. |
+| Method | Endpoint                               | Auth     | Description                                                                                                                                                                                                                                                                                                 |
+| ------ | -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/chat/conversations`              | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`.                                                                                                                                                                                                   |
+| `POST` | `/api/chat/conversations`              | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown).                                                                                                                                                                                                |
+| `GET`  | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (poll). Non-participants get `404`.                                   |
 | `POST` | `/api/chat/conversations/:id/messages` | Required | Body `{ kind?, body?, stickerId?, uploadId?, durationMs? }`. `kind`: `0` text, `1` emoji, `2` sticker, `3` image, `4` audio. Text/emoji need `body`. Stickers need `stickerId`. Image/audio need a prior `POST /api/uploads` `uploadId` (owned; matching kind). Audio also needs `durationMs` (200–120000). |
-| `POST` | `/api/chat/conversations/:id/read` | Required | Set the caller's `last_read_at` to now. |
-| `GET` | `/api/chat/unread` | Required | Lightweight inbox pulse: `{ unreadTotal, latest }` for nav badge + toast notifications. |
-| `GET` | `/api/chat/catalog` | Required | Built-in `{ stickers, emoji }` lists for the picker UI. |
+| `POST` | `/api/chat/conversations/:id/read`     | Required | Set the caller's `last_read_at` to now.                                                                                                                                                                                                                                                                     |
+| `GET`  | `/api/chat/unread`                     | Required | Lightweight inbox pulse: `{ unreadTotal, latest }` for nav badge + toast notifications.                                                                                                                                                                                                                     |
+| `GET`  | `/api/chat/catalog`                    | Required | Built-in `{ stickers, emoji }` lists for the picker UI.                                                                                                                                                                                                                                                     |
 
 Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. A client plugin (`plugins/chat-inbox.client.ts`) polls unread every ~10s while signed in. Chat media requires R2 (same as feed uploads).
 
