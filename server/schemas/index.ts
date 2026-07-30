@@ -8,9 +8,9 @@ import {
 import {
   POST_FONT_FAMILIES,
   POST_FORMATS,
-  POST_REACTION_TYPES,
   POST_TEXT_COLORS,
 } from "~/types/post";
+import { REACTION_TYPES, type ReactionType } from "~/types/reaction";
 import {
   POST_BODY_MAX_MANUSCRIPT,
   POST_BODY_MAX_UPDATE,
@@ -126,8 +126,17 @@ export const resetPasswordBodySchema = z.object({
 });
 
 export const postReactionBodySchema = z.object({
-  reaction: z.enum(POST_REACTION_TYPES as unknown as [string, ...string[]]),
+  reaction: z
+    .number()
+    .int()
+    .refine(
+      (v): v is ReactionType =>
+        (REACTION_TYPES as readonly number[]).includes(v),
+      { message: "Invalid reaction" },
+    ),
 });
+
+export const chatMessageReactionBodySchema = postReactionBodySchema;
 
 export const taskUpsertBodySchema = z.object({
   id: z.string().min(1).optional(),

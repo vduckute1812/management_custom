@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { Post, PostReactionType } from "~/types/post";
-import { POST_REACTION_TYPES } from "~/types/post";
+import {
+  POST_REACTION_TYPES,
+  REACTION_EMOJI,
+  ReactionType,
+} from "~/types/post";
+import { REACTION_I18N_KEY } from "~/types/reaction";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
 import { bodyReferencesUpload } from "~/utils/markdownMedia";
@@ -110,22 +115,13 @@ onMounted(() => {
   });
 });
 
-const REACTION_EMOJI: Record<PostReactionType, string> = {
-  like: "👍",
-  love: "❤️",
-  haha: "😄",
-  wow: "😮",
-  sad: "😢",
-  angry: "😡",
-};
-
 const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
-  like: t("feed.post.reactionLike"),
-  love: t("feed.post.reactionLove"),
-  haha: t("feed.post.reactionHaha"),
-  wow: t("feed.post.reactionWow"),
-  sad: t("feed.post.reactionSad"),
-  angry: t("feed.post.reactionAngry"),
+  [ReactionType.Like]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Like]}`),
+  [ReactionType.Love]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Love]}`),
+  [ReactionType.Haha]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Haha]}`),
+  [ReactionType.Wow]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Wow]}`),
+  [ReactionType.Sad]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Sad]}`),
+  [ReactionType.Angry]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Angry]}`),
 }));
 
 /** Collapse long bodies / manuscripts in the feed until expanded. */
@@ -234,10 +230,10 @@ function onReactClick() {
     pickerOpen.value = !pickerOpen.value;
     return;
   }
-  if (props.post.myReaction) {
+  if (props.post.myReaction != null) {
     emit("clear-react");
   } else {
-    emit("react", "like");
+    emit("react", ReactionType.Like);
   }
 }
 
@@ -621,19 +617,21 @@ async function onPlanClick() {
           type="button"
           class="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition sm:text-sm"
           :class="
-            post.myReaction
+            post.myReaction != null
               ? 'text-brand-700 bg-brand-50/40'
               : 'text-slate-600 hover:bg-slate-50'
           "
-          :aria-pressed="Boolean(post.myReaction)"
+          :aria-pressed="post.myReaction != null"
           :aria-expanded="pickerOpen"
           @click="onReactClick"
         >
           <span class="text-base" aria-hidden="true">
-            {{ post.myReaction ? REACTION_EMOJI[post.myReaction] : "👍" }}
+            {{
+              post.myReaction != null ? REACTION_EMOJI[post.myReaction] : "👍"
+            }}
           </span>
           {{
-            post.myReaction
+            post.myReaction != null
               ? REACTION_LABEL[post.myReaction]
               : $t("feed.post.react")
           }}

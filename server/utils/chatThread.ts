@@ -1,10 +1,10 @@
 /**
  * In-process fan-out for open chat thread SSE subscribers.
  *
- * Keyed by conversationId. Send / mark-read paths publish so the peer's
- * open `/chat` thread updates without 3.5s polling.
+ * Keyed by conversationId. Send / mark-read / reaction paths publish so the
+ * peer's open `/chat` thread updates without polling.
  */
-import type { ChatMessage } from "~/types/chat";
+import type { ChatMessage, ChatMessageReactionType } from "~/types/chat";
 
 export type ChatThreadMessageEvent = {
   type: "message";
@@ -17,7 +17,19 @@ export type ChatThreadReadEvent = {
   lastReadAt: string;
 };
 
-export type ChatThreadEvent = ChatThreadMessageEvent | ChatThreadReadEvent;
+export type ChatThreadReactionEvent = {
+  type: "reaction";
+  messageId: string;
+  conversationId: string;
+  userId: string;
+  /** Cleared when null. */
+  reaction: ChatMessageReactionType | null;
+  reactions: Record<ChatMessageReactionType, number>;
+  reactionCount: number;
+};
+
+export type ChatThreadEvent =
+  ChatThreadMessageEvent | ChatThreadReadEvent | ChatThreadReactionEvent;
 
 type ThreadSink = (event: ChatThreadEvent) => void | Promise<void>;
 

@@ -69,13 +69,19 @@ describe("verify / forgot / reset schemas", () => {
 
 describe("postReactionBodySchema", () => {
   it("accepts known reactions", () => {
-    expect(postReactionBodySchema.safeParse({ reaction: "like" }).success).toBe(
+    expect(postReactionBodySchema.safeParse({ reaction: 0 }).success).toBe(
+      true,
+    );
+    expect(postReactionBodySchema.safeParse({ reaction: 5 }).success).toBe(
       true,
     );
   });
 
   it("rejects unknown reactions", () => {
-    expect(postReactionBodySchema.safeParse({ reaction: "fire" }).success).toBe(
+    expect(postReactionBodySchema.safeParse({ reaction: "like" }).success).toBe(
+      false,
+    );
+    expect(postReactionBodySchema.safeParse({ reaction: 9 }).success).toBe(
       false,
     );
   });

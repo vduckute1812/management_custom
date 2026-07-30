@@ -1,8 +1,9 @@
 /**
  * SSE stream for one open chat conversation.
  *
- * Emits `message` when either participant sends, and `read` when either
- * marks the thread read (for peer read receipts). Auth via HttpOnly
+ * Emits `message` when either participant sends, `read` when either
+ * marks the thread read (for peer read receipts), and `reaction` when
+ * either sets/clears a message reaction. Auth via HttpOnly
  * `mgmt_at` cookie (EventSource cannot set Authorization).
  *
  * Prod nginx must proxy chat inbox/thread stream paths with HTTP/1.1,

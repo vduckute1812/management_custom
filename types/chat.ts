@@ -2,6 +2,30 @@
  * Direct-message chat between users (1:1).
  */
 
+import type { ReactionType } from "./reaction";
+import {
+  ReactionType as ChatMessageReaction,
+  REACTION_EMOJI,
+  REACTION_TYPES,
+  emptyReactions,
+  reactionCountOf,
+} from "./reaction";
+
+export type ChatMessageReactionType = ReactionType;
+export { ChatMessageReaction };
+export const CHAT_REACTION_TYPES = REACTION_TYPES;
+export const CHAT_REACTION_EMOJI = REACTION_EMOJI;
+
+export function emptyChatReactions(): Record<ChatMessageReactionType, number> {
+  return emptyReactions();
+}
+
+export function chatReactionCount(
+  reactions: Record<ChatMessageReactionType, number> | null | undefined,
+): number {
+  return reactionCountOf(reactions);
+}
+
 export const ChatMessageKind = {
   Text: 0,
   Emoji: 1,
@@ -47,6 +71,12 @@ export interface ChatMessage {
   durationMs: number | null;
   attachment: ChatAttachment | null;
   createdAt: string;
+  /** Aggregated reaction counts by type. */
+  reactions: Record<ChatMessageReactionType, number>;
+  /** Total reactions (all types). */
+  reactionCount: number;
+  /** Current viewer's reaction, if any. */
+  myReaction: ChatMessageReactionType | null;
   /** True when the authenticated viewer sent this message. */
   mine?: boolean;
   /** True when the peer's last_read_at is at or after this message (mine only). */

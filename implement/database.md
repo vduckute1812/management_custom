@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums`.
 
 ## Migration system
 
@@ -59,14 +59,20 @@ Benefits over a string-ENUM column with translation at the boundary:
 - **Free from MySQL's ENUM footguns** (1-indexed storage, silent fallback
   to `''` on invalid input, awkward to introspect from a client).
 
-| Column                  | Type                    | Mapping                           |
-| ----------------------- | ----------------------- | --------------------------------- |
-| `users.role`            | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2` |
-| `epics.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`    |
-| `tasks.status`          | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`    |
-| `tasks.priority`        | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`         |
-| `tasks.recurrence_rule` | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`    |
-| `chat_messages.kind`    | `TINYINT UNSIGNED`      | `Text=0, Emoji=1, Sticker=2, Image=3, Audio=4` |
+**Agent rule:** **never create string field-type enums.** New enum-shaped
+columns/API fields must be `TINYINT UNSIGNED` + named integer const — not
+MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
+[`.cursor/skills/integer-db-enums/SKILL.md`](../.cursor/skills/integer-db-enums/SKILL.md).
+
+| Column                                                                                     | Type                    | Mapping                                                                                 |
+| ------------------------------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------- |
+| `users.role`                                                                               | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`                                                       |
+| `epics.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
+| `tasks.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
+| `tasks.priority`                                                                           | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`                                                               |
+| `tasks.recurrence_rule`                                                                    | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`                                                          |
+| `chat_messages.kind`                                                                       | `TINYINT UNSIGNED`      | `Text=0, Emoji=1, Sticker=2, Image=3, Audio=4`                                          |
+| `post_reactions.reaction` / `story_reactions.reaction` / `chat_message_reactions.reaction` | `TINYINT UNSIGNED`      | `Like=0, Love=1, Haha=2, Wow=3, Sad=4, Angry=5` (`ReactionType` in `types/reaction.ts`) |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -337,18 +343,18 @@ When `null` (or absent) no timer is active. On stop, a new TimeBlock is appended
 
 Canonical DDL lives in the migration files; this section is the as-built map.
 
-| Table              | Purpose                                                                                                                                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Table              | Purpose                                                                                                                                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `posts`            | Feed posts: `body`, `format` (`update`/`manuscript`), optional `title`, `visibility`, optional `category_id`, `font_family`, `text_color`, optional `shared_post_id`, optional `translation_group_id`, `content_locale`, denormalized `comment_count` (migration `0016`) |
-| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                                                                      |
-| `post_reactions`   | One reaction per `(post_id, user_id)` (`like`/`love`/…)                                                                                                                                                                 |
-| `post_comments`    | Threaded comments on a post                                                                                                                                                                                             |
-| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                                                                                 |
-| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`                                                     |
-| `uploads`          | Upload metadata + R2 `storage_key` (`uploads/{kind}/{yyyy}/{mm}/…` for new objects; `kind` = `image`/`document`/`audio`)                                                                                                  |
-| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                                                                              |
-| `story_views`      | Viewer rollup                                                                                                                                                                                                           |
-| `story_reactions`  | Reactions on stories                                                                                                                                                                                                    |
+| `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                                                                                                                       |
+| `post_reactions`   | One reaction per `(post_id, user_id)`; `reaction` is `TINYINT` (`ReactionType`: Like=0 … Angry=5)                                                                                                                                                                        |
+| `post_comments`    | Threaded comments on a post                                                                                                                                                                                                                                              |
+| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                                                                                                                                  |
+| `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`                                                                                                      |
+| `uploads`          | Upload metadata + R2 `storage_key` (`uploads/{kind}/{yyyy}/{mm}/…` for new objects; `kind` = `image`/`document`/`audio`)                                                                                                                                                 |
+| `stories`          | 24h stories (`expires_at`), optional media                                                                                                                                                                                                                               |
+| `story_views`      | Viewer rollup                                                                                                                                                                                                                                                            |
+| `story_reactions`  | Reactions on stories; `reaction` is `TINYINT` (`ReactionType`)                                                                                                                                                                                                           |
 
 Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
 
@@ -366,13 +372,14 @@ Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.t
 
 Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.md).
 
-| Table | Purpose |
-| ----- | ------- |
-| `chat_conversations` | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` + denormalized `last_message_id` |
-| `chat_messages` | Messages: `kind` (`0` text / `1` emoji / `2` sticker / `3` image / `4` audio), optional `body`, `sticker_id`, `upload_id`, `duration_ms` |
-| `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` + denormalized `unread_count` for badge/list |
+| Table                     | Purpose                                                                                                                                  |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `chat_conversations`      | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` + denormalized `last_message_id`              |
+| `chat_messages`           | Messages: `kind` (`0` text / `1` emoji / `2` sticker / `3` image / `4` audio), optional `body`, `sticker_id`, `upload_id`, `duration_ms` |
+| `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` + denormalized `unread_count` for badge/list                                             |
+| `chat_message_reactions`  | One reaction per `(message_id, user_id)`; `reaction` is `TINYINT` (`ReactionType`)                                                       |
 
-Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
+Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Migration `0017` adds message reactions as `TINYINT`. Migration `0018` converts legacy post/story `ENUM` reaction strings to the same `TINYINT` `ReactionType` constants. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
 Wire DTOs + sticker catalog: `~/types/chat.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
 

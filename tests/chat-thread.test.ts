@@ -42,4 +42,27 @@ describe("chatThread fan-out", () => {
     });
     expect(sink).not.toHaveBeenCalled();
   });
+
+  it("delivers reaction events to subscribers", () => {
+    const sink = vi.fn();
+    subscribeChatThread("conv-a", sink);
+    const event = {
+      type: "reaction" as const,
+      messageId: "msg-1",
+      conversationId: "conv-a",
+      userId: "user-1",
+      reaction: 0 as const,
+      reactions: {
+        0: 1,
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+      },
+      reactionCount: 1,
+    };
+    publishChatThread("conv-a", event);
+    expect(sink).toHaveBeenCalledWith(event);
+  });
 });

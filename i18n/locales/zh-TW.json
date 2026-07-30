@@ -1008,6 +1008,8 @@
     "threadEmpty": "打聲招呼 — 傳送文字、表情或貼圖。",
     "loadOlder": "載入較早的訊息",
     "loadingOlder": "載入中…",
+    "reactToMessage": "表情回應",
+    "chooseReaction": "選擇表情",
     "pickConversation": "選擇對話",
     "pickConversationHint": "從列表選擇聯絡人，或開始新聊天。",
     "backToList": "返回列表",

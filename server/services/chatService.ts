@@ -1,5 +1,5 @@
 /**
- * Chat send / read workflows that fan out inbox + thread SSE updates.
+ * Chat send / read / reaction workflows that fan out inbox + thread SSE updates.
  */
 import {
   getPeerUserId,
@@ -9,10 +9,15 @@ import {
 } from "~/server/utils/db";
 import { refreshAndPushInbox } from "~/server/utils/chatInbox";
 import { publishChatThread } from "~/server/utils/chatThread";
-import type { ChatMessage } from "~/types/chat";
+import {
+  emptyChatReactions,
+  type ChatMessage,
+  type ChatMessageReactionType,
+} from "~/types/chat";
 
 function wireMessage(message: ChatMessage): ChatMessage {
-  // Omit viewer-specific flags — each client derives `mine` / `readByPeer`.
+  // Omit viewer-specific flags — each client derives `mine` / `readByPeer` /
+  // `myReaction`. Reaction aggregates are shared.
   return {
     id: message.id,
     conversationId: message.conversationId,
@@ -24,6 +29,9 @@ function wireMessage(message: ChatMessage): ChatMessage {
     durationMs: message.durationMs,
     attachment: message.attachment,
     createdAt: message.createdAt,
+    reactions: message.reactions ?? emptyChatReactions(),
+    reactionCount: message.reactionCount ?? 0,
+    myReaction: null,
   };
 }
 
@@ -56,4 +64,20 @@ export async function markChatConversationRead(
     lastReadAt: result.lastReadAt,
   });
   return result;
+}
+
+/** Fan-out a reaction change to open thread subscribers. */
+export function publishChatMessageReaction(
+  actorUserId: string,
+  message: ChatMessage,
+): void {
+  publishChatThread(message.conversationId, {
+    type: "reaction",
+    messageId: message.id,
+    conversationId: message.conversationId,
+    userId: actorUserId,
+    reaction: (message.myReaction ?? null) as ChatMessageReactionType | null,
+    reactions: message.reactions ?? emptyChatReactions(),
+    reactionCount: message.reactionCount ?? 0,
+  });
 }

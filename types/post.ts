@@ -2,6 +2,12 @@
  * Shared domain types for the social Feed tab.
  */
 
+import type { ReactionType } from "./reaction";
+import {
+  REACTION_TYPES,
+  emptyReactions as emptyReactionCounts,
+} from "./reaction";
+
 export type PostVisibility = "public" | "private" | "shared";
 
 /**
@@ -11,17 +17,21 @@ export type PostVisibility = "public" | "private" | "shared";
 export const POST_FORMATS = ["update", "manuscript"] as const;
 export type PostFormat = (typeof POST_FORMATS)[number];
 
-export type PostReactionType =
-  "like" | "love" | "haha" | "wow" | "sad" | "angry";
+/** @deprecated Prefer `ReactionType` from `~/types/reaction`. */
+export type PostReactionType = ReactionType;
 
-export const POST_REACTION_TYPES: PostReactionType[] = [
-  "like",
-  "love",
-  "haha",
-  "wow",
-  "sad",
-  "angry",
-];
+/** @deprecated Prefer `REACTION_TYPES` / `ReactionType` from `~/types/reaction`. */
+export const POST_REACTION_TYPES = REACTION_TYPES;
+
+export {
+  ReactionType,
+  REACTION_TYPES,
+  REACTION_EMOJI,
+  emptyReactions,
+} from "./reaction";
+
+/** @deprecated Prefer `emptyReactions` from `~/types/reaction`. */
+export const emptyPostReactions = emptyReactionCounts;
 
 /** Allowed post body fonts (stored as CSS font-family tokens). */
 export const POST_FONT_FAMILIES = [

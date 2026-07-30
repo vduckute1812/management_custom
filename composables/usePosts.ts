@@ -11,18 +11,14 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
-import { POST_REACTION_TYPES } from "~/types/post";
+import {
+  POST_REACTION_TYPES,
+  emptyReactions as emptyReactionCounts,
+} from "~/types/post";
 import type { StoriesTray } from "~/types/story";
 
 function emptyReactions(): Record<PostReactionType, number> {
-  return {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0,
-  };
+  return emptyReactionCounts();
 }
 
 function patchPost(list: Post[], id: string, next: Post): Post[] {
@@ -309,7 +305,7 @@ export const usePosts = () => {
     const idx = posts.value.findIndex((p) => p.id === id);
     if (idx < 0) return;
     const prev = posts.value[idx];
-    if (reaction === null && !prev.myReaction) return;
+    if (reaction === null && prev.myReaction == null) return;
     if (reaction !== null && prev.myReaction === reaction) return;
 
     const token = (reactionRequestTokens.get(id) ?? 0) + 1;
@@ -317,14 +313,14 @@ export const usePosts = () => {
     const isLatest = () => reactionRequestTokens.get(id) === token;
 
     const reactions = { ...(prev.reactions ?? emptyReactions()) };
-    if (prev.myReaction) {
+    if (prev.myReaction != null) {
       reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
     }
     if (reaction) {
       reactions[reaction] = (reactions[reaction] ?? 0) + 1;
     }
     const reactionCount = POST_REACTION_TYPES.reduce(
-      (sum, k) => sum + (reactions[k] ?? 0),
+      (sum: number, k) => sum + (reactions[k] ?? 0),
       0,
     );
     const optimistic: Post = {
