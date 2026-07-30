@@ -49,17 +49,19 @@ Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sq
 
 ## API (summary)
 
-| Method | Path                                   | Purpose                                                  |
-| ------ | -------------------------------------- | -------------------------------------------------------- |
-| `GET`  | `/api/chat/conversations`              | List + `unreadTotal` + `peerLastReadAt`                  |
-| `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`                            |
-| `GET`  | `/api/chat/conversations/:id/messages` | History / cursors; includes `peerLastReadAt` / `readByPeer` |
-| `GET`  | `/api/chat/conversations/:id/stream`   | SSE: `message` + `read` (+ `ping`) for the open thread     |
-| `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker / image / audio |
-| `POST` | `/api/chat/conversations/:id/read`     | Mark read                                                |
+| Method | Path                                   | Purpose                                                             |
+| ------ | -------------------------------------- | ------------------------------------------------------------------- |
+| `GET`  | `/api/chat/conversations`              | List + `unreadTotal` + `peerLastReadAt`                             |
+| `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`                                       |
+| `GET`  | `/api/chat/conversations/:id/messages` | History / cursors; includes `peerLastReadAt` / `readByPeer`         |
+| `GET`  | `/api/chat/conversations/:id/stream`   | SSE: `message` + `read` (+ `ping`) for the open thread              |
+| `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker / image / audio                         |
+| `POST` | `/api/chat/conversations/:id/read`     | Mark read                                                           |
 | `GET`  | `/api/chat/unread`                     | REST snapshot (fallback / tools); same payload as SSE `inbox` event |
-| `GET`  | `/api/chat/inbox/stream`               | SSE inbox stream for badge + toast (auth cookie)                     |
-| `GET`  | `/api/chat/catalog`                    | Stickers + emoji list                                                |
-| `POST` | `/api/uploads`                         | Upload image/audio bytes before sending media messages   |
+| `GET`  | `/api/chat/inbox/stream`               | SSE inbox stream for badge + toast (auth cookie)                    |
+| `GET`  | `/api/chat/catalog`                    | Stickers + emoji list                                               |
+| `POST` | `/api/uploads`                         | Upload image/audio bytes before sending media messages              |
+
+Prod nginx must special-case the two SSE paths (HTTP/1.1, buffering off, long read timeout) — see `docker/nginx.prod.conf` and the note in [`api.md`](./api.md).
 
 See [`api.md`](./api.md#chat-direct-messages) and [`database.md`](./database.md) for the as-built reference.

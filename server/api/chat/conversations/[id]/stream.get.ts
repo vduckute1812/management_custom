@@ -4,6 +4,9 @@
  * Emits `message` when either participant sends, and `read` when either
  * marks the thread read (for peer read receipts). Auth via HttpOnly
  * `mgmt_at` cookie (EventSource cannot set Authorization).
+ *
+ * Prod nginx must proxy chat inbox/thread stream paths with HTTP/1.1,
+ * buffering off, and a long read timeout — see `docker/nginx.prod.conf`.
  */
 import { createEventStream } from "h3";
 import { getPeerUserId } from "~/server/utils/db";
@@ -32,6 +35,9 @@ export default defineEventHandler(async (event) => {
       statusMessage: "Conversation not found",
     });
   }
+
+  setHeader(event, "X-Accel-Buffering", "no");
+  setHeader(event, "Cache-Control", "no-cache, no-transform");
 
   const stream = createEventStream(event);
 

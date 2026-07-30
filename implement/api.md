@@ -203,6 +203,8 @@ Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrati
 
 Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. Live delivery: inbox badge via `/api/chat/inbox/stream`; open thread via `/api/chat/conversations/:id/stream` (`useChat`). Chat media requires R2 (same as feed uploads).
 
+**SSE + nginx:** Prod `docker/nginx.prod.conf` has dedicated locations for `/api/chat/inbox/stream` and `/api/chat/conversations/:id/stream` (`proxy_http_version 1.1`, `proxy_buffering off`, 1h read/send timeouts). The generic `/api/` block must not front these — its 60s timeout + default HTTP/1.0 buffering yields **504** on long-lived EventSource connections (especially behind Cloudflare Tunnel). Handlers also set `X-Accel-Buffering: no`.
+
 ---
 
 ## Epics (scoped to authenticated user)
