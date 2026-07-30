@@ -1,7 +1,9 @@
 import type {
+  FeedBootstrap,
   FeedPage,
   Post,
   PostAuthor,
+  PostCategory,
   PostComment,
   PostFontFamily,
   PostFormat,
@@ -10,6 +12,7 @@ import type {
   PostVisibility,
 } from "~/types/post";
 import { POST_REACTION_TYPES } from "~/types/post";
+import type { StoriesTray } from "~/types/story";
 
 function emptyReactions(): Record<PostReactionType, number> {
   return {
@@ -55,6 +58,18 @@ export const usePosts = () => {
     () => null,
   );
 
+  // Same useState keys as useCategories / useStories so one bootstrap call
+  // can hydrate the whole Feed page without separate GETs.
+  const categories = useState<PostCategory[]>("feed:categories", () => []);
+  const storiesTray = useState<StoriesTray>("feed:storiesTray", () => ({
+    groups: [],
+  }));
+  const categoriesLoading = useState<boolean>(
+    "feed:categoriesLoading",
+    () => false,
+  );
+  const storiesLoading = useState<boolean>("feed:storiesLoading", () => false);
+
   function feedListQuery(extra: { cursor?: string } = {}) {
     return {
       limit: 20,
@@ -62,6 +77,47 @@ export const usePosts = () => {
       ...(categoryFilter.value ? { categoryId: categoryFilter.value } : {}),
       ...extra,
     };
+  }
+
+  function applyBootstrap(data: FeedBootstrap) {
+    posts.value = data.posts;
+    nextCursor.value = data.nextCursor;
+    categories.value = data.categories;
+    if (data.stories) {
+      storiesTray.value = data.stories;
+    }
+  }
+
+  /**
+   * First-paint / post-auth Feed load: categories + posts (+ stories when
+   * signed in) via `GET /api/feed` — one round-trip instead of 2–3.
+   */
+  async function bootstrap() {
+    const generation = ++feedRefreshGeneration;
+    loading.value = true;
+    categoriesLoading.value = true;
+    storiesLoading.value = true;
+    error.value = null;
+    try {
+      const data = await apiFetch<FeedBootstrap>("/api/feed", {
+        query: feedListQuery(),
+      });
+      if (generation !== feedRefreshGeneration) return;
+      applyBootstrap(data);
+    } catch (err: unknown) {
+      if (generation !== feedRefreshGeneration) return;
+      const msg =
+        (err as { statusMessage?: string })?.statusMessage ||
+        t("toasts.couldNotLoadFeed");
+      error.value = msg;
+      throw err;
+    } finally {
+      if (generation === feedRefreshGeneration) {
+        loading.value = false;
+        categoriesLoading.value = false;
+        storiesLoading.value = false;
+      }
+    }
   }
 
   async function refresh() {
@@ -95,7 +151,7 @@ export const usePosts = () => {
   }
 
   async function loadMore() {
-    if (!nextCursor.value || loadingMore.value) return;
+    if (!nextCursor.value || loadingMore.value || loading.value) return;
     loadingMore.value = true;
     try {
       const page = await apiFetch<FeedPage>("/api/posts", {
@@ -378,6 +434,7 @@ export const usePosts = () => {
     error,
     categoryFilter,
     setCategoryFilter,
+    bootstrap,
     refresh,
     loadMore,
     createPost,

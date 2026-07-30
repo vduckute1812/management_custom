@@ -89,11 +89,25 @@ const shareOpen = ref(false);
 const shareNote = ref("");
 const shareSubmitting = ref(false);
 const pickerOpen = ref(false);
+const reactRoot = ref<HTMLElement | null>(null);
 /** Coarse pointers can't hover — click toggles the picker instead of liking. */
 const touchLike = ref(false);
 
 onMounted(() => {
   touchLike.value = window.matchMedia("(hover: none)").matches;
+  if (!touchLike.value) return;
+  // Close the mobile reaction bar when tapping outside it.
+  const onDocPointer = (e: Event) => {
+    if (!pickerOpen.value) return;
+    const root = reactRoot.value;
+    const target = e.target as Node | null;
+    if (root && target && root.contains(target)) return;
+    pickerOpen.value = false;
+  };
+  document.addEventListener("pointerdown", onDocPointer, true);
+  onBeforeUnmount(() => {
+    document.removeEventListener("pointerdown", onDocPointer, true);
+  });
 });
 
 const REACTION_EMOJI: Record<PostReactionType, string> = {
@@ -267,7 +281,7 @@ async function onPlanClick() {
 
 <template>
   <article
-    class="group overflow-hidden rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
+    class="group rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md"
     :class="
       isManuscript
         ? 'manuscript-card'
@@ -593,6 +607,7 @@ async function onPlanClick() {
     </div>
 
     <div
+      ref="reactRoot"
       class="relative grid grid-cols-4 border-t border-slate-100 bg-slate-50/40 px-1 py-1"
     >
       <div
@@ -624,23 +639,24 @@ async function onPlanClick() {
           }}
         </button>
         <!--
-          Outer shell uses pb-1 as a hover bridge so the pointer can travel
-          from the button into the floating picker without closing it.
+          Left-aligned (not centered on the React column) so the 6-emoji bar
+          stays inside the card on narrow phones. pb-1 is a hover bridge so
+          the pointer can travel from the button into the picker.
         -->
         <div
           v-if="pickerOpen"
-          class="absolute bottom-full left-1/2 z-10 w-max -translate-x-1/2 pb-1"
+          class="absolute bottom-full left-0 z-20 w-max pb-1"
           role="listbox"
           :aria-label="$t('feed.post.chooseReaction')"
         >
           <div
-            class="flex gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md"
+            class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md"
           >
             <button
               v-for="r in POST_REACTION_TYPES"
               :key="r"
               type="button"
-              class="h-8 w-8 rounded-full text-base hover:scale-110 transition motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg leading-none hover:scale-110 transition motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
               :title="REACTION_LABEL[r]"
               :aria-label="REACTION_LABEL[r]"
               @click.stop="pickReaction(r)"

@@ -24,6 +24,7 @@ const {
   error,
   categoryFilter,
   setCategoryFilter,
+  bootstrap,
   refresh,
   loadMore,
   createPost,
@@ -40,11 +41,7 @@ const {
   createStory,
 } = useStories();
 
-const {
-  categories,
-  loading: categoriesLoading,
-  refresh: refreshCategories,
-} = useCategories();
+const { categories, loading: categoriesLoading } = useCategories();
 
 const { uploadFile } = useUploads();
 
@@ -61,6 +58,8 @@ const storyUploadId = ref<string | null>(null);
 const storyFileName = ref("");
 const pendingDeletePostId = ref<string | null>(null);
 const deletePostBusy = ref(false);
+/** Sentinel at list bottom — IntersectionObserver loads the next page. */
+const loadMoreSentinel = ref<HTMLElement | null>(null);
 
 useSeoMeta({
   title: () => t("seo.feed"),
@@ -89,28 +88,23 @@ async function syncFeedFromRoute() {
   }
 }
 
-// SSR: ship public posts + categories in the first HTML response so Google
-// indexes real feed content instead of an empty SPA shell.
-// When there is no category query, categories and posts are independent —
-// fetch them in parallel to cut first-paint wait.
+/**
+ * First paint: one bootstrap GET (categories + posts). When `?category=` is
+ * set we need the category list first to resolve slug→id, then refresh posts
+ * for that filter (still cheaper than the old categories+posts fan-out for
+ * the common no-filter path).
+ */
 const categoryQuery = route.query.category;
 const needsCategoryLookup =
   typeof categoryQuery === "string" && categoryQuery.length > 0;
 
 if (needsCategoryLookup) {
-  await refreshCategories().catch(() => undefined);
+  await bootstrap().catch(() => undefined);
   await syncFeedFromRoute().catch(() => undefined);
-} else {
-  await Promise.all([
-    refreshCategories().catch(() => undefined),
-    (async () => {
-      if (categoryFilter.value) {
-        await setCategoryFilter(null);
-      } else if (!posts.value.length) {
-        await refresh();
-      }
-    })().catch(() => undefined),
-  ]);
+} else if (categoryFilter.value) {
+  await setCategoryFilter(null).catch(() => undefined);
+} else if (!posts.value.length) {
+  await bootstrap().catch(() => undefined);
 }
 
 // Don't ship a transient API failure string into the crawler HTML.
@@ -120,7 +114,7 @@ if (import.meta.server && error.value) {
 
 onMounted(() => {
   // Auth restore is non-blocking on /feed — wait until the session is real
-  // before loading stories / re-fetching the ACL-aware post list.
+  // before loading ACL-aware posts + stories in one bootstrap call.
   let authedFeedSynced = false;
   watch(
     () => auth.isAuthenticated.value,
@@ -129,15 +123,55 @@ onMounted(() => {
         authedFeedSynced = false;
         return;
       }
-      void refreshStories().catch(() => undefined);
       if (!authedFeedSynced) {
         authedFeedSynced = true;
-        // SSR shipped the public (guest) feed; refresh once for private posts.
-        void refresh().catch(() => undefined);
+        // SSR shipped the public (guest) feed; refresh once for private posts
+        // and stories together.
+        void bootstrap().catch(() => undefined);
       }
     },
     { immediate: true },
   );
+
+  // Facebook-style pagination: load the next page when the sentinel enters
+  // (or nears) the viewport — no "Load more" button.
+  if (typeof IntersectionObserver === "undefined") return;
+
+  function maybeLoadMore() {
+    if (!nextCursor.value || loadingMore.value || loading.value) return;
+    void loadMore().catch(() => undefined);
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries.some((e) => e.isIntersecting)) return;
+      maybeLoadMore();
+    },
+    { root: null, rootMargin: "280px 0px", threshold: 0 },
+  );
+  watch(
+    loadMoreSentinel,
+    (el, _prev, onCleanup) => {
+      if (!el) return;
+      observer.observe(el);
+      onCleanup(() => observer.unobserve(el));
+    },
+    { immediate: true },
+  );
+  // If the list is still shorter than the viewport after a page loads, the
+  // sentinel stays intersecting and IO won't re-fire — keep paging until it
+  // leaves the viewport or there is no nextCursor.
+  watch(loadingMore, async (busy, wasBusy) => {
+    if (busy || !wasBusy || !nextCursor.value) return;
+    await nextTick();
+    const el = loadMoreSentinel.value;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.top < (window.innerHeight || 0) + 280) {
+      maybeLoadMore();
+    }
+  });
+  onBeforeUnmount(() => observer.disconnect());
 });
 
 // Same page component is reused for `/feed` ↔ `/feed?category=…`.
@@ -542,15 +576,24 @@ async function submitStory() {
               @share="(note) => onShare(post.id, note)"
             />
 
-            <div v-if="nextCursor" class="flex justify-center pt-2">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow disabled:opacity-50"
-                :disabled="loadingMore"
-                @click="loadMore"
+            <!--
+              Infinite scroll sentinel: when this enters the viewport the
+              observer calls loadMore(). Spinner shown while a page is in flight.
+            -->
+            <div
+              v-if="nextCursor"
+              ref="loadMoreSentinel"
+              class="flex justify-center py-3"
+              aria-hidden="true"
+            >
+              <div
+                v-if="loadingMore"
+                class="inline-flex items-center gap-2 text-sm font-medium text-slate-500"
+                role="status"
+                aria-live="polite"
+                aria-hidden="false"
               >
                 <svg
-                  v-if="loadingMore"
                   viewBox="0 0 24 24"
                   fill="none"
                   class="h-4 w-4 animate-spin"
@@ -571,8 +614,8 @@ async function submitStory() {
                     stroke-linecap="round"
                   />
                 </svg>
-                {{ loadingMore ? $t("feed.loading") : $t("feed.loadMore") }}
-              </button>
+                {{ $t("feed.loading") }}
+              </div>
             </div>
           </div>
         </div>

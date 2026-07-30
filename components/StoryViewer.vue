@@ -338,13 +338,13 @@ watch(
       <!-- Reactions for others' stories -->
       <div
         v-if="!isOwnStory"
-        class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center gap-1 p-3 bg-gradient-to-t from-black/60 to-transparent"
+        class="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-center justify-center gap-1 p-3 bg-gradient-to-t from-black/60 to-transparent"
       >
         <button
           v-for="r in POST_REACTION_TYPES"
           :key="r"
           type="button"
-          class="rounded-full px-2 py-1.5 text-lg transition hover:scale-110 motion-reduce:transition-none"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl leading-none transition hover:scale-110 motion-reduce:transition-none"
           :class="
             story.myReaction === r
               ? 'bg-white/25 ring-1 ring-white/50'
