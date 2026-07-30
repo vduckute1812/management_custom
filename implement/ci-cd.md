@@ -8,7 +8,7 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 
 1. The Pi runner checks out the commit into its workspace (`actions/checkout`, `clean: false` so local secrets survive).
 2. **Sync libs** — `uv sync --frozen` installs ops deps (`podman-compose`). App npm deps sync inside the image build via `npm ci` (Dockerfile retries on registry timeouts).
-3. `docker/ci-deploy.sh` snapshots the current app image as `:previous`, then **prunes** unused Podman/Docker layers (old SHA tags of `mgmt-app-prod`, dangling images, build cache) so Pi disks do not fill up mid-`COPY node_modules`.
+3. `docker/ci-deploy.sh` snapshots the current app image as `:previous`, then **prunes** unused Podman/Docker layers (old SHA tags of `mgmt-app-prod`, dangling images, stopped containers, build cache) so Pi disks do not fill up mid-`COPY node_modules`.
 4. It builds a new image tagged with the git SHA.
 5. **If the build fails** → the running stack is **not** restarted (and prune runs again to reclaim partial layers).
 6. MySQL is ensured up; **DB migrations** run with the _new_ image (`scripts/migrate.ts up`) while the old app is still serving.
@@ -16,6 +16,7 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 8. On success it recreates **only the app** container (`--no-deps --force-recreate app`) so nginx stays up for Cloudflare Tunnel, then health-checks `http://${LAN_IP}:3000/`.
 9. Reloads nginx so `docker/nginx.prod.conf` edits (e.g. chat SSE proxy settings) take effect without bouncing the tunnel upstream.
 10. **If health fails** → it retags `:previous` → `:latest`, recreates the app, and fails the job.
+11. **After a healthy deploy** → prune again: multi-stage `<none>` intermediates, old SHA tags, and stopped one-shot containers. Keeps `:latest` / `:previous` / the new SHA; **never** deletes named volumes (MySQL data).
 
 Chat SSE (`/api/chat/inbox/stream`, `/api/chat/conversations/:id/stream`) needs the dedicated nginx locations in `nginx.prod.conf` (HTTP/1.1, `proxy_buffering off`, long read timeout). Without them, long-lived EventSource connections 504 behind Cloudflare.
 
