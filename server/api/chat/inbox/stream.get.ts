@@ -5,6 +5,10 @@
  * client receives an immediate `inbox` snapshot; later sends/reads push the
  * same payload through `refreshAndPushInbox`. Heartbeats keep proxies from
  * closing an idle connection.
+ *
+ * Prod nginx must proxy these paths with HTTP/1.1, `proxy_buffering off`, and
+ * a long `proxy_read_timeout` (see `docker/nginx.prod.conf`) — the generic
+ * `/api/` location otherwise 504s long-lived EventSource connections.
  */
 import { createEventStream } from "h3";
 import { getUnreadInbox } from "~/server/utils/db";
@@ -18,6 +22,11 @@ const HEARTBEAT_MS = 25_000;
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
+
+  // Tell nginx (and similar) not to buffer SSE frames / heartbeats.
+  setHeader(event, "X-Accel-Buffering", "no");
+  setHeader(event, "Cache-Control", "no-cache, no-transform");
+
   const stream = createEventStream(event);
 
   const pushInbox = async (payload: ChatInboxPayload) => {
@@ -40,17 +49,20 @@ export default defineEventHandler(async (event) => {
     unsubscribe();
   });
 
-  try {
-    const initial = await getUnreadInbox(user.sub);
-    await pushInbox(initial);
-  } catch (err) {
-    clearInterval(heartbeat);
-    unsubscribe();
-    throw err;
-  }
-
-  // Hint EventSource to wait ~5s before auto-retry after a drop.
-  await stream.push({ event: "ready", data: "{}", retry: 5000 });
+  // Open the stream immediately so proxies see headers/first bytes even when
+  // the unread snapshot query is slow (avoids gateway 504 before any SSE).
+  void (async () => {
+    try {
+      const initial = await getUnreadInbox(user.sub);
+      await pushInbox(initial);
+      await stream.push({ event: "ready", data: "{}", retry: 5000 });
+    } catch (err) {
+      console.warn(
+        "[chat-inbox/stream] initial snapshot failed:",
+        (err as Error)?.message || err,
+      );
+    }
+  })();
 
   return stream.send();
 });
