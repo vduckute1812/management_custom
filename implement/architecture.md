@@ -26,18 +26,18 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Project facts
 
-| Property     | Value                                                                 |
-| ------------ | --------------------------------------------------------------------- |
-| Project Path | `~/Projects/management_custom`                                        |
-| Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                |
-| Runtime      | Node.js ≥ 24 (see `.nvmrc`)                                           |
-| Framework    | Nuxt 3 (Vue 3), **hybrid SSR** for public routes                      |
-| TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)  |
-| Styling      | TailwindCSS v4                                                        |
-| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)   |
-| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories) |
-| Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)           |
-| Telemetry    | None                                                                  |
+| Property     | Value                                                                  |
+| ------------ | ---------------------------------------------------------------------- |
+| Project Path | `~/Projects/management_custom`                                         |
+| Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                 |
+| Runtime      | Node.js ≥ 26.5 + npm 12 via Corepack (see `.nvmrc` / `packageManager`) |
+| Framework    | Nuxt 3 (Vue 3), **hybrid SSR** for public routes                       |
+| TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)   |
+| Styling      | TailwindCSS v4                                                         |
+| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)    |
+| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories)  |
+| Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)            |
+| Telemetry    | None                                                                   |
 
 ---
 
@@ -118,11 +118,11 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 
 **Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
 
-| Service        | Responsibility                                     |
-| -------------- | -------------------------------------------------- |
-| `taskService`  | `saveTaskForUser` — ownership guards + upsert      |
-| `timerService` | `startTimerForUser` / `stopTimerForUser`           |
-| `postService`  | `createPostForUser` + public-feed cache invalidate |
+| Service        | Responsibility                                                     |
+| -------------- | ------------------------------------------------------------------ |
+| `taskService`  | `saveTaskForUser` — ownership guards + upsert                      |
+| `timerService` | `startTimerForUser` / `stopTimerForUser`                           |
+| `postService`  | `createPostForUser` + public-feed cache invalidate                 |
 | `chatService`  | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out |
 
 Auth signup / refresh / password-reset, post update/share, and admin role policy are still mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
