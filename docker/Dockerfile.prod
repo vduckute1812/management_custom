@@ -1,11 +1,19 @@
-FROM node:24-alpine AS builder
+# Latest Node Current on Docker Hub (26.5.0-alpine). Official Node builds still
+# ship npm 11.x — use Corepack + packageManager (npm@12.0.2) instead of
+# `npm install -g npm@…` so the toolchain matches package.json.
+FROM node:26.5.0-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache python3 make gcc g++ musl-dev \
-    && ln -sf python3 /usr/bin/python
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
-COPY package*.json ./
+RUN apk add --no-cache python3 make gcc g++ musl-dev \
+    && ln -sf python3 /usr/bin/python \
+    && corepack enable \
+    && corepack prepare npm@12.0.2 --activate \
+    && node -v && npm -v
+
+COPY package.json package-lock.json ./
 # Pi / residential links occasionally drop mid-fetch; retry npm ci a few times
 # before failing the image build (which would leave the live stack untouched).
 RUN set -eu; \
@@ -23,15 +31,18 @@ RUN set -eu; \
 COPY . .
 RUN npm run build
 
-FROM node:24-alpine AS production
+FROM node:26.5.0-alpine AS production
 
 WORKDIR /app
 
-RUN addgroup -g 1001 -S nodejs \
-    && adduser -S nuxt -u 1001
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
-# Runtime deps for migration scripts (tsx + mysql2 already in app deps).
-RUN npm install -g tsx@4.22.4
+RUN addgroup -g 1001 -S nodejs \
+    && adduser -S nuxt -u 1001 \
+    && corepack enable \
+    && corepack prepare npm@12.0.2 --activate \
+    && npm install -g tsx@4.23.1 \
+    && node -v && npm -v
 
 COPY --from=builder --chown=nuxt:nodejs /app/.output /app/.output
 COPY --from=builder --chown=nuxt:nodejs /app/scripts /app/scripts

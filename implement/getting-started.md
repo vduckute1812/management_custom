@@ -6,7 +6,7 @@ Everything you need to take a fresh checkout from "I just cloned this" to "I'm l
 
 ## Prerequisites
 
-- **Node.js ≥ 24** (see `.nvmrc` / `package.json` `engines`)
+- **Node.js ≥ 26.5** and **npm ≥ 12** (see `.nvmrc` / `package.json` `engines` + `packageManager`; enable with `corepack enable`)
 - npm
 - **MySQL 8** running on `localhost:3306` (or wherever you point the env vars)
 - Optional: **Cloudflare R2** credentials if you want feed/story file attachments
