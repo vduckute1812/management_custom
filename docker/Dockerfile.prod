@@ -1,6 +1,6 @@
 # Latest Node Current on Docker Hub (26.5.0-alpine). Official Node builds still
-# ship npm 11.x — use Corepack + packageManager (npm@12.0.2) instead of
-# `npm install -g npm@…` so the toolchain matches package.json.
+# ship npm 11.x, and the Alpine image does not include the `corepack` binary.
+# Bootstrap Corepack with the image npm, then activate packageManager npm@12.
 FROM node:26.5.0-alpine AS builder
 
 WORKDIR /app
@@ -9,6 +9,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 RUN apk add --no-cache python3 make gcc g++ musl-dev \
     && ln -sf python3 /usr/bin/python \
+    && npm install -g corepack@0.35.0 \
     && corepack enable \
     && corepack prepare npm@12.0.2 --activate \
     && node -v && npm -v
@@ -39,6 +40,7 @@ ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S nuxt -u 1001 \
+    && npm install -g corepack@0.35.0 \
     && corepack enable \
     && corepack prepare npm@12.0.2 --activate \
     && npm install -g tsx@4.23.1 \
