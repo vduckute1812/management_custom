@@ -182,6 +182,18 @@ export interface FeedPage {
   nextCursor: string | null;
 }
 
+/**
+ * Single-shot payload for the Feed page first paint: directories + posts
+ * (+ stories tray when the viewer is signed in).
+ */
+export interface FeedBootstrap {
+  categories: PostCategory[];
+  posts: Post[];
+  nextCursor: string | null;
+  /** Null for anonymous visitors (stories require auth). */
+  stories: import("./story").StoriesTray | null;
+}
+
 export interface UploadRecord {
   id: string;
   fileName: string;

@@ -118,6 +118,7 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 
 | Method   | Endpoint                             | Auth     | Description                                                                  |
 | -------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------- |
+| `GET`    | `/api/feed`                          | Optional | Bootstrap: categories + first posts page (+ stories tray when signed in).    |
 | `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).               |
 | `POST`   | `/api/posts`                         | Required | Create a post/manuscript (body, format, title?, visibility, …).              |
 | `GET`    | `/api/posts/:id`                     | Optional | Single post when visible; includes `audience` authors when `canEdit`.        |
@@ -130,8 +131,8 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 | `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction.                                                              |
 | `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                                         |
 
-DTOs: `~/types/post.ts`. Domain: `server/db/posts.ts`.  
-Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
+DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts`.  
+`GET /api/feed` is the Feed page first-paint call (categories + posts + optional stories). Later pages use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
 
@@ -139,15 +140,15 @@ Anonymous `GET /api/posts` pages are cached briefly (~20s); authenticated feeds 
 
 24-hour ephemeral stories with views / reactions / owner insights.
 
-| Method   | Endpoint                     | Auth     | Description                            |
-| -------- | ---------------------------- | -------- | -------------------------------------- |
+| Method   | Endpoint                     | Auth     | Description                                                                                                |
+| -------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/stories`               | Required | Active stories tray for the install (expired rows filtered in SQL; physical purge runs in the job worker). |
-| `POST`   | `/api/stories`               | Required | Create a story (text and/or media).    |
-| `DELETE` | `/api/stories/:id`           | Required | Delete own story.                      |
-| `POST`   | `/api/stories/:id/view`      | Required | Record a view.                         |
-| `POST`   | `/api/stories/:id/reactions` | Required | Set reaction.                          |
-| `DELETE` | `/api/stories/:id/reactions` | Required | Clear reaction.                        |
-| `GET`    | `/api/stories/:id/insights`  | Required | Owner-only viewers + reactions rollup. |
+| `POST`   | `/api/stories`               | Required | Create a story (text and/or media).                                                                        |
+| `DELETE` | `/api/stories/:id`           | Required | Delete own story.                                                                                          |
+| `POST`   | `/api/stories/:id/view`      | Required | Record a view.                                                                                             |
+| `POST`   | `/api/stories/:id/reactions` | Required | Set reaction.                                                                                              |
+| `DELETE` | `/api/stories/:id/reactions` | Required | Clear reaction.                                                                                            |
+| `GET`    | `/api/stories/:id/insights`  | Required | Owner-only viewers + reactions rollup.                                                                     |
 
 DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
 
@@ -192,12 +193,12 @@ Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrati
 | ------ | -------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`  | `/api/chat/conversations`              | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`.                                                                                                                                                                                                   |
 | `POST` | `/api/chat/conversations`              | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown).                                                                                                                                                                                                |
-| `GET`  | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (silent catch-up). Non-participants get `404`. |
-| `GET`  | `/api/chat/conversations/:id/stream`   | Required | **SSE** for the open thread. Auth via HttpOnly `mgmt_at`. Emits `message` (`{ type, message }`), `read` (`{ type, userId, lastReadAt }`), and `ping` heartbeats. Participants only. |
+| `GET`  | `/api/chat/conversations/:id/messages` | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (silent catch-up). Non-participants get `404`.                        |
+| `GET`  | `/api/chat/conversations/:id/stream`   | Required | **SSE** for the open thread. Auth via HttpOnly `mgmt_at`. Emits `message` (`{ type, message }`), `read` (`{ type, userId, lastReadAt }`), and `ping` heartbeats. Participants only.                                                                                                                         |
 | `POST` | `/api/chat/conversations/:id/messages` | Required | Body `{ kind?, body?, stickerId?, uploadId?, durationMs? }`. `kind`: `0` text, `1` emoji, `2` sticker, `3` image, `4` audio. Text/emoji need `body`. Stickers need `stickerId`. Image/audio need a prior `POST /api/uploads` `uploadId` (owned; matching kind). Audio also needs `durationMs` (200–120000). |
 | `POST` | `/api/chat/conversations/:id/read`     | Required | Set the caller's `last_read_at` to now.                                                                                                                                                                                                                                                                     |
 | `GET`  | `/api/chat/unread`                     | Required | REST unread snapshot: `{ unreadTotal, latest }`. Prefer the SSE stream for the live badge.                                                                                                                                                                                                                  |
-| `GET`  | `/api/chat/inbox/stream`               | Required | **SSE** inbox stream. Auth via HttpOnly `mgmt_at` cookie (EventSource cannot set `Authorization`). Emits `inbox` events with the same JSON as `/unread`, plus `ping` heartbeats. Send/read paths push to live subscribers.                                                                              |
+| `GET`  | `/api/chat/inbox/stream`               | Required | **SSE** inbox stream. Auth via HttpOnly `mgmt_at` cookie (EventSource cannot set `Authorization`). Emits `inbox` events with the same JSON as `/unread`, plus `ping` heartbeats. Send/read paths push to live subscribers.                                                                                  |
 | `GET`  | `/api/chat/catalog`                    | Required | Built-in `{ stickers, emoji }` lists for the picker UI.                                                                                                                                                                                                                                                     |
 
 Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. Live delivery: inbox badge via `/api/chat/inbox/stream`; open thread via `/api/chat/conversations/:id/stream` (`useChat`). Chat media requires R2 (same as feed uploads).
