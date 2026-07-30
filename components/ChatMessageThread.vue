@@ -30,6 +30,8 @@ const pickerForId = ref<string | null>(null);
 const scrollSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(
   null,
 );
+let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+let longPressFired = false;
 
 const REACTION_LABEL = computed<Record<ChatMessageReactionType, string>>(
   () => ({
@@ -202,14 +204,47 @@ onMounted(() => {
 onBeforeUnmount(() => {
   olderObserver?.disconnect();
   olderObserver = null;
+  clearLongPress();
 });
 
 function openPicker(messageId: string) {
-  pickerForId.value = pickerForId.value === messageId ? null : messageId;
+  pickerForId.value = messageId;
 }
 
 function closePicker() {
   pickerForId.value = null;
+}
+
+function clearLongPress() {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+}
+
+function onBubblePointerDown(messageId: string, ev: PointerEvent) {
+  const target = ev.target as HTMLElement | null;
+  // Don't steal long-press from links, audio, or the react controls.
+  if (
+    target?.closest?.("a, button, audio, input, textarea, [data-chat-react]")
+  ) {
+    return;
+  }
+  longPressFired = false;
+  clearLongPress();
+  longPressTimer = setTimeout(() => {
+    longPressFired = true;
+    openPicker(messageId);
+    longPressTimer = null;
+  }, 450);
+}
+
+function onBubblePointerUp() {
+  clearLongPress();
+}
+
+function onBubblePointerCancel() {
+  clearLongPress();
 }
 
 function pickReaction(messageId: string, reaction: ChatMessageReactionType) {
@@ -274,12 +309,12 @@ defineExpose({ scrollToBottom });
       <li
         v-for="msg in messages"
         :key="msg.id"
-        class="group flex"
+        class="flex"
         :class="msg.mine ? 'justify-end' : 'justify-start'"
       >
         <div class="relative max-w-[85%] sm:max-w-[70%]">
           <div
-            class="relative"
+            class="relative touch-manipulation select-none [-webkit-touch-callout:none]"
             :class="
               isMediaBubble(msg)
                 ? ''
@@ -287,6 +322,10 @@ defineExpose({ scrollToBottom });
                   ? 'rounded-2xl rounded-br-md bg-brand-600 px-3 py-2 text-white'
                   : 'rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2 text-slate-800'
             "
+            @pointerdown="onBubblePointerDown(msg.id, $event)"
+            @pointerup="onBubblePointerUp"
+            @pointerleave="onBubblePointerCancel"
+            @pointercancel="onBubblePointerCancel"
           >
             <template v-if="msg.kind === ChatMessageKind.Sticker">
               <span
@@ -376,10 +415,41 @@ defineExpose({ scrollToBottom });
                 · {{ t("chat.readReceipt") }}
               </span>
             </div>
+
+            <!-- Long-press / context-menu emoji bar -->
+            <div
+              v-if="pickerForId === msg.id"
+              data-chat-react
+              class="absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2"
+              role="listbox"
+              :aria-label="t('chat.chooseReaction')"
+            >
+              <div
+                class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-lg"
+              >
+                <button
+                  v-for="r in CHAT_REACTION_TYPES"
+                  :key="r"
+                  type="button"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl leading-none transition hover:scale-110 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                  :class="
+                    msg.myReaction === r
+                      ? 'bg-brand-50 ring-1 ring-brand-200'
+                      : ''
+                  "
+                  :title="REACTION_LABEL[r]"
+                  :aria-label="REACTION_LABEL[r]"
+                  @click.stop="pickReaction(msg.id, r)"
+                >
+                  {{ CHAT_REACTION_EMOJI[r] }}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- Reaction chips + picker -->
+          <!-- Existing reaction chips only (no always-on React button) -->
           <div
+            v-if="topReactions(msg).length"
             data-chat-react
             class="mt-1 flex flex-wrap items-center gap-1"
             :class="msg.mine ? 'justify-end' : 'justify-start'"
@@ -402,47 +472,6 @@ defineExpose({ scrollToBottom });
               <span aria-hidden="true">{{ r.emoji }}</span>
               <span v-if="r.count > 1" class="tabular-nums">{{ r.count }}</span>
             </button>
-
-            <div class="relative">
-              <button
-                type="button"
-                class="rounded-full border border-transparent px-1.5 py-0.5 text-[11px] text-slate-400 opacity-0 transition hover:border-slate-200 hover:bg-white hover:text-slate-600 group-hover:opacity-100 focus-visible:opacity-100"
-                :class="pickerForId === msg.id ? 'opacity-100' : ''"
-                :aria-label="t('chat.reactToMessage')"
-                :aria-expanded="pickerForId === msg.id"
-                @click.stop="openPicker(msg.id)"
-              >
-                🙂
-              </button>
-              <div
-                v-if="pickerForId === msg.id"
-                class="absolute z-20 w-max pb-1"
-                :class="msg.mine ? 'bottom-full right-0' : 'bottom-full left-0'"
-                role="listbox"
-                :aria-label="t('chat.chooseReaction')"
-              >
-                <div
-                  class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-md"
-                >
-                  <button
-                    v-for="r in CHAT_REACTION_TYPES"
-                    :key="r"
-                    type="button"
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base leading-none transition hover:scale-110 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-                    :class="
-                      msg.myReaction === r
-                        ? 'bg-brand-50 ring-1 ring-brand-200'
-                        : ''
-                    "
-                    :title="REACTION_LABEL[r]"
-                    :aria-label="REACTION_LABEL[r]"
-                    @click.stop="pickReaction(msg.id, r)"
-                  >
-                    {{ CHAT_REACTION_EMOJI[r] }}
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </li>
