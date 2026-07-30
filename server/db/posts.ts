@@ -28,6 +28,10 @@ import {
   POST_REACTION_TYPES,
   POST_TEXT_COLORS,
 } from "../../types/post";
+import {
+  emptyReactions as emptyReactionCounts,
+  toReactionType,
+} from "../../types/reaction";
 import { getCategoryById } from "./categories";
 import { CONTENT_LOCALES, isContentLocale } from "../../utils/contentLocale";
 
@@ -104,14 +108,7 @@ interface AudienceRow extends RowDataPacket {
 }
 
 function emptyReactions(): Record<PostReactionType, number> {
-  return {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0,
-  };
+  return emptyReactionCounts();
 }
 
 function toAuthor(
@@ -268,8 +265,10 @@ async function loadReactionMaps(
     postIds,
   );
   for (const row of rows) {
+    const reaction = toReactionType(row.reaction);
+    if (reaction == null) continue;
     const bucket = map.get(row.post_id) ?? emptyReactions();
-    bucket[row.reaction] = Number(row.cnt);
+    bucket[reaction] = Number(row.cnt);
     map.set(row.post_id, bucket);
   }
   return map;
@@ -361,10 +360,10 @@ function rowToPost(
   }
 
   const reactionCount = POST_REACTION_TYPES.reduce(
-    (sum, key) => sum + (reactions[key] ?? 0),
+    (sum: number, key) => sum + (reactions[key] ?? 0),
     0,
   );
-  const myReaction = row.my_reaction ?? null;
+  const myReaction = toReactionType(row.my_reaction);
 
   return {
     id: row.id,
@@ -1095,8 +1094,7 @@ export async function deletePostComment(
     "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
     [commentId, postId, userId],
   );
-  const deleted =
-    ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const deleted = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   if (deleted) {
     await pool.query(
       `UPDATE posts

@@ -51,6 +51,7 @@ const KNOWN_TABLES_DROP_ORDER = [
   "auth_password_resets",
   "auth_refresh_tokens",
   "chat_conversation_reads",
+  "chat_message_reactions",
   "chat_messages",
   "chat_conversations",
   "story_reactions",

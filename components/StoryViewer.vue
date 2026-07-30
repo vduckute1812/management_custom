@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { PostReactionType } from "~/types/post";
-import { POST_REACTION_TYPES } from "~/types/post";
+import {
+  POST_REACTION_TYPES,
+  REACTION_EMOJI,
+  ReactionType,
+} from "~/types/post";
+import { REACTION_I18N_KEY } from "~/types/reaction";
 import type { StoryAuthorGroup, StoryInsights } from "~/types/story";
 
 const props = defineProps<{
@@ -30,14 +35,14 @@ const reacting = ref(false);
 const deleteConfirmOpen = ref(false);
 const deleteBusy = ref(false);
 
-const REACTION_EMOJI: Record<PostReactionType, string> = {
-  like: "👍",
-  love: "❤️",
-  haha: "😄",
-  wow: "😮",
-  sad: "😢",
-  angry: "😡",
-};
+const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
+  [ReactionType.Like]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Like]}`),
+  [ReactionType.Love]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Love]}`),
+  [ReactionType.Haha]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Haha]}`),
+  [ReactionType.Wow]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Wow]}`),
+  [ReactionType.Sad]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Sad]}`),
+  [ReactionType.Angry]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Angry]}`),
+}));
 
 const group = computed(() => props.groups[groupIndex.value] ?? null);
 const story = computed(() => group.value?.stories[storyIndex.value] ?? null);
@@ -350,7 +355,7 @@ watch(
               ? 'bg-white/25 ring-1 ring-white/50'
               : 'bg-white/10 hover:bg-white/20'
           "
-          :aria-label="r"
+          :aria-label="REACTION_LABEL[r]"
           :disabled="reacting"
           @click.stop="onReact(r)"
         >
@@ -453,9 +458,9 @@ watch(
                         </p>
                       </div>
                       <span
-                        v-if="v.reaction"
+                        v-if="v.reaction != null"
                         class="text-base"
-                        :title="v.reaction"
+                        :title="REACTION_LABEL[v.reaction]"
                       >
                         {{ REACTION_EMOJI[v.reaction] }}
                       </span>

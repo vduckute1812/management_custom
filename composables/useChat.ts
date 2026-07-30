@@ -1,5 +1,14 @@
-import type { ChatConversation, ChatMessage, ChatSticker } from "~/types/chat";
-import { ChatMessageKind } from "~/types/chat";
+import type {
+  ChatConversation,
+  ChatMessage,
+  ChatMessageReactionType,
+  ChatSticker,
+} from "~/types/chat";
+import {
+  ChatMessageKind,
+  CHAT_REACTION_TYPES,
+  emptyChatReactions,
+} from "~/types/chat";
 
 /** Slow REST fallback while the thread SSE stream is down. */
 const FALLBACK_POLL_MS = 15_000;
@@ -22,6 +31,16 @@ const threadLive = {
   generation: 0,
   onMessage: null as ((message: ChatMessage) => void) | null,
   onRead: null as ((userId: string, lastReadAt: string) => void) | null,
+  onReaction: null as
+    | ((payload: {
+        messageId: string;
+        conversationId: string;
+        userId: string;
+        reaction: ChatMessageReactionType | null;
+        reactions: Record<ChatMessageReactionType, number>;
+        reactionCount: number;
+      }) => void)
+    | null,
   onCatchUp: null as (() => void | Promise<void>) | null,
 };
 
@@ -42,6 +61,23 @@ function applyPeerRead(
       readByPeer: new Date(m.createdAt).getTime() <= readAt,
     };
   });
+}
+
+function normalizeMessage(
+  message: ChatMessage,
+  opts?: { fromSelf?: boolean; myId?: string | null },
+): ChatMessage {
+  const myId = opts?.myId;
+  const mine =
+    opts?.fromSelf === true || (myId != null && message.senderId === myId);
+  return {
+    ...message,
+    reactions: message.reactions ?? emptyChatReactions(),
+    reactionCount: message.reactionCount ?? 0,
+    myReaction: message.myReaction ?? null,
+    mine,
+    readByPeer: mine ? (message.readByPeer ?? false) : undefined,
+  };
 }
 
 function clearReconnectTimer() {
@@ -146,6 +182,24 @@ function connectThreadStream(conversationId: string) {
     }
   });
 
+  es.addEventListener("reaction", (ev) => {
+    if (generation !== threadLive.generation) return;
+    try {
+      const payload = JSON.parse((ev as MessageEvent).data) as {
+        type: "reaction";
+        messageId: string;
+        conversationId: string;
+        userId: string;
+        reaction: ChatMessageReactionType | null;
+        reactions: Record<ChatMessageReactionType, number>;
+        reactionCount: number;
+      };
+      if (payload?.messageId) threadLive.onReaction?.(payload);
+    } catch {
+      // ignore malformed frames
+    }
+  });
+
   es.addEventListener("ping", () => {
     // heartbeat
   });
@@ -189,6 +243,10 @@ export const useChat = () => {
   );
   const loadingMessages = useState<boolean>(
     "chat:loadingMessages",
+    () => false,
+  );
+  const loadingOlderMessages = useState<boolean>(
+    "chat:loadingOlderMessages",
     () => false,
   );
   const sending = useState<boolean>("chat:sending", () => false);
@@ -251,15 +309,10 @@ export const useChat = () => {
 
   function ingestMessage(message: ChatMessage, opts?: { fromSelf?: boolean }) {
     if (messages.value.some((m) => m.id === message.id)) return;
-    const myId = auth.user.value?.id;
-    const mine =
-      opts?.fromSelf === true ||
-      (myId != null && message.senderId === myId);
-    const normalized: ChatMessage = {
-      ...message,
-      mine,
-      readByPeer: mine ? false : undefined,
-    };
+    const normalized = normalizeMessage(message, {
+      fromSelf: opts?.fromSelf,
+      myId: auth.user.value?.id,
+    });
     const withRead = applyPeerRead(
       [...messages.value, normalized],
       peerLastReadAt.value,
@@ -268,7 +321,7 @@ export const useChat = () => {
     touchSidebar(withRead[withRead.length - 1] ?? normalized);
 
     if (
-      !mine &&
+      !normalized.mine &&
       activeId.value &&
       message.conversationId === activeId.value
     ) {
@@ -286,6 +339,30 @@ export const useChat = () => {
     messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
     const conv = conversations.value.find((c) => c.id === activeId.value);
     if (conv) conv.peerLastReadAt = lastReadAt;
+  }
+
+  function applyReactionEvent(payload: {
+    messageId: string;
+    conversationId: string;
+    userId: string;
+    reaction: ChatMessageReactionType | null;
+    reactions: Record<ChatMessageReactionType, number>;
+    reactionCount: number;
+  }) {
+    if (activeId.value && payload.conversationId !== activeId.value) {
+      return;
+    }
+    const myId = auth.user.value?.id;
+    messages.value = messages.value.map((m) => {
+      if (m.id !== payload.messageId) return m;
+      return {
+        ...m,
+        reactions: payload.reactions,
+        reactionCount: payload.reactionCount,
+        myReaction:
+          myId && payload.userId === myId ? payload.reaction : m.myReaction,
+      };
+    });
   }
 
   async function pollNewMessages() {
@@ -324,6 +401,7 @@ export const useChat = () => {
   threadLive.onMessage = (message) => ingestMessage(message);
   threadLive.onRead = (userId, lastReadAt) =>
     applyReadEvent(userId, lastReadAt);
+  threadLive.onReaction = (payload) => applyReactionEvent(payload);
   threadLive.onCatchUp = () => pollNewMessages();
 
   async function startConversation(peerUserId: string) {
@@ -353,10 +431,15 @@ export const useChat = () => {
         hasMore: boolean;
         peerLastReadAt: string | null;
       }>(`/api/chat/conversations/${id}/messages`, {
-        query: { limit: 50 },
+        query: { limit: 40 },
       });
       peerLastReadAt.value = res.peerLastReadAt ?? null;
-      messages.value = applyPeerRead(res.messages, peerLastReadAt.value);
+      messages.value = applyPeerRead(
+        res.messages.map((m) =>
+          normalizeMessage(m, { myId: auth.user.value?.id }),
+        ),
+        peerLastReadAt.value,
+      );
       messagesHasMore.value = res.hasMore;
       const conv = conversations.value.find((c) => c.id === id);
       if (conv) {
@@ -379,31 +462,43 @@ export const useChat = () => {
   }
 
   async function loadOlderMessages() {
-    if (!activeId.value || !messages.value.length || !messagesHasMore.value) {
+    if (
+      !activeId.value ||
+      !messages.value.length ||
+      !messagesHasMore.value ||
+      loadingOlderMessages.value
+    ) {
       return;
     }
     const before = messages.value[0]?.id;
     if (!before) return;
-    const res = await apiFetch<{
-      messages: ChatMessage[];
-      hasMore: boolean;
-      peerLastReadAt: string | null;
-    }>(`/api/chat/conversations/${activeId.value}/messages`, {
-      query: { limit: 50, before },
-    });
-    if (res.peerLastReadAt) {
-      peerLastReadAt.value = res.peerLastReadAt;
+    loadingOlderMessages.value = true;
+    try {
+      const res = await apiFetch<{
+        messages: ChatMessage[];
+        hasMore: boolean;
+        peerLastReadAt: string | null;
+      }>(`/api/chat/conversations/${activeId.value}/messages`, {
+        query: { limit: 40, before },
+      });
+      if (res.peerLastReadAt) {
+        peerLastReadAt.value = res.peerLastReadAt;
+      }
+      const existing = new Set(messages.value.map((m) => m.id));
+      const older = applyPeerRead(
+        res.messages
+          .filter((m) => !existing.has(m.id))
+          .map((m) => normalizeMessage(m, { myId: auth.user.value?.id })),
+        peerLastReadAt.value,
+      );
+      messages.value = applyPeerRead(
+        [...older, ...messages.value],
+        peerLastReadAt.value,
+      );
+      messagesHasMore.value = res.hasMore;
+    } finally {
+      loadingOlderMessages.value = false;
     }
-    const existing = new Set(messages.value.map((m) => m.id));
-    const older = applyPeerRead(
-      res.messages.filter((m) => !existing.has(m.id)),
-      peerLastReadAt.value,
-    );
-    messages.value = applyPeerRead(
-      [...older, ...messages.value],
-      peerLastReadAt.value,
-    );
-    messagesHasMore.value = res.hasMore;
   }
 
   /** Enable live thread updates (SSE, with slow REST fallback). */
@@ -488,6 +583,89 @@ export const useChat = () => {
     }
   }
 
+  /**
+   * Optimistic reaction mutation with per-message request tokens so rapid
+   * clicks don't leave a stale response winning.
+   */
+  const reactionRequestTokens = new Map<string, number>();
+
+  async function mutateMessageReaction(
+    messageId: string,
+    reaction: ChatMessageReactionType | null,
+  ) {
+    if (!activeId.value) return;
+    const prev = messages.value.find((m) => m.id === messageId);
+    if (!prev) return;
+    if (reaction === null && prev.myReaction == null) return;
+    if (reaction !== null && prev.myReaction === reaction) return;
+
+    const token = (reactionRequestTokens.get(messageId) ?? 0) + 1;
+    reactionRequestTokens.set(messageId, token);
+    const isLatest = () => reactionRequestTokens.get(messageId) === token;
+
+    const reactions = { ...(prev.reactions ?? emptyChatReactions()) };
+    if (prev.myReaction != null) {
+      reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
+    }
+    if (reaction) {
+      reactions[reaction] = (reactions[reaction] ?? 0) + 1;
+    }
+    const reactionCount = CHAT_REACTION_TYPES.reduce(
+      (sum: number, k) => sum + (reactions[k] ?? 0),
+      0,
+    );
+
+    messages.value = messages.value.map((m) =>
+      m.id === messageId
+        ? { ...m, reactions, reactionCount, myReaction: reaction }
+        : m,
+    );
+
+    try {
+      const path = `/api/chat/conversations/${activeId.value}/messages/${messageId}/reactions`;
+      const res = reaction
+        ? await apiFetch<{
+            message: ChatMessage;
+            reactions: Record<ChatMessageReactionType, number>;
+            reactionCount: number;
+            myReaction: ChatMessageReactionType | null;
+          }>(path, { method: "POST", body: { reaction } })
+        : await apiFetch<{
+            message: ChatMessage;
+            reactions: Record<ChatMessageReactionType, number>;
+            reactionCount: number;
+            myReaction: ChatMessageReactionType | null;
+          }>(path, { method: "DELETE" });
+      if (!isLatest()) return;
+      messages.value = messages.value.map((m) =>
+        m.id === messageId
+          ? {
+              ...m,
+              reactions: res.reactions ?? res.message.reactions,
+              reactionCount: res.reactionCount ?? res.message.reactionCount,
+              myReaction: res.myReaction ?? res.message.myReaction,
+            }
+          : m,
+      );
+    } catch {
+      if (!isLatest()) return;
+      messages.value = messages.value.map((m) =>
+        m.id === messageId ? prev : m,
+      );
+    }
+  }
+
+  async function setMessageReaction(
+    messageId: string,
+    reaction: ChatMessageReactionType,
+  ) {
+    await mutateMessageReaction(messageId, reaction);
+  }
+
+  async function clearMessageReaction(messageId: string) {
+    await mutateMessageReaction(messageId, null);
+  }
+
   function closeConversation() {
     disconnectThreadStream();
     activeId.value = null;
@@ -506,6 +684,7 @@ export const useChat = () => {
     messagesHasMore,
     loadingConversations,
     loadingMessages,
+    loadingOlderMessages,
     sending,
     stickers,
     emoji,
@@ -519,6 +698,8 @@ export const useChat = () => {
     sendSticker,
     sendImage,
     sendAudio,
+    setMessageReaction,
+    clearMessageReaction,
     startPolling,
     stopPolling,
     closeConversation,

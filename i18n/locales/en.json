@@ -1008,6 +1008,8 @@
     "threadEmpty": "Say hello — send a message, emoji, or sticker.",
     "loadOlder": "Load older messages",
     "loadingOlder": "Loading…",
+    "reactToMessage": "React to message",
+    "chooseReaction": "Choose reaction",
     "pickConversation": "Pick a conversation",
     "pickConversationHint": "Select someone from the list, or start a new chat to begin messaging.",
     "backToList": "Back to conversations",

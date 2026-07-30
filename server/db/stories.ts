@@ -3,9 +3,17 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
-import { assertOwnedUploads, purgeOrphanedUploads, purgeR2StorageKeys } from "./uploads";
+import {
+  assertOwnedUploads,
+  purgeOrphanedUploads,
+  purgeR2StorageKeys,
+} from "./uploads";
 import type { PostAuthor, PostReactionType } from "../../types/post";
 import { POST_REACTION_TYPES } from "../../types/post";
+import {
+  emptyReactions as emptyReactionCounts,
+  toReactionType,
+} from "../../types/reaction";
 import type {
   Story,
   StoryAuthorGroup,
@@ -67,14 +75,7 @@ interface ReactionUserRow extends RowDataPacket {
 }
 
 function emptyReactions(): Record<PostReactionType, number> {
-  return {
-    like: 0,
-    love: 0,
-    haha: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0,
-  };
+  return emptyReactionCounts();
 }
 
 function toAuthor(
@@ -86,7 +87,7 @@ function toAuthor(
     title?: string | null;
     job?: string | null;
     location?: string | null;
-  }
+  },
 ): PostAuthor {
   return {
     id,
@@ -116,8 +117,10 @@ async function loadStoryReactionMaps(
     storyIds,
   );
   for (const row of rows) {
+    const reaction = toReactionType(row.reaction);
+    if (reaction == null) continue;
     const bucket = map.get(row.story_id) ?? emptyReactions();
-    bucket[row.reaction] = Number(row.cnt);
+    bucket[reaction] = Number(row.cnt);
     map.set(row.story_id, bucket);
   }
   return map;
@@ -129,7 +132,7 @@ function rowToStory(
   reactions: Record<PostReactionType, number>,
 ): Story {
   const reactionCount = POST_REACTION_TYPES.reduce(
-    (sum, key) => sum + (reactions[key] ?? 0),
+    (sum: number, key) => sum + (reactions[key] ?? 0),
     0,
   );
   const isOwner = row.user_id === viewerId;
@@ -150,7 +153,7 @@ function rowToStory(
     canDelete: isOwner,
     reactions,
     reactionCount,
-    myReaction: row.my_reaction ?? null,
+    myReaction: toReactionType(row.my_reaction),
     viewCount: isOwner ? Number(row.view_count ?? 0) : 0,
   };
 }
@@ -424,7 +427,7 @@ export async function getStoryInsights(
       location: r.location,
     }),
     viewedAt: dbToISO(r.viewed_at),
-    reaction: r.reaction ?? null,
+    reaction: toReactionType(r.reaction),
   }));
 
   const [reactionRows] = await pool.query<ReactionCountRow[]>(
@@ -436,10 +439,12 @@ export async function getStoryInsights(
   );
   const reactions = emptyReactions();
   for (const row of reactionRows) {
-    reactions[row.reaction] = Number(row.cnt);
+    const reaction = toReactionType(row.reaction);
+    if (reaction == null) continue;
+    reactions[reaction] = Number(row.cnt);
   }
   const reactionCount = POST_REACTION_TYPES.reduce(
-    (sum, key) => sum + (reactions[key] ?? 0),
+    (sum: number, key) => sum + (reactions[key] ?? 0),
     0,
   );
 
@@ -459,16 +464,22 @@ export async function getStoryInsights(
     viewers,
     reactions,
     reactionCount,
-    reactionUsers: reactionUsers.map((r) => ({
-      user: toAuthor(r.user_id, r.name, r.email, {
-        avatarUploadId: r.avatar_upload_id,
-        title: r.title,
-        job: r.job,
-        location: r.location,
-      }),
-      reaction: r.reaction,
-      createdAt: dbToISO(r.created_at),
-    })),
+    reactionUsers: reactionUsers.flatMap((r) => {
+      const reaction = toReactionType(r.reaction);
+      if (reaction == null) return [];
+      return [
+        {
+          user: toAuthor(r.user_id, r.name, r.email, {
+            avatarUploadId: r.avatar_upload_id,
+            title: r.title,
+            job: r.job,
+            location: r.location,
+          }),
+          reaction,
+          createdAt: dbToISO(r.created_at),
+        },
+      ];
+    }),
   };
 }
 

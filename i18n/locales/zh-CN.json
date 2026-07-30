@@ -1008,6 +1008,8 @@
     "threadEmpty": "打个招呼 — 发送文字、表情或贴纸。",
     "loadOlder": "加载更早的消息",
     "loadingOlder": "加载中…",
+    "reactToMessage": "表情回应",
+    "chooseReaction": "选择表情",
     "pickConversation": "选择会话",
     "pickConversationHint": "从列表选择联系人，或开始新聊天。",
     "backToList": "返回列表",

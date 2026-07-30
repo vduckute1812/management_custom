@@ -1,13 +1,8 @@
-import { z } from "zod";
 import { setStoryReaction } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
-import { POST_REACTION_TYPES } from "~/types/post";
-
-const bodySchema = z.object({
-  reaction: z.enum(
-    POST_REACTION_TYPES as unknown as [string, ...string[]]
-  ),
-});
+import { parseBody, mapDomainError } from "~/server/utils/http";
+import { postReactionBodySchema } from "~/server/schemas";
+import type { ReactionType } from "~/types/reaction";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
@@ -16,20 +11,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Story id required" });
   }
 
-  const raw = await readBody(event);
-  const parsed = bodySchema.safeParse(raw);
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Invalid reaction",
-    });
-  }
+  const body = await parseBody(event, postReactionBodySchema);
 
   try {
     const story = await setStoryReaction(
       user.sub,
       id,
-      parsed.data.reaction as (typeof POST_REACTION_TYPES)[number]
+      body.reaction as ReactionType,
     );
     return {
       story,
@@ -38,10 +26,6 @@ export default defineEventHandler(async (event) => {
       reactionCount: story.reactionCount,
     };
   } catch (err: unknown) {
-    const statusCode = (err as { statusCode?: number })?.statusCode;
-    if (statusCode === 404) {
-      throw createError({ statusCode: 404, statusMessage: "Story not found" });
-    }
-    throw err;
+    mapDomainError(err);
   }
 });

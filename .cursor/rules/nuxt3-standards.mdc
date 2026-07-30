@@ -77,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
 * Prefer `parseBody` / `parseQuery` from `~/server/utils/http.ts` with schemas from `~/server/schemas`.
 * Use `requireUser` / `requireAdmin` from `~/server/utils/authContext` — do not re-parse JWT in each route.
-* Integer enums (`status`, `priority`, `role`, message `kind`, …) must be numbers on the wire — reject strings with `400`.
+* **Never create string field-type enums.** Closed domain sets (`status`, `priority`, `role`, message `kind`, `ReactionType`, upload/format kinds, …) are `TINYINT UNSIGNED` + named integer `const` in `types/` — **not** MySQL `ENUM('a','b')`, **not** `VARCHAR` tokens, **not** TS `"a"|"b"` / Zod `z.enum(["a","b"])` on the wire. Reject non-numbers with `400`. Skill: [`.cursor/skills/integer-db-enums/SKILL.md`](../skills/integer-db-enums/SKILL.md); docs: [`implement/database.md`](../../implement/database.md).
 * Prefer semantic status codes: `400` validation, `401` unauthenticated, `403` forbidden, `404` missing, `500` unexpected.
 * Never log passwords, tokens, verify/reset URLs, or raw Authorization headers. On queue/mail failures, log the error only — not the one-time link.
 * Prefer `DomainError` + `mapDomainError` over `Object.assign(new Error(...), { statusCode })` in new code.
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
 
 * Spec / as-built: [`implement/chat-spec.md`](../../implement/chat-spec.md), [`implement/api.md`](../../implement/api.md).
 * Routes under `/api/chat/*`; DB in `server/db/chat.ts`; UI `/chat` + `useChat` + `plugins/chat-inbox.client.ts`.
-* Message kinds are **integer enums** (`ChatMessageKind`). Validate with shared Zod schemas.
+* Message kinds and reactions are **integer enums** (`ChatMessageKind`, `ReactionType` / `ChatMessageReaction`). Validate with shared Zod schemas — never MySQL `ENUM('…')` string columns for new chat fields.
 * Participant ACL on every conversation/message route — never trust client-supplied peer ids without membership checks.
 * Media (image / voice) uses the same upload pipeline as Feed (`uploads` + R2). Composer must clean up `MediaRecorder` streams and object URLs on unmount.
 * Thread live updates: SSE on `/api/chat/conversations/:id/stream` while a conversation is open — do not reintroduce a fixed 3.5s message poll. Keep a slow REST `?after=` fallback only when the stream is down. Connection state for the thread EventSource must be **module-scoped** (shared across `useChat()` callers: page + inbox plugin). Catch up with `?after=` on every SSE `ready`. Inbox badge uses `/api/chat/inbox/stream`. Clear EventSource / timers on sign-out / leave `/chat`. Keep prod nginx SSE locations (`proxy_http_version 1.1`, `proxy_buffering off`, long `proxy_read_timeout`) in `docker/nginx.prod.conf` — generic `/api/` 60s timeout causes 504 on these streams.

@@ -6,16 +6,31 @@ import {
   ChatMessageKind,
   CHAT_STICKER_IDS,
   CHAT_VOICE_MAX_MS,
+  CHAT_REACTION_TYPES,
+  emptyChatReactions,
   type ChatAttachment,
   type ChatConversation,
   type ChatMessage,
+  type ChatMessageReactionType,
   type ChatPeer,
 } from "~/types/chat";
+import { toReactionType } from "~/types/reaction";
 import { isoToDB, dbToISO } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
 import { getUploadById } from "./uploads";
+
+interface ReactionCountRow extends RowDataPacket {
+  message_id: string;
+  reaction: ChatMessageReactionType;
+  cnt: number;
+}
+
+interface MyReactionRow extends RowDataPacket {
+  message_id: string;
+  reaction: ChatMessageReactionType;
+}
 
 interface ConversationRow extends RowDataPacket {
   id: string;
@@ -124,6 +139,8 @@ function toMessage(
   },
   viewerId?: string,
   peerLastReadAtIso?: string | null,
+  reactions?: Record<ChatMessageReactionType, number>,
+  myReaction?: ChatMessageReactionType | null,
 ): ChatMessage {
   const createdAt = dbToISO(row.created_at);
   const mine = viewerId ? row.sender_id === viewerId : false;
@@ -134,6 +151,11 @@ function toMessage(
   } else if (mine) {
     readByPeer = false;
   }
+  const reactionMap = reactions ?? emptyChatReactions();
+  const reactionCount = CHAT_REACTION_TYPES.reduce(
+    (sum: number, key) => sum + (reactionMap[key] ?? 0),
+    0,
+  );
   return {
     id: row.id,
     conversationId: row.conversation_id,
@@ -154,9 +176,58 @@ function toMessage(
       sizeBytes: row.upl_size_bytes,
     }),
     createdAt,
+    reactions: reactionMap,
+    reactionCount,
+    myReaction: myReaction ?? null,
     ...(viewerId ? { mine } : {}),
     ...(readByPeer !== undefined ? { readByPeer } : {}),
   };
+}
+
+async function loadMessageReactionMaps(
+  messageIds: string[],
+  viewerId?: string,
+): Promise<{
+  counts: Map<string, Record<ChatMessageReactionType, number>>;
+  mine: Map<string, ChatMessageReactionType>;
+}> {
+  const counts = new Map<string, Record<ChatMessageReactionType, number>>();
+  const mine = new Map<string, ChatMessageReactionType>();
+  for (const id of messageIds) counts.set(id, emptyChatReactions());
+  if (!messageIds.length) return { counts, mine };
+
+  const pool = getPool();
+  const placeholders = messageIds.map(() => "?").join(",");
+  const [rows] = await pool.query<ReactionCountRow[]>(
+    `SELECT message_id, reaction, COUNT(*) AS cnt
+     FROM chat_message_reactions
+     WHERE message_id IN (${placeholders})
+     GROUP BY message_id, reaction`,
+    messageIds,
+  );
+  for (const row of rows) {
+    const reaction = toReactionType(row.reaction);
+    if (reaction == null) continue;
+    const bucket = counts.get(row.message_id) ?? emptyChatReactions();
+    bucket[reaction] = Number(row.cnt);
+    counts.set(row.message_id, bucket);
+  }
+
+  if (viewerId) {
+    const [mineRows] = await pool.query<MyReactionRow[]>(
+      `SELECT message_id, reaction
+       FROM chat_message_reactions
+       WHERE user_id = ? AND message_id IN (${placeholders})`,
+      [viewerId, ...messageIds],
+    );
+    for (const row of mineRows) {
+      const reaction = toReactionType(row.reaction);
+      if (reaction == null) continue;
+      mine.set(row.message_id, reaction);
+    }
+  }
+
+  return { counts, mine };
 }
 
 function orderedPair(userId: string, peerId: string): [string, string] {
@@ -444,8 +515,21 @@ export async function listMessages(
   // Always return chronological ascending for the UI
   const chronological = options.after ? slice : [...slice].reverse();
 
+  const { counts, mine } = await loadMessageReactionMaps(
+    chronological.map((r) => r.id),
+    userId,
+  );
+
   return {
-    messages: chronological.map((r) => toMessage(r, userId, peerLastReadAt)),
+    messages: chronological.map((r) =>
+      toMessage(
+        r,
+        userId,
+        peerLastReadAt,
+        counts.get(r.id),
+        mine.get(r.id) ?? null,
+      ),
+    ),
     hasMore: options.after ? false : hasMore,
     peerLastReadAt,
   };
@@ -631,9 +715,127 @@ export async function sendMessage(
     durationMs,
     attachment,
     createdAt: now,
+    reactions: emptyChatReactions(),
+    reactionCount: 0,
+    myReaction: null,
     mine: true,
     readByPeer: false,
   };
+}
+
+export async function getChatMessageForParticipant(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+): Promise<ChatMessage | null> {
+  const conv = await loadConversationRow(conversationId);
+  if (!conv) return null;
+  try {
+    assertParticipant(conv, userId);
+  } catch {
+    return null;
+  }
+
+  const peerId = conv.user_a_id === userId ? conv.user_b_id : conv.user_a_id;
+  const pool = getPool();
+  const [peerReadRows] = await pool.query<RowDataPacket[]>(
+    `SELECT last_read_at FROM chat_conversation_reads
+     WHERE conversation_id = ? AND user_id = ? LIMIT 1`,
+    [conversationId, peerId],
+  );
+  const peerLastReadAt = peerReadRows[0]?.last_read_at
+    ? dbToISO(String(peerReadRows[0].last_read_at))
+    : null;
+
+  const [rows] = await pool.query<MessageRow[]>(
+    `SELECT m.id, m.conversation_id, m.sender_id, m.kind, m.body, m.sticker_id,
+            m.upload_id, m.duration_ms, m.created_at,
+            u.file_name AS upl_file_name, u.mime AS upl_mime,
+            u.kind AS upl_kind, u.size_bytes AS upl_size_bytes
+     FROM chat_messages m
+     LEFT JOIN uploads u ON u.id = m.upload_id
+     WHERE m.id = ? AND m.conversation_id = ?
+     LIMIT 1`,
+    [messageId, conversationId],
+  );
+  if (!rows.length) return null;
+
+  const { counts, mine } = await loadMessageReactionMaps([messageId], userId);
+  return toMessage(
+    rows[0],
+    userId,
+    peerLastReadAt,
+    counts.get(messageId),
+    mine.get(messageId) ?? null,
+  );
+}
+
+export async function setChatMessageReaction(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+  reaction: ChatMessageReactionType,
+): Promise<ChatMessage> {
+  if (!CHAT_REACTION_TYPES.includes(reaction)) {
+    throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
+  }
+  const existing = await getChatMessageForParticipant(
+    userId,
+    conversationId,
+    messageId,
+  );
+  if (!existing) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+
+  const pool = getPool();
+  await pool.query(
+    `INSERT INTO chat_message_reactions (message_id, user_id, reaction, created_at)
+     VALUES (?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE reaction = VALUES(reaction), created_at = VALUES(created_at)`,
+    [messageId, userId, reaction, isoToDB(nowISO())],
+  );
+
+  const refreshed = await getChatMessageForParticipant(
+    userId,
+    conversationId,
+    messageId,
+  );
+  if (!refreshed) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+  return refreshed;
+}
+
+export async function clearChatMessageReaction(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+): Promise<ChatMessage> {
+  const existing = await getChatMessageForParticipant(
+    userId,
+    conversationId,
+    messageId,
+  );
+  if (!existing) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+
+  const pool = getPool();
+  await pool.query(
+    "DELETE FROM chat_message_reactions WHERE message_id = ? AND user_id = ?",
+    [messageId, userId],
+  );
+
+  const refreshed = await getChatMessageForParticipant(
+    userId,
+    conversationId,
+    messageId,
+  );
+  if (!refreshed) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+  return refreshed;
 }
 
 export async function markConversationRead(

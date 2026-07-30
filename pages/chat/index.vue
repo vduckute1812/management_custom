@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ChatMessageReactionType } from "~/types/chat";
+
 const { t } = useI18n();
 const auth = useAuth();
 const route = useRoute();
@@ -19,6 +21,7 @@ const {
   messagesHasMore,
   loadingConversations,
   loadingMessages,
+  loadingOlderMessages,
   sending,
   stickers,
   emoji,
@@ -31,6 +34,8 @@ const {
   sendSticker,
   sendImage,
   sendAudio,
+  setMessageReaction,
+  clearMessageReaction,
   startPolling,
   stopPolling,
   closeConversation,
@@ -40,7 +45,6 @@ const { searchDebounced, results, loading: searching } = useUserDirectory();
 
 const userQuery = ref("");
 const showNewChat = ref(false);
-const loadingMore = ref(false);
 const starting = ref(false);
 
 const peerFromQuery = computed(() => {
@@ -102,13 +106,15 @@ async function startWithUser(userId: string) {
 }
 
 async function onLoadMore() {
-  if (loadingMore.value) return;
-  loadingMore.value = true;
-  try {
-    await loadOlderMessages();
-  } finally {
-    loadingMore.value = false;
-  }
+  await loadOlderMessages();
+}
+
+function onReact(messageId: string, reaction: ChatMessageReactionType) {
+  void setMessageReaction(messageId, reaction);
+}
+
+function onClearReact(messageId: string) {
+  void clearMessageReaction(messageId);
 }
 
 function peerLabel() {
@@ -250,9 +256,11 @@ function backToList() {
             :messages="messages"
             :has-more="messagesHasMore"
             :loading="loadingMessages"
-            :loading-more="loadingMore"
+            :loading-more="loadingOlderMessages"
             :peer-last-read-at="peerLastReadAt"
             @load-more="onLoadMore"
+            @react="onReact"
+            @clear-react="onClearReact"
           />
 
           <ChatComposer

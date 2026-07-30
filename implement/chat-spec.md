@@ -14,6 +14,8 @@ Let members of the same install message each other privately from `/chat`, witho
 - Message kinds: text (`0`), emoji (`1`), sticker (`2`), image (`3`), audio (`4`) — integer enums end-to-end
 - Built-in sticker catalog + emoji picker (no custom sticker uploads)
 - Image + voice notes via `POST /api/uploads` then chat message `uploadId` (R2)
+- Message reactions (`ReactionType` integers: Like=0 … Angry=5) — same constants as posts/stories
+- Cursor paging + scroll-load older messages in the open thread
 - Unread counts per conversation + install-wide total
 - Read receipts (`peerLastReadAt` / `readByPeer`)
 - In-app toast + nav badge for new messages (desktop Notification when permitted) via SSE inbox stream
@@ -37,30 +39,35 @@ Let members of the same install message each other privately from `/chat`, witho
 7. Nav Chat badge + toast (and desktop notification when permitted) for new unread mail
 8. While `/chat` is open on a thread, live updates via `GET /api/chat/conversations/:id/stream` (SSE); slow REST fallback if the stream is down
 9. Inbox badge via `GET /api/chat/inbox/stream` (SSE) while signed in
+10. Scroll toward the top of a thread to load older pages (cursor `before`); scroll position is preserved while prepending
+11. Hover/tap 🙂 on a bubble to react; chips under the bubble show aggregates and toggle your reaction
 
 ## Data
 
 - `chat_conversations` — unique ordered pair `(user_a_id, user_b_id)`; `last_message_at` + denormalized `last_message_id`
 - `chat_messages` — body and/or `sticker_id` and/or `upload_id` (+ `duration_ms` for voice)
 - `chat_conversation_reads` — per-user `last_read_at` + denormalized `unread_count`
+- `chat_message_reactions` — one reaction per `(message_id, user_id)`; `reaction` TINYINT (`ReactionType`)
 - `uploads.kind` includes `audio` (migration `0014`)
 
-Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sql`.
+Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sql`, `0017_chat_message_reactions.sql` (+ `0018_reaction_int_enums.sql` for post/story).
 
 ## API (summary)
 
-| Method | Path                                   | Purpose                                                             |
-| ------ | -------------------------------------- | ------------------------------------------------------------------- |
-| `GET`  | `/api/chat/conversations`              | List + `unreadTotal` + `peerLastReadAt`                             |
-| `POST` | `/api/chat/conversations`              | Start/get DM `{ peerUserId }`                                       |
-| `GET`  | `/api/chat/conversations/:id/messages` | History / cursors; includes `peerLastReadAt` / `readByPeer`         |
-| `GET`  | `/api/chat/conversations/:id/stream`   | SSE: `message` + `read` (+ `ping`) for the open thread              |
-| `POST` | `/api/chat/conversations/:id/messages` | Send text / emoji / sticker / image / audio                         |
-| `POST` | `/api/chat/conversations/:id/read`     | Mark read                                                           |
-| `GET`  | `/api/chat/unread`                     | REST snapshot (fallback / tools); same payload as SSE `inbox` event |
-| `GET`  | `/api/chat/inbox/stream`               | SSE inbox stream for badge + toast (auth cookie)                    |
-| `GET`  | `/api/chat/catalog`                    | Stickers + emoji list                                               |
-| `POST` | `/api/uploads`                         | Upload image/audio bytes before sending media messages              |
+| Method   | Path                                                        | Purpose                                                                 |
+| -------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `GET`    | `/api/chat/conversations`                                   | List + `unreadTotal` + `peerLastReadAt`                                 |
+| `POST`   | `/api/chat/conversations`                                   | Start/get DM `{ peerUserId }`                                           |
+| `GET`    | `/api/chat/conversations/:id/messages`                      | History / cursors; includes `peerLastReadAt` / `readByPeer` / reactions |
+| `GET`    | `/api/chat/conversations/:id/stream`                        | SSE: `message` + `read` + `reaction` (+ `ping`) for the open thread     |
+| `POST`   | `/api/chat/conversations/:id/messages`                      | Send text / emoji / sticker / image / audio                             |
+| `POST`   | `/api/chat/conversations/:id/messages/:messageId/reactions` | Set reaction                                                            |
+| `DELETE` | `/api/chat/conversations/:id/messages/:messageId/reactions` | Clear reaction                                                          |
+| `POST`   | `/api/chat/conversations/:id/read`                          | Mark read                                                               |
+| `GET`    | `/api/chat/unread`                                          | REST snapshot (fallback / tools); same payload as SSE `inbox` event     |
+| `GET`    | `/api/chat/inbox/stream`                                    | SSE inbox stream for badge + toast (auth cookie)                        |
+| `GET`    | `/api/chat/catalog`                                         | Stickers + emoji list                                                   |
+| `POST`   | `/api/uploads`                                              | Upload image/audio bytes before sending media messages                  |
 
 Prod nginx must special-case the two SSE paths (HTTP/1.1, buffering off, long read timeout) — see `docker/nginx.prod.conf` and the note in [`api.md`](./api.md).
 
