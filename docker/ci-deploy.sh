@@ -11,6 +11,10 @@
 #      restores the `:previous` image tag.
 #   4. If the new container fails its health check, we retag the previous
 #      image as :latest and recreate the app.
+#   5. Prunes leftover images/containers around the build: before build
+#      (free disk), on build failure (partial layers), and after a healthy
+#      deploy (multi-stage intermediates, old SHA tags, stopped containers).
+#      Always keeps :latest / :previous / the new SHA; never touches volumes.
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
@@ -81,43 +85,88 @@ restore_previous_tag() {
   fi
 }
 
-# Free Podman/Docker layer storage before a large multi-stage build. Keeps
-# :latest / :previous (and any currently-running containers) intact.
+# Free Podman/Docker layer storage around builds. Keeps :latest / :previous /
+# the in-flight SHA tag (and any currently-running containers) intact.
+# Never prunes named volumes (MySQL data). Never uses `image prune -a` —
+# that would delete :previous while only :latest is running.
+#
+# Extra keep refs can be passed as args (e.g. prune_image_storage "${NEW_TAG}").
 prune_image_storage() {
-  log "pruning unused ${RUNTIME} images/layers to free disk"
+  log "pruning unused ${RUNTIME} images/containers to free disk"
   df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
-  if [[ "${RUNTIME}" == "podman" ]]; then
-    # Drop dangling layers from failed/partial builds first.
-    podman image prune -f >/dev/null 2>&1 || true
-    # Remove prior SHA tags of this app image except :latest and :previous.
-    # (Failed builds leave many :abcd123 layers that fill /var/tmp on a Pi.)
-    local ref
+
+  local keep_ref
+  declare -A KEEP=()
+  KEEP["${LATEST_TAG}"]=1
+  KEEP["${PREV_TAG}"]=1
+  KEEP["${NEW_TAG}"]=1
+  for keep_ref in "$@"; do
+    [[ -n "${keep_ref}" ]] && KEEP["${keep_ref}"]=1
+  done
+
+  remove_old_app_tags() {
+    local ref repo tag
     while IFS= read -r ref; do
-      [[ -z "${ref}" ]] && continue
-      case "${ref}" in
-        "${LATEST_TAG}"|"${PREV_TAG}"|"${NEW_TAG}") continue ;;
-      esac
+      [[ -z "${ref}" || "${ref}" == *":<none>" ]] && continue
+      repo="${ref%:*}"
+      tag="${ref##*:}"
+      # Only touch tags of our app image repo.
+      [[ "${repo}" == "${IMAGE}" || "${repo}" == "${IMAGE##*/}" ]] || continue
+      [[ -n "${KEEP[${ref}]+x}" ]] && continue
+      # Also match when listing omits the localhost/ prefix.
+      [[ -n "${KEEP[${IMAGE}:${tag}]+x}" ]] && continue
       log "removing old image ${ref}"
-      podman rmi -f "${ref}" >/dev/null 2>&1 || true
-    done < <(podman images --format '{{.Repository}}:{{.Tag}}' "${IMAGE}" 2>/dev/null || true)
+      "${RUNTIME}" rmi -f "${ref}" >/dev/null 2>&1 || true
+    done < <(
+      if [[ "${RUNTIME}" == "podman" ]]; then
+        podman images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+      else
+        docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+      fi
+    )
+  }
+
+  remove_dangling_images() {
+    local id
+    # Built-in dangling prune first…
+    if [[ "${RUNTIME}" == "podman" ]]; then
+      podman image prune -f >/dev/null 2>&1 || true
+    else
+      docker image prune -f >/dev/null 2>&1 || true
+    fi
+    # …then force-remove any leftover <none> IDs `prune -f` sometimes leaves
+    # on rootless Podman after multi-stage builds (builder stages, failed COPY).
+    while IFS= read -r id; do
+      [[ -z "${id}" ]] && continue
+      log "removing dangling image ${id}"
+      "${RUNTIME}" rmi -f "${id}" >/dev/null 2>&1 || true
+    done < <(
+      if [[ "${RUNTIME}" == "podman" ]]; then
+        podman images -f dangling=true -q 2>/dev/null || true
+      else
+        docker images -f dangling=true -q 2>/dev/null || true
+      fi
+    )
+  }
+
+  # Stopped one-shot migrate/build containers.
+  if [[ "${RUNTIME}" == "podman" ]]; then
     podman container prune -f >/dev/null 2>&1 || true
-    # Build cache + unused networks; never prune named volumes (MySQL data).
+  else
+    docker container prune -f >/dev/null 2>&1 || true
+  fi
+
+  remove_old_app_tags
+  remove_dangling_images
+
+  # Unused networks / build cache only — never volumes.
+  if [[ "${RUNTIME}" == "podman" ]]; then
     podman system prune -f >/dev/null 2>&1 || true
   else
-    docker image prune -f >/dev/null 2>&1 || true
-    local ref
-    while IFS= read -r ref; do
-      [[ -z "${ref}" ]] && continue
-      case "${ref}" in
-        "${LATEST_TAG}"|"${PREV_TAG}"|"${NEW_TAG}") continue ;;
-      esac
-      log "removing old image ${ref}"
-      docker rmi -f "${ref}" >/dev/null 2>&1 || true
-    done < <(docker images --format '{{.Repository}}:{{.Tag}}' "${IMAGE}" 2>/dev/null || true)
-    docker container prune -f >/dev/null 2>&1 || true
     docker builder prune -f >/dev/null 2>&1 || true
     docker system prune -f >/dev/null 2>&1 || true
   fi
+
   df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
 }
 
@@ -399,6 +448,12 @@ if ! wait_healthy; then
 fi
 
 log "deploy succeeded (${GIT_SHA})"
+
+# Drop multi-stage build leftovers + old SHA tags now that :latest is healthy.
+# :previous stays for the next rollback window.
+log "pruning build leftovers after successful deploy"
+prune_image_storage "${NEW_TAG}"
+
 PUBLIC_URL="https://dntechx.com"
 if [[ -f docker/cloudflared.env ]]; then
   PUBLIC_URL="$(grep '^APP_BASE_URL=' docker/cloudflared.env | cut -d= -f2- || true)"
