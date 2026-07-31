@@ -1,4 +1,8 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import type {
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
@@ -154,6 +158,63 @@ function visibilityClause(alias = "p"): string {
 /** Anonymous visitors may only see explicitly public posts. */
 function publicOnlyClause(alias = "p"): string {
   return `${alias}.visibility = ${PostVisibility.Public}`;
+}
+
+/**
+ * Feed page token: `createdAt|id` (stable under equal timestamps).
+ * Legacy clients may still send a bare ISO `createdAt`.
+ */
+export function encodeFeedCursor(createdAt: string, id: string): string {
+  return `${createdAt}|${id}`;
+}
+
+export function parseFeedCursor(cursor: string): {
+  createdAt: string;
+  id: string | null;
+} {
+  const trimmed = cursor.trim();
+  const sep = trimmed.lastIndexOf("|");
+  if (sep > 0) {
+    const createdAt = trimmed.slice(0, sep);
+    const id = trimmed.slice(sep + 1);
+    if (createdAt && id) return { createdAt, id };
+  }
+  return { createdAt: trimmed, id: null };
+}
+
+async function insertAudienceRows(
+  conn: PoolConnection,
+  postId: string,
+  userIds: string[],
+  now: string,
+): Promise<void> {
+  if (!userIds.length) return;
+  const values: unknown[] = [];
+  const placeholders = userIds.map((uid) => {
+    values.push(postId, uid, isoToDB(now));
+    return "(?, ?, ?)";
+  });
+  await conn.query(
+    `INSERT INTO post_audience (post_id, user_id, created_at) VALUES ${placeholders.join(",")}`,
+    values,
+  );
+}
+
+/** Cheap ACL check — does not hydrate attachments/reactions/audience. */
+async function assertPostVisible(
+  viewerId: string,
+  postId: string,
+): Promise<void> {
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM posts p
+     WHERE p.id = ? AND ${visibilityClause("p")}
+     LIMIT 1`,
+    [postId, viewerId, viewerId],
+  );
+  if (!rows.length) {
+    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+  }
 }
 
 const POST_SELECT = `
@@ -543,8 +604,16 @@ export async function listFeedPosts(
     params.push(categoryId);
   }
   if (cursor) {
-    where += " AND p.created_at < ?";
-    params.push(isoToDB(cursor));
+    const parsed = parseFeedCursor(cursor);
+    if (parsed.id) {
+      // Tie-break on id so posts sharing created_at are not skipped/duplicated.
+      where += " AND (p.created_at < ? OR (p.created_at = ? AND p.id < ?))";
+      const at = isoToDB(parsed.createdAt);
+      params.push(at, at, parsed.id);
+    } else {
+      where += " AND p.created_at < ?";
+      params.push(isoToDB(parsed.createdAt));
+    }
   }
   // Over-fetch slightly so locale dedupe still fills a page.
   params.push(limit * 2 + 1);
@@ -552,16 +621,17 @@ export async function listFeedPosts(
   const [rows] = await pool.query<PostRow[]>(
     `${POST_SELECT}
      ${where}
-     ORDER BY p.created_at DESC
+     ORDER BY p.created_at DESC, p.id DESC
      LIMIT ?`,
     params,
   );
 
   const hydrated = await hydratePosts(rows, vid, preferredLocale);
   const posts = hydrated.slice(0, limit);
+  const last = posts[posts.length - 1];
   const nextCursor =
-    hydrated.length > limit
-      ? (posts[posts.length - 1]?.createdAt ?? null)
+    hydrated.length > limit && last
+      ? encodeFeedCursor(last.createdAt, last.id)
       : null;
   return { posts, nextCursor };
 }
@@ -730,12 +800,7 @@ export async function createPost(
       ],
     );
 
-    for (const uid of audienceUserIds) {
-      await conn.query(
-        `INSERT INTO post_audience (post_id, user_id, created_at) VALUES (?, ?, ?)`,
-        [id, uid, isoToDB(now)],
-      );
-    }
+    await insertAudienceRows(conn, id, audienceUserIds, now);
 
     for (const up of uploads) {
       await insertAttachment(conn, id, up, now);
@@ -909,12 +974,7 @@ export async function updatePost(
     );
 
     await conn.query(`DELETE FROM post_audience WHERE post_id = ?`, [postId]);
-    for (const uid of audienceUserIds) {
-      await conn.query(
-        `INSERT INTO post_audience (post_id, user_id, created_at) VALUES (?, ?, ?)`,
-        [postId, uid, isoToDB(now)],
-      );
-    }
+    await insertAudienceRows(conn, postId, audienceUserIds, now);
 
     for (const uploadId of removedUploadIds) {
       await conn.query(
@@ -978,15 +1038,12 @@ export async function setPostReaction(
   postId: string,
   reaction: PostReactionType,
 ): Promise<Post> {
-  const pool = getPool();
-  const post = await getPostById(userId, postId);
-  if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
-  }
   if (!POST_REACTION_TYPES.includes(reaction)) {
     throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
   }
+  await assertPostVisible(userId, postId);
 
+  const pool = getPool();
   await pool.query(
     `INSERT INTO post_reactions (post_id, user_id, reaction, created_at)
      VALUES (?, ?, ?, ?)
@@ -1005,12 +1062,9 @@ export async function clearPostReaction(
   userId: string,
   postId: string,
 ): Promise<Post> {
-  const pool = getPool();
-  const post = await getPostById(userId, postId);
-  if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
-  }
+  await assertPostVisible(userId, postId);
 
+  const pool = getPool();
   await pool.query(
     "DELETE FROM post_reactions WHERE post_id = ? AND user_id = ?",
     [postId, userId],

@@ -784,6 +784,33 @@ export async function getChatMessageForParticipant(
   );
 }
 
+/** Participant + message existence only — skips reaction/upload hydrate. */
+async function assertChatMessageAccessible(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+): Promise<void> {
+  const conv = await loadConversationRow(conversationId);
+  if (!conv) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+  try {
+    assertParticipant(conv, userId);
+  } catch {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM chat_messages
+     WHERE id = ? AND conversation_id = ?
+     LIMIT 1`,
+    [messageId, conversationId],
+  );
+  if (!rows.length) {
+    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+  }
+}
+
 export async function setChatMessageReaction(
   userId: string,
   conversationId: string,
@@ -793,14 +820,7 @@ export async function setChatMessageReaction(
   if (!CHAT_REACTION_TYPES.includes(reaction)) {
     throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
   }
-  const existing = await getChatMessageForParticipant(
-    userId,
-    conversationId,
-    messageId,
-  );
-  if (!existing) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
-  }
+  await assertChatMessageAccessible(userId, conversationId, messageId);
 
   const pool = getPool();
   await pool.query(
@@ -826,14 +846,7 @@ export async function clearChatMessageReaction(
   conversationId: string,
   messageId: string,
 ): Promise<ChatMessage> {
-  const existing = await getChatMessageForParticipant(
-    userId,
-    conversationId,
-    messageId,
-  );
-  if (!existing) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
-  }
+  await assertChatMessageAccessible(userId, conversationId, messageId);
 
   const pool = getPool();
   await pool.query(

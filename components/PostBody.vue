@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import "katex/dist/katex.min.css";
 import type { PostFontFamily, PostTextColor } from "~/types/post";
 import { POST_FONT_FAMILY_CSS, POST_TEXT_COLOR_CSS } from "~/types/post";
-import { renderPostBodyHtml } from "~/utils/renderPostBody";
+import { renderPostBody } from "~/utils/renderPostBody";
 import { withUploadAccessTokens } from "~/utils/markdownMedia";
 
 const props = withDefaults(
@@ -19,8 +18,33 @@ const props = withDefaults(
 
 const { mediaUrl } = useMediaUrl();
 
-const html = computed(() =>
-  withUploadAccessTokens(renderPostBodyHtml(props.body), mediaUrl),
+// Cache sanitized HTML by body text. Media URLs no longer embed access
+// tokens (cookie auth), so token refresh must not re-parse markdown/KaTeX.
+const renderedByBody = new Map<string, string>();
+
+const html = ref("");
+
+async function render(body: string) {
+  let sanitized = renderedByBody.get(body);
+  if (sanitized == null) {
+    sanitized = await renderPostBody(body);
+    // Bound the cache — feed scroll can visit many unique bodies.
+    if (renderedByBody.size > 200) {
+      const oldest = renderedByBody.keys().next().value;
+      if (oldest != null) renderedByBody.delete(oldest);
+    }
+    renderedByBody.set(body, sanitized);
+  }
+  if (props.body !== body) return;
+  html.value = withUploadAccessTokens(sanitized, mediaUrl);
+}
+
+await render(props.body);
+watch(
+  () => props.body,
+  (body) => {
+    void render(body);
+  },
 );
 
 const style = computed(() => {

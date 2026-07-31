@@ -197,13 +197,8 @@ export async function purgeExpiredStories(): Promise<{
   return { stories, uploads };
 }
 
-export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
-  const pool = getPool();
-  // Expired rows are filtered below (`expires_at > now`). Physical delete +
-  // R2 cleanup runs in the job worker (~2 min), not on this read path.
-
-  const [rows] = await pool.query<StoryRow[]>(
-    `SELECT
+/** Shared SELECT for tray + single-story reload (viewer-scoped subqueries). */
+const STORY_SELECT = `SELECT
        s.id, s.user_id, s.body, s.upload_id, s.media_storage_key, s.mime,
        s.created_at, s.expires_at,
        u.name AS author_name, u.email AS author_email,
@@ -218,7 +213,40 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
        (SELECT COUNT(*) FROM story_views sv2
          WHERE sv2.story_id = s.id) AS view_count
      FROM stories s
-     INNER JOIN users u ON u.id = s.user_id
+     INNER JOIN users u ON u.id = s.user_id`;
+
+/**
+ * Load one non-expired story as the viewer would see it in the tray.
+ * Prefer this over listStoriesTray after create/react mutations.
+ */
+export async function getStoryForViewer(
+  viewerId: string,
+  storyId: string,
+): Promise<Story | null> {
+  const pool = getPool();
+  const [rows] = await pool.query<StoryRow[]>(
+    `${STORY_SELECT}
+     WHERE s.id = ? AND s.expires_at > UTC_TIMESTAMP(3)
+     LIMIT 1`,
+    [viewerId, viewerId, storyId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  const reactionMaps = await loadStoryReactionMaps([row.id]);
+  return rowToStory(
+    row,
+    viewerId,
+    reactionMaps.get(row.id) ?? emptyReactions(),
+  );
+}
+
+export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
+  const pool = getPool();
+  // Expired rows are filtered below (`expires_at > now`). Physical delete +
+  // R2 cleanup runs in the job worker (~2 min), not on this read path.
+
+  const [rows] = await pool.query<StoryRow[]>(
+    `${STORY_SELECT}
      WHERE s.expires_at > UTC_TIMESTAMP(3)
      ORDER BY s.created_at ASC`,
     [viewerId, viewerId],
@@ -320,12 +348,9 @@ export async function createStory(
     ],
   );
 
-  const tray = await listStoriesTray(userId);
-  for (const g of tray.groups) {
-    const found = g.stories.find((s) => s.id === id);
-    if (found) return found;
-  }
-  throw new Error("Failed to load created story");
+  const created = await getStoryForViewer(userId, id);
+  if (!created) throw new Error("Failed to load created story");
+  return created;
 }
 
 export async function markStoryViewed(
@@ -507,12 +532,11 @@ export async function setStoryReaction(
     [storyId, userId, reaction, isoToDB(now)],
   );
 
-  const tray = await listStoriesTray(userId);
-  for (const g of tray.groups) {
-    const found = g.stories.find((s) => s.id === storyId);
-    if (found) return found;
+  const refreshed = await getStoryForViewer(userId, storyId);
+  if (!refreshed) {
+    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
   }
-  throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+  return refreshed;
 }
 
 export async function clearStoryReaction(
@@ -526,10 +550,9 @@ export async function clearStoryReaction(
     [storyId, userId],
   );
 
-  const tray = await listStoriesTray(userId);
-  for (const g of tray.groups) {
-    const found = g.stories.find((s) => s.id === storyId);
-    if (found) return found;
+  const refreshed = await getStoryForViewer(userId, storyId);
+  if (!refreshed) {
+    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
   }
-  throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+  return refreshed;
 }

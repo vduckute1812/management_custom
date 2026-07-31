@@ -1,4 +1,3 @@
-import katex from "katex";
 import { marked, Renderer } from "marked";
 import DOMPurify from "isomorphic-dompurify";
 
@@ -18,10 +17,25 @@ marked.setOptions({
 const MATH_TOKEN = (i: number) => `%%MDMATH${i}%%`;
 const MATH_RESTORE = /%%MDMATH(\d+)%%/g;
 
+/** Cheap pre-check: any unescaped `$…$` / `$$…$$` that would become a math slot. */
+export function bodyHasMath(raw: string): boolean {
+  if (!raw || !raw.includes("$")) return false;
+  // Same extraction order as renderPostBody — display then inline.
+  const withoutEscaped = raw.replace(/\\\$/g, "");
+  return (
+    /\$\$[\s\S]+?\$\$/.test(withoutEscaped) ||
+    /\$[^$\n]+?\$/.test(withoutEscaped)
+  );
+}
+
 type MathSlot = { display: boolean; tex: string };
 
-function renderKatex(tex: string, displayMode: boolean): string {
+async function renderKatex(tex: string, displayMode: boolean): Promise<string> {
   try {
+    const katex = (await import("katex")).default;
+    // Side-effect import — Vite emits a separate CSS chunk loaded only when
+    // a post actually contains math.
+    await import("katex/dist/katex.min.css");
     return katex.renderToString(tex, { displayMode, throwOnError: false });
   } catch {
     return escapeHtml(tex);
@@ -230,8 +244,11 @@ export function normalizeMarkdownTables(src: string): string {
 /**
  * Render post body: GitHub-flavored Markdown + KaTeX ($…$ / $$…$$).
  * Output is sanitized HTML safe for v-html.
+ *
+ * KaTeX (~280KB JS + fonts + CSS) is loaded only when the body contains math,
+ * so the public `/feed` route does not pay that cost for ordinary posts.
  */
-export function renderPostBody(raw: string): string {
+export async function renderPostBody(raw: string): Promise<string> {
   if (!raw) return "";
 
   const dollars = stashEscapedDollars(raw);
@@ -255,11 +272,14 @@ export function renderPostBody(raw: string): string {
 
   let html = marked.parse(text, { async: false }) as string;
 
-  html = html.replace(MATH_RESTORE, (_m, n: string) => {
-    const slot = slots[Number(n)];
-    if (!slot) return "";
-    return renderKatex(slot.tex, slot.display);
-  });
+  if (slots.length) {
+    const rendered = await Promise.all(
+      slots.map((slot) => renderKatex(slot.tex, slot.display)),
+    );
+    html = html.replace(MATH_RESTORE, (_m, n: string) => {
+      return rendered[Number(n)] ?? "";
+    });
+  }
 
   // Keep real table layout; scroll wide tables via a wrapper (not display:block on <table>).
   html = html.replace(
