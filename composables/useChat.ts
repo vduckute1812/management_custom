@@ -216,7 +216,8 @@ function connectThreadStream(conversationId: string) {
 }
 
 export const useChat = () => {
-  const { t } = useI18n();
+  // Called from chat-inbox.client plugin (no Vue setup) — useI18n() → prod "26".
+  const { t } = useSafeI18n();
   const { apiFetch } = useApi();
   const auth = useAuth();
 
