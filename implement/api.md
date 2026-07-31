@@ -130,9 +130,9 @@ Used by `plugins/i18n-locale.client.ts` for first-visit locale detection. Direct
 
 ## Health
 
-| Method | Endpoint      | Auth   | Description                                                                                                  |
-| ------ | ------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
-| `GET`  | `/api/health` | Public | Readiness probe. `200` + `{ ok: true }` when MySQL answers and migrations have no pending/drift; else `503`. |
+| Method | Endpoint      | Auth   | Description                                                                                                                                                                                                                  |
+| ------ | ------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/health` | Public | Readiness probe. `200` + `{ ok: true, db, migrations: { ok } }` when MySQL answers and migrations have no pending/drift; else `503`. Error details and pending/drift counts stay in the server log — not in the public body. |
 
 Used by Pi deploy (`ci-deploy.sh`) after recreating the app container.
 

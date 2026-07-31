@@ -34,16 +34,16 @@ export function attachUserFromHeader(event: H3Event): void {
     if (match) token = match[1];
   }
   // HttpOnly access cookie — used by same-origin <img>/<video> media loads
-  // that cannot set Authorization, replacing the legacy ?access_token= leak.
+  // that cannot set Authorization.
   if (!token) {
     const fromCookie = getCookie(event, ACCESS_COOKIE);
     if (fromCookie && fromCookie.trim()) token = fromCookie.trim();
   }
-  // Legacy fallback for older clients / cached HTML that still append the
-  // query param. Prefer cookie or Bearer; query tokens show up in logs.
-  if (!token) {
-    const q = getQuery(event);
-    const fromQuery = q.access_token;
+  // Query tokens end up in access logs, browser history, and Referer headers.
+  // Accept them only on media GETs that older cached HTML may still call with
+  // `?access_token=` — every other route requires Bearer or the HttpOnly cookie.
+  if (!token && isUploadMediaGet(event)) {
+    const fromQuery = getQuery(event).access_token;
     if (typeof fromQuery === "string" && fromQuery.trim()) {
       token = fromQuery.trim();
     }
@@ -54,6 +54,12 @@ export function attachUserFromHeader(event: H3Event): void {
   } catch {
     // Swallow — middleware never blocks; protected routes assert below.
   }
+}
+
+function isUploadMediaGet(event: H3Event): boolean {
+  if (event.method !== "GET" && event.method !== "HEAD") return false;
+  const path = event.path.split("?")[0] || "";
+  return path.startsWith("/api/uploads/");
 }
 
 export function getOptionalUser(event: H3Event): AccessTokenClaims | undefined {

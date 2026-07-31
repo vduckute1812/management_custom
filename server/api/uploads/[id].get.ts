@@ -9,7 +9,8 @@ import { getOptionalUser } from "~/server/utils/authContext";
 /**
  * Auth + ACL gate, then 302 to a short-lived Cloudflare R2 signed URL.
  * Public-post attachments are readable without a session.
- * Query `?access_token=` is accepted via auth middleware for <img> tags.
+ * Prefer the HttpOnly access cookie for private media; `?access_token=` is
+ * accepted only on this GET (see `attachUserFromHeader`) for older cached HTML.
  * Query `?redirect=0` streams through the API instead (debugging).
  */
 export default defineEventHandler(async (event) => {

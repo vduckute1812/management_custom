@@ -18,12 +18,10 @@ const props = withDefaults(
 );
 
 const { mediaUrl } = useMediaUrl();
-const auth = useAuth();
 
-const html = computed(() => {
-  void auth.accessToken.value;
-  return withUploadAccessTokens(renderPostBodyHtml(props.body), mediaUrl);
-});
+const html = computed(() =>
+  withUploadAccessTokens(renderPostBodyHtml(props.body), mediaUrl),
+);
 
 const style = computed(() => {
   const out: Record<string, string> = {};
