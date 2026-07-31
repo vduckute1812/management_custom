@@ -21,10 +21,10 @@ coverage
 **/*.test.ts
 vitest.config.ts
 
-# Secrets / local env (prod secrets are bind-mounted / linked on the Pi)
+# Secrets / local env — never bake into image layers (including the long-lived
+# :builder-cache tag on the Pi). Runtime secrets arrive via compose env_file.
 .env
 .env.*
-!docker/.env.prod
 
 # Ops tooling used on the host, not inside the app image
 uv.lock
