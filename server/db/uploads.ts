@@ -1,4 +1,9 @@
-import type { RowDataPacket } from "mysql2/promise";
+import type {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
@@ -261,17 +266,21 @@ async function safeR2Delete(key: string): Promise<void> {
 
 /**
  * True when the upload is still referenced by a live post attachment, a
- * non-expired story, or a user avatar. Expired stories must not keep media alive.
+ * non-expired story, a user avatar, or a chat message. Expired stories must
+ * not keep media alive. Accepts either the pool or a transactional connection
+ * so callers can lock the upload row first.
  */
-export async function isUploadReferenced(uploadId: string): Promise<boolean> {
-  const pool = getPool();
-  const [postRows] = await pool.query<RowDataPacket[]>(
+export async function isUploadReferenced(
+  uploadId: string,
+  executor: Pool | PoolConnection = getPool(),
+): Promise<boolean> {
+  const [postRows] = await executor.query<RowDataPacket[]>(
     `SELECT 1 FROM post_attachments WHERE upload_id = ? LIMIT 1`,
     [uploadId],
   );
   if (postRows.length) return true;
 
-  const [storyRows] = await pool.query<RowDataPacket[]>(
+  const [storyRows] = await executor.query<RowDataPacket[]>(
     `SELECT 1 FROM stories
      WHERE upload_id = ? AND expires_at > UTC_TIMESTAMP(3)
      LIMIT 1`,
@@ -279,13 +288,13 @@ export async function isUploadReferenced(uploadId: string): Promise<boolean> {
   );
   if (storyRows.length) return true;
 
-  const [avatarRows] = await pool.query<RowDataPacket[]>(
+  const [avatarRows] = await executor.query<RowDataPacket[]>(
     `SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1`,
     [uploadId],
   );
   if (avatarRows.length) return true;
 
-  const [chatRows] = await pool.query<RowDataPacket[]>(
+  const [chatRows] = await executor.query<RowDataPacket[]>(
     `SELECT 1 FROM chat_messages WHERE upload_id = ? LIMIT 1`,
     [uploadId],
   );
@@ -295,6 +304,11 @@ export async function isUploadReferenced(uploadId: string): Promise<boolean> {
 /**
  * Delete upload rows + Cloudflare R2 objects when nothing still displays them.
  * Safe to call after post/story deletes or expired-story purge.
+ *
+ * Locks each upload row, re-checks references, deletes the DB row first, then
+ * the R2 object. The previous order (R2 then DB) left broken media if the
+ * DELETE failed; the previous unlocked check let a concurrent attach lose its
+ * media via FK CASCADE on post_attachments.
  */
 export async function purgeOrphanedUploads(
   uploadIds: Array<string | null | undefined>,
@@ -304,17 +318,44 @@ export async function purgeOrphanedUploads(
   ];
   if (!unique.length) return 0;
 
+  const pool = getPool();
   let purged = 0;
   for (const id of unique) {
-    if (await isUploadReferenced(id)) continue;
-    const row = await getUploadById(id);
-    if (!row) continue;
-    await safeR2Delete(row.storage_key);
-    const pool = getPool();
-    const [result] = await pool.query(`DELETE FROM uploads WHERE id = ?`, [id]);
-    if (((result as { affectedRows?: number }).affectedRows ?? 0) > 0) {
+    const conn = await pool.getConnection();
+    let storageKey: string | null = null;
+    try {
+      await conn.beginTransaction();
+      const [rows] = await conn.query<UploadRow[]>(
+        `SELECT * FROM uploads WHERE id = ? LIMIT 1 FOR UPDATE`,
+        [id],
+      );
+      const row = rows[0];
+      if (!row) {
+        await conn.rollback();
+        continue;
+      }
+      if (await isUploadReferenced(id, conn)) {
+        await conn.rollback();
+        continue;
+      }
+      storageKey = row.storage_key;
+      const [result] = await conn.query<ResultSetHeader>(
+        `DELETE FROM uploads WHERE id = ?`,
+        [id],
+      );
+      if ((result.affectedRows ?? 0) === 0) {
+        await conn.rollback();
+        continue;
+      }
+      await conn.commit();
       purged += 1;
+    } catch (err) {
+      await conn.rollback();
+      throw err;
+    } finally {
+      conn.release();
     }
+    if (storageKey) await safeR2Delete(storageKey);
   }
   return purged;
 }
