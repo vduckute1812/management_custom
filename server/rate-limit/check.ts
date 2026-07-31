@@ -3,13 +3,13 @@ import type { RateLimitOptions, RateLimitResult } from "./types";
 
 /**
  * Fixed-window rate limit check keyed by an arbitrary client identifier
- * (typically `ip:global` or `ip:/api/auth/login`).
+ * (typically `ip:global`, `ip:/api/auth/login`, or `account:email:/api/auth/login`).
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   { limit, windowMs }: RateLimitOptions,
-): RateLimitResult {
-  const { count, resetAt } = rateLimitHit(key, windowMs);
+): Promise<RateLimitResult> {
+  const { count, resetAt } = await rateLimitHit(key, windowMs);
 
   if (count > limit) {
     return { allowed: false, limit, remaining: 0, resetAt };

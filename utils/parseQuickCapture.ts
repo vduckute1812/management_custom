@@ -1,5 +1,6 @@
 import dayjs, { type Dayjs } from "dayjs";
 import type { TimeBlock } from "~/types/task";
+import { newClientId } from "~/utils/clientId";
 
 export interface ParsedQuickCapture {
   title: string;
@@ -8,10 +9,6 @@ export interface ParsedQuickCapture {
   block: TimeBlock;
   /** Human-readable schedule summary for the success toast. */
   scheduleLabel: string;
-}
-
-function tempBlockId() {
-  return `block_${Math.random().toString(16).slice(2, 10)}`;
 }
 
 function nextHourStart(from: Dayjs = dayjs()): Dayjs {
@@ -118,7 +115,7 @@ export function parseQuickCapture(input: string): ParsedQuickCapture {
   }
 
   const block: TimeBlock = {
-    id: tempBlockId(),
+    id: newClientId("block"),
     start: start.toISOString(),
     end: end.toISOString(),
   };

@@ -8,9 +8,8 @@
  * server-side) and flips the user's `email_verified` flag.
  */
 import {
-  consumeEmailVerification,
   getUserById,
-  setEmailVerified,
+  redeemEmailVerification,
   toAuthUser,
 } from "~/server/utils/db";
 import { hashOpaqueToken } from "~/server/utils/auth";
@@ -21,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, verifyEmailBodySchema);
   const presented = body.token;
 
-  const userId = await consumeEmailVerification(hashOpaqueToken(presented));
+  const userId = await redeemEmailVerification(hashOpaqueToken(presented));
   if (!userId) {
     throw createError({
       statusCode: 400,
@@ -29,7 +28,6 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  await setEmailVerified(userId, true);
   const user = await getUserById(userId);
   if (!user) {
     throw createError({ statusCode: 404, statusMessage: "User not found" });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
 import type { TimeBlock } from "~/types/task";
+import { newClientId } from "~/utils/clientId";
 
 const props = defineProps<{
   modelValue: TimeBlock[];
@@ -16,10 +17,6 @@ interface DraftBlock {
   startTime: string;
   endTime: string;
   spentHours: string;
-}
-
-function tempId() {
-  return `block_${Math.random().toString(16).slice(2, 10)}`;
 }
 
 function blockToDraft(b: TimeBlock): DraftBlock {
@@ -92,7 +89,7 @@ function addBlock() {
   const defaultDate = last?.date || dayjs().format("YYYY-MM-DD");
   const startTime = last?.endTime || "09:00";
   drafts.value.push({
-    id: tempId(),
+    id: newClientId("block"),
     date: defaultDate,
     startTime,
     // Seed a 1-hour block so the row is immediately persistable. Without an

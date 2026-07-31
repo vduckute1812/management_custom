@@ -50,9 +50,8 @@ export function bodyReferencesUpload(
 }
 
 /**
- * Append `?access_token=` only as a legacy fallback for non-upload paths.
- * Prefer cookie-authenticated `/api/uploads/...` URLs (HttpOnly `mgmt_at`) —
- * `useMediaUrl` returns bare upload paths for same-origin loads.
+ * Rewrite markdown `<img src="/api/uploads/...">` through `mediaUrl`.
+ * Upload URLs authenticate via the HttpOnly access cookie — no query token.
  */
 export function withUploadAccessTokens(
   html: string,
@@ -60,10 +59,8 @@ export function withUploadAccessTokens(
 ): string {
   return html.replace(
     /(<img\b[^>]*?\bsrc=")(\/api\/uploads\/[^"?#]+)((?:\?[^"]*)?)(")/gi,
-    (_m, pre: string, path: string, query: string, post: string) => {
-      if (/[?&]access_token=/.test(query)) {
-        return `${pre}${path}${query}${post}`;
-      }
+    (_m, pre: string, path: string, _query: string, post: string) => {
+      // Drop any legacy `?access_token=` that may still sit in stored HTML.
       return `${pre}${mediaUrl(path)}${post}`;
     },
   );

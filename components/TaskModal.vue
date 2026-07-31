@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
+import { newClientId } from "~/utils/clientId";
 import {
   PRIORITY_I18N_KEYS,
   RECURRENCE_I18N_KEYS,
@@ -100,7 +101,7 @@ function defaultBlockFromIso(iso?: string): TimeBlock | null {
   if (!start.isValid()) return null;
   const end = start.add(1, "hour");
   return {
-    id: `block_${Math.random().toString(16).slice(2, 10)}`,
+    id: newClientId("block"),
     start: start.toISOString(),
     end: end.toISOString(),
   };
@@ -160,7 +161,7 @@ function addChecklistItem() {
   const text = newChecklistItem.value.trim();
   if (!text) return;
   form.value.checklist.push({
-    id: `chk_${Math.random().toString(16).slice(2, 10)}`,
+    id: newClientId("chk"),
     text,
     done: false,
   });

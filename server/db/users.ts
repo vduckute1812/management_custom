@@ -161,27 +161,11 @@ export async function updateUserRole(
   ]);
 }
 
-export async function setEmailVerified(
-  id: string,
-  verified: boolean,
-): Promise<void> {
-  const pool = getPool();
-  await pool.query(
-    "UPDATE users SET email_verified = ?, updated_at = ? WHERE id = ?",
-    [verified ? 1 : 0, isoToDB(nowISO()), id],
-  );
-}
-
-export async function updateUserPassword(
-  id: string,
-  passwordHash: string,
-): Promise<void> {
-  const pool = getPool();
-  await pool.query(
-    "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
-    [passwordHash, isoToDB(nowISO()), id],
-  );
-}
+// `email_verified` and `password_hash` are written inside the transactions in
+// server/db/{email-verifications,password-resets}.ts, which must commit the
+// flag/hash together with the one-shot token they belong to. Standalone
+// setters existed here and were the reason those flows were split across two
+// connections.
 
 export interface UpdateUserProfileInput {
   /** Pass `undefined` to leave unchanged; empty/null clears. */

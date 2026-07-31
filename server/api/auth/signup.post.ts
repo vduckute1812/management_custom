@@ -26,6 +26,7 @@ import { enqueueVerificationEmail } from "~/server/utils/queue";
 import { parseBody } from "~/server/utils/http";
 import { signupBodySchema } from "~/server/schemas";
 import { passwordStrengthError } from "~/utils/passwordPolicy";
+import { assertAccountRateLimit } from "~/server/rate-limit";
 
 const VERIFY_TTL_SECONDS = 24 * 3600;
 
@@ -34,6 +35,8 @@ export default defineEventHandler(async (event) => {
   const email = body.email.trim().toLowerCase();
   const password = body.password;
   const name = body.name?.trim() || undefined;
+
+  await assertAccountRateLimit(event, email, "/api/auth/signup");
 
   const strengthError = passwordStrengthError(password);
   if (strengthError) {

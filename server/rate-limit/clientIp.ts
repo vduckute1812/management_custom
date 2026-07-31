@@ -1,4 +1,23 @@
-/** Extract the client IP from proxy headers or the socket. */
+/**
+ * Client IP for rate limiting.
+ *
+ * Trust order matches the production proxy chain (Cloudflare Tunnel → nginx →
+ * Nitro). Earlier versions took the *first* `X-Forwarded-For` hop, which is
+ * client-controlled: anyone who can reach the origin (or whose proxy appends
+ * rather than replaces) could rotate a fresh bucket per request and bypass
+ * the auth budgets entirely.
+ *
+ *   1. CF-Connecting-IP — set by Cloudflare at the edge; not forgeable once
+ *      the request has gone through the tunnel.
+ *   2. X-Real-IP — nginx overwrites this with `$remote_addr` on every proxy
+ *      hop (`docker/nginx.prod.conf.template`), so it is the TCP peer nginx
+ *      saw, not a client-supplied value.
+ *   3. Socket remoteAddress — last resort (direct connections, tests).
+ *
+ * `X-Forwarded-For` is intentionally ignored: with `$proxy_add_x_forwarded_for`
+ * the first hop is spoofable and the last hop is usually cloudflared/loopback,
+ * neither of which is a useful bucket key.
+ */
 export function clientIp(event: {
   node: {
     req: {
@@ -8,15 +27,18 @@ export function clientIp(event: {
   };
 }): string {
   const headers = event.node.req.headers;
-  const forwarded = headers["x-forwarded-for"];
-  const ip = Array.isArray(forwarded)
-    ? forwarded[0]?.split(",")[0]?.trim()
-    : forwarded?.split(",")[0]?.trim();
-  const realIp = headers["x-real-ip"];
-  return (
-    ip ||
-    (Array.isArray(realIp) ? realIp[0] : realIp) ||
-    event.node.req.socket?.remoteAddress ||
-    "unknown"
-  );
+
+  const cf = headerValue(headers["cf-connecting-ip"]);
+  if (cf) return cf;
+
+  const realIp = headerValue(headers["x-real-ip"]);
+  if (realIp) return realIp;
+
+  return event.node.req.socket?.remoteAddress || "unknown";
+}
+
+function headerValue(raw: string | string[] | undefined): string | undefined {
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const trimmed = value?.trim();
+  return trimmed || undefined;
 }
