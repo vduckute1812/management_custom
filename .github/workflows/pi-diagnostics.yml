@@ -1,0 +1,49 @@
+name: Pi diagnostics (logs)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    name: Dump prod container logs
+    runs-on: [self-hosted, management]
+    timeout-minutes: 10
+    steps:
+      - name: Container status + recent app logs
+        run: |
+          set -euo pipefail
+          echo "=== podman ps ==="
+          podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' || true
+          echo
+          echo "=== compose ps ==="
+          cd "${GITHUB_WORKSPACE:-$PWD}"
+          if [[ -f docker/docker-compose.prod.yml ]]; then
+            uv run --project . podman-compose -f docker/docker-compose.prod.yml ps 2>/dev/null || true
+          fi
+          echo
+          APP=$(podman ps -a --format '{{.Names}}' | grep -E 'mgmt-app|app-prod' | head -1 || true)
+          NGINX=$(podman ps -a --format '{{.Names}}' | grep -E 'nginx' | head -1 || true)
+          MYSQL=$(podman ps -a --format '{{.Names}}' | grep -E 'mysql' | head -1 || true)
+          echo "APP=$APP NGINX=$NGINX MYSQL=$MYSQL"
+          echo
+          if [[ -n "$APP" ]]; then
+            echo "=== $APP logs (last 300) ==="
+            podman logs --tail 300 "$APP" 2>&1 || true
+          fi
+          echo
+          if [[ -n "$NGINX" ]]; then
+            echo "=== $NGINX logs (last 80) ==="
+            podman logs --tail 80 "$NGINX" 2>&1 || true
+          fi
+          echo
+          echo "=== health from localhost ==="
+          curl -sS -m 5 http://127.0.0.1:8080/api/health || curl -sS -m 5 http://127.0.0.1/api/health || true
+          echo
+          echo "=== recent 5xx from nginx access if present ==="
+          if [[ -n "$NGINX" ]]; then
+            podman exec "$NGINX" sh -c 'tail -n 200 /var/log/nginx/access.log 2>/dev/null | grep " 5[0-9][0-9] " || true' 2>/dev/null || true
+          fi
+          echo
+          echo "=== cloudflare tunnel unit (if any) ==="
+          systemctl --user status mgmt-cloudflare-tunnel --no-pager -l 2>/dev/null | head -40 || true
+          journalctl --user -u mgmt-cloudflare-tunnel -n 40 --no-pager 2>/dev/null || true
