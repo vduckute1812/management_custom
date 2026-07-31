@@ -27,11 +27,20 @@ const scroller = ref<HTMLElement | null>(null);
 const loadOlderSentinel = ref<HTMLElement | null>(null);
 const stickToBottom = ref(true);
 const pickerForId = ref<string | null>(null);
+/** Message currently pressed (before / while picker is open) — drives hold highlight. */
+const holdingId = ref<string | null>(null);
+const pickerStyle = ref<Record<string, string>>({});
 const scrollSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(
   null,
 );
+/** Snappy long-press — still above accidental tap noise. */
+const LONG_PRESS_MS = 280;
+const MOVE_CANCEL_PX = 10;
 let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 let longPressFired = false;
+let pressStartX = 0;
+let pressStartY = 0;
+let pressBubbleEl: HTMLElement | null = null;
 
 const REACTION_LABEL = computed<Record<ChatMessageReactionType, string>>(
   () => ({
@@ -119,6 +128,7 @@ function requestLoadMore() {
 function onScroll() {
   const el = scroller.value;
   if (!el) return;
+  if (pickerForId.value) closePicker();
   const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
   stickToBottom.value = dist < 48;
   if (el.scrollTop < 48 && props.hasMore && !props.loadingMore) {
@@ -207,12 +217,55 @@ onBeforeUnmount(() => {
   clearLongPress();
 });
 
-function openPicker(messageId: string) {
+function positionPicker(anchor: HTMLElement, mine: boolean) {
+  const rect = anchor.getBoundingClientRect();
+  const pad = 8;
+  // 6×w-10 buttons + 5×gap-0.5 + px-1.5 padding + border
+  const barW = 6 * 40 + 5 * 2 + 12 + 2;
+  const barH = 48;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  const placeAbove = rect.top >= barH + pad + 4;
+  const top = placeAbove
+    ? Math.max(pad, rect.top - barH - 6)
+    : Math.min(vh - barH - pad, rect.bottom + 6);
+
+  let left: number;
+  if (mine) {
+    left = rect.right - barW;
+  } else {
+    left = rect.left;
+  }
+  left = Math.min(Math.max(pad, left), vw - barW - pad);
+
+  pickerStyle.value = {
+    position: "fixed",
+    top: `${Math.round(top)}px`,
+    left: `${Math.round(left)}px`,
+    zIndex: "80",
+  };
+}
+
+function openPicker(messageId: string, anchor: HTMLElement | null) {
+  const msg = props.messages.find((m) => m.id === messageId);
+  if (anchor) positionPicker(anchor, !!msg?.mine);
+  holdingId.value = messageId;
   pickerForId.value = messageId;
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try {
+      navigator.vibrate(12);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function closePicker() {
   pickerForId.value = null;
+  holdingId.value = null;
+  pressBubbleEl = null;
+  pickerStyle.value = {};
 }
 
 function clearLongPress() {
@@ -220,6 +273,12 @@ function clearLongPress() {
     clearTimeout(longPressTimer);
     longPressTimer = null;
   }
+}
+
+function endPressWithoutPicker() {
+  clearLongPress();
+  if (!pickerForId.value) holdingId.value = null;
+  pressBubbleEl = null;
 }
 
 function onBubblePointerDown(messageId: string, ev: PointerEvent) {
@@ -232,20 +291,57 @@ function onBubblePointerDown(messageId: string, ev: PointerEvent) {
   }
   longPressFired = false;
   clearLongPress();
+  pressStartX = ev.clientX;
+  pressStartY = ev.clientY;
+  holdingId.value = messageId;
+  pressBubbleEl =
+    (ev.currentTarget as HTMLElement | null) ??
+    (target?.closest?.("[data-chat-bubble]") as HTMLElement | null);
   longPressTimer = setTimeout(() => {
     longPressFired = true;
-    openPicker(messageId);
+    openPicker(messageId, pressBubbleEl);
     longPressTimer = null;
-  }, 450);
+  }, LONG_PRESS_MS);
+}
+
+function onBubblePointerMove(ev: PointerEvent) {
+  if (!longPressTimer && !holdingId.value) return;
+  if (pickerForId.value) return;
+  const dx = ev.clientX - pressStartX;
+  const dy = ev.clientY - pressStartY;
+  if (dx * dx + dy * dy > MOVE_CANCEL_PX * MOVE_CANCEL_PX) {
+    endPressWithoutPicker();
+  }
 }
 
 function onBubblePointerUp() {
-  clearLongPress();
+  if (!longPressFired) endPressWithoutPicker();
+  else clearLongPress();
+}
+
+function onBubblePointerLeave() {
+  // Don't close an open picker — the teleported bar lives outside the bubble.
+  if (pickerForId.value) {
+    clearLongPress();
+    return;
+  }
+  endPressWithoutPicker();
 }
 
 function onBubblePointerCancel() {
-  clearLongPress();
+  endPressWithoutPicker();
+  if (pickerForId.value) closePicker();
 }
+
+function isMessageHighlighted(messageId: string) {
+  return holdingId.value === messageId || pickerForId.value === messageId;
+}
+
+const pickerMessage = computed(() =>
+  pickerForId.value
+    ? props.messages.find((m) => m.id === pickerForId.value) ?? null
+    : null,
+);
 
 function pickReaction(messageId: string, reaction: ChatMessageReactionType) {
   const msg = props.messages.find((m) => m.id === messageId);
@@ -314,18 +410,28 @@ defineExpose({ scrollToBottom });
       >
         <div class="relative max-w-[85%] sm:max-w-[70%]">
           <div
-            class="relative touch-manipulation select-none [-webkit-touch-callout:none]"
-            :class="
+            data-chat-bubble
+            class="relative touch-manipulation select-none transition-[filter,box-shadow,background-color,transform] duration-150 [-webkit-touch-callout:none] motion-reduce:transition-none"
+            :class="[
               isMediaBubble(msg)
-                ? ''
+                ? 'rounded-2xl px-0.5 py-0.5'
                 : msg.mine
                   ? 'rounded-2xl rounded-br-md bg-brand-600 px-3 py-2 text-white'
-                  : 'rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2 text-slate-800'
-            "
+                  : 'rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2 text-slate-800',
+              isMessageHighlighted(msg.id)
+                ? isMediaBubble(msg)
+                  ? 'scale-[0.98] bg-brand-100/80 ring-2 ring-brand-400 ring-offset-2 ring-offset-white'
+                  : msg.mine
+                    ? 'scale-[0.98] bg-brand-700 shadow-md ring-2 ring-brand-300 ring-offset-2 ring-offset-white'
+                    : 'scale-[0.98] bg-brand-100 text-slate-900 shadow-md ring-2 ring-brand-400 ring-offset-2 ring-offset-white'
+                : '',
+            ]"
             @pointerdown="onBubblePointerDown(msg.id, $event)"
+            @pointermove="onBubblePointerMove"
             @pointerup="onBubblePointerUp"
-            @pointerleave="onBubblePointerCancel"
+            @pointerleave="onBubblePointerLeave"
             @pointercancel="onBubblePointerCancel"
+            @contextmenu.prevent
           >
             <template v-if="msg.kind === ChatMessageKind.Sticker">
               <span
@@ -416,35 +522,6 @@ defineExpose({ scrollToBottom });
               </span>
             </div>
 
-            <!-- Long-press / context-menu emoji bar -->
-            <div
-              v-if="pickerForId === msg.id"
-              data-chat-react
-              class="absolute bottom-full left-1/2 z-30 mb-2 -translate-x-1/2"
-              role="listbox"
-              :aria-label="t('chat.chooseReaction')"
-            >
-              <div
-                class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-lg"
-              >
-                <button
-                  v-for="r in CHAT_REACTION_TYPES"
-                  :key="r"
-                  type="button"
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl leading-none transition hover:scale-110 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
-                  :class="
-                    msg.myReaction === r
-                      ? 'bg-brand-50 ring-1 ring-brand-200'
-                      : ''
-                  "
-                  :title="REACTION_LABEL[r]"
-                  :aria-label="REACTION_LABEL[r]"
-                  @click.stop="pickReaction(msg.id, r)"
-                >
-                  {{ CHAT_REACTION_EMOJI[r] }}
-                </button>
-              </div>
-            </div>
           </div>
 
           <!-- Existing reaction chips only (no always-on React button) -->
@@ -476,5 +553,38 @@ defineExpose({ scrollToBottom });
         </div>
       </li>
     </ul>
+
+    <!-- Fixed / teleported so the scroller overflow can't clip the bar -->
+    <Teleport to="body">
+      <div
+        v-if="pickerForId && pickerMessage"
+        data-chat-react
+        class="pointer-events-auto"
+        :style="pickerStyle"
+        role="listbox"
+        :aria-label="t('chat.chooseReaction')"
+      >
+        <div
+          class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-lg"
+        >
+          <button
+            v-for="r in CHAT_REACTION_TYPES"
+            :key="r"
+            type="button"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl leading-none transition hover:scale-110 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+            :class="
+              pickerMessage.myReaction === r
+                ? 'bg-brand-50 ring-1 ring-brand-200'
+                : ''
+            "
+            :title="REACTION_LABEL[r]"
+            :aria-label="REACTION_LABEL[r]"
+            @click.stop="pickReaction(pickerMessage.id, r)"
+          >
+            {{ CHAT_REACTION_EMOJI[r] }}
+          </button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
