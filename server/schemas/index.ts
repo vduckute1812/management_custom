@@ -250,6 +250,88 @@ export const postCreateBodySchema = z
     }
   });
 
+/** PATCH post body — format is fixed on the existing row; length checked in service. */
+export const postPatchBodySchema = z.object({
+  body: z.string().trim().min(1, "Post body is required"),
+  title: z.string().trim().max(POST_TITLE_MAX).optional().nullable(),
+  visibility: z
+    .enum(["public", "private", "shared"])
+    .optional()
+    .default("public"),
+  audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
+  attachmentIds: z
+    .array(z.string().min(1))
+    .max(UPLOAD_MAX_PER_POST)
+    .optional()
+    .default([]),
+  categoryId: z.string().min(1).nullable().optional(),
+  fontFamily: z
+    .enum(POST_FONT_FAMILIES as unknown as [string, ...string[]])
+    .optional()
+    .default("default"),
+  textColor: z
+    .enum(POST_TEXT_COLORS as unknown as [string, ...string[]])
+    .optional()
+    .default("default"),
+});
+
+export const postShareBodySchema = z.object({
+  body: z.string().trim().max(5_000).optional().default(""),
+  visibility: z
+    .enum(["public", "private", "shared"])
+    .optional()
+    .default("public"),
+  audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
+});
+
+const optionalProfileText = z
+  .union([z.string(), z.null()])
+  .optional()
+  .transform((v) => (v === undefined ? undefined : v));
+
+export const profilePatchBodySchema = z
+  .object({
+    name: optionalProfileText,
+    avatarUploadId: optionalProfileText,
+    title: optionalProfileText,
+    job: optionalProfileText,
+    location: optionalProfileText,
+  })
+  .refine(
+    (b) =>
+      b.name !== undefined ||
+      b.avatarUploadId !== undefined ||
+      b.title !== undefined ||
+      b.job !== undefined ||
+      b.location !== undefined,
+    { message: "At least one profile field is required" },
+  );
+
+export const storyCreateBodySchema = z
+  .object({
+    body: z.string().trim().max(500).optional().nullable(),
+    uploadId: z.string().min(1).optional().nullable(),
+  })
+  .refine((v) => Boolean(v.body?.trim()) || Boolean(v.uploadId), {
+    message: "Story needs text or media",
+  });
+
+export const categoryCreateBodySchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().min(1).max(64).optional(),
+  sortOrder: z.number().int().min(0).max(100000).optional(),
+});
+
+export const categoryPatchBodySchema = z.object({
+  name: z.string().trim().min(1).max(120).optional(),
+  sortOrder: z.number().int().min(0).max(100000).optional(),
+});
+
+export const userDirectoryQuerySchema = z.object({
+  q: z.string().trim().min(1).max(100),
+  limit: z.coerce.number().int().min(1).max(20).optional().default(20),
+});
+
 export const chatStartBodySchema = z.object({
   peerUserId: z.string().min(1, "peerUserId is required"),
 });

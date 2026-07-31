@@ -1,18 +1,7 @@
-import { z } from "zod";
-import { createPost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
-import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
-
-const bodySchema = z.object({
-  body: z
-    .string()
-    .trim()
-    .max(5_000)
-    .optional()
-    .default(""),
-  visibility: z.enum(["public", "private", "shared"]).optional().default("public"),
-  audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
-});
+import { parseBody, mapDomainError } from "~/server/utils/http";
+import { postShareBodySchema } from "~/server/schemas";
+import { sharePostForUser } from "~/server/services/postService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
@@ -21,41 +10,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Post id required" });
   }
 
-  const raw = await readBody(event);
-  const parsed = bodySchema.safeParse(raw ?? {});
-  if (!parsed.success) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: parsed.error.issues[0]?.message || "Invalid share payload",
-    });
-  }
-
   try {
-    const note = parsed.data.body || "Shared a post";
-    const post = await createPost(user.sub, {
-      body: note,
-      visibility: parsed.data.visibility,
-      audienceUserIds: parsed.data.audienceUserIds,
-      sharedPostId: id,
+    const data = await parseBody(event, postShareBodySchema);
+    return await sharePostForUser(user.sub, id, {
+      body: data.body,
+      visibility: data.visibility,
+      audienceUserIds: data.audienceUserIds,
     });
-    if (post.visibility === "public") {
-      await invalidatePublicFeedCaches();
-    }
-    return { post };
-  } catch (err: unknown) {
-    const statusCode = (err as { statusCode?: number })?.statusCode;
-    if (statusCode === 404) {
-      throw createError({
-        statusCode: 404,
-        statusMessage: "Original post not found",
-      });
-    }
-    if (statusCode === 400) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: (err as Error).message,
-      });
-    }
-    throw err;
+  } catch (err) {
+    mapDomainError(err);
   }
 });
