@@ -46,7 +46,6 @@ async function detectLocaleFromLocation(): Promise<AppLocale | null> {
 
 export default defineNuxtPlugin(() => {
   const { settings, update } = useSettings();
-  // Plugins have no Vue setup instance — useI18n() throws prod error "26".
   const { locale, setLocale, locales } = useSafeI18n();
 
   const available = new Set(
