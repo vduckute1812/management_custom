@@ -133,3 +133,23 @@ export async function revokeAllRefreshTokensForUser(
     [isoToDB(nowISO()), userId],
   );
 }
+
+/**
+ * Drop expired and long-revoked refresh tokens. Rotation never deletes rows,
+ * so without a purge this is the fastest-growing table in the system.
+ */
+export async function purgeExpiredRefreshTokens(
+  revokedOlderThanDays = 30,
+): Promise<number> {
+  const pool = getPool();
+  const revokedCutoff = new Date(
+    Date.now() - revokedOlderThanDays * 24 * 3600 * 1000,
+  ).toISOString();
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM auth_refresh_tokens
+      WHERE expires_at < UTC_TIMESTAMP(3)
+         OR (revoked_at IS NOT NULL AND revoked_at < ?)`,
+    [isoToDB(revokedCutoff)],
+  );
+  return result.affectedRows ?? 0;
+}

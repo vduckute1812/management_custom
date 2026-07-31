@@ -87,3 +87,14 @@ export async function redeemEmailVerification(
     conn.release();
   }
 }
+
+/** Drop consumed or expired verification rows. */
+export async function purgeStaleEmailVerifications(): Promise<number> {
+  const pool = getPool();
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM auth_email_verifications
+      WHERE consumed_at IS NOT NULL
+         OR expires_at < UTC_TIMESTAMP(3)`,
+  );
+  return result.affectedRows ?? 0;
+}

@@ -1,4 +1,4 @@
-import type { RowDataPacket } from "mysql2/promise";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
@@ -1105,15 +1105,25 @@ export async function createPostComment(
   const id = generateId("cmt");
   const now = nowISO();
   const trimmed = body.trim();
-  await pool.query(
-    `INSERT INTO post_comments (id, post_id, user_id, body, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)],
-  );
-  await pool.query(
-    `UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?`,
-    [postId],
-  );
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    await conn.query(
+      `INSERT INTO post_comments (id, post_id, user_id, body, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, postId, userId, trimmed, isoToDB(now), isoToDB(now)],
+    );
+    await conn.query(
+      `UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?`,
+      [postId],
+    );
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 
   const [rows] = await pool.query<CommentRow[]>(
     `SELECT
@@ -1141,20 +1151,63 @@ export async function deletePostComment(
   if (!post) {
     throw Object.assign(new Error("Post not found"), { statusCode: 404 });
   }
-  const [result] = await pool.query(
-    "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
-    [commentId, postId, userId],
-  );
-  const deleted = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
-  if (deleted) {
-    await pool.query(
-      `UPDATE posts
-       SET comment_count = GREATEST(CAST(comment_count AS SIGNED) - 1, 0)
-       WHERE id = ?`,
-      [postId],
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [result] = await conn.query<ResultSetHeader>(
+      "DELETE FROM post_comments WHERE id = ? AND post_id = ? AND user_id = ?",
+      [commentId, postId, userId],
     );
+    const deleted = (result.affectedRows ?? 0) > 0;
+    if (deleted) {
+      await conn.query(
+        `UPDATE posts
+         SET comment_count = GREATEST(CAST(comment_count AS SIGNED) - 1, 0)
+         WHERE id = ?`,
+        [postId],
+      );
+    }
+    await conn.commit();
+    return deleted;
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
   }
-  return deleted;
+}
+
+/**
+ * Recompute `posts.comment_count` from `post_comments`.
+ * Pass `postIds` to limit the rewrite (e.g. after a user delete cascades
+ * comments off other people's posts); omit to recount every post.
+ */
+export async function recountCommentCounts(
+  postIds?: string[],
+): Promise<number> {
+  const pool = getPool();
+  if (postIds && postIds.length === 0) return 0;
+
+  if (postIds) {
+    const placeholders = postIds.map(() => "?").join(",");
+    const [result] = await pool.query<ResultSetHeader>(
+      `UPDATE posts p
+       SET comment_count = (
+         SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id
+       )
+       WHERE p.id IN (${placeholders})`,
+      postIds,
+    );
+    return result.affectedRows ?? 0;
+  }
+
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE posts p
+     SET comment_count = (
+       SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id
+     )`,
+  );
+  return result.affectedRows ?? 0;
 }
 
 export async function searchUserDirectory(

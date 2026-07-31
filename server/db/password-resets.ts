@@ -133,3 +133,14 @@ export async function redeemPasswordReset(input: {
     conn.release();
   }
 }
+
+/** Drop consumed or expired password-reset rows. */
+export async function purgeStalePasswordResets(): Promise<number> {
+  const pool = getPool();
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM auth_password_resets
+      WHERE consumed_at IS NOT NULL
+         OR expires_at < UTC_TIMESTAMP(3)`,
+  );
+  return result.affectedRows ?? 0;
+}
