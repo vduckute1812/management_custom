@@ -15,7 +15,8 @@ import type { StoriesTray } from "~/types/story";
  * Feed page bootstrap — categories + first posts page (+ stories when signed in)
  * in one round-trip so the client does not fan out three GETs on first paint.
  *
- * Subsequent pages still use `GET /api/posts?cursor=…`.
+ * Subsequent pages still use `GET /api/posts?cursor=…`
+ * (`createdAt|id`, with legacy ISO-only cursors still accepted).
  */
 export default defineEventHandler(async (event): Promise<FeedBootstrap> => {
   const user = getOptionalUser(event);
