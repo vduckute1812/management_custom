@@ -29,7 +29,7 @@ export function applyOptimisticReaction(
   if (reaction != null) {
     reactions[reaction] = (reactions[reaction] ?? 0) + 1;
   }
-  const reactionCount = REACTION_TYPES.reduce(
+  const reactionCount = REACTION_TYPES.reduce<number>(
     (sum, key) => sum + (reactions[key] ?? 0),
     0,
   );

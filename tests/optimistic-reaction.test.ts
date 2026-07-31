@@ -16,7 +16,7 @@ describe("applyOptimisticReaction", () => {
   it("clears only when reaction is null", () => {
     const current = {
       reactions: { ...emptyReactions(), [ReactionType.Like]: 1 },
-      myReaction: ReactionType.Like as const,
+      myReaction: ReactionType.Like,
     };
     const next = applyOptimisticReaction(current, null);
     expect(next.myReaction).toBeNull();
@@ -27,7 +27,7 @@ describe("applyOptimisticReaction", () => {
   it("replaces an existing reaction", () => {
     const current = {
       reactions: { ...emptyReactions(), [ReactionType.Like]: 1 },
-      myReaction: ReactionType.Like as const,
+      myReaction: ReactionType.Like,
     };
     const next = applyOptimisticReaction(current, ReactionType.Love);
     expect(next.myReaction).toBe(ReactionType.Love);
