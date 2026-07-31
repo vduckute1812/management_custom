@@ -23,7 +23,6 @@ let counter = 0;
 
 export const useToasts = () => {
   const toasts = useState<Toast[]>("toasts", () => []);
-  // Plugins / middleware have no Vue setup — useI18n() throws prod "26" (500 page).
   const { t } = useSafeI18n();
 
   function dismiss(id: string) {
