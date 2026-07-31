@@ -184,6 +184,12 @@ export const feedQuerySchema = z.object({
   locale: z.string().min(2).max(16).optional(),
 });
 
+/** Newest-page-first comment list; `before` is an ISO createdAt cursor. */
+export const postCommentsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional().default(30),
+  before: z.string().min(1).optional(),
+});
+
 export const postCreateBodySchema = z
   .object({
     body: z.string().trim().min(1, "Post body is required"),

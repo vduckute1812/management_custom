@@ -13,6 +13,7 @@ import {
   timerStartBodySchema,
   chatSendBodySchema,
   chatStartBodySchema,
+  postCommentsQuerySchema,
   verifyEmailBodySchema,
 } from "../server/schemas";
 import { TaskPriority, TaskStatus } from "../types/task";
@@ -229,5 +230,25 @@ describe("chatSendBodySchema", () => {
         durationMs: 1500,
       }).success,
     ).toBe(true);
+  });
+});
+
+describe("postCommentsQuerySchema", () => {
+  it("defaults limit to 30", () => {
+    const parsed = postCommentsQuerySchema.safeParse({});
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.limit).toBe(30);
+  });
+
+  it("accepts before cursor", () => {
+    const parsed = postCommentsQuerySchema.safeParse({
+      before: "2026-07-31T00:00:00.000Z",
+      limit: "10",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.limit).toBe(10);
+      expect(parsed.data.before).toBe("2026-07-31T00:00:00.000Z");
+    }
   });
 });

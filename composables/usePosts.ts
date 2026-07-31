@@ -11,11 +11,9 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
-import {
-  POST_REACTION_TYPES,
-  emptyReactions as emptyReactionCounts,
-} from "~/types/post";
+import { emptyReactions as emptyReactionCounts } from "~/types/post";
 import type { StoriesTray } from "~/types/story";
+import { applyOptimisticReaction } from "~/utils/optimisticReaction";
 
 function emptyReactions(): Record<PostReactionType, number> {
   return emptyReactionCounts();
@@ -312,34 +310,23 @@ export const usePosts = () => {
     reactionRequestTokens.set(id, token);
     const isLatest = () => reactionRequestTokens.get(id) === token;
 
-    const reactions = { ...(prev.reactions ?? emptyReactions()) };
-    if (prev.myReaction != null) {
-      reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
-    }
-    if (reaction) {
-      reactions[reaction] = (reactions[reaction] ?? 0) + 1;
-    }
-    const reactionCount = POST_REACTION_TYPES.reduce(
-      (sum: number, k) => sum + (reactions[k] ?? 0),
-      0,
-    );
+    const optimisticCounts = applyOptimisticReaction(prev, reaction);
     const optimistic: Post = {
       ...prev,
-      reactions,
-      reactionCount,
-      myReaction: reaction,
+      ...optimisticCounts,
     };
     posts.value = patchPost(posts.value, id, optimistic);
 
     try {
-      const res = reaction
-        ? await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
-            method: "POST",
-            body: { reaction },
-          })
-        : await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
-            method: "DELETE",
-          });
+      const res =
+        reaction != null
+          ? await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
+              method: "POST",
+              body: { reaction },
+            })
+          : await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
+              method: "DELETE",
+            });
       // A newer click superseded this request — let its response win.
       if (isLatest()) {
         posts.value = patchPost(posts.value, id, res.post);
@@ -349,7 +336,7 @@ export const usePosts = () => {
         posts.value = patchPost(posts.value, id, prev);
         pushToast(
           t(
-            reaction
+            reaction != null
               ? "toasts.couldNotUpdateReaction"
               : "toasts.couldNotClearReaction",
           ),
@@ -384,11 +371,25 @@ export const usePosts = () => {
     return res.post;
   }
 
-  async function loadComments(postId: string): Promise<PostComment[]> {
-    const res = await apiFetch<{ comments: PostComment[] }>(
-      `/api/posts/${postId}/comments`,
-    );
-    return res.comments;
+  async function loadComments(
+    postId: string,
+    opts: { limit?: number; before?: string | null } = {},
+  ): Promise<{
+    comments: PostComment[];
+    hasMore: boolean;
+    nextBefore: string | null;
+  }> {
+    const res = await apiFetch<{
+      comments: PostComment[];
+      hasMore: boolean;
+      nextBefore: string | null;
+    }>(`/api/posts/${postId}/comments`, {
+      query: {
+        limit: opts.limit ?? 30,
+        ...(opts.before ? { before: opts.before } : {}),
+      },
+    });
+    return res;
   }
 
   async function addComment(

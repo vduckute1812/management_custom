@@ -137,7 +137,7 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 | `GET`    | `/api/posts/:id`                     | Optional | `{ post, audience }` — `audience` author cards only when viewer can edit a shared post; else `[]`. |
 | `PATCH`  | `/api/posts/:id`                     | Required | Update own post. Format / translation fields stay fixed. Body below.         |
 | `DELETE` | `/api/posts/:id`                     | Required | Delete own post.                                                             |
-| `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible (`{ comments }`).                     |
+| `GET`    | `/api/posts/:id/comments`            | Optional | Newest page first (`limit` 1–50 default 30, optional `before` ISO cursor). Returns `{ comments, hasMore, nextBefore }` chronological ASC. |
 | `POST`   | `/api/posts/:id/comments`            | Required | Body `{ body }` (max 2000). Returns `{ comment }`.                           |
 | `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete **own** comment only.                                                 |
 | `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`ReactionType` int). Returns `{ post, myReaction, reactions, reactionCount }`. |

@@ -1017,27 +1017,19 @@ export async function clearPostReaction(
   return refreshed;
 }
 
-export async function listPostComments(
-  viewerId: string | null,
-  postId: string,
-): Promise<PostComment[]> {
-  const pool = getPool();
-  const post = await getPostById(viewerId, postId);
-  if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
-  }
+export type PostCommentsPage = {
+  comments: PostComment[];
+  /** True when older comments exist before the first item in `comments`. */
+  hasMore: boolean;
+  /** Pass as `before` to load the next older page. */
+  nextBefore: string | null;
+};
 
-  const [rows] = await pool.query<CommentRow[]>(
-    `SELECT
-       c.id, c.post_id, c.user_id, c.body, c.created_at, c.updated_at,
-       u.name AS author_name, u.email AS author_email
-     FROM post_comments c
-     INNER JOIN users u ON u.id = c.user_id
-     WHERE c.post_id = ?
-     ORDER BY c.created_at ASC`,
-    [postId],
-  );
-  return rows.map((r) => ({
+function mapCommentRow(
+  r: CommentRow,
+  viewerId: string | null,
+): PostComment {
+  return {
     id: r.id,
     postId: r.post_id,
     body: r.body,
@@ -1045,7 +1037,55 @@ export async function listPostComments(
     updatedAt: dbToISO(r.updated_at),
     author: toAuthor(r.user_id, r.author_name, r.author_email),
     canDelete: !!viewerId && r.user_id === viewerId,
-  }));
+  };
+}
+
+/**
+ * List comments newest-page-first. Returns chronological ASC for display.
+ * Pass `before` (ISO createdAt of the oldest loaded comment) to page older.
+ */
+export async function listPostComments(
+  viewerId: string | null,
+  postId: string,
+  opts: { limit?: number; before?: string | null } = {},
+): Promise<PostCommentsPage> {
+  const pool = getPool();
+  const post = await getPostById(viewerId, postId);
+  if (!post) {
+    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+  }
+
+  const limit = Math.min(Math.max(opts.limit ?? 30, 1), 50);
+  const before = opts.before?.trim() || null;
+  const params: unknown[] = [postId];
+  let beforeClause = "";
+  if (before) {
+    beforeClause = "AND c.created_at < ?";
+    params.push(isoToDB(before));
+  }
+  // Fetch newest-of-page first (DESC), then reverse to ASC for the UI.
+  params.push(limit + 1);
+  const [rows] = await pool.query<CommentRow[]>(
+    `SELECT
+       c.id, c.post_id, c.user_id, c.body, c.created_at, c.updated_at,
+       u.name AS author_name, u.email AS author_email
+     FROM post_comments c
+     INNER JOIN users u ON u.id = c.user_id
+     WHERE c.post_id = ?
+       ${beforeClause}
+     ORDER BY c.created_at DESC
+     LIMIT ?`,
+    params,
+  );
+  const hasMore = rows.length > limit;
+  const page = hasMore ? rows.slice(0, limit) : rows;
+  page.reverse();
+  const comments = page.map((r) => mapCommentRow(r, viewerId));
+  return {
+    comments,
+    hasMore,
+    nextBefore: comments.length ? comments[0].createdAt : null,
+  };
 }
 
 export async function createPostComment(
@@ -1072,12 +1112,20 @@ export async function createPostComment(
     [postId],
   );
 
-  const comments = await listPostComments(userId, postId);
-  const created = comments.find((c) => c.id === id);
-  if (!created) {
+  const [rows] = await pool.query<CommentRow[]>(
+    `SELECT
+       c.id, c.post_id, c.user_id, c.body, c.created_at, c.updated_at,
+       u.name AS author_name, u.email AS author_email
+     FROM post_comments c
+     INNER JOIN users u ON u.id = c.user_id
+     WHERE c.id = ?`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) {
     throw new Error("Failed to load created comment");
   }
-  return created;
+  return mapCommentRow(row, userId);
 }
 
 export async function deletePostComment(

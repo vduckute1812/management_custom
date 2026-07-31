@@ -4,11 +4,8 @@ import type {
   ChatMessageReactionType,
   ChatSticker,
 } from "~/types/chat";
-import {
-  ChatMessageKind,
-  CHAT_REACTION_TYPES,
-  emptyChatReactions,
-} from "~/types/chat";
+import { ChatMessageKind, emptyChatReactions } from "~/types/chat";
+import { applyOptimisticReaction } from "~/utils/optimisticReaction";
 
 /** Slow REST fallback while the thread SSE stream is down. */
 const FALLBACK_POLL_MS = 15_000;
@@ -603,39 +600,28 @@ export const useChat = () => {
     reactionRequestTokens.set(messageId, token);
     const isLatest = () => reactionRequestTokens.get(messageId) === token;
 
-    const reactions = { ...(prev.reactions ?? emptyChatReactions()) };
-    if (prev.myReaction != null) {
-      reactions[prev.myReaction] = Math.max(0, reactions[prev.myReaction] - 1);
-    }
-    if (reaction) {
-      reactions[reaction] = (reactions[reaction] ?? 0) + 1;
-    }
-    const reactionCount = CHAT_REACTION_TYPES.reduce(
-      (sum: number, k) => sum + (reactions[k] ?? 0),
-      0,
-    );
+    const optimisticCounts = applyOptimisticReaction(prev, reaction);
 
     messages.value = messages.value.map((m) =>
-      m.id === messageId
-        ? { ...m, reactions, reactionCount, myReaction: reaction }
-        : m,
+      m.id === messageId ? { ...m, ...optimisticCounts } : m,
     );
 
     try {
       const path = `/api/chat/conversations/${activeId.value}/messages/${messageId}/reactions`;
-      const res = reaction
-        ? await apiFetch<{
-            message: ChatMessage;
-            reactions: Record<ChatMessageReactionType, number>;
-            reactionCount: number;
-            myReaction: ChatMessageReactionType | null;
-          }>(path, { method: "POST", body: { reaction } })
-        : await apiFetch<{
-            message: ChatMessage;
-            reactions: Record<ChatMessageReactionType, number>;
-            reactionCount: number;
-            myReaction: ChatMessageReactionType | null;
-          }>(path, { method: "DELETE" });
+      const res =
+        reaction != null
+          ? await apiFetch<{
+              message: ChatMessage;
+              reactions: Record<ChatMessageReactionType, number>;
+              reactionCount: number;
+              myReaction: ChatMessageReactionType | null;
+            }>(path, { method: "POST", body: { reaction } })
+          : await apiFetch<{
+              message: ChatMessage;
+              reactions: Record<ChatMessageReactionType, number>;
+              reactionCount: number;
+              myReaction: ChatMessageReactionType | null;
+            }>(path, { method: "DELETE" });
       if (!isLatest()) return;
       messages.value = messages.value.map((m) =>
         m.id === messageId

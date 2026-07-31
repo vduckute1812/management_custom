@@ -1,5 +1,12 @@
 import type { PostAuthor } from "~/types/post";
 
+/**
+ * Module-scoped generation so concurrent searches from any `useUserDirectory()`
+ * caller cannot let a slower older response overwrite a newer one in the
+ * shared `useState` results.
+ */
+let directorySearchGeneration = 0;
+
 export const useUserDirectory = () => {
   const { apiFetch } = useApi();
   const results = useState<PostAuthor[]>("feed:userDirectory", () => []);
@@ -9,19 +16,26 @@ export const useUserDirectory = () => {
 
   async function search(q: string) {
     const term = q.trim();
+    const generation = ++directorySearchGeneration;
     if (term.length < 1) {
-      results.value = [];
+      if (generation === directorySearchGeneration) {
+        results.value = [];
+        loading.value = false;
+      }
       return;
     }
     loading.value = true;
     try {
       const res = await apiFetch<{ users: PostAuthor[] }>(
         "/api/users/directory",
-        { query: { q: term, limit: 20 } }
+        { query: { q: term, limit: 20 } },
       );
+      if (generation !== directorySearchGeneration) return;
       results.value = res.users;
     } finally {
-      loading.value = false;
+      if (generation === directorySearchGeneration) {
+        loading.value = false;
+      }
     }
   }
 

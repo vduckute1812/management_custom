@@ -12,6 +12,9 @@ const { loadComments, addComment, removeComment } = usePosts();
 
 const comments = ref<PostComment[]>([]);
 const commentsLoading = ref(false);
+const loadingEarlier = ref(false);
+const hasMore = ref(false);
+const nextBefore = ref<string | null>(null);
 const commentBody = ref("");
 const commentSubmitting = ref(false);
 const loadedFor = ref<string | null>(null);
@@ -26,15 +29,40 @@ function initialOf(name: string | null, email: string) {
   return (name?.trim() || email).charAt(0).toUpperCase() || "?";
 }
 
-async function loadIfNeeded() {
-  if (!props.open) return;
-  if (loadedFor.value === props.postId) return;
+async function loadInitial() {
   commentsLoading.value = true;
   try {
-    comments.value = await loadComments(props.postId);
+    const page = await loadComments(props.postId);
+    comments.value = page.comments;
+    hasMore.value = page.hasMore;
+    nextBefore.value = page.nextBefore;
     loadedFor.value = props.postId;
   } finally {
     commentsLoading.value = false;
+  }
+}
+
+async function loadIfNeeded() {
+  if (!props.open) return;
+  if (loadedFor.value === props.postId) return;
+  await loadInitial();
+}
+
+async function loadEarlier() {
+  if (!hasMore.value || !nextBefore.value || loadingEarlier.value) return;
+  loadingEarlier.value = true;
+  try {
+    const page = await loadComments(props.postId, {
+      before: nextBefore.value,
+    });
+    // Older page comes chronological ASC; prepend without duplicates.
+    const existing = new Set(comments.value.map((c) => c.id));
+    const older = page.comments.filter((c) => !existing.has(c.id));
+    comments.value = [...older, ...comments.value];
+    hasMore.value = page.hasMore;
+    nextBefore.value = page.nextBefore;
+  } finally {
+    loadingEarlier.value = false;
   }
 }
 
@@ -44,6 +72,8 @@ watch(
     if (!open) return;
     if (loadedFor.value !== id) {
       comments.value = [];
+      hasMore.value = false;
+      nextBefore.value = null;
       loadedFor.value = null;
     }
     await loadIfNeeded();
@@ -89,39 +119,55 @@ async function confirmDeleteComment() {
       <SkeletonBlock height="h-10" rounded="rounded-lg" />
       <SkeletonBlock height="h-10" rounded="rounded-lg" />
     </div>
-    <ul v-else class="space-y-3">
-      <li v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
-        <div
-          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600"
-          aria-hidden="true"
+    <template v-else>
+      <div v-if="hasMore" class="flex justify-center">
+        <button
+          type="button"
+          class="text-xs font-medium text-brand-700 hover:underline disabled:opacity-50"
+          :disabled="loadingEarlier"
+          @click="loadEarlier"
         >
-          {{ initialOf(comment.author.name, comment.author.email) }}
-        </div>
-        <div class="min-w-0 flex-1 rounded-lg bg-slate-50 px-3 py-2">
-          <div class="flex items-baseline justify-between gap-2">
-            <p class="truncate text-xs font-semibold text-slate-800">
-              {{ authorLabel(comment.author.name, comment.author.email) }}
-            </p>
-            <button
-              v-if="comment.canDelete"
-              type="button"
-              class="text-[10px] text-slate-400 hover:text-rose-600"
-              @click="requestDeleteComment(comment)"
-            >
-              {{ t("feed.post.delete") }}
-            </button>
-          </div>
-          <p
-            class="mt-0.5 break-words whitespace-pre-wrap text-sm text-slate-700"
+          {{
+            loadingEarlier
+              ? t("common.loading")
+              : t("feed.post.loadEarlierComments")
+          }}
+        </button>
+      </div>
+      <ul class="space-y-3">
+        <li v-for="comment in comments" :key="comment.id" class="flex gap-2.5">
+          <div
+            class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-200 text-[10px] font-semibold text-slate-600"
+            aria-hidden="true"
           >
-            {{ comment.body }}
-          </p>
-        </div>
-      </li>
-      <li v-if="!comments.length" class="text-xs italic text-slate-400">
-        {{ t("feed.post.noCommentsYet") }}
-      </li>
-    </ul>
+            {{ initialOf(comment.author.name, comment.author.email) }}
+          </div>
+          <div class="min-w-0 flex-1 rounded-lg bg-slate-50 px-3 py-2">
+            <div class="flex items-baseline justify-between gap-2">
+              <p class="truncate text-xs font-semibold text-slate-800">
+                {{ authorLabel(comment.author.name, comment.author.email) }}
+              </p>
+              <button
+                v-if="comment.canDelete"
+                type="button"
+                class="text-[10px] text-slate-400 hover:text-rose-600"
+                @click="requestDeleteComment(comment)"
+              >
+                {{ t("feed.post.delete") }}
+              </button>
+            </div>
+            <p
+              class="mt-0.5 break-words whitespace-pre-wrap text-sm text-slate-700"
+            >
+              {{ comment.body }}
+            </p>
+          </div>
+        </li>
+        <li v-if="!comments.length" class="text-xs italic text-slate-400">
+          {{ t("feed.post.noCommentsYet") }}
+        </li>
+      </ul>
+    </template>
 
     <form
       v-if="auth.isAuthenticatedUi.value"
