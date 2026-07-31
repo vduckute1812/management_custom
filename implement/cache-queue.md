@@ -9,13 +9,13 @@ and [`api.md`](./api.md). The original ask is captured in
 
 ## Design goals
 
-| Goal                               | Decision                                                               |
-| ---------------------------------- | ---------------------------------------------------------------------- |
-| Pi / single-node first             | Queue is **MySQL-backed**; Redis is **optional** and only for cache    |
-| Never block user mutations on SMTP | Verification mail is **enqueued**, not sent inline                     |
-| Fail open                          | Redis outages fall back to memory; cache misses hit MySQL              |
-| No new mandatory service           | App boots with zero Redis; worker runs inside Nitro                    |
-| Safe ACL                           | Only **anonymous public** feed pages are cached — never per-user feeds |
+| Goal                               | Decision                                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------------------- |
+| Pi / single-node first             | Queue is **MySQL-backed**; Redis runs in **production** for shared cache (optional locally) |
+| Never block user mutations on SMTP | Verification mail is **enqueued**, not sent inline                                          |
+| Fail open                          | Redis outages fall back to memory; cache misses hit MySQL                                   |
+| No new mandatory service locally   | App boots with zero Redis in dev; worker runs inside Nitro                                  |
+| Safe ACL                           | Only **anonymous public** feed pages are cached — never per-user feeds                      |
 
 Negative goals: no distributed locks beyond MySQL `SKIP LOCKED`, no separate
 worker container (yet), no cache of authenticated feed timelines.
@@ -60,8 +60,8 @@ Nitro API routes
 
 ### Drivers
 
-1. **Memory (default)** — `Map` with TTL + crude LRU eviction (`CACHE_MEMORY_MAX`, default 500). Perfect for one app process on the Pi.
-2. **Redis (optional)** — activated when `REDIS_URL` is set and `CACHE_DRIVER` is not forced to `memory`. Uses `ioredis`. On connect/ping failure, **falls back to memory** and logs a warning. Keys are prefixed `mgmt:{CACHE_NAMESPACE|DB_NAME}:`.
+1. **Memory (default locally)** — `Map` with TTL + crude LRU eviction (`CACHE_MEMORY_MAX`, default 500). Used when `REDIS_URL` is unset.
+2. **Redis (production)** — `docker-compose.prod.yml` runs `mgmt-redis-prod` and sets `REDIS_URL` + `CACHE_DRIVER=redis` to the Pi LAN bind (no compose DNS on this Podman network). Uses `ioredis`. On connect/ping failure, **falls back to memory** and logs a warning. Keys are prefixed `mgmt:{CACHE_NAMESPACE|DB_NAME}:`. Cache-only Redis: no RDB/AOF, `maxmemory 128mb`, `allkeys-lru`.
 
 ### What we cache today
 
@@ -184,17 +184,17 @@ returns `{ ok: true }` to avoid account enumeration).
 
 ## Configuration
 
-| Env                    | Default          | Meaning                                  |
-| ---------------------- | ---------------- | ---------------------------------------- |
-| `REDIS_URL`            | unset            | Enable Redis cache driver when reachable |
-| `CACHE_DRIVER`         | auto             | Force `memory` or `redis`                |
-| `CACHE_NAMESPACE`      | `DB_NAME` / `rc` | Redis key prefix segment                 |
-| `CACHE_MEMORY_MAX`     | `500`            | In-process entry cap                     |
-| `QUEUE_WORKER_ENABLED` | `true`           | Run in-process worker                    |
-| `QUEUE_POLL_MS`        | `1500`           | Busy poll interval                       |
-| `QUEUE_IDLE_MS`        | `4000`           | Sleep when queue empty                   |
-| `QUEUE_STALE_SECONDS`  | `300`            | Reclaim stuck `processing`               |
-| `QUEUE_PURGE_DAYS`     | `14`             | Delete old terminal jobs                 |
+| Env                    | Default                                                     | Meaning                                  |
+| ---------------------- | ----------------------------------------------------------- | ---------------------------------------- |
+| `REDIS_URL`            | unset locally; prod compose sets `redis://${LAN_IP}:6379/0` | Enable Redis cache driver when reachable |
+| `CACHE_DRIVER`         | auto; prod compose forces `redis`                           | Force `memory` or `redis`                |
+| `CACHE_NAMESPACE`      | `DB_NAME` / `rc`                                            | Redis key prefix segment                 |
+| `CACHE_MEMORY_MAX`     | `500`                                                       | In-process entry cap                     |
+| `QUEUE_WORKER_ENABLED` | `true`                                                      | Run in-process worker                    |
+| `QUEUE_POLL_MS`        | `1500`                                                      | Busy poll interval                       |
+| `QUEUE_IDLE_MS`        | `4000`                                                      | Sleep when queue empty                   |
+| `QUEUE_STALE_SECONDS`  | `300`                                                       | Reclaim stuck `processing`               |
+| `QUEUE_PURGE_DAYS`     | `14`                                                        | Delete old terminal jobs                 |
 
 See `.env.example` and [`getting-started.md`](./getting-started.md).
 
@@ -215,6 +215,6 @@ See `.env.example` and [`getting-started.md`](./getting-started.md).
 ## Evolution path
 
 1. **Now** — memory cache + MySQL queue (this document).
-2. **When traffic grows** — set `REDIS_URL` for shared categories/public-feed cache.
+2. **Production** — Redis is part of `docker-compose.prod.yml`; Superadmin System monitor should show `cache.driver=redis`.
 3. **When jobs multiply** — optional dedicated worker process with `QUEUE_WORKER_ENABLED=false` on the web container and `true` on the worker.
 4. **Never** — put the only copy of user content in cache; MySQL remains source of truth.
