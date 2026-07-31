@@ -210,16 +210,12 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │       ├── queue.ts                 # Enqueue helpers (email.*, cache.invalidate, media.purgeExpired)
 │       ├── r2.ts                    # S3-compatible Cloudflare R2 client
 │       └── fileSignature.ts         # Magic-byte sniff for uploads
-├── tests/                           # Vitest (`npm test`)
+├── tests/                           # Vitest unit tests (`npm test`) — DB-free
+│   ├── auth-*.test.ts               # JWT, role guards, attach (Bearer/cookie/upload query)
+│   ├── helpers/                     # H3Event stubs for authContext
 │   ├── schemas.test.ts
 │   ├── security-utils.test.ts
-│   ├── rate-limit.test.ts
-│   ├── api-request-key.test.ts
-│   ├── api-error-message.test.ts
-│   ├── chat-inbox.test.ts
-│   ├── chat-thread.test.ts
-│   ├── seo-search.test.ts
-│   └── render-post-body.test.ts
+│   └── …                            # rate-limit, chat helpers, feed cursor, markdown, …
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*
 │   ├── migrate-auth.ts              # Seed superadmin
@@ -267,6 +263,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 **Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
 
 **Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`.
+
+**Testing.** The Vitest suite is **DB-free** (JWT, role guards, media `?access_token=` scope, Zod schemas, pure helpers). Ephemeral-MySQL integration (refresh rotation, ACL, migrations) and Playwright smoke are follow-ups once a test database is available in CI.
 
 ---
 
