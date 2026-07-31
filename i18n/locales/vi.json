@@ -318,7 +318,7 @@
       "writeComment": "Viết bình luận",
       "writeCommentPlaceholder": "Viết bình luận…",
       "reply": "Trả lời",
-      "loginToComment": "Đăng nhập để bình luận.",
+      "loginToComment": "{link} để bình luận.",
       "loginLink": "Đăng nhập",
       "reactionLike": "Thích",
       "reactionLove": "Yêu thích",
@@ -339,7 +339,8 @@
       "planTaskNotes": "Bài viết của {author} · đăng lúc {date}\nMã bài viết: {id}",
       "planTaskCreated": "Đã tạo công việc nghiên cứu trong Quản lý thời gian",
       "planTaskOpen": "Mở",
-      "planTaskFailed": "Không thể tạo công việc"
+      "planTaskFailed": "Không thể tạo công việc",
+      "cannotEdit": "Bạn không thể chỉnh sửa bài này"
     },
     "edit": {
       "kicker": "Sửa bài viết",
@@ -676,7 +677,10 @@
     "categorySaveFailed": "Không thể lưu chuyên mục",
     "categoryDeleteConfirmTitle": "Xoá chuyên mục này?",
     "categoryDeleteConfirm": "Xóa \"{name}\"? {count} bài viết sẽ vẫn còn trong bảng tin nhưng không được phân loại.",
-    "categoryEmpty": "Chưa có chuyên mục nào."
+    "categoryEmpty": "Chưa có chuyên mục nào.",
+    "categoryRenameTitle": "Đổi tên thư mục",
+    "categoryRenameSave": "Đổi tên",
+    "categoryRenameName": "Tên thư mục"
   },
   "common": {
     "close": "Đóng",
@@ -992,7 +996,9 @@
       "vi": "Tiếng Việt",
       "zh-CN": "Tiếng Trung (Giản thể)",
       "zh-TW": "Tiếng Trung (Phồn thể)"
-    }
+    },
+    "canvasAria": "Khung soạn thảo manuscript",
+    "settingsAria": "Cài đặt manuscript"
   },
   "chat": {
     "title": "Chat",
@@ -1073,6 +1079,8 @@
     "voiceNote": "Ghi âm",
     "imageUnavailable": "Không xem được hình",
     "audioUnavailable": "Không nghe được ghi âm",
-    "audioUnsupported": "Trình duyệt không phát được âm thanh này"
+    "audioUnsupported": "Trình duyệt không phát được âm thanh này",
+    "failedToLoadConversations": "Không tải được hội thoại",
+    "failedToLoadMessages": "Không tải được tin nhắn"
   }
 }

@@ -19,6 +19,7 @@ export const useEpics = () => {
   const isLoading = useState<boolean>("epics:loading", () => false);
   const error = useState<string | null>("epics:error", () => null);
   const { apiFetch } = useApi();
+  const { t } = useI18n();
 
   async function fetchAll() {
     isLoading.value = true;
@@ -27,7 +28,8 @@ export const useEpics = () => {
       const data = await apiFetch<EpicsApiResponse>("/api/epics");
       epics.value = data.epics ?? [];
     } catch (err: unknown) {
-      error.value = err instanceof Error ? err.message : "Failed to load epics";
+      error.value =
+        err instanceof Error ? err.message : t("toasts.failedToLoadEpics");
     } finally {
       isLoading.value = false;
     }

@@ -1,6 +1,16 @@
 <script setup lang="ts">
 const { helpOpen } = useUiOverlays();
 const { t } = useI18n();
+const rootEl = ref<HTMLElement | null>(null);
+const closeBtn = ref<HTMLButtonElement | null>(null);
+
+useModal(helpOpen, {
+  container: rootEl,
+  initialFocus: closeBtn,
+  onClose: () => {
+    helpOpen.value = false;
+  },
+});
 
 interface Row {
   keys: string[];
@@ -73,6 +83,7 @@ function onBackdrop(e: MouseEvent) {
     <Transition name="fade">
       <div
         v-if="helpOpen"
+        ref="rootEl"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
         role="dialog"
         aria-modal="true"
@@ -90,6 +101,7 @@ function onBackdrop(e: MouseEvent) {
               {{ $t("shortcuts.title") }}
             </h2>
             <button
+              ref="closeBtn"
               type="button"
               class="text-slate-400 hover:text-slate-700"
               :aria-label="$t('shortcuts.close')"

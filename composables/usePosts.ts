@@ -214,12 +214,13 @@ export const usePosts = () => {
       `/api/posts/${id}`,
     );
     if (!res.post.canEdit) {
-      const err = new Error("You cannot edit this post") as Error & {
+      const message = t("feed.post.cannotEdit");
+      const err = new Error(message) as Error & {
         statusCode: number;
         statusMessage: string;
       };
       err.statusCode = 403;
-      err.statusMessage = "You cannot edit this post";
+      err.statusMessage = message;
       throw err;
     }
     return { post: res.post, audience: res.audience ?? [] };

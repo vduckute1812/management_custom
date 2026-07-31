@@ -23,13 +23,21 @@ const router = useRouter();
 const query = ref("");
 const cursor = ref(0);
 const inputEl = ref<HTMLInputElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
+const listId = useId();
 
-watch(paletteOpen, async (open) => {
+useModal(paletteOpen, {
+  container: rootEl,
+  initialFocus: inputEl,
+  onClose: () => {
+    paletteOpen.value = false;
+  },
+});
+
+watch(paletteOpen, (open) => {
   if (open) {
     query.value = "";
     cursor.value = 0;
-    await nextTick();
-    inputEl.value?.focus();
   }
 });
 
@@ -199,6 +207,11 @@ const filtered = computed(() => {
   return allItems.value.filter((it) => matches(it, q)).slice(0, 30);
 });
 
+const activeOptionId = computed(() => {
+  const item = filtered.value[cursor.value];
+  return item ? `${listId}-opt-${item.id}` : undefined;
+});
+
 watch(filtered, () => {
   cursor.value = 0;
 });
@@ -234,6 +247,7 @@ function onBackdrop(e: MouseEvent) {
     <Transition name="fade">
       <div
         v-if="paletteOpen"
+        ref="rootEl"
         class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm pt-24 px-4"
         role="dialog"
         aria-modal="true"
@@ -265,6 +279,11 @@ function onBackdrop(e: MouseEvent) {
               type="text"
               :placeholder="$t('commandPalette.placeholder')"
               class="flex-1 text-sm outline-none bg-transparent"
+              role="combobox"
+              aria-autocomplete="list"
+              :aria-controls="listId"
+              :aria-expanded="true"
+              :aria-activedescendant="activeOptionId"
               :aria-label="$t('commandPalette.searchAria')"
               @keydown="onKey"
             />
@@ -276,6 +295,7 @@ function onBackdrop(e: MouseEvent) {
           </div>
 
           <ul
+            :id="listId"
             class="max-h-80 overflow-y-auto scrollbar-thin"
             role="listbox"
             :aria-label="$t('commandPalette.resultsAria')"
@@ -288,6 +308,7 @@ function onBackdrop(e: MouseEvent) {
             </li>
             <li
               v-for="(item, idx) in filtered"
+              :id="`${listId}-opt-${item.id}`"
               :key="item.id"
               :class="[
                 'px-4 py-2 flex items-center gap-3 cursor-pointer',

@@ -10,13 +10,18 @@ const { pushToast } = useToasts();
 const title = ref("");
 const submitting = ref(false);
 const inputEl = ref<HTMLInputElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
 
-watch(quickCaptureOpen, async (open) => {
-  if (open) {
-    title.value = "";
-    await nextTick();
-    inputEl.value?.focus();
-  }
+useModal(quickCaptureOpen, {
+  container: rootEl,
+  initialFocus: inputEl,
+  onClose: () => {
+    if (!submitting.value) quickCaptureOpen.value = false;
+  },
+});
+
+watch(quickCaptureOpen, (open) => {
+  if (open) title.value = "";
 });
 
 const preview = computed(() => {
@@ -77,6 +82,7 @@ function onBackdrop(e: MouseEvent) {
     <Transition name="fade">
       <div
         v-if="quickCaptureOpen"
+        ref="rootEl"
         class="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 backdrop-blur-sm pt-32 px-4"
         role="dialog"
         aria-modal="true"

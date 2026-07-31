@@ -142,10 +142,16 @@ const themeLabel = computed(() => {
 });
 
 const mobileMoreOpen = ref(false);
+const mobileMoreRoot = ref<HTMLElement | null>(null);
 
 function closeMobileMore() {
   mobileMoreOpen.value = false;
 }
+
+useModal(mobileMoreOpen, {
+  container: mobileMoreRoot,
+  onClose: closeMobileMore,
+});
 </script>
 
 <template>
@@ -399,7 +405,11 @@ function closeMobileMore() {
       <Transition name="fade">
         <div
           v-if="mobileMoreOpen"
+          ref="mobileMoreRoot"
           class="md:hidden fixed inset-0 z-40 bg-slate-900/40"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="$t('nav.more')"
           @click="closeMobileMore"
         >
           <div

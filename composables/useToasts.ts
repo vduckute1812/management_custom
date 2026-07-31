@@ -4,7 +4,7 @@ export interface Toast {
   id: string;
   message: string;
   tone: ToastTone;
-  /** Label for the action button. Defaults to "Undo" when `onAction` is set. */
+  /** Label for the action button. Defaults to i18n `common.undo` when `onAction` is set. */
   actionLabel?: string;
   /** Invoked when the action button is clicked. */
   onAction?: () => void | Promise<void>;
@@ -23,6 +23,7 @@ let counter = 0;
 
 export const useToasts = () => {
   const toasts = useState<Toast[]>("toasts", () => []);
+  const { t } = useI18n();
 
   function dismiss(id: string) {
     toasts.value = toasts.value.filter((t) => t.id !== id);
@@ -35,7 +36,8 @@ export const useToasts = () => {
       message,
       tone: options.tone ?? "info",
       actionLabel:
-        options.actionLabel ?? (options.onAction ? "Undo" : undefined),
+        options.actionLabel ??
+        (options.onAction ? t("common.undo") : undefined),
       onAction: options.onAction,
       duration: options.duration ?? 5000,
     };

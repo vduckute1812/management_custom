@@ -318,7 +318,7 @@
       "writeComment": "撰寫留言",
       "writeCommentPlaceholder": "撰寫留言…",
       "reply": "回覆",
-      "loginToComment": "登入後發表留言。",
+      "loginToComment": "{link}後發表留言。",
       "loginLink": "登入",
       "reactionLike": "讚",
       "reactionLove": "愛心",
@@ -339,7 +339,8 @@
       "planTaskNotes": "作者 {author} · 發布於 {date}\n動態文章 ID：{id}",
       "planTaskCreated": "已在時間管理中建立研究任務",
       "planTaskOpen": "開啟",
-      "planTaskFailed": "無法建立任務"
+      "planTaskFailed": "無法建立任務",
+      "cannotEdit": "您無法編輯此貼文"
     },
     "edit": {
       "kicker": "編輯貼文",
@@ -676,7 +677,10 @@
     "categorySaveFailed": "無法儲存欄目",
     "categoryDeleteConfirmTitle": "刪除此欄目？",
     "categoryDeleteConfirm": "刪除「{name}」？{count} 篇文章將保留在動態中，但不再分類。",
-    "categoryEmpty": "尚無欄目。"
+    "categoryEmpty": "尚無欄目。",
+    "categoryRenameTitle": "重新命名目錄",
+    "categoryRenameSave": "重新命名",
+    "categoryRenameName": "目錄名稱"
   },
   "common": {
     "close": "關閉",
@@ -992,7 +996,9 @@
       "vi": "越南語",
       "zh-CN": "簡體中文",
       "zh-TW": "繁體中文"
-    }
+    },
+    "canvasAria": "文稿編輯區",
+    "settingsAria": "文稿設定"
   },
   "chat": {
     "title": "聊天",
@@ -1073,6 +1079,8 @@
     "voiceNote": "語音",
     "imageUnavailable": "圖片無法使用",
     "audioUnavailable": "語音無法使用",
-    "audioUnsupported": "瀏覽器無法播放此音訊"
+    "audioUnsupported": "瀏覽器無法播放此音訊",
+    "failedToLoadConversations": "無法載入會話",
+    "failedToLoadMessages": "無法載入訊息"
   }
 }

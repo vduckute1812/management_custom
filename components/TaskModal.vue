@@ -76,6 +76,23 @@ const errorMsg = ref<string | null>(null);
 const baseline = ref("");
 const discardConfirmOpen = ref(false);
 const deleteConfirmOpen = ref(false);
+const rootEl = ref<HTMLElement | null>(null);
+const titleInput = ref<HTMLInputElement | null>(null);
+const discardKeepBtn = ref<HTMLButtonElement | null>(null);
+const fid = useId();
+const fieldIds = {
+  title: `${fid}-title`,
+  epic: `${fid}-epic`,
+  priority: `${fid}-priority`,
+  notes: `${fid}-notes`,
+  status: `${fid}-status`,
+  dueDate: `${fid}-due`,
+  estimated: `${fid}-est`,
+  progress: `${fid}-progress`,
+  tags: `${fid}-tags`,
+  checklistAdd: `${fid}-check-add`,
+  recurs: `${fid}-recurs`,
+};
 
 function describeRecurrenceLabel(r?: Recurrence | null): string {
   if (!r) return t("common.doesNotRepeat");
@@ -336,17 +353,32 @@ function onKeydown(e: KeyboardEvent) {
   if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
     e.preventDefault();
     onSubmit();
-  } else if (e.key === "Escape") {
-    e.preventDefault();
-    if (deleteConfirmOpen.value) {
-      deleteConfirmOpen.value = false;
-    } else if (discardConfirmOpen.value) {
-      discardConfirmOpen.value = false;
-    } else {
-      requestClose();
-    }
   }
 }
+
+function handleModalEscape() {
+  if (deleteConfirmOpen.value) {
+    deleteConfirmOpen.value = false;
+  } else if (discardConfirmOpen.value) {
+    discardConfirmOpen.value = false;
+  } else {
+    requestClose();
+  }
+}
+
+const isOpen = computed(() => props.open);
+useModal(isOpen, {
+  container: rootEl,
+  initialFocus: () =>
+    discardConfirmOpen.value
+      ? (discardKeepBtn.value ?? titleInput.value)
+      : titleInput.value,
+  onClose: handleModalEscape,
+});
+
+watch(discardConfirmOpen, (open) => {
+  if (open) nextTick(() => discardKeepBtn.value?.focus());
+});
 </script>
 
 <template>
@@ -354,6 +386,7 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="fade">
       <div
         v-if="open"
+        ref="rootEl"
         class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
         @mousedown="onBackdrop"
         @keydown="onKeydown"
@@ -402,10 +435,15 @@ function onKeydown(e: KeyboardEvent) {
             @submit.prevent="onSubmit"
           >
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
+              <label
+                class="block text-xs font-medium text-slate-600 mb-1"
+                :for="fieldIds.title"
+              >
                 {{ $t("tasks.modal.title") }}
               </label>
               <input
+                :id="fieldIds.title"
+                ref="titleInput"
                 v-model="form.title"
                 type="text"
                 required
@@ -416,10 +454,14 @@ function onKeydown(e: KeyboardEvent) {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.epic"
+                >
                   {{ $t("tasks.modal.epicOptional") }}
                 </label>
                 <select
+                  :id="fieldIds.epic"
                   v-model="form.epicId"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
@@ -432,10 +474,14 @@ function onKeydown(e: KeyboardEvent) {
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.priority"
+                >
                   {{ $t("tasks.modal.priority") }}
                 </label>
                 <select
+                  :id="fieldIds.priority"
                   v-model.number="form.priority"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
@@ -453,10 +499,14 @@ function onKeydown(e: KeyboardEvent) {
             </div>
 
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
+              <label
+                class="block text-xs font-medium text-slate-600 mb-1"
+                :for="fieldIds.notes"
+              >
                 {{ $t("tasks.modal.notes") }}
               </label>
               <textarea
+                :id="fieldIds.notes"
                 v-model="form.notes"
                 rows="3"
                 :placeholder="$t('tasks.modal.notesPlaceholder')"
@@ -466,10 +516,14 @@ function onKeydown(e: KeyboardEvent) {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.status"
+                >
                   {{ $t("tasks.modal.status") }}
                 </label>
                 <select
+                  :id="fieldIds.status"
                   v-model.number="form.status"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
                 >
@@ -485,10 +539,14 @@ function onKeydown(e: KeyboardEvent) {
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.dueDate"
+                >
                   {{ $t("tasks.modal.dueDate") }}
                 </label>
                 <input
+                  :id="fieldIds.dueDate"
                   v-model="form.dueDate"
                   type="date"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
@@ -498,10 +556,14 @@ function onKeydown(e: KeyboardEvent) {
 
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.estimated"
+                >
                   {{ $t("tasks.modal.estimatedHours") }}
                 </label>
                 <input
+                  :id="fieldIds.estimated"
                   v-model="form.estimatedHours"
                   type="number"
                   min="0"
@@ -528,11 +590,13 @@ function onKeydown(e: KeyboardEvent) {
             <div>
               <label
                 class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1"
+                :for="fieldIds.progress"
               >
                 <span>{{ $t("tasks.modal.progress") }}</span>
                 <span class="text-slate-500">{{ form.progress }}%</span>
               </label>
               <input
+                :id="fieldIds.progress"
                 v-model.number="form.progress"
                 type="range"
                 min="0"
@@ -543,10 +607,14 @@ function onKeydown(e: KeyboardEvent) {
             </div>
 
             <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">
+              <label
+                class="block text-xs font-medium text-slate-600 mb-1"
+                :for="fieldIds.tags"
+              >
                 {{ $t("tasks.modal.tags") }}
               </label>
               <input
+                :id="fieldIds.tags"
                 v-model="form.tags"
                 type="text"
                 :placeholder="$t('tasks.modal.tagsPlaceholder')"
@@ -556,7 +624,10 @@ function onKeydown(e: KeyboardEvent) {
 
             <div>
               <div class="flex items-center justify-between mb-2">
-                <label class="text-xs font-medium text-slate-600">
+                <label
+                  class="text-xs font-medium text-slate-600"
+                  :for="fieldIds.checklistAdd"
+                >
                   {{ $t("tasks.modal.checklist") }}
                 </label>
                 <p
@@ -628,6 +699,7 @@ function onKeydown(e: KeyboardEvent) {
 
               <div class="flex items-center gap-2">
                 <input
+                  :id="fieldIds.checklistAdd"
                   v-model="newChecklistItem"
                   type="text"
                   :placeholder="$t('tasks.modal.addSubStep')"
@@ -658,8 +730,12 @@ function onKeydown(e: KeyboardEvent) {
             </div>
 
             <div class="rounded-lg ring-1 ring-slate-200 bg-slate-50/60 p-3">
-              <label class="flex items-start gap-2 cursor-pointer">
+              <label
+                class="flex items-start gap-2 cursor-pointer"
+                :for="fieldIds.recurs"
+              >
                 <input
+                  :id="fieldIds.recurs"
                   v-model="form.recurs"
                   type="checkbox"
                   class="mt-0.5 accent-brand-600 w-4 h-4 shrink-0"
@@ -822,6 +898,7 @@ function onKeydown(e: KeyboardEvent) {
               </p>
               <div class="mt-4 flex justify-end gap-2">
                 <button
+                  ref="discardKeepBtn"
                   type="button"
                   class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
                   @click="discardConfirmOpen = false"

@@ -25,6 +25,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const cancelBtn = ref<HTMLButtonElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
 const titleId = useId();
 const descId = useId();
 
@@ -33,23 +34,14 @@ const resolvedConfirm = computed(
 );
 const resolvedCancel = computed(() => props.cancelLabel || t("common.cancel"));
 
-watch(
-  () => props.open,
-  (open) => {
-    if (open) {
-      nextTick(() => cancelBtn.value?.focus());
-    }
+const isOpen = computed(() => props.open);
+useModal(isOpen, {
+  container: rootEl,
+  initialFocus: cancelBtn,
+  onClose: () => {
+    if (!props.busy) emit("cancel");
   },
-);
-
-function onKeydown(e: KeyboardEvent) {
-  if (!props.open || props.busy) return;
-  if (e.key === "Escape") {
-    e.preventDefault();
-    e.stopPropagation();
-    emit("cancel");
-  }
-}
+});
 
 function onBackdrop(e: MouseEvent) {
   if (props.busy) return;
@@ -62,13 +54,13 @@ function onBackdrop(e: MouseEvent) {
     <Transition name="confirm-fade">
       <div
         v-if="open"
+        ref="rootEl"
         class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
         role="alertdialog"
         aria-modal="true"
         :aria-labelledby="titleId"
         :aria-describedby="description ? descId : undefined"
         @mousedown="onBackdrop"
-        @keydown="onKeydown"
       >
         <div
           class="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl ring-1 ring-slate-200"

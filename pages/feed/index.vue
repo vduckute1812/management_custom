@@ -57,10 +57,23 @@ const storySubmitting = ref(false);
 const storyFileInput = ref<HTMLInputElement | null>(null);
 const storyUploadId = ref<string | null>(null);
 const storyFileName = ref("");
+const storyComposerRoot = ref<HTMLElement | null>(null);
+const storyBodyInput = ref<HTMLTextAreaElement | null>(null);
 const pendingDeletePostId = ref<string | null>(null);
 const deletePostBusy = ref(false);
 /** Sentinel at list bottom — IntersectionObserver loads the next page. */
 const loadMoreSentinel = ref<HTMLElement | null>(null);
+
+const storyComposerVisible = computed(
+  () => storyComposerOpen.value && auth.isAuthenticatedUi.value,
+);
+useModal(storyComposerVisible, {
+  container: storyComposerRoot,
+  initialFocus: storyBodyInput,
+  onClose: () => {
+    if (!storySubmitting.value) storyComposerOpen.value = false;
+  },
+});
 
 useSeoMeta({
   title: () => t("seo.feed"),
@@ -585,14 +598,12 @@ async function submitStory() {
               v-if="nextCursor"
               ref="loadMoreSentinel"
               class="flex justify-center py-3"
-              aria-hidden="true"
             >
               <div
                 v-if="loadingMore"
                 class="inline-flex items-center gap-2 text-sm font-medium text-slate-500"
                 role="status"
                 aria-live="polite"
-                aria-hidden="false"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -762,6 +773,7 @@ async function submitStory() {
 
     <div
       v-if="storyComposerOpen && auth.isAuthenticatedUi.value"
+      ref="storyComposerRoot"
       class="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/50 p-4"
       role="dialog"
       aria-modal="true"
@@ -786,6 +798,7 @@ async function submitStory() {
         }}</label>
         <textarea
           id="story-body"
+          ref="storyBodyInput"
           v-model="storyBody"
           rows="3"
           maxlength="500"

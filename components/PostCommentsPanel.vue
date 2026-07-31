@@ -195,11 +195,16 @@ async function confirmDeleteComment() {
       </button>
     </form>
     <p v-else class="text-xs text-slate-500">
-      <NuxtLink to="/login" class="font-medium text-brand-700 hover:underline">
-        {{ t("feed.post.loginLink") }} </NuxtLink
-      >{{
-        t("feed.post.loginToComment").slice(t("feed.post.loginLink").length)
-      }}
+      <i18n-t keypath="feed.post.loginToComment" tag="span">
+        <template #link>
+          <NuxtLink
+            to="/login"
+            class="font-medium text-brand-700 hover:underline"
+          >
+            {{ t("feed.post.loginLink") }}
+          </NuxtLink>
+        </template>
+      </i18n-t>
     </p>
 
     <ConfirmDialog

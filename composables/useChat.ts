@@ -216,6 +216,7 @@ function connectThreadStream(conversationId: string) {
 }
 
 export const useChat = () => {
+  const { t } = useI18n();
   const { apiFetch } = useApi();
   const auth = useAuth();
 
@@ -275,7 +276,7 @@ export const useChat = () => {
     } catch (err) {
       error.value =
         (err as { statusMessage?: string })?.statusMessage ||
-        "Failed to load conversations";
+        t("chat.failedToLoadConversations");
       throw err;
     } finally {
       loadingConversations.value = false;
@@ -449,7 +450,7 @@ export const useChat = () => {
     } catch (err) {
       error.value =
         (err as { statusMessage?: string })?.statusMessage ||
-        "Failed to load messages";
+        t("chat.failedToLoadMessages");
       throw err;
     } finally {
       loadingMessages.value = false;

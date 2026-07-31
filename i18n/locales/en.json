@@ -318,7 +318,7 @@
       "writeComment": "Write a comment",
       "writeCommentPlaceholder": "Write a comment…",
       "reply": "Reply",
-      "loginToComment": "Login to leave a comment.",
+      "loginToComment": "{link} to leave a comment.",
       "loginLink": "Login",
       "reactionLike": "Like",
       "reactionLove": "Love",
@@ -339,7 +339,8 @@
       "planTaskNotes": "Article by {author} · published {date}\nFeed post id: {id}",
       "planTaskCreated": "Research task created in Time Management",
       "planTaskOpen": "Open",
-      "planTaskFailed": "Could not create the task"
+      "planTaskFailed": "Could not create the task",
+      "cannotEdit": "You cannot edit this post"
     },
     "edit": {
       "kicker": "Edit post",
@@ -676,7 +677,10 @@
     "categorySaveFailed": "Could not save directory",
     "categoryDeleteConfirmTitle": "Delete this directory?",
     "categoryDeleteConfirm": "Delete \"{name}\"? {count} article(s) will stay in the feed but become uncategorized.",
-    "categoryEmpty": "No directories yet."
+    "categoryEmpty": "No directories yet.",
+    "categoryRenameTitle": "Rename directory",
+    "categoryRenameSave": "Rename",
+    "categoryRenameName": "Directory name"
   },
   "common": {
     "close": "Close",
@@ -992,7 +996,9 @@
       "vi": "Vietnamese",
       "zh-CN": "Simplified Chinese",
       "zh-TW": "Traditional Chinese"
-    }
+    },
+    "canvasAria": "Manuscript canvas",
+    "settingsAria": "Manuscript settings"
   },
   "chat": {
     "title": "Chat",
@@ -1073,6 +1079,8 @@
     "voiceNote": "Voice note",
     "imageUnavailable": "Image unavailable",
     "audioUnavailable": "Audio unavailable",
-    "audioUnsupported": "Your browser cannot play this audio"
+    "audioUnsupported": "Your browser cannot play this audio",
+    "failedToLoadConversations": "Failed to load conversations",
+    "failedToLoadMessages": "Failed to load messages"
   }
 }

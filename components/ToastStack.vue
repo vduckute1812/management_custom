@@ -14,8 +14,6 @@ const TONE_CLASSES: Record<ToastTone, string> = {
   <Teleport to="body">
     <div
       class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 pointer-events-none"
-      role="status"
-      aria-live="polite"
       aria-atomic="false"
     >
       <div
@@ -23,6 +21,8 @@ const TONE_CLASSES: Record<ToastTone, string> = {
         :key="toast.id"
         class="toast-in pointer-events-auto rounded-lg shadow-xl ring-1 ring-black/10 px-4 py-2.5 flex items-center gap-3 max-w-md"
         :class="TONE_CLASSES[toast.tone]"
+        role="status"
+        :aria-live="toast.tone === 'danger' ? 'assertive' : 'polite'"
       >
         <span class="text-sm font-medium">{{ toast.message }}</span>
         <button

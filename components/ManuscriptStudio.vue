@@ -409,7 +409,10 @@ const bodyStyle = computed(() => ({
     </header>
 
     <div class="manuscript-studio__layout">
-      <section class="manuscript-studio__paper" aria-label="Manuscript canvas">
+      <section
+        class="manuscript-studio__paper"
+        :aria-label="$t('manuscript.canvasAria')"
+      >
         <label class="sr-only" for="manuscript-title">{{
           $t("manuscript.titleLabel")
         }}</label>
@@ -458,7 +461,10 @@ const bodyStyle = computed(() => ({
         </p>
       </section>
 
-      <aside class="manuscript-studio__rail" aria-label="Manuscript settings">
+      <aside
+        class="manuscript-studio__rail"
+        :aria-label="$t('manuscript.settingsAria')"
+      >
         <div class="manuscript-studio__panel">
           <h2 class="manuscript-studio__panel-title">
             {{ $t("manuscript.settings") }}

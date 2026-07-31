@@ -318,7 +318,7 @@
       "writeComment": "写评论",
       "writeCommentPlaceholder": "写评论…",
       "reply": "回复",
-      "loginToComment": "登录后发表评论。",
+      "loginToComment": "{link}后发表评论。",
       "loginLink": "登录",
       "reactionLike": "赞",
       "reactionLove": "爱心",
@@ -339,7 +339,8 @@
       "planTaskNotes": "作者 {author} · 发布于 {date}\n动态文章 ID：{id}",
       "planTaskCreated": "已在时间管理中创建研究任务",
       "planTaskOpen": "打开",
-      "planTaskFailed": "无法创建任务"
+      "planTaskFailed": "无法创建任务",
+      "cannotEdit": "您无法编辑此帖子"
     },
     "edit": {
       "kicker": "编辑帖子",
@@ -676,7 +677,10 @@
     "categorySaveFailed": "无法保存栏目",
     "categoryDeleteConfirmTitle": "删除此栏目？",
     "categoryDeleteConfirm": "删除“{name}”？{count} 篇文章将保留在动态中，但不再分类。",
-    "categoryEmpty": "暂无栏目。"
+    "categoryEmpty": "暂无栏目。",
+    "categoryRenameTitle": "重命名目录",
+    "categoryRenameSave": "重命名",
+    "categoryRenameName": "目录名称"
   },
   "common": {
     "close": "关闭",
@@ -992,7 +996,9 @@
       "vi": "越南语",
       "zh-CN": "简体中文",
       "zh-TW": "繁体中文"
-    }
+    },
+    "canvasAria": "文稿编辑区",
+    "settingsAria": "文稿设置"
   },
   "chat": {
     "title": "聊天",
@@ -1073,6 +1079,8 @@
     "voiceNote": "语音",
     "imageUnavailable": "图片不可用",
     "audioUnavailable": "语音不可用",
-    "audioUnsupported": "浏览器无法播放此音频"
+    "audioUnsupported": "浏览器无法播放此音频",
+    "failedToLoadConversations": "无法加载会话",
+    "failedToLoadMessages": "无法加载消息"
   }
 }

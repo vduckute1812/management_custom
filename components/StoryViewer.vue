@@ -34,6 +34,21 @@ const insights = ref<StoryInsights | null>(null);
 const reacting = ref(false);
 const deleteConfirmOpen = ref(false);
 const deleteBusy = ref(false);
+const rootEl = ref<HTMLElement | null>(null);
+const closeBtn = ref<HTMLButtonElement | null>(null);
+const insightsRoot = ref<HTMLElement | null>(null);
+
+const viewerOpen = computed(() => true);
+useModal(viewerOpen, {
+  container: rootEl,
+  initialFocus: closeBtn,
+  closeOnEscape: false,
+});
+
+useModal(insightsOpen, {
+  container: insightsRoot,
+  onClose: () => closeInsights(),
+});
 
 const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
   [ReactionType.Like]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Like]}`),
@@ -236,12 +251,14 @@ watch(
 
 <template>
   <div
+    ref="rootEl"
     class="fixed inset-0 z-50 bg-slate-950/95 flex items-center justify-center p-4"
     role="dialog"
     aria-modal="true"
     :aria-label="$t('feed.stories.viewerAria')"
   >
     <button
+      ref="closeBtn"
       type="button"
       class="absolute top-4 right-4 text-white/80 hover:text-white text-sm"
       @click="emit('close')"
@@ -389,14 +406,15 @@ watch(
       <Transition name="sheet">
         <div
           v-if="insightsOpen && isOwnStory"
+          ref="insightsRoot"
           class="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/50 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="$t('feed.stories.insightsAria')"
           @click.self="closeInsights"
         >
           <div
             class="w-full max-w-md max-h-[75vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl flex flex-col"
-            role="dialog"
-            aria-modal="true"
-            :aria-label="$t('feed.stories.insightsAria')"
           >
             <div
               class="flex items-center justify-between border-b border-slate-200 px-4 py-3"
