@@ -39,7 +39,9 @@ export interface SystemSnapshot {
   };
   latency: {
     db: { ok: boolean; ms: number | null };
+    /** Inline readiness probe (DB + migrations) — not a self-HTTP round-trip. */
     http: { ok: boolean; ms: number | null; status: number | null };
+    redis: { ok: boolean; ms: number | null } | null;
   };
   health: {
     db: boolean;
@@ -62,4 +64,10 @@ export interface SystemSnapshot {
       dead: number;
     };
   };
+}
+
+export interface SystemLogEntry {
+  at: string;
+  level: "log" | "info" | "warn" | "error" | "debug";
+  message: string;
 }
