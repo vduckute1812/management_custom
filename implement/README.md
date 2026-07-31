@@ -20,8 +20,8 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                           |
 | [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                                |
 | [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                               |
-| [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, cache/queue, R2 lifecycle, profile fields, chat).             |
-| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, auto-build on `master`, rollback rules.                                       |
+| [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, Nuxt 4.5 / Node 26, deploy prune).         |
+| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, Docker npm 12 image, auto-build on `master`, rollback + prune rules.          |
 
 ## Feature specs vs. implementation docs
 
