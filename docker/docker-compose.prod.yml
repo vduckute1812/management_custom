@@ -26,8 +26,21 @@ services:
     env_file:
       - .env.prod
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     restart: unless-stopped
+    # Dockerfile HEALTHCHECK is the source of truth; compose mirrors it so
+    # `podman ps` / compose status surface the same probe.
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'node -e "fetch(''http://127.0.0.1:3000/api/health'').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"',
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
   mysql:
     image: docker.io/library/mysql:8.0
@@ -37,7 +50,9 @@ services:
     cap_add:
       - SYS_NICE
     # Secrets (MYSQL_ROOT_PASSWORD) come from the gitignored docker/.env.prod.
-    # Keep MYSQL_ROOT_PASSWORD there in sync with DB_PASS used by the app.
+    # Prefer a dedicated app user (DB_USER/DB_PASS) for the Nitro process;
+    # keep MYSQL_ROOT_PASSWORD for admin/migrate until that cutover is done.
+    # See .env.example and implement/database.md.
     env_file:
       - .env.prod
     environment:
@@ -46,6 +61,10 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "no"
       TZ: "Asia/Ho_Chi_Minh"
     ports:
+      # Loopback for host-side tools. The LAN publish exists so the one-shot
+      # migrate container (no service-name DNS on this Pi's podman network)
+      # can reach MySQL via ${LAN_IP}:3306 — see docker/ci-deploy.sh
+      # run_migrations. Do not drop the LAN bind without fixing that path.
       - "127.0.0.1:3306:3306"
       - "${LAN_IP:-192.168.1.4}:3306:3306"
     volumes:
