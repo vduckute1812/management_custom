@@ -162,7 +162,7 @@ export const useShortcuts = () => {
  * only fire while a given page is mounted (e.g. `1` / `2` / `3` view toggle).
  */
 export function usePageShortcuts(
-  bindings: { key: string; handler: (e: KeyboardEvent) => void }[]
+  bindings: { key: string; handler: (e: KeyboardEvent) => void }[],
 ) {
   const lookup = new Map(bindings.map((b) => [b.key, b.handler]));
 

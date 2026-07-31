@@ -147,7 +147,11 @@ class RedisCacheDriver implements CacheDriver {
 let driverPromise: Promise<CacheDriver> | null = null;
 
 function namespacePrefix(): string {
-  const ns = (process.env.CACHE_NAMESPACE || process.env.DB_NAME || "rc").trim();
+  const ns = (
+    process.env.CACHE_NAMESPACE ||
+    process.env.DB_NAME ||
+    "rc"
+  ).trim();
   return `mgmt:${ns}:`;
 }
 

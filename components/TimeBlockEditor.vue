@@ -68,7 +68,7 @@ watch(
     if (incomingIds !== persistableIds) {
       drafts.value = next.map(blockToDraft);
     }
-  }
+  },
 );
 
 function pushUp() {
@@ -82,7 +82,7 @@ function addHour(time: string): string {
   // "HH:mm" → "HH:mm" + 1 hour (wraps at midnight back to 23:00 so the block
   // stays inside the same day, matching the day-bound editor UI).
   if (!/^\d{2}:\d{2}$/.test(time)) return "10:00";
-  const [hh, mm] = time.split(":").map(Number);
+  const [hh = 0, mm = 0] = time.split(":").map(Number);
   const next = (hh + 1) % 24;
   return `${String(next).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
@@ -111,7 +111,7 @@ function removeBlock(idx: number) {
 
 function autoFillSpent(idx: number) {
   const d = drafts.value[idx];
-  if (!d.date || !d.startTime || !d.endTime) return;
+  if (!d || !d.date || !d.startTime || !d.endTime) return;
   const start = dayjs(`${d.date}T${d.startTime}`);
   const end = dayjs(`${d.date}T${d.endTime}`);
   if (!start.isValid() || !end.isValid() || end.isBefore(start)) return;
@@ -167,7 +167,9 @@ const totals = computed(() => {
       >
         <div class="grid grid-cols-12 gap-2 items-end">
           <div class="col-span-4">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.date") }}
             </label>
             <input
@@ -178,7 +180,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-2">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.start") }}
             </label>
             <input
@@ -189,7 +193,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-2">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.end") }}
             </label>
             <input
@@ -200,7 +206,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-3">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.spent") }}
             </label>
             <div class="flex items-center gap-1">
@@ -238,7 +246,11 @@ const totals = computed(() => {
                 stroke-width="2"
                 class="w-4 h-4"
               >
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke-linecap="round" stroke-linejoin="round" />
+                <path
+                  d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
           </div>

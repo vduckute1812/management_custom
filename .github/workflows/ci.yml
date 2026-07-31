@@ -1,0 +1,80 @@
+# Quality gate for pull requests and master.
+#
+# Until this existed, every check in the repo was local-and-opt-in: husky could
+# be skipped with --no-verify and nothing else ran. Formatting had drifted on 68
+# files and `vue-tsc` reported 52 errors while the docs called it "the gate".
+#
+# Deploys still live in deploy-pi.yml; this workflow never touches the Pi.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  # One in-flight run per branch/PR — newer pushes supersede older checks.
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Format, types, tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      # Git hooks are pointless on a runner and `prepare` would install them.
+      HUSKY: 0
+      npm_config_fund: false
+      npm_config_audit: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # The lockfile is npm 12 format: `npm ci` on npm <= 11 fails with a
+      # confusing "Missing: cac@6.7.14 from lock file". Node 26 still ships
+      # npm 11.x, so pin the same version docker/Dockerfile.prod installs.
+      - name: Pin npm to the version that owns the lockfile
+        run: |
+          npm install -g npm@12.0.2
+          node -v && npm -v
+
+      # Also runs `nuxt prepare`, which generates .nuxt/tsconfig.json — the
+      # config tsconfig.json extends, so typecheck depends on this step.
+      - name: Install dependencies
+        run: npm ci
+
+      # Every check below runs even when an earlier one fails, so a PR gets the
+      # complete list of problems in one round trip instead of one per push.
+      - name: Scan for secrets
+        if: ${{ !cancelled() }}
+        run: npm run scan:secrets
+
+      - name: Check formatting
+        if: ${{ !cancelled() }}
+        run: npm run format:check
+
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: npm run typecheck
+
+      - name: Unit tests
+        if: ${{ !cancelled() }}
+        run: npm test
+
+      - name: Build
+        if: ${{ !cancelled() }}
+        run: npm run build

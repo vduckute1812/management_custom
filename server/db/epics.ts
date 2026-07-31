@@ -17,21 +17,22 @@ export async function getAllEpics(userId: string): Promise<Epic[]> {
   const pool = getPool();
   const [rows] = await pool.query<EpicRow[]>(
     "SELECT * FROM epics WHERE user_id = ? ORDER BY created_at ASC",
-    [userId]
+    [userId],
   );
   return rows.map(rowToEpic);
 }
 
 export async function getEpicById(
   userId: string,
-  id: string
+  id: string,
 ): Promise<Epic | null> {
   const pool = getPool();
   const [rows] = await pool.query<EpicRow[]>(
     "SELECT * FROM epics WHERE id = ? AND user_id = ? LIMIT 1",
-    [id, userId]
+    [id, userId],
   );
-  return rows.length ? rowToEpic(rows[0]) : null;
+  const row = rows[0];
+  return row ? rowToEpic(row) : null;
 }
 
 /**
@@ -47,11 +48,11 @@ export async function upsertEpic(userId: string, epic: Epic): Promise<void> {
   // signal) to fail loudly than to silently no-op.
   const [existing] = await pool.query<EpicRow[]>(
     "SELECT user_id FROM epics WHERE id = ? LIMIT 1",
-    [epic.id]
+    [epic.id],
   );
-  if (existing.length && existing[0].user_id !== userId) {
+  if (existing[0] && existing[0].user_id !== userId) {
     throw new Error(
-      `upsertEpic: epic ${epic.id} is owned by another user; refusing to overwrite`
+      `upsertEpic: epic ${epic.id} is owned by another user; refusing to overwrite`,
     );
   }
 
@@ -78,7 +79,7 @@ export async function upsertEpic(userId: string, epic: Epic): Promise<void> {
       jsonOrNull(epic.tags ?? []),
       isoToDB(epic.createdAt),
       isoToDB(epic.updatedAt),
-    ]
+    ],
   );
 }
 
@@ -89,7 +90,7 @@ export async function upsertEpic(userId: string, epic: Epic): Promise<void> {
  */
 export async function deleteEpic(
   userId: string,
-  id: string
+  id: string,
 ): Promise<{ removed: Epic; orphanedTasks: number } | null> {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -98,17 +99,18 @@ export async function deleteEpic(
 
     const [epicRows] = await conn.query<EpicRow[]>(
       "SELECT * FROM epics WHERE id = ? AND user_id = ? LIMIT 1",
-      [id, userId]
+      [id, userId],
     );
-    if (!epicRows.length) {
+    const epicRow = epicRows[0];
+    if (!epicRow) {
       await conn.rollback();
       return null;
     }
-    const removed = rowToEpic(epicRows[0]);
+    const removed = rowToEpic(epicRow);
 
     const [updateResult] = await conn.query(
       "UPDATE tasks SET updated_at = ? WHERE epic_id = ? AND user_id = ?",
-      [isoToDB(nowISO()), id, userId]
+      [isoToDB(nowISO()), id, userId],
     );
     const orphaned =
       (updateResult as { affectedRows?: number }).affectedRows ?? 0;

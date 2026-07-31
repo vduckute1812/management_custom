@@ -30,11 +30,11 @@ async function cmdStatus(): Promise<number> {
   }
   console.log(
     `[migrate] applied: ${s.applied.length}, pending: ${s.pending.length}` +
-      (s.drift.length ? `, drift: ${s.drift.length}` : "")
+      (s.drift.length ? `, drift: ${s.drift.length}` : ""),
   );
   for (const m of s.applied) {
     console.log(
-      `  [x] ${pad(m.id, 32)} applied ${m.appliedAt} (${m.durationMs}ms)`
+      `  [x] ${pad(m.id, 32)} applied ${m.appliedAt} (${m.durationMs}ms)`,
     );
   }
   for (const m of s.pending) {
@@ -44,12 +44,12 @@ async function cmdStatus(): Promise<number> {
     console.error("\n[migrate] CHECKSUM DRIFT detected:");
     for (const d of s.drift) {
       console.error(
-        `  ! ${d.id}  on-disk=${d.expected.slice(0, 12)}…  applied=${d.actual.slice(0, 12)}…`
+        `  ! ${d.id}  on-disk=${d.expected.slice(0, 12)}…  applied=${d.actual.slice(0, 12)}…`,
       );
     }
     console.error(
       "\nMigrations are immutable once applied. Revert your edit, " +
-        "or add a NEW migration."
+        "or add a NEW migration.",
     );
     return 2;
   }
@@ -60,7 +60,7 @@ async function cmdUp(): Promise<number> {
   const result = await runMigrations();
   if (!result.applied.length) {
     console.log(
-      `[migrate] nothing to do (${result.alreadyApplied} already applied)`
+      `[migrate] nothing to do (${result.alreadyApplied} already applied)`,
     );
     return 0;
   }
@@ -69,14 +69,16 @@ async function cmdUp(): Promise<number> {
   }
   console.log(
     `[migrate] done (${result.applied.length} applied, ` +
-      `${result.alreadyApplied + result.applied.length} total)`
+      `${result.alreadyApplied + result.applied.length} total)`,
   );
   return 0;
 }
 
 async function cmdReset(): Promise<number> {
   const dropped = await resetSchema();
-  console.log(`[migrate] dropped ${dropped.length} tables: ${dropped.join(", ")}`);
+  console.log(
+    `[migrate] dropped ${dropped.length} tables: ${dropped.join(", ")}`,
+  );
   console.log("[migrate] run `npm run migrate` to re-apply from scratch");
   return 0;
 }

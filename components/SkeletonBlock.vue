@@ -12,7 +12,7 @@ const props = withDefaults(
     width: "w-full",
     height: "h-3",
     rounded: "rounded",
-  }
+  },
 );
 </script>
 

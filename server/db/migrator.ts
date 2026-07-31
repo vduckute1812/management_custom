@@ -125,15 +125,15 @@ export async function discoverMigrations(): Promise<MigrationFile[]> {
   const sqlFiles = entries.filter((f) => f.endsWith(".sql")).sort();
   const out: MigrationFile[] = [];
   for (const filename of sqlFiles) {
-    const match = /^(\d{4,})_([a-z0-9_]+)\.sql$/i.exec(filename);
-    if (!match) {
+    const name = /^(\d{4,})_([a-z0-9_]+)\.sql$/i.exec(filename)?.[2];
+    if (!name) {
       throw new Error(
         `Invalid migration filename: "${filename}". Use NNNN_short_name.sql (e.g. 0002_add_archived_at.sql).`,
       );
     }
     const id = filename.replace(/\.sql$/, "");
     const sql = await readFile(join(MIGRATIONS_DIR, filename), "utf8");
-    out.push({ id, name: match[2], filename, sql, checksum: sha256(sql) });
+    out.push({ id, name, filename, sql, checksum: sha256(sql) });
   }
   return out;
 }

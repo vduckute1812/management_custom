@@ -68,7 +68,8 @@ const taggedBreakdown = computed(() => {
 });
 
 const isEmpty = computed(
-  () => !isLoading.value && tasks.value.length === 0 && epics.value.length === 0
+  () =>
+    !isLoading.value && tasks.value.length === 0 && epics.value.length === 0,
 );
 
 function tagLabel(tag: string): string {
@@ -83,7 +84,7 @@ async function seedSamples() {
   } catch (err) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     seeding.value = false;
@@ -97,14 +98,16 @@ async function seedSamples() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">{{ $t("analytics.title") }}</h1>
+        <h1 class="text-xl font-semibold text-slate-900">
+          {{ $t("analytics.title") }}
+        </h1>
         <p class="text-xs text-slate-500 mt-0.5">
           {{ $t("analytics.subtitle") }}
         </p>
       </div>
       <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden">
         <button
-          v-for="opt in (['day', 'week', 'month'] as const)"
+          v-for="opt in ['day', 'week', 'month'] as const"
           :key="opt"
           class="px-3 py-1.5 text-xs font-medium capitalize transition"
           :class="
@@ -122,10 +125,7 @@ async function seedSamples() {
     <div class="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6 space-y-6">
       <SkeletonList v-if="isLoading" variant="card" :rows="4" />
 
-      <div
-        v-else-if="isEmpty"
-        class="h-full flex items-center justify-center"
-      >
+      <div v-else-if="isEmpty" class="h-full flex items-center justify-center">
         <EmptyState
           :title="$t('empty.analyticsNeedData')"
           :description="$t('empty.analyticsNeedDataDesc')"
@@ -144,7 +144,9 @@ async function seedSamples() {
             :granularity="granularity"
           />
           <template #fallback>
-            <p class="text-sm text-slate-500">{{ $t("analytics.preparingCharts") }}</p>
+            <p class="text-sm text-slate-500">
+              {{ $t("analytics.preparingCharts") }}
+            </p>
           </template>
         </ClientOnly>
 
@@ -162,12 +164,24 @@ async function seedSamples() {
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50">
-                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colTag") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colTasks") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colEstimated") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colSpent") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colVariance") }}</th>
+                <tr
+                  class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50"
+                >
+                  <th class="px-4 py-2 font-medium">
+                    {{ $t("analytics.colTag") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colTasks") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colEstimated") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colSpent") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colVariance") }}
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -179,7 +193,9 @@ async function seedSamples() {
                       {{ tagLabel(row.tag) }}
                     </span>
                   </td>
-                  <td class="px-4 py-2 tabular-nums text-slate-700">{{ row.count }}</td>
+                  <td class="px-4 py-2 tabular-nums text-slate-700">
+                    {{ row.count }}
+                  </td>
                   <td class="px-4 py-2 tabular-nums text-slate-700">
                     {{ $t("analytics.hoursUnit", { hours: row.estimated }) }}
                   </td>
@@ -194,11 +210,15 @@ async function seedSamples() {
                         : 'text-emerald-600'
                     "
                   >
-                    {{ row.spent - row.estimated > 0 ? "+" : "" }}{{ Math.round((row.spent - row.estimated) * 10) / 10 }}h
+                    {{ row.spent - row.estimated > 0 ? "+" : ""
+                    }}{{ Math.round((row.spent - row.estimated) * 10) / 10 }}h
                   </td>
                 </tr>
                 <tr v-if="taggedBreakdown.length === 0">
-                  <td colspan="5" class="px-4 py-8 text-center text-xs text-slate-400 italic">
+                  <td
+                    colspan="5"
+                    class="px-4 py-8 text-center text-xs text-slate-400 italic"
+                  >
                     {{ $t("analytics.noTaggedTasks") }}
                   </td>
                 </tr>
@@ -216,15 +236,33 @@ async function seedSamples() {
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
-                <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50">
-                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colTitle") }}</th>
-                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colEpic") }}</th>
-                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colStatus") }}</th>
-                  <th class="px-4 py-2 font-medium">{{ $t("analytics.colPriority") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colDue") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colEst") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colSpent") }}</th>
-                  <th class="px-4 py-2 font-medium tabular-nums">{{ $t("analytics.colProgress") }}</th>
+                <tr
+                  class="text-left text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50"
+                >
+                  <th class="px-4 py-2 font-medium">
+                    {{ $t("analytics.colTitle") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium">
+                    {{ $t("analytics.colEpic") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium">
+                    {{ $t("analytics.colStatus") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium">
+                    {{ $t("analytics.colPriority") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colDue") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colEst") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colSpent") }}
+                  </th>
+                  <th class="px-4 py-2 font-medium tabular-nums">
+                    {{ $t("analytics.colProgress") }}
+                  </th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
@@ -283,7 +321,10 @@ async function seedSamples() {
                   </td>
                 </tr>
                 <tr v-if="tasks.length === 0">
-                  <td colspan="8" class="px-4 py-8 text-center text-xs text-slate-400 italic">
+                  <td
+                    colspan="8"
+                    class="px-4 py-8 text-center text-xs text-slate-400 italic"
+                  >
                     {{ $t("analytics.noTasksYet") }}
                   </td>
                 </tr>

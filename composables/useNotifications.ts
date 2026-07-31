@@ -2,10 +2,7 @@ import dayjs from "dayjs";
 import type { Task, TimeBlock } from "~/types/task";
 
 export type NotificationPermissionState =
-  | "granted"
-  | "denied"
-  | "default"
-  | "unsupported";
+  "granted" | "denied" | "default" | "unsupported";
 
 /**
  * Pre-task alerts — fires N minutes before a scheduled time block starts,
@@ -49,7 +46,7 @@ export const useNotifications = () => {
 
   const permission = useState<NotificationPermissionState>(
     "notif:permission",
-    () => "default"
+    () => "default",
   );
   const handles = useState<number[]>("notif:handles", () => []);
   const fired = useState<Set<string>>("notif:fired", () => new Set<string>());
@@ -143,8 +140,8 @@ export const useNotifications = () => {
       minutesAway === 0
         ? t("toasts.startingNow")
         : minutesAway === 1
-        ? t("toasts.startsInOneMin")
-        : t("toasts.startsInMins", { count: minutesAway });
+          ? t("toasts.startsInOneMin")
+          : t("toasts.startsInMins", { count: minutesAway });
     pushToast(
       t("toasts.upcomingBlock", { leadHint, title: task.title, when }),
       {
@@ -160,7 +157,7 @@ export const useNotifications = () => {
             await router.push("/tasks");
           }
         },
-      }
+      },
     );
   }
 
@@ -199,7 +196,7 @@ export const useNotifications = () => {
     const horizonEnd = now.add(24, "hour");
     const lead = Math.max(
       0,
-      Math.round(settings.value.notificationLeadMinutes)
+      Math.round(settings.value.notificationLeadMinutes),
     );
 
     // Project recurrence into the horizon so daily recurring blocks alert too.
@@ -253,7 +250,7 @@ export const useNotifications = () => {
     firePush(
       t("toasts.notificationsEnabled"),
       t("toasts.notificationsEnabledBody"),
-      "mgmt:test"
+      "mgmt:test",
     );
     return true;
   }

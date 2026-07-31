@@ -63,7 +63,7 @@ export const useExport = () => {
     download(
       `management-${timestamp()}.json`,
       "application/json",
-      JSON.stringify(payload, null, 2)
+      JSON.stringify(payload, null, 2),
     );
   }
 
@@ -111,13 +111,7 @@ export const useExport = () => {
       } else {
         for (const b of blocks) {
           rows.push(
-            csvRow([
-              ...base,
-              b.id,
-              b.start,
-              b.end,
-              b.spentHours ?? "",
-            ])
+            csvRow([...base, b.id, b.start, b.end, b.spentHours ?? ""]),
           );
         }
       }
@@ -126,7 +120,7 @@ export const useExport = () => {
     download(
       `management-tasks-${timestamp()}.csv`,
       "text/csv",
-      rows.join("\n")
+      rows.join("\n"),
     );
   }
 
@@ -208,9 +202,9 @@ export const useExport = () => {
             task.status === TaskStatus.Done
               ? "COMPLETED"
               : task.status === TaskStatus.InProgress
-              ? "IN-PROCESS"
-              : "NEEDS-ACTION"
-          }`
+                ? "IN-PROCESS"
+                : "NEEDS-ACTION"
+          }`,
         );
         if (typeof task.progress === "number") {
           lines.push(`PERCENT-COMPLETE:${Math.round(task.progress)}`);
@@ -223,7 +217,7 @@ export const useExport = () => {
     download(
       `management-${timestamp()}.ics`,
       "text/calendar",
-      lines.join("\r\n") + "\r\n"
+      lines.join("\r\n") + "\r\n",
     );
   }
 
@@ -255,13 +249,13 @@ export const useExport = () => {
           e.spentHours ?? 0,
           e.progress ?? 0,
           (e.tags ?? []).join("|"),
-        ])
+        ]),
       );
     }
     download(
       `management-epics-${timestamp()}.csv`,
       "text/csv",
-      rows.join("\n")
+      rows.join("\n"),
     );
   }
 

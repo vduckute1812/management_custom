@@ -41,7 +41,7 @@ function getSecret(): string {
   const raw = process.env.JWT_SECRET;
   if (!raw || raw.length < 16) {
     throw new Error(
-      "JWT_SECRET must be set (>=16 chars). Set it in your .env file."
+      "JWT_SECRET must be set (>=16 chars). Set it in your .env file.",
     );
   }
   return raw;
@@ -60,7 +60,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(
   password: string,
-  hash: string
+  hash: string,
 ): Promise<boolean> {
   if (typeof password !== "string" || typeof hash !== "string") return false;
   return bcrypt.compare(password, hash);

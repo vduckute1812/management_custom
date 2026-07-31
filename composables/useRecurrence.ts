@@ -26,7 +26,7 @@ const MAX_PROJECTIONS_PER_BLOCK = 365;
 export function expandRecurrence(
   task: Task,
   windowStart: Dayjs,
-  windowEnd: Dayjs
+  windowEnd: Dayjs,
 ): TimeBlock[] {
   const r = task.recurrence;
   if (!r || !task.timeBlocks?.length) return [];
@@ -75,7 +75,7 @@ export function expandRecurrence(
 export function withProjections(
   tasks: Task[],
   windowStart: Dayjs,
-  windowEnd: Dayjs
+  windowEnd: Dayjs,
 ): Task[] {
   return tasks.map((t) => {
     if (!t.recurrence) return t;

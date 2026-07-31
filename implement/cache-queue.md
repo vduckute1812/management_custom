@@ -122,13 +122,13 @@ cannot double-run the same job.
 
 ### Job types
 
-| Type                   | Payload                        | Handler                                                |
-| ---------------------- | ------------------------------ | ------------------------------------------------------ |
-| `email.verification`   | `{ to, token }`                | `sendVerificationEmail`                                |
-| `email.passwordReset`  | `{ to, token }`                | `sendPasswordResetEmail`                               |
-| `email.send`           | `{ to, subject, text, html? }` | `sendMail`                                             |
-| `cache.invalidate`     | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                  |
-| `media.purgeExpired`   | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads) |
+| Type                  | Payload                        | Handler                                                |
+| --------------------- | ------------------------------ | ------------------------------------------------------ |
+| `email.verification`  | `{ to, token }`                | `sendVerificationEmail`                                |
+| `email.passwordReset` | `{ to, token }`                | `sendPasswordResetEmail`                               |
+| `email.send`          | `{ to, subject, text, html? }` | `sendMail`                                             |
+| `cache.invalidate`    | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                  |
+| `media.purgeExpired`  | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads) |
 
 Enqueue helpers live in `server/utils/queue.ts`
 (`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).

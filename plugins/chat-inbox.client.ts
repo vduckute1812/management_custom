@@ -223,10 +223,7 @@ export default defineNuxtPlugin(() => {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible") return;
     if (!auth.isAuthenticated.value) return;
-    if (
-      !source ||
-      source.readyState === EventSource.CLOSED
-    ) {
+    if (!source || source.readyState === EventSource.CLOSED) {
       void connect();
     }
   });

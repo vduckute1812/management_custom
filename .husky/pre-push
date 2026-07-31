@@ -1,0 +1,14 @@
+# Catch what pre-commit cannot: lint-staged only formats the files you staged,
+# so a type error in an untouched file still reaches the remote. Running the
+# same checks CI runs means a red pipeline is a surprise, not a routine.
+#
+# Skip with `git push --no-verify` when you need to share a work-in-progress
+# branch; CI will still gate the merge.
+#
+# `set -e` is load-bearing: without it the script exits with the status of the
+# last command, so a failing typecheck followed by passing tests would let the
+# push through.
+set -e
+
+npm run typecheck
+npm test

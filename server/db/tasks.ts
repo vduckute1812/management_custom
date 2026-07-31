@@ -23,14 +23,14 @@ import {
 
 async function loadBlocksByTask(
   conn: PoolConnection | Pool,
-  taskIds: string[]
+  taskIds: string[],
 ): Promise<Map<string, TimeBlock[]>> {
   const out = new Map<string, TimeBlock[]>();
   if (taskIds.length === 0) return out;
   const placeholders = taskIds.map(() => "?").join(",");
   const [rows] = await conn.query<BlockRow[]>(
     `SELECT * FROM time_blocks WHERE task_id IN (${placeholders}) ORDER BY start_at ASC`,
-    taskIds
+    taskIds,
   );
   for (const row of rows) {
     const list = out.get(row.task_id) ?? [];
@@ -42,14 +42,14 @@ async function loadBlocksByTask(
 
 async function loadChecklistByTask(
   conn: PoolConnection | Pool,
-  taskIds: string[]
+  taskIds: string[],
 ): Promise<Map<string, ChecklistItem[]>> {
   const out = new Map<string, ChecklistItem[]>();
   if (taskIds.length === 0) return out;
   const placeholders = taskIds.map(() => "?").join(",");
   const [rows] = await conn.query<ChecklistRow[]>(
     `SELECT * FROM checklist_items WHERE task_id IN (${placeholders}) ORDER BY task_id, position ASC`,
-    taskIds
+    taskIds,
   );
   for (const row of rows) {
     const list = out.get(row.task_id) ?? [];
@@ -67,7 +67,7 @@ export async function getAllTasks(userId: string): Promise<Task[]> {
   const pool = getPool();
   const [taskRows] = await pool.query<TaskRow[]>(
     "SELECT * FROM tasks WHERE user_id = ?",
-    [userId]
+    [userId],
   );
   const ids = taskRows.map((r) => r.id);
   const [blocks, checklists] = await Promise.all([
@@ -75,29 +75,26 @@ export async function getAllTasks(userId: string): Promise<Task[]> {
     loadChecklistByTask(pool, ids),
   ]);
   return taskRows.map((r) =>
-    rowToTask(r, blocks.get(r.id) ?? [], checklists.get(r.id) ?? [])
+    rowToTask(r, blocks.get(r.id) ?? [], checklists.get(r.id) ?? []),
   );
 }
 
 export async function getTaskById(
   userId: string,
-  id: string
+  id: string,
 ): Promise<Task | null> {
   const pool = getPool();
   const [taskRows] = await pool.query<TaskRow[]>(
     "SELECT * FROM tasks WHERE id = ? AND user_id = ? LIMIT 1",
-    [id, userId]
+    [id, userId],
   );
-  if (!taskRows.length) return null;
+  const taskRow = taskRows[0];
+  if (!taskRow) return null;
   const [blocks, checklists] = await Promise.all([
     loadBlocksByTask(pool, [id]),
     loadChecklistByTask(pool, [id]),
   ]);
-  return rowToTask(
-    taskRows[0],
-    blocks.get(id) ?? [],
-    checklists.get(id) ?? []
-  );
+  return rowToTask(taskRow, blocks.get(id) ?? [], checklists.get(id) ?? []);
 }
 
 // -------------------------------------------------------------------------
@@ -123,12 +120,12 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
     // even though the parent row is protected by the user_id IF() guards.
     const [existing] = await conn.query<TaskRow[]>(
       "SELECT user_id FROM tasks WHERE id = ? LIMIT 1",
-      [task.id]
+      [task.id],
     );
-    if (existing.length && existing[0].user_id !== userId) {
+    if (existing[0] && existing[0].user_id !== userId) {
       await conn.rollback();
       throw new Error(
-        `upsertTask: task ${task.id} is owned by another user; refusing to overwrite`
+        `upsertTask: task ${task.id} is owned by another user; refusing to overwrite`,
       );
     }
 
@@ -170,7 +167,7 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
         task.recurrence?.until ?? null,
         isoToDB(task.createdAt),
         isoToDB(task.updatedAt),
-      ]
+      ],
     );
 
     // Replace children. Treating the input as canonical mirrors the JSON
@@ -185,13 +182,13 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
           task.id,
           isoToDB(b.start),
           isoToDB(b.end),
-          b.spentHours ?? null
+          b.spentHours ?? null,
         );
         return "(?, ?, ?, ?, ?)";
       });
       await conn.query(
         `INSERT INTO time_blocks (id, task_id, start_at, end_at, spent_hours) VALUES ${rows.join(",")}`,
-        values
+        values,
       );
     }
 
@@ -207,7 +204,7 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
       });
       await conn.query(
         `INSERT INTO checklist_items (id, task_id, text, done, position) VALUES ${rows.join(",")}`,
-        values
+        values,
       );
     }
 
@@ -222,7 +219,7 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
 
 export async function deleteTask(
   userId: string,
-  id: string
+  id: string,
 ): Promise<Task | null> {
   const existing = await getTaskById(userId, id);
   if (!existing) return null;
@@ -246,7 +243,7 @@ export async function appendBlock(
   userId: string,
   taskId: string,
   block: TimeBlock,
-  updatedAt: string
+  updatedAt: string,
 ): Promise<void> {
   const pool = getPool();
   const conn = await pool.getConnection();
@@ -254,7 +251,7 @@ export async function appendBlock(
     await conn.beginTransaction();
     const [ownerRows] = await conn.query<TaskRow[]>(
       "SELECT id FROM tasks WHERE id = ? AND user_id = ? LIMIT 1",
-      [taskId, userId]
+      [taskId, userId],
     );
     if (!ownerRows.length) {
       await conn.rollback();
@@ -268,11 +265,11 @@ export async function appendBlock(
         isoToDB(block.start),
         isoToDB(block.end),
         block.spentHours ?? null,
-      ]
+      ],
     );
     await conn.query(
       "UPDATE tasks SET updated_at = ? WHERE id = ? AND user_id = ?",
-      [isoToDB(updatedAt), taskId, userId]
+      [isoToDB(updatedAt), taskId, userId],
     );
     await conn.commit();
   } catch (err) {

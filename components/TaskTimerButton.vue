@@ -6,7 +6,7 @@ const props = withDefaults(
     task: Task;
     size?: "sm" | "md";
   }>(),
-  { size: "sm" }
+  { size: "sm" },
 );
 
 const { t } = useI18n();
@@ -24,7 +24,9 @@ const { findTask } = useTasks();
 const busy = ref(false);
 
 const running = computed(() => isRunningFor(props.task.id));
-const elapsedLabel = computed(() => formatElapsed(elapsedSecondsFor(props.task.id)));
+const elapsedLabel = computed(() =>
+  formatElapsed(elapsedSecondsFor(props.task.id)),
+);
 
 const otherRunning = computed(() => {
   return !!activeTimer.value && activeTimer.value.taskId !== props.task.id;
@@ -49,7 +51,7 @@ async function onClick(e: MouseEvent) {
             hours: res.block.spentHours,
             title: props.task.title,
           }),
-          { tone: "success", duration: 2400 }
+          { tone: "success", duration: 2400 },
         );
       } else {
         pushToast(t("toasts.timerStopped"), { tone: "info", duration: 1800 });
@@ -62,7 +64,7 @@ async function onClick(e: MouseEvent) {
           prev
             ? t("toasts.loggedPreviousTimerTo", { title: prev.title })
             : t("toasts.previousTimerLogged"),
-          { tone: "info", duration: 2400 }
+          { tone: "info", duration: 2400 },
         );
       } else {
         pushToast(t("toasts.trackingTask", { title: props.task.title }), {
@@ -74,7 +76,7 @@ async function onClick(e: MouseEvent) {
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.timerActionFailed"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     busy.value = false;
@@ -84,7 +86,7 @@ async function onClick(e: MouseEvent) {
 const dimensions = computed(() =>
   props.size === "md"
     ? "h-8 px-3 text-xs gap-1.5"
-    : "h-7 px-2 text-[11px] gap-1"
+    : "h-7 px-2 text-[11px] gap-1",
 );
 </script>
 
@@ -97,15 +99,15 @@ const dimensions = computed(() =>
       running
         ? 'bg-rose-50 text-rose-700 ring-rose-300 hover:bg-rose-100'
         : otherRunning
-        ? 'bg-white text-slate-500 ring-slate-200 hover:bg-slate-50'
-        : 'bg-emerald-50 text-emerald-700 ring-emerald-300 hover:bg-emerald-100',
+          ? 'bg-white text-slate-500 ring-slate-200 hover:bg-slate-50'
+          : 'bg-emerald-50 text-emerald-700 ring-emerald-300 hover:bg-emerald-100',
     ]"
     :title="
       running
         ? $t('tasks.timer.stopTracking', { elapsed: elapsedLabel })
         : otherRunning
-        ? $t('tasks.timer.switchTracking')
-        : $t('tasks.timer.startTracking')
+          ? $t('tasks.timer.switchTracking')
+          : $t('tasks.timer.startTracking')
     "
     :aria-pressed="running"
     :disabled="busy"
@@ -127,20 +129,29 @@ const dimensions = computed(() =>
       <path d="M8 5v14l11-7z" />
     </svg>
     <template v-if="running">{{ elapsedLabel }}</template>
-    <template v-else-if="size === 'md'">{{ $t("tasks.timer.startTimer") }}</template>
+    <template v-else-if="size === 'md'">{{
+      $t("tasks.timer.startTimer")
+    }}</template>
     <template v-else>{{ $t("tasks.timer.start") }}</template>
   </button>
 </template>
 
 <style scoped>
 @keyframes timer-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
 }
 .timer-pulse {
   animation: timer-pulse 1.2s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .timer-pulse { animation: none; }
+  .timer-pulse {
+    animation: none;
+  }
 }
 </style>

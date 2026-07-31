@@ -114,7 +114,9 @@ const DENSITY_OPACITY = [
           >
             <span
               class="block w-1.5 h-1.5 rounded-full bg-brand-500"
-              :class="DENSITY_OPACITY[densityBucket(breakdownFor(day).blocks.length)]"
+              :class="
+                DENSITY_OPACITY[densityBucket(breakdownFor(day).blocks.length)]
+              "
             />
             <span class="text-[10px] text-slate-500 tabular-nums">
               {{ breakdownFor(day).blocks.length }}
@@ -135,7 +137,9 @@ const DENSITY_OPACITY = [
               class="w-1.5 h-1.5 shrink-0"
               :class="[
                 colorOfTask(entry.task).solid,
-                entry.projected ? 'rounded-sm ring-1 ring-white/40' : 'rounded-full',
+                entry.projected
+                  ? 'rounded-sm ring-1 ring-white/40'
+                  : 'rounded-full',
               ]"
             />
             <span
@@ -174,7 +178,11 @@ const DENSITY_OPACITY = [
             stroke-width="2"
             class="w-3 h-3 text-rose-500"
           >
-            <path d="M4 4v17M4 4h13l-2 4 2 4H4" stroke-linecap="round" stroke-linejoin="round" />
+            <path
+              d="M4 4v17M4 4h13l-2 4 2 4H4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
           </svg>
           <span class="text-[10px] font-medium text-rose-600 tabular-nums">
             {{

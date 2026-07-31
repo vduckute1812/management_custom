@@ -89,7 +89,7 @@ function isReadByPeer(msg: ChatMessage): boolean {
 const lastReadMineId = computed(() => {
   for (let i = props.messages.length - 1; i >= 0; i--) {
     const m = props.messages[i];
-    if (m.mine && isReadByPeer(m)) return m.id;
+    if (m?.mine && isReadByPeer(m)) return m.id;
   }
   return null;
 });
@@ -339,7 +339,7 @@ function isMessageHighlighted(messageId: string) {
 
 const pickerMessage = computed(() =>
   pickerForId.value
-    ? props.messages.find((m) => m.id === pickerForId.value) ?? null
+    ? (props.messages.find((m) => m.id === pickerForId.value) ?? null)
     : null,
 );
 
@@ -521,7 +521,6 @@ defineExpose({ scrollToBottom });
                 · {{ t("chat.readReceipt") }}
               </span>
             </div>
-
           </div>
 
           <!-- Existing reaction chips only (no always-on React button) -->

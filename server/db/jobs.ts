@@ -4,11 +4,7 @@ import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 
 export type JobStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "dead";
+  "pending" | "processing" | "completed" | "failed" | "dead";
 
 export interface JobRow {
   id: string;
@@ -180,7 +176,10 @@ export async function completeJob(id: string): Promise<void> {
  * Mark a failed attempt. Retries with exponential backoff until max_attempts,
  * then moves the job to `dead`.
  */
-export async function failJob(id: string, error: string): Promise<JobRow | null> {
+export async function failJob(
+  id: string,
+  error: string,
+): Promise<JobRow | null> {
   const job = await getJobById(id);
   if (!job) return null;
 
@@ -241,9 +240,9 @@ export async function requeueStaleJobs(
 
 export async function countJobsByStatus(): Promise<Record<JobStatus, number>> {
   const pool = getPool();
-  const [rows] = await pool.query<(RowDataPacket & { status: JobStatus; cnt: number })[]>(
-    `SELECT status, COUNT(*) AS cnt FROM jobs GROUP BY status`,
-  );
+  const [rows] = await pool.query<
+    (RowDataPacket & { status: JobStatus; cnt: number })[]
+  >(`SELECT status, COUNT(*) AS cnt FROM jobs GROUP BY status`);
   const out: Record<JobStatus, number> = {
     pending: 0,
     processing: 0,

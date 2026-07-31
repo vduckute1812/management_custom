@@ -7,7 +7,7 @@ const props = withDefaults(
     variant?: "select" | "buttons";
     id?: string;
   }>(),
-  { variant: "select" }
+  { variant: "select" },
 );
 
 const { locales, locale } = useI18n();
@@ -15,8 +15,10 @@ const { update } = useSettings();
 
 const options = computed(() =>
   locales.value.map((l) =>
-    typeof l === "string" ? { code: l, name: l } : { code: l.code, name: l.name ?? l.code }
-  )
+    typeof l === "string"
+      ? { code: l, name: l }
+      : { code: l.code, name: l.name ?? l.code },
+  ),
 );
 
 function onSelect(code: string) {
@@ -30,7 +32,12 @@ function onSelectChange(e: Event) {
 </script>
 
 <template>
-  <div v-if="variant === 'buttons'" class="flex flex-wrap gap-2" role="group" :aria-labelledby="id">
+  <div
+    v-if="variant === 'buttons'"
+    class="flex flex-wrap gap-2"
+    role="group"
+    :aria-labelledby="id"
+  >
     <button
       v-for="opt in options"
       :key="opt.code"

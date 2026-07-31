@@ -82,7 +82,7 @@ function isMp3(buf: Buffer): boolean {
   if (buf.length < 3) return false;
   if (buf.subarray(0, 3).toString("latin1") === "ID3") return true;
   // MPEG frame sync
-  return buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0;
+  return buf[0] === 0xff && ((buf[1] ?? 0) & 0xe0) === 0xe0;
 }
 
 function isMp4Audio(buf: Buffer): boolean {

@@ -20,7 +20,7 @@ export interface IssueRefreshTokenInput {
 }
 
 export async function issueRefreshToken(
-  input: IssueRefreshTokenInput
+  input: IssueRefreshTokenInput,
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
@@ -35,12 +35,12 @@ export async function issueRefreshToken(
       input.userAgent ?? null,
       input.ip ?? null,
       isoToDB(nowISO()),
-    ]
+    ],
   );
 }
 
 export async function findActiveRefreshToken(
-  tokenHash: string
+  tokenHash: string,
 ): Promise<RefreshTokenRecord | null> {
   const pool = getPool();
   const [rows] = await pool.query<RefreshTokenRow[]>(
@@ -49,10 +49,10 @@ export async function findActiveRefreshToken(
         AND revoked_at IS NULL
         AND expires_at > UTC_TIMESTAMP(3)
       LIMIT 1`,
-    [tokenHash]
+    [tokenHash],
   );
-  if (!rows.length) return null;
   const r = rows[0];
+  if (!r) return null;
   return {
     id: r.id,
     userId: r.user_id,
@@ -69,7 +69,7 @@ export async function revokeRefreshToken(tokenHash: string): Promise<void> {
   const pool = getPool();
   await pool.query(
     "UPDATE auth_refresh_tokens SET revoked_at = ? WHERE token_hash = ? AND revoked_at IS NULL",
-    [isoToDB(nowISO()), tokenHash]
+    [isoToDB(nowISO()), tokenHash],
   );
 }
 
@@ -94,7 +94,7 @@ export async function rotateRefreshToken(input: {
         WHERE token_hash = ?
           AND revoked_at IS NULL
           AND expires_at > UTC_TIMESTAMP(3)`,
-      [revokedAt, input.presentedHash]
+      [revokedAt, input.presentedHash],
     );
     if (result.affectedRows !== 1) {
       await conn.rollback();
@@ -112,7 +112,7 @@ export async function rotateRefreshToken(input: {
         input.next.userAgent ?? null,
         input.next.ip ?? null,
         revokedAt,
-      ]
+      ],
     );
     await conn.commit();
     return true;
@@ -125,11 +125,11 @@ export async function rotateRefreshToken(input: {
 }
 
 export async function revokeAllRefreshTokensForUser(
-  userId: string
+  userId: string,
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
     "UPDATE auth_refresh_tokens SET revoked_at = ? WHERE user_id = ? AND revoked_at IS NULL",
-    [isoToDB(nowISO()), userId]
+    [isoToDB(nowISO()), userId],
   );
 }

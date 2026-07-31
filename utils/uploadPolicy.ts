@@ -190,7 +190,7 @@ export function resolveUploadRule(
   const ext = fileExtension(fileName);
   if (ext) return RULE_BY_EXT.get(ext) ?? null;
 
-  const mime = (declaredMime || "").toLowerCase().split(";")[0].trim();
+  const mime = (declaredMime || "").toLowerCase().split(";")[0]?.trim() ?? "";
   return RULE_BY_MIME.get(mime) ?? null;
 }
 

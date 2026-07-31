@@ -12,7 +12,7 @@ const props = withDefaults(
     /** When false, render a non-interactive label. */
     editable?: boolean;
   }>(),
-  { editable: true }
+  { editable: true },
 );
 
 const emit = defineEmits<{
@@ -39,7 +39,7 @@ async function onChange(e: Event) {
     select.value = String(props.task.status);
     pushToast(
       err instanceof Error ? err.message : t("toasts.couldNotUpdateStatus"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     updating.value = false;

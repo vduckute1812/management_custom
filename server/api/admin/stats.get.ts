@@ -17,10 +17,7 @@ import { requireAdmin } from "~/server/utils/authContext";
 export default defineEventHandler(async (event) => {
   requireAdmin(event);
   const query = getQuery(event);
-  const days = Math.min(
-    365,
-    Math.max(1, Number(query.days ?? 30) || 30)
-  );
+  const days = Math.min(365, Math.max(1, Number(query.days ?? 30) || 30));
 
   const [users, daily, statuses] = await Promise.all([
     getAdminUserSummaries(),

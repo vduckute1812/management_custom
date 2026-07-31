@@ -15,7 +15,8 @@ export const useSampleData = () => {
 
     const cv = await saveEpic({
       title: "Sample · Computer Vision",
-      description: "A small example project so every view has something to show.",
+      description:
+        "A small example project so every view has something to show.",
       status: TaskStatus.InProgress,
       color: "violet",
       dueDate: monday.add(14, "day").format("YYYY-MM-DD"),

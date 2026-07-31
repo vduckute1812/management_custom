@@ -83,7 +83,10 @@ function persist(settings: Settings) {
 export const useSettings = () => {
   const settings = useState<Settings>("settings", () => ({ ...DEFAULTS }));
   const hydrated = useState<boolean>("settings:hydrated", () => false);
-  const systemTheme = useState<EffectiveTheme>("settings:systemTheme", () => "light");
+  const systemTheme = useState<EffectiveTheme>(
+    "settings:systemTheme",
+    () => "light",
+  );
 
   // Hydrate from localStorage on first client mount.
   if (import.meta.client && !hydrated.value) {
