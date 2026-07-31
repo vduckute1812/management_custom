@@ -2,6 +2,10 @@ name: Pi diagnostics (logs)
 
 on:
   workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/pi-diagnostics.yml"
 
 jobs:
   diagnose:
@@ -12,11 +16,15 @@ jobs:
       - name: Container status + recent app logs
         run: |
           set -euo pipefail
+          echo "=== hostname / uptime ==="
+          hostname; uptime; date -u
+          echo
           echo "=== podman ps ==="
           podman ps -a --format 'table {{.Names}}\t{{.Status}}\t{{.Image}}' || true
           echo
           echo "=== compose ps ==="
-          cd "${GITHUB_WORKSPACE:-$PWD}"
+          ROOT="${GITHUB_WORKSPACE:-$PWD}"
+          cd "$ROOT"
           if [[ -f docker/docker-compose.prod.yml ]]; then
             uv run --project . podman-compose -f docker/docker-compose.prod.yml ps 2>/dev/null || true
           fi
@@ -27,23 +35,33 @@ jobs:
           echo "APP=$APP NGINX=$NGINX MYSQL=$MYSQL"
           echo
           if [[ -n "$APP" ]]; then
-            echo "=== $APP logs (last 300) ==="
-            podman logs --tail 300 "$APP" 2>&1 || true
+            echo "=== $APP logs (last 400) ==="
+            podman logs --tail 400 "$APP" 2>&1 || true
           fi
           echo
           if [[ -n "$NGINX" ]]; then
-            echo "=== $NGINX logs (last 80) ==="
-            podman logs --tail 80 "$NGINX" 2>&1 || true
+            echo "=== $NGINX logs (last 100) ==="
+            podman logs --tail 100 "$NGINX" 2>&1 || true
           fi
           echo
           echo "=== health from localhost ==="
-          curl -sS -m 5 http://127.0.0.1:8080/api/health || curl -sS -m 5 http://127.0.0.1/api/health || true
+          curl -sS -m 5 http://127.0.0.1:8080/api/health || true
+          echo
+          curl -sS -m 5 -o /dev/null -w 'home=%{http_code}\n' http://127.0.0.1:8080/ || true
+          curl -sS -m 5 -o /dev/null -w 'feed=%{http_code}\n' http://127.0.0.1:8080/api/feed || true
+          curl -sS -m 5 -o /dev/null -w 'auth_me=%{http_code}\n' http://127.0.0.1:8080/api/auth/me || true
           echo
           echo "=== recent 5xx from nginx access if present ==="
           if [[ -n "$NGINX" ]]; then
-            podman exec "$NGINX" sh -c 'tail -n 200 /var/log/nginx/access.log 2>/dev/null | grep " 5[0-9][0-9] " || true' 2>/dev/null || true
+            podman exec "$NGINX" sh -c 'tail -n 400 /var/log/nginx/access.log 2>/dev/null | grep " 5[0-9][0-9] " || true' 2>/dev/null || true
+            podman exec "$NGINX" sh -c 'tail -n 80 /var/log/nginx/error.log 2>/dev/null || true' 2>/dev/null || true
           fi
           echo
           echo "=== cloudflare tunnel unit (if any) ==="
           systemctl --user status mgmt-cloudflare-tunnel --no-pager -l 2>/dev/null | head -40 || true
-          journalctl --user -u mgmt-cloudflare-tunnel -n 40 --no-pager 2>/dev/null || true
+          journalctl --user -u mgmt-cloudflare-tunnel -n 50 --no-pager 2>/dev/null || true
+          echo
+          echo "=== app env sanity (no secrets) ==="
+          if [[ -n "$APP" ]]; then
+            podman exec "$APP" sh -c 'echo NODE_ENV=$NODE_ENV; echo APP_BASE_URL=$APP_BASE_URL; echo DB_HOST=$DB_HOST; printenv | grep -E "^(NUXT_|NITRO_|R2_|MYSQL_|DB_)" | sed "s/=.*/=***/" || true' 2>/dev/null || true
+          fi
