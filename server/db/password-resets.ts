@@ -57,8 +57,8 @@ export async function consumePasswordReset(
       LIMIT 1`,
     [tokenHash],
   );
-  if (!rows.length) return null;
   const row = rows[0];
+  if (!row) return null;
   await pool.query(
     "UPDATE auth_password_resets SET consumed_at = ? WHERE id = ?",
     [isoToDB(nowISO()), row.id],

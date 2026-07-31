@@ -19,7 +19,8 @@ function nextHourStart(from: Dayjs = dayjs()): Dayjs {
   return from.add(1, "hour").startOf("hour");
 }
 
-function parseHourToken(raw: string): number | null {
+function parseHourToken(raw: string | undefined): number | null {
+  if (!raw) return null;
   const m = raw
     .trim()
     .toLowerCase()
@@ -56,8 +57,9 @@ export function parseQuickCapture(input: string): ParsedQuickCapture {
 
   let day = dayjs().startOf("day");
   const dayMatch = rest.match(/\b(today|tomorrow)\b/i);
+  const isTomorrow = dayMatch?.[1]?.toLowerCase() === "tomorrow";
   if (dayMatch) {
-    if (dayMatch[1].toLowerCase() === "tomorrow") {
+    if (isTomorrow) {
       day = day.add(1, "day");
     }
     rest = rest.replace(dayMatch[0], " ");
@@ -101,7 +103,7 @@ export function parseQuickCapture(input: string): ParsedQuickCapture {
   if (startMin !== null && endMin !== null) {
     start = day.add(startMin, "minute");
     end = day.add(endMin, "minute");
-  } else if (dayMatch && dayMatch[1].toLowerCase() === "tomorrow") {
+  } else if (isTomorrow) {
     // "tomorrow" without a time → 09:00–10:00
     start = day.hour(9).minute(0).second(0).millisecond(0);
     end = start.add(1, "hour");

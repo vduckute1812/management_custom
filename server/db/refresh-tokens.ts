@@ -51,8 +51,8 @@ export async function findActiveRefreshToken(
       LIMIT 1`,
     [tokenHash],
   );
-  if (!rows.length) return null;
   const r = rows[0];
+  if (!r) return null;
   return {
     id: r.id,
     userId: r.user_id,

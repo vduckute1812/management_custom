@@ -82,7 +82,7 @@ function addHour(time: string): string {
   // "HH:mm" → "HH:mm" + 1 hour (wraps at midnight back to 23:00 so the block
   // stays inside the same day, matching the day-bound editor UI).
   if (!/^\d{2}:\d{2}$/.test(time)) return "10:00";
-  const [hh, mm] = time.split(":").map(Number);
+  const [hh = 0, mm = 0] = time.split(":").map(Number);
   const next = (hh + 1) % 24;
   return `${String(next).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
@@ -111,7 +111,7 @@ function removeBlock(idx: number) {
 
 function autoFillSpent(idx: number) {
   const d = drafts.value[idx];
-  if (!d.date || !d.startTime || !d.endTime) return;
+  if (!d || !d.date || !d.startTime || !d.endTime) return;
   const start = dayjs(`${d.date}T${d.startTime}`);
   const end = dayjs(`${d.date}T${d.endTime}`);
   if (!start.isValid() || !end.isValid() || end.isBefore(start)) return;

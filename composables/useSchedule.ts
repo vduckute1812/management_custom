@@ -75,6 +75,7 @@ export function useSchedule() {
       (a, b) => dayjs(b.start).valueOf() - dayjs(a.start).valueOf(),
     );
     const b = sorted[0];
+    if (!b) return 60;
     const mins = dayjs(b.end).diff(dayjs(b.start), "minute");
     return mins > 0 ? mins : 60;
   }
@@ -96,14 +97,13 @@ export function useSchedule() {
     const sameDayIdx = blocks.findIndex((b) =>
       dayjs(b.start).isSame(day, "day"),
     );
+    const sameDayBlock = sameDayIdx >= 0 ? blocks[sameDayIdx] : undefined;
     const newBlock: TimeBlock = {
       id:
-        sameDayIdx >= 0
-          ? blocks[sameDayIdx].id
-          : `block_${Math.random().toString(16).slice(2, 10)}`,
+        sameDayBlock?.id ?? `block_${Math.random().toString(16).slice(2, 10)}`,
       start: start.toISOString(),
       end: end.toISOString(),
-      spentHours: sameDayIdx >= 0 ? blocks[sameDayIdx].spentHours : undefined,
+      spentHours: sameDayBlock?.spentHours,
     };
 
     let nextBlocks: TimeBlock[];

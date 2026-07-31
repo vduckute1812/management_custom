@@ -89,7 +89,7 @@ function isReadByPeer(msg: ChatMessage): boolean {
 const lastReadMineId = computed(() => {
   for (let i = props.messages.length - 1; i >= 0; i--) {
     const m = props.messages[i];
-    if (m.mine && isReadByPeer(m)) return m.id;
+    if (m?.mine && isReadByPeer(m)) return m.id;
   }
   return null;
 });

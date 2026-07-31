@@ -88,12 +88,13 @@ export async function getTaskById(
     "SELECT * FROM tasks WHERE id = ? AND user_id = ? LIMIT 1",
     [id, userId],
   );
-  if (!taskRows.length) return null;
+  const taskRow = taskRows[0];
+  if (!taskRow) return null;
   const [blocks, checklists] = await Promise.all([
     loadBlocksByTask(pool, [id]),
     loadChecklistByTask(pool, [id]),
   ]);
-  return rowToTask(taskRows[0], blocks.get(id) ?? [], checklists.get(id) ?? []);
+  return rowToTask(taskRow, blocks.get(id) ?? [], checklists.get(id) ?? []);
 }
 
 // -------------------------------------------------------------------------
@@ -121,7 +122,7 @@ export async function upsertTask(userId: string, task: Task): Promise<void> {
       "SELECT user_id FROM tasks WHERE id = ? LIMIT 1",
       [task.id],
     );
-    if (existing.length && existing[0].user_id !== userId) {
+    if (existing[0] && existing[0].user_id !== userId) {
       await conn.rollback();
       throw new Error(
         `upsertTask: task ${task.id} is owned by another user; refusing to overwrite`,

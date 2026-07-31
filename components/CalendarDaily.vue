@@ -225,9 +225,10 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
   const todayIdx = blocks.findIndex((b) =>
     dayjs(b.start).isSame(props.date, "day"),
   );
-  if (todayIdx >= 0) {
+  const todayBlock = todayIdx >= 0 ? blocks[todayIdx] : undefined;
+  if (todayBlock) {
     blocks[todayIdx] = {
-      ...blocks[todayIdx],
+      ...todayBlock,
       start: start.toISOString(),
       end: end.toISOString(),
     };

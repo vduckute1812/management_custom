@@ -17,10 +17,11 @@ export async function getActiveTimer(
     "SELECT * FROM active_timer WHERE user_id = ? LIMIT 1",
     [userId],
   );
-  if (!rows.length) return null;
+  const row = rows[0];
+  if (!row) return null;
   return {
-    taskId: rows[0].task_id,
-    startedAt: dbToISO(rows[0].started_at),
+    taskId: row.task_id,
+    startedAt: dbToISO(row.started_at),
   };
 }
 

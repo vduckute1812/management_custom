@@ -18,7 +18,8 @@ export async function getUserByEmail(
     "SELECT * FROM users WHERE email = ? LIMIT 1",
     [email.toLowerCase()],
   );
-  return rows.length ? rowToUser(rows[0]) : null;
+  const row = rows[0];
+  return row ? rowToUser(row) : null;
 }
 
 export async function getUserById(id: string): Promise<UserRecord | null> {
@@ -27,7 +28,8 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
     "SELECT * FROM users WHERE id = ? LIMIT 1",
     [id],
   );
-  return rows.length ? rowToUser(rows[0]) : null;
+  const row = rows[0];
+  return row ? rowToUser(row) : null;
 }
 
 export async function listUsers(): Promise<UserRecord[]> {
@@ -220,10 +222,10 @@ export async function updateUserProfile(
     "SELECT * FROM users WHERE id = ? LIMIT 1",
     [id],
   );
-  if (!existingRows.length) {
+  const existing = existingRows[0];
+  if (!existing) {
     throw Object.assign(new Error("User not found"), { statusCode: 404 });
   }
-  const existing = existingRows[0];
   const previousAvatarUploadId = existing.avatar_upload_id ?? null;
 
   const name = normalizeOptionalText(input.name, 120);

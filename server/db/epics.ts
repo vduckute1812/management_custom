@@ -31,7 +31,8 @@ export async function getEpicById(
     "SELECT * FROM epics WHERE id = ? AND user_id = ? LIMIT 1",
     [id, userId],
   );
-  return rows.length ? rowToEpic(rows[0]) : null;
+  const row = rows[0];
+  return row ? rowToEpic(row) : null;
 }
 
 /**
@@ -49,7 +50,7 @@ export async function upsertEpic(userId: string, epic: Epic): Promise<void> {
     "SELECT user_id FROM epics WHERE id = ? LIMIT 1",
     [epic.id],
   );
-  if (existing.length && existing[0].user_id !== userId) {
+  if (existing[0] && existing[0].user_id !== userId) {
     throw new Error(
       `upsertEpic: epic ${epic.id} is owned by another user; refusing to overwrite`,
     );
@@ -100,11 +101,12 @@ export async function deleteEpic(
       "SELECT * FROM epics WHERE id = ? AND user_id = ? LIMIT 1",
       [id, userId],
     );
-    if (!epicRows.length) {
+    const epicRow = epicRows[0];
+    if (!epicRow) {
       await conn.rollback();
       return null;
     }
-    const removed = rowToEpic(epicRows[0]);
+    const removed = rowToEpic(epicRow);
 
     const [updateResult] = await conn.query(
       "UPDATE tasks SET updated_at = ? WHERE epic_id = ? AND user_id = ?",
