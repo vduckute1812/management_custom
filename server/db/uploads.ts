@@ -1,3 +1,4 @@
+import { DomainError } from "~/server/utils/http";
 import type {
   Pool,
   PoolConnection,
@@ -229,9 +230,7 @@ export async function assertOwnedUploads(
     [...unique, userId],
   );
   if (rows.length !== unique.length) {
-    throw Object.assign(new Error("One or more uploads are invalid"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "One or more uploads are invalid");
   }
   return rows.map((row) => ({ ...row, kind: toUploadKind(row.kind) }));
 }

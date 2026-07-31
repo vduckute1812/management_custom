@@ -1,3 +1,4 @@
+import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
@@ -84,15 +85,11 @@ export async function createPostCategory(args: {
   const name = args.name.trim();
   const slug = slugify(args.slug?.trim() || name);
   if (!name || !slug) {
-    throw Object.assign(new Error("Category name is required"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "Category name is required");
   }
   const existing = await getCategoryBySlug(slug);
   if (existing) {
-    throw Object.assign(new Error("A category with this slug already exists"), {
-      statusCode: 409,
-    });
+    throw new DomainError(409, "A category with this slug already exists");
   }
 
   let sortOrder = args.sortOrder;
@@ -119,7 +116,7 @@ export async function updatePostCategory(
   const pool = getPool();
   const existing = await getCategoryById(id);
   if (!existing) {
-    throw Object.assign(new Error("Category not found"), { statusCode: 404 });
+    throw new DomainError(404, "Category not found");
   }
   const name = args.name?.trim() || existing.name;
   const sortOrder = args.sortOrder ?? existing.sortOrder;

@@ -1,10 +1,11 @@
+import { DomainError } from "~/server/utils/http";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
-import { rowToUser, type UserRow } from "./mappers";
+import { avatarUrlFromUploadId, rowToUser, type UserRow } from "./mappers";
 import { getPool } from "./pool";
 import { UserRole, type UserRecord } from "./types";
-import { UploadKind } from "../../types/post";
+import { UploadKind, type PostAuthor } from "../../types/post";
 
 // -------------------------------------------------------------------------
 // Reads
@@ -186,9 +187,7 @@ function normalizeOptionalText(
   const trimmed = value.trim();
   if (!trimmed) return null;
   if (trimmed.length > max) {
-    throw Object.assign(new Error(`Value must be ${max} characters or fewer`), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, `Value must be ${max} characters or fewer`);
   }
   return trimmed;
 }
@@ -208,7 +207,7 @@ export async function updateUserProfile(
   );
   const existing = existingRows[0];
   if (!existing) {
-    throw Object.assign(new Error("User not found"), { statusCode: 404 });
+    throw new DomainError(404, "User not found");
   }
   const previousAvatarUploadId = existing.avatar_upload_id ?? null;
 
@@ -226,14 +225,10 @@ export async function updateUserProfile(
       const { getUploadById } = await import("./uploads");
       const upload = await getUploadById(avatarUploadId);
       if (!upload || upload.user_id !== id) {
-        throw Object.assign(new Error("Avatar upload is invalid"), {
-          statusCode: 400,
-        });
+        throw new DomainError(400, "Avatar upload is invalid");
       }
       if (upload.kind !== UploadKind.Image) {
-        throw Object.assign(new Error("Avatar must be an image"), {
-          statusCode: 400,
-        });
+        throw new DomainError(400, "Avatar must be an image");
       }
     }
   }
@@ -351,4 +346,66 @@ export async function deleteUser(id: string): Promise<boolean> {
     await purgeR2StorageKeys(keys);
   }
   return ok;
+}
+
+export async function searchUserDirectory(
+  viewerId: string,
+  q: string,
+  limit = 20,
+): Promise<PostAuthor[]> {
+  const pool = getPool();
+  const term = `%${q.trim().toLowerCase()}%`;
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT id, name, email, avatar_upload_id FROM users
+     WHERE id <> ?
+       AND (
+         LOWER(email) LIKE ?
+         OR LOWER(COALESCE(name, '')) LIKE ?
+       )
+     ORDER BY name IS NULL, name ASC, email ASC
+     LIMIT ?`,
+    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)],
+  );
+  return rows.map((r) => ({
+    id: String(r.id),
+    name: (r.name as string | null) ?? null,
+    email: String(r.email),
+    avatarUrl:
+      avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
+      null,
+  }));
+}
+
+/** Resolve directory-style author cards for a set of user ids (edit forms). */
+export async function getAuthorsByIds(
+  userIds: string[],
+): Promise<PostAuthor[]> {
+  const unique = [...new Set(userIds.filter(Boolean))];
+  if (!unique.length) return [];
+  const pool = getPool();
+  const placeholders = unique.map(() => "?").join(",");
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT id, name, email, avatar_upload_id, title, job, location
+     FROM users
+     WHERE id IN (${placeholders})`,
+    unique,
+  );
+  const byId = new Map<string, PostAuthor>();
+  for (const r of rows) {
+    byId.set(String(r.id), {
+      id: String(r.id),
+      name: (r.name as string | null) ?? null,
+      email: String(r.email),
+      avatarUrl:
+        avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
+        null,
+      title: (r.title as string | null) ?? null,
+      job: (r.job as string | null) ?? null,
+      location: (r.location as string | null) ?? null,
+    });
+  }
+  return unique.flatMap((id) => {
+    const author = byId.get(id);
+    return author ? [author] : [];
+  });
 }

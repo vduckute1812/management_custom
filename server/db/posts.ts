@@ -1,3 +1,4 @@
+import { DomainError } from "~/server/utils/http";
 import type {
   PoolConnection,
   ResultSetHeader,
@@ -213,7 +214,7 @@ async function assertPostVisible(
     [postId, viewerId, viewerId],
   );
   if (!rows.length) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
 }
 
@@ -683,9 +684,7 @@ export async function createPost(
   const format = toPostFormat(args.format);
   const title = normalizeTitle(args.title);
   if (format === PostFormat.Manuscript && !title) {
-    throw Object.assign(new Error("Manuscript title is required"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "Manuscript title is required");
   }
   const visibility = toPostVisibility(args.visibility);
   const audienceUserIds =
@@ -698,9 +697,9 @@ export async function createPost(
       : [];
 
   if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
-    throw Object.assign(
-      new Error("Shared posts require at least one audience member"),
-      { statusCode: 400 },
+    throw new DomainError(
+      400,
+      "Shared posts require at least one audience member",
     );
   }
 
@@ -708,7 +707,7 @@ export async function createPost(
   if (categoryId) {
     const cat = await getCategoryById(categoryId);
     if (!cat) {
-      throw Object.assign(new Error("Invalid category"), { statusCode: 400 });
+      throw new DomainError(400, "Invalid category");
     }
   }
 
@@ -741,20 +740,18 @@ export async function createPost(
         [requestedGroup],
       );
       if (!groupRows.length) {
-        throw Object.assign(new Error("Translation group not found"), {
-          statusCode: 404,
-        });
+        throw new DomainError(404, "Translation group not found");
       }
       if (groupRows.some((r) => r.user_id !== userId)) {
-        throw Object.assign(
-          new Error("You can only add translations to your own manuscripts"),
-          { statusCode: 403 },
+        throw new DomainError(
+          403,
+          "You can only add translations to your own manuscripts",
         );
       }
       if (groupRows.some((r) => r.content_locale === contentLocale)) {
-        throw Object.assign(
-          new Error("A translation already exists for this language"),
-          { statusCode: 409 },
+        throw new DomainError(
+          409,
+          "A translation already exists for this language",
         );
       }
       translationGroupId = requestedGroup;
@@ -766,9 +763,7 @@ export async function createPost(
   if (args.sharedPostId) {
     const existing = await getPostById(userId, args.sharedPostId);
     if (!existing) {
-      throw Object.assign(new Error("Shared post not found"), {
-        statusCode: 404,
-      });
+      throw new DomainError(404, "Shared post not found");
     }
   }
 
@@ -818,9 +813,9 @@ export async function createPost(
       code === "ER_DUP_ENTRY" &&
       sqlMessage.includes("uq_posts_group_locale")
     ) {
-      throw Object.assign(
-        new Error("A translation already exists for this language"),
-        { statusCode: 409 },
+      throw new DomainError(
+        409,
+        "A translation already exists for this language",
       );
     }
     throw err;
@@ -888,21 +883,17 @@ export async function updatePost(
   ]);
   const owner = ownerRows[0];
   if (!owner || owner.user_id !== userId) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
 
   const format = toPostFormat(owner.format);
   const trimmed = args.body.trim();
   if (!trimmed) {
-    throw Object.assign(new Error("Post body is required"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "Post body is required");
   }
   const title = normalizeTitle(args.title);
   if (format === PostFormat.Manuscript && !title) {
-    throw Object.assign(new Error("Manuscript title is required"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "Manuscript title is required");
   }
 
   const visibility = toPostVisibility(args.visibility);
@@ -916,9 +907,9 @@ export async function updatePost(
       : [];
 
   if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
-    throw Object.assign(
-      new Error("Shared posts require at least one audience member"),
-      { statusCode: 400 },
+    throw new DomainError(
+      400,
+      "Shared posts require at least one audience member",
     );
   }
 
@@ -926,7 +917,7 @@ export async function updatePost(
   if (categoryId) {
     const cat = await getCategoryById(categoryId);
     if (!cat) {
-      throw Object.assign(new Error("Invalid category"), { statusCode: 400 });
+      throw new DomainError(400, "Invalid category");
     }
   }
 
@@ -1039,7 +1030,7 @@ export async function setPostReaction(
   reaction: PostReactionType,
 ): Promise<Post> {
   if (!POST_REACTION_TYPES.includes(reaction)) {
-    throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
+    throw new DomainError(400, "Invalid reaction");
   }
   await assertPostVisible(userId, postId);
 
@@ -1053,7 +1044,7 @@ export async function setPostReaction(
 
   const refreshed = await getPostById(userId, postId);
   if (!refreshed) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
   return refreshed;
 }
@@ -1072,7 +1063,7 @@ export async function clearPostReaction(
 
   const refreshed = await getPostById(userId, postId);
   if (!refreshed) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
   return refreshed;
 }
@@ -1109,7 +1100,7 @@ export async function listPostComments(
   const pool = getPool();
   const post = await getPostById(viewerId, postId);
   if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
 
   const limit = Math.min(Math.max(opts.limit ?? 30, 1), 50);
@@ -1153,7 +1144,7 @@ export async function createPostComment(
   const pool = getPool();
   const post = await getPostById(userId, postId);
   if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
 
   const id = generateId("cmt");
@@ -1203,7 +1194,7 @@ export async function deletePostComment(
   const pool = getPool();
   const post = await getPostById(userId, postId);
   if (!post) {
-    throw Object.assign(new Error("Post not found"), { statusCode: 404 });
+    throw new DomainError(404, "Post not found");
   }
   const conn = await pool.getConnection();
   try {
@@ -1262,67 +1253,4 @@ export async function recountCommentCounts(
      )`,
   );
   return result.affectedRows ?? 0;
-}
-
-export async function searchUserDirectory(
-  viewerId: string,
-  q: string,
-  limit = 20,
-): Promise<PostAuthor[]> {
-  const pool = getPool();
-  const term = `%${q.trim().toLowerCase()}%`;
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, name, email, avatar_upload_id FROM users
-     WHERE id <> ?
-       AND (
-         LOWER(email) LIKE ?
-         OR LOWER(COALESCE(name, '')) LIKE ?
-       )
-     ORDER BY name IS NULL, name ASC, email ASC
-     LIMIT ?`,
-    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)],
-  );
-  return rows.map((r) => ({
-    id: String(r.id),
-    name: (r.name as string | null) ?? null,
-    email: String(r.email),
-    avatarUrl:
-      avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
-      null,
-  }));
-}
-
-/** Resolve directory-style author cards for a set of user ids (edit forms). */
-export async function getAuthorsByIds(
-  userIds: string[],
-): Promise<PostAuthor[]> {
-  const unique = [...new Set(userIds.filter(Boolean))];
-  if (!unique.length) return [];
-  const pool = getPool();
-  const placeholders = unique.map(() => "?").join(",");
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id, name, email, avatar_upload_id, title, job, location
-     FROM users
-     WHERE id IN (${placeholders})`,
-    unique,
-  );
-  const byId = new Map(
-    rows.map((r) => [
-      String(r.id),
-      toAuthor(
-        String(r.id),
-        (r.name as string | null) ?? null,
-        String(r.email),
-        {
-          avatarUploadId: (r.avatar_upload_id as string | null) ?? null,
-          title: (r.title as string | null) ?? null,
-          job: (r.job as string | null) ?? null,
-          location: (r.location as string | null) ?? null,
-        },
-      ),
-    ]),
-  );
-  return unique
-    .map((id) => byId.get(id))
-    .filter((a): a is PostAuthor => Boolean(a));
 }

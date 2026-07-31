@@ -1,3 +1,4 @@
+import { DomainError } from "~/server/utils/http";
 /**
  * Direct-message chat (1:1 conversations, messages, read receipts).
  */
@@ -237,11 +238,7 @@ function assertParticipant(
   userId: string,
 ): void {
   if (row.user_a_id !== userId && row.user_b_id !== userId) {
-    const err = new Error("Conversation not found") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 404;
-    throw err;
+    throw new DomainError(404, "Conversation not found");
   }
 }
 
@@ -332,11 +329,7 @@ export async function getOrCreateDirectConversation(
   peerId: string,
 ): Promise<ChatConversation> {
   if (userId === peerId) {
-    const err = new Error("Cannot chat with yourself") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 400;
-    throw err;
+    throw new DomainError(400, "Cannot chat with yourself");
   }
 
   const pool = getPool();
@@ -345,9 +338,7 @@ export async function getOrCreateDirectConversation(
     [peerId],
   );
   if (!peerRows.length) {
-    const err = new Error("User not found") as Error & { statusCode?: number };
-    err.statusCode = 404;
-    throw err;
+    throw new DomainError(404, "User not found");
   }
 
   const [a, b] = orderedPair(userId, peerId);
@@ -386,11 +377,7 @@ export async function getOrCreateDirectConversation(
   const list = await listConversations(userId);
   const created = list.find((c) => c.id === id || c.peer.id === peerId);
   if (!created) {
-    const err = new Error("Failed to create conversation") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 500;
-    throw err;
+    throw new DomainError(500, "Failed to create conversation");
   }
   return created;
 }
@@ -434,11 +421,7 @@ export async function listMessages(
 }> {
   const conv = await loadConversationRow(conversationId);
   if (!conv) {
-    const err = new Error("Conversation not found") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 404;
-    throw err;
+    throw new DomainError(404, "Conversation not found");
   }
   assertParticipant(conv, userId);
 
@@ -547,11 +530,7 @@ export async function sendMessage(
 ): Promise<ChatMessage> {
   const conv = await loadConversationRow(conversationId);
   if (!conv) {
-    const err = new Error("Conversation not found") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 404;
-    throw err;
+    throw new DomainError(404, "Conversation not found");
   }
   assertParticipant(conv, userId);
 
@@ -564,11 +543,7 @@ export async function sendMessage(
   if (input.kind === ChatMessageKind.Sticker) {
     const sid = (input.stickerId || "").trim();
     if (!CHAT_STICKER_IDS.has(sid)) {
-      const err = new Error("Unknown sticker") as Error & {
-        statusCode?: number;
-      };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, "Unknown sticker");
     }
     stickerId = sid;
   } else if (
@@ -577,19 +552,11 @@ export async function sendMessage(
   ) {
     const uid = (input.uploadId || "").trim();
     if (!uid) {
-      const err = new Error("uploadId is required") as Error & {
-        statusCode?: number;
-      };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, "uploadId is required");
     }
     const upload = await getUploadById(uid);
     if (!upload || upload.user_id !== userId) {
-      const err = new Error("Upload not found") as Error & {
-        statusCode?: number;
-      };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, "Upload not found");
     }
     const expectedKind =
       input.kind === ChatMessageKind.Image
@@ -598,11 +565,7 @@ export async function sendMessage(
     if (toUploadKind(upload.kind) !== expectedKind) {
       const expectedKindLabel =
         expectedKind === UploadKind.Image ? "image" : "audio";
-      const err = new Error(
-        `Upload must be an ${expectedKindLabel} file`,
-      ) as Error & { statusCode?: number };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, `Upload must be an ${expectedKindLabel} file`);
     }
     // Refuse reuse of an upload already linked to another chat message.
     const poolCheck = getPool();
@@ -611,23 +574,13 @@ export async function sendMessage(
       [uid],
     );
     if (used.length) {
-      const err = new Error(
-        "Upload is already attached to a message",
-      ) as Error & {
-        statusCode?: number;
-      };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, "Upload is already attached to a message");
     }
     uploadId = uid;
     if (input.kind === ChatMessageKind.Audio) {
       const d = Number(input.durationMs ?? 0);
       if (!Number.isFinite(d) || d < 200 || d > CHAT_VOICE_MAX_MS) {
-        const err = new Error("Invalid voice duration") as Error & {
-          statusCode?: number;
-        };
-        err.statusCode = 400;
-        throw err;
+        throw new DomainError(400, "Invalid voice duration");
       }
       durationMs = Math.round(d);
     }
@@ -641,11 +594,7 @@ export async function sendMessage(
   } else {
     const text = (input.body || "").trim();
     if (!text) {
-      const err = new Error("Message body is required") as Error & {
-        statusCode?: number;
-      };
-      err.statusCode = 400;
-      throw err;
+      throw new DomainError(400, "Message body is required");
     }
     body = text;
   }
@@ -706,11 +655,7 @@ export async function sendMessage(
       code === "ER_DUP_ENTRY" &&
       sqlMessage.includes("uniq_chat_messages_upload")
     ) {
-      const conflict = new Error(
-        "Upload is already attached to a message",
-      ) as Error & { statusCode?: number };
-      conflict.statusCode = 400;
-      throw conflict;
+      throw new DomainError(400, "Upload is already attached to a message");
     }
     throw err;
   } finally {
@@ -792,12 +737,12 @@ async function assertChatMessageAccessible(
 ): Promise<void> {
   const conv = await loadConversationRow(conversationId);
   if (!conv) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+    throw new DomainError(404, "Message not found");
   }
   try {
     assertParticipant(conv, userId);
   } catch {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+    throw new DomainError(404, "Message not found");
   }
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -807,7 +752,7 @@ async function assertChatMessageAccessible(
     [messageId, conversationId],
   );
   if (!rows.length) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+    throw new DomainError(404, "Message not found");
   }
 }
 
@@ -818,7 +763,7 @@ export async function setChatMessageReaction(
   reaction: ChatMessageReactionType,
 ): Promise<ChatMessage> {
   if (!CHAT_REACTION_TYPES.includes(reaction)) {
-    throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
+    throw new DomainError(400, "Invalid reaction");
   }
   await assertChatMessageAccessible(userId, conversationId, messageId);
 
@@ -836,7 +781,7 @@ export async function setChatMessageReaction(
     messageId,
   );
   if (!refreshed) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+    throw new DomainError(404, "Message not found");
   }
   return refreshed;
 }
@@ -860,7 +805,7 @@ export async function clearChatMessageReaction(
     messageId,
   );
   if (!refreshed) {
-    throw Object.assign(new Error("Message not found"), { statusCode: 404 });
+    throw new DomainError(404, "Message not found");
   }
   return refreshed;
 }
@@ -871,11 +816,7 @@ export async function markConversationRead(
 ): Promise<{ lastReadAt: string }> {
   const conv = await loadConversationRow(conversationId);
   if (!conv) {
-    const err = new Error("Conversation not found") as Error & {
-      statusCode?: number;
-    };
-    err.statusCode = 404;
-    throw err;
+    throw new DomainError(404, "Conversation not found");
   }
   assertParticipant(conv, userId);
 

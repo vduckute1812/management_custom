@@ -1,3 +1,4 @@
+import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
@@ -294,17 +295,10 @@ export async function createStory(
   const body = args.body?.trim() || null;
   const uploadId = args.uploadId?.trim() || null;
   if (!body && !uploadId) {
-    throw Object.assign(new Error("Story needs text or media"), {
-      statusCode: 400,
-    });
+    throw new DomainError(400, "Story needs text or media");
   }
   if (body && body.length > 500) {
-    throw Object.assign(
-      new Error("Story text must be 500 characters or fewer"),
-      {
-        statusCode: 400,
-      },
-    );
+    throw new DomainError(400, "Story text must be 500 characters or fewer");
   }
 
   let mime: string | null = null;
@@ -312,16 +306,12 @@ export async function createStory(
   if (uploadId) {
     const [up] = await assertOwnedUploads(userId, [uploadId]);
     if (!up) {
-      throw Object.assign(new Error("Story media is invalid"), {
-        statusCode: 400,
-      });
+      throw new DomainError(400, "Story media is invalid");
     }
     // Stories are rendered as media; a document here would surface as a
     // broken <img>, so reject it rather than store an unviewable story.
     if (up.kind !== UploadKind.Image) {
-      throw Object.assign(new Error("Story media must be an image"), {
-        statusCode: 400,
-      });
+      throw new DomainError(400, "Story media must be an image");
     }
     mime = up.mime;
     storageKey = up.storage_key;
@@ -365,7 +355,7 @@ export async function markStoryViewed(
     [storyId],
   );
   if (!rows.length) {
-    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+    throw new DomainError(404, "Story not found");
   }
   await pool.query(
     `INSERT INTO story_views (story_id, user_id, viewed_at)
@@ -412,7 +402,7 @@ async function assertOwnedStory(
     [storyId, userId],
   );
   if (!rows.length) {
-    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+    throw new DomainError(404, "Story not found");
   }
 }
 
@@ -425,7 +415,7 @@ async function assertVisibleStory(storyId: string): Promise<void> {
     [storyId],
   );
   if (!rows.length) {
-    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+    throw new DomainError(404, "Story not found");
   }
 }
 
@@ -520,7 +510,7 @@ export async function setStoryReaction(
 ): Promise<Story> {
   await assertVisibleStory(storyId);
   if (!POST_REACTION_TYPES.includes(reaction)) {
-    throw Object.assign(new Error("Invalid reaction"), { statusCode: 400 });
+    throw new DomainError(400, "Invalid reaction");
   }
 
   const pool = getPool();
@@ -534,7 +524,7 @@ export async function setStoryReaction(
 
   const refreshed = await getStoryForViewer(userId, storyId);
   if (!refreshed) {
-    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+    throw new DomainError(404, "Story not found");
   }
   return refreshed;
 }
@@ -552,7 +542,7 @@ export async function clearStoryReaction(
 
   const refreshed = await getStoryForViewer(userId, storyId);
   if (!refreshed) {
-    throw Object.assign(new Error("Story not found"), { statusCode: 404 });
+    throw new DomainError(404, "Story not found");
   }
   return refreshed;
 }

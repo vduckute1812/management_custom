@@ -51,9 +51,6 @@ const emit = defineEmits<{
 
 const { t, te } = useI18n();
 const auth = useAuth();
-const { uploadFile, validateFile } = useUploads();
-const { pushToast } = useToasts();
-const { results, loading: searching, searchDebounced } = useUserDirectory();
 
 function catLabel(cat: PostCategory) {
   return categoryDisplayName(cat, t, te);
@@ -66,14 +63,26 @@ const visibility = ref<PostVisibility>(
 const categoryId = ref(props.initial?.categoryId ?? "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "default");
 const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
-const audience = ref<PostAuthor[]>([...(props.initial?.audience ?? [])]);
-const audienceQuery = ref("");
-const attachments = ref<UploadRecord[]>([
-  ...(props.initial?.attachments ?? []),
-]);
-const uploading = ref(false);
-const fileInput = ref<HTMLInputElement | null>(null);
 const textareaEl = ref<HTMLTextAreaElement | null>(null);
+
+const {
+  audience,
+  audienceQuery,
+  results,
+  searching,
+  pickAudience,
+  removeAudience,
+  clearAudience,
+} = useAudiencePicker(visibility, props.initial?.audience);
+
+const {
+  attachments,
+  uploading,
+  fileInput,
+  onFilesSelected,
+  removeAttachment,
+  clearAttachments,
+} = useComposerAttachments(props.initial?.attachments);
 
 const userLabel = computed(
   () => auth.user.value?.name || auth.user.value?.email || t("nav.account"),
@@ -86,58 +95,6 @@ const canSubmit = computed(
     !uploading.value &&
     (visibility.value !== PostVisibility.Shared || audience.value.length > 0),
 );
-
-watch(audienceQuery, (q) => {
-  if (visibility.value === PostVisibility.Shared) searchDebounced(q);
-});
-
-function pickAudience(user: PostAuthor) {
-  if (audience.value.some((u) => u.id === user.id)) return;
-  audience.value = [...audience.value, user];
-  audienceQuery.value = "";
-}
-
-function removeAudience(id: string) {
-  audience.value = audience.value.filter((u) => u.id !== id);
-}
-
-async function onFilesSelected(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
-  input.value = "";
-  if (!files.length) return;
-
-  const accepted: File[] = [];
-  for (const file of files) {
-    const reason = validateFile(file);
-    if (reason) pushToast(reason, { tone: "danger" });
-    else accepted.push(file);
-  }
-  if (!accepted.length) return;
-
-  const room = Math.max(UPLOAD_MAX_PER_POST - attachments.value.length, 0);
-  if (accepted.length > room) {
-    pushToast(t("uploads.errors.tooMany", { max: UPLOAD_MAX_PER_POST }), {
-      tone: "danger",
-    });
-  }
-
-  uploading.value = true;
-  try {
-    for (const file of accepted.slice(0, room)) {
-      const uploaded = await uploadFile(file);
-      attachments.value = [...attachments.value, uploaded];
-    }
-  } catch {
-    // uploadFile already surfaced a toast.
-  } finally {
-    uploading.value = false;
-  }
-}
-
-function removeAttachment(id: string) {
-  attachments.value = attachments.value.filter((a) => a.id !== id);
-}
 
 function insertAtCursor(snippet: string) {
   const el = textareaEl.value;
@@ -184,9 +141,8 @@ function clear() {
   categoryId.value = "";
   fontFamily.value = "default";
   textColor.value = "default";
-  audience.value = [];
-  audienceQuery.value = "";
-  attachments.value = [];
+  clearAudience();
+  clearAttachments();
 }
 
 function focus() {

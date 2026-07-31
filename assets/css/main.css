@@ -57,12 +57,7 @@ html[data-theme="dark"] #__nuxt {
 }
 
 /* --- Surfaces ----------------------------------------------------------- */
-html[data-theme="dark"] .bg-white {
-  background-color: #111827 !important;
-}
-html[data-theme="dark"] .bg-slate-50 {
-  background-color: #0f172a !important;
-}
+/* .bg-white / .bg-slate-50 / .to-white → semantic tokens (see below) */
 html[data-theme="dark"] .bg-slate-100 {
   background-color: #1e293b !important;
 }
@@ -108,9 +103,6 @@ html[data-theme="dark"] .bg-brand-200 {
 html[data-theme="dark"] .from-brand-50 {
   --tw-gradient-from: rgba(99, 102, 241, 0.12) !important;
 }
-html[data-theme="dark"] .to-white {
-  --tw-gradient-to: #111827 !important;
-}
 html[data-theme="dark"] .text-brand-300 {
   color: #a5b4fc !important;
 }
@@ -153,6 +145,14 @@ html[data-theme="dark"] .home-preview-glow {
   --mf-accent-soft-hover: #d7e8dd;
   --mf-rule: #cfe0d5;
   --mf-ring: #e4efe8;
+
+  /* App semantic tokens (layout chrome) */
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --ink: #0f172a;
+  --ink-muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
 }
 
 html[data-theme="dark"] {
@@ -168,6 +168,36 @@ html[data-theme="dark"] {
   --mf-accent-soft-hover: #2d3d34;
   --mf-rule: #3a4540;
   --mf-ring: #2a332e;
+
+  --surface: #111827;
+  --surface-muted: #0f172a;
+  --ink: #f1f5f9;
+  --ink-muted: #94a3b8;
+  --border: #1e293b;
+  --border-strong: #334155;
+}
+
+/* Layout chrome utilities → semantic tokens (light + dark via vars) */
+.bg-white {
+  background-color: var(--surface);
+}
+.bg-slate-50 {
+  background-color: var(--surface-muted);
+}
+.text-slate-900 {
+  color: var(--ink);
+}
+.text-slate-500 {
+  color: var(--ink-muted);
+}
+.border-slate-200 {
+  border-color: var(--border);
+}
+.border-slate-300 {
+  border-color: var(--border-strong);
+}
+.to-white {
+  --tw-gradient-to: var(--surface);
 }
 
 .manuscript-card {
@@ -301,7 +331,7 @@ html[data-theme="dark"] .feed-category-chip--active {
 
 /* --- Story tray ring offset on dark surfaces --------------------------- */
 html[data-theme="dark"] .story-avatar-ring {
-  --tw-ring-offset-color: #111827;
+  --tw-ring-offset-color: var(--surface);
 }
 
 /* --- Brand soft surfaces (calendar today highlight, etc.) -------------- */
@@ -337,9 +367,7 @@ html[data-theme="dark"] .text-brand-800 {
 }
 
 /* --- Text --------------------------------------------------------------- */
-html[data-theme="dark"] .text-slate-900 {
-  color: #f1f5f9 !important;
-}
+/* .text-slate-900 / .text-slate-500 → semantic tokens (see below) */
 html[data-theme="dark"] .text-slate-800 {
   color: #e2e8f0 !important;
 }
@@ -347,9 +375,6 @@ html[data-theme="dark"] .text-slate-700 {
   color: #cbd5e1 !important;
 }
 html[data-theme="dark"] .text-slate-600 {
-  color: #94a3b8 !important;
-}
-html[data-theme="dark"] .text-slate-500 {
   color: #94a3b8 !important;
 }
 html[data-theme="dark"] .text-slate-400 {
@@ -360,14 +385,9 @@ html[data-theme="dark"] .text-slate-300 {
 }
 
 /* --- Borders, rings, dividers ------------------------------------------ */
+/* .border-slate-200 / .border-slate-300 → semantic tokens (see below) */
 html[data-theme="dark"] .border-slate-100 {
   border-color: #1e293b !important;
-}
-html[data-theme="dark"] .border-slate-200 {
-  border-color: #1e293b !important;
-}
-html[data-theme="dark"] .border-slate-300 {
-  border-color: #334155 !important;
 }
 html[data-theme="dark"] .ring-slate-200 {
   --tw-ring-color: #334155 !important;
