@@ -62,7 +62,7 @@ Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-orig
 
 `useApi.apiFetch` always sends `credentials: 'include'` and attaches `Authorization: Bearer …` when the in-memory access token is set. Identical in-flight calls (same method + URL + query) share one promise; the first request is not delayed.
 
-**Brute-force protection:** `POST /api/auth/login`, `signup`, and `refresh` have stricter per-IP rate limits (see [`api.md`](./api.md#rate-limiting)).
+**Brute-force protection:** `POST /api/auth/login`, `signup`, and `forgot-password` have stricter per-IP rate limits **and** a per-email budget (see [`api.md`](./api.md#rate-limiting)). The IP is taken from `CF-Connecting-IP` / nginx `X-Real-IP`, not the client-controlled first `X-Forwarded-For` hop.
 
 ---
 

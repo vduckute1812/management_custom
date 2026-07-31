@@ -15,23 +15,27 @@ See [`auth.md`](./auth.md) for the token model and client route guard; see [`dat
 
 ## Rate limiting
 
-`server/middleware/rate-limit.ts` applies a fixed-window cap on every `/api/*` request. Limits are keyed by client IP (from `X-Forwarded-For` / `X-Real-IP` when present). Strict auth/upload paths get their own buckets; all other `/api/*` routes share `ip:global`.
+`server/middleware/rate-limit.ts` applies a fixed-window cap on every `/api/*` request. Limits are keyed by client IP. Strict auth/upload paths get their own buckets; all other `/api/*` routes share `ip:global`.
 
-| Scope                            | Limit        | Window |
-| -------------------------------- | ------------ | ------ |
-| Global (all other `/api/*`)      | 120 requests | 60 s   |
-| `POST /api/auth/login`           | 10           | 60 s   |
-| `POST /api/auth/signup`          | 5            | 60 s   |
-| `POST /api/auth/refresh`         | 30           | 60 s   |
-| `POST /api/auth/forgot-password` | 5            | 60 s   |
-| `POST /api/auth/reset-password`  | 10           | 60 s   |
-| `/api/uploads` (any method)      | 30           | 60 s   |
+**IP trust order** (see `server/rate-limit/clientIp.ts`): `CF-Connecting-IP` (Cloudflare Tunnel) → `X-Real-IP` (nginx overwrites with `$remote_addr`) → socket. The first `X-Forwarded-For` hop is **not** trusted — it is client-controlled and previously let an attacker rotate a fresh bucket per request.
+
+Credential endpoints (`login`, `signup`, `forgot-password`) also enforce a **per-email** bucket inside the handler (`assertAccountRateLimit`). A distributed stuffing run that rotates source IPs still exhausts the account budget.
+
+| Scope                            | Limit                          | Window |
+| -------------------------------- | ------------------------------ | ------ |
+| Global (all other `/api/*`)      | 120 requests                   | 60 s   |
+| `POST /api/auth/login`           | 10 per IP **and** 10 per email | 60 s   |
+| `POST /api/auth/signup`          | 5 per IP **and** 5 per email   | 60 s   |
+| `POST /api/auth/refresh`         | 30                             | 60 s   |
+| `POST /api/auth/forgot-password` | 5 per IP **and** 5 per email   | 60 s   |
+| `POST /api/auth/reset-password`  | 10                             | 60 s   |
+| `/api/uploads` (any method)      | 30                             | 60 s   |
 
 When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
 
 On the client, `useApi().apiFetch` coalesces identical in-flight requests (same method + URL + query) so bursts share one network call. It does **not** delay the first request. Server-side caps still apply separately.
 
-Implementation: `server/rate-limit/` module (policies, in-memory store, check) + `server/middleware/rate-limit.ts`. In-memory counters are correct for a single Nitro process.
+Implementation: `server/rate-limit/` module (policies, memory store with optional Redis when `REDIS_URL` is set, check) + `server/middleware/rate-limit.ts`. Redis failures fall open to the in-memory store so a cache outage cannot take authentication with it.
 
 ## Enum encoding
 

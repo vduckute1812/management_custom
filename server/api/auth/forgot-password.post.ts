@@ -21,12 +21,15 @@ import {
 import { enqueuePasswordResetEmail } from "~/server/utils/queue";
 import { parseBody } from "~/server/utils/http";
 import { forgotPasswordBodySchema } from "~/server/schemas";
+import { assertAccountRateLimit } from "~/server/rate-limit";
 
 const RESET_TTL_SECONDS = 3600;
 
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, forgotPasswordBodySchema);
   const email = body.email.trim().toLowerCase();
+
+  await assertAccountRateLimit(event, email, "/api/auth/forgot-password");
 
   const user = await getUserByEmail(email);
   if (user?.emailVerified) {
