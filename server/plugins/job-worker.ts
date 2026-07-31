@@ -41,6 +41,7 @@ export default defineNitroPlugin((nitroApp) => {
   let stopped = false;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let maintenanceAt = 0;
+  let maintenanceTicks = 0;
 
   async function tick() {
     if (stopped) return;
@@ -69,6 +70,43 @@ export default defineNitroPlugin((nitroApp) => {
             "[queue] expired story purge failed:",
             (err as Error)?.message || err,
           );
+        }
+        // Auth token tables only UPDATE on revoke/consume — without a purge
+        // they are the fastest-growing tables in the system.
+        try {
+          const { purgeExpiredRefreshTokens } =
+            await import("../db/refresh-tokens");
+          const { purgeStaleEmailVerifications } =
+            await import("../db/email-verifications");
+          const { purgeStalePasswordResets } =
+            await import("../db/password-resets");
+          const refresh = await purgeExpiredRefreshTokens();
+          const verify = await purgeStaleEmailVerifications();
+          const reset = await purgeStalePasswordResets();
+          if (refresh + verify + reset > 0) {
+            console.info(
+              `[queue] purged auth tokens refresh=${refresh} verify=${verify} reset=${reset}`,
+            );
+          }
+        } catch (err) {
+          console.warn(
+            "[queue] auth token purge failed:",
+            (err as Error)?.message || err,
+          );
+        }
+        // Safety net for posts.comment_count drift. Full-table rewrite — run
+        // every ~30 minutes (15 × 2 min ticks), not on every sweep.
+        maintenanceTicks += 1;
+        if (maintenanceTicks % 15 === 0) {
+          try {
+            const { recountCommentCounts } = await import("../db/posts");
+            await recountCommentCounts();
+          } catch (err) {
+            console.warn(
+              "[queue] comment_count recount failed:",
+              (err as Error)?.message || err,
+            );
+          }
         }
       }
 

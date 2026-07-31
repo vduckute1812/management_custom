@@ -1,4 +1,4 @@
-import type { RowDataPacket } from "mysql2/promise";
+import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { rowToUser, type UserRow } from "./mappers";
@@ -306,15 +306,47 @@ export async function recordUserLogin(id: string): Promise<void> {
  * Hard-delete a user row. Related MySQL data cascades via FK constraints.
  * Cloudflare R2 objects for the user's uploads are deleted afterwards
  * (CASCADE cannot touch object storage).
+ *
+ * Comment rows this user left on *other* people's posts cascade away, but
+ * the denormalized `posts.comment_count` does not — recount those posts
+ * before the DELETE so the counters stay honest.
  */
 export async function deleteUser(id: string): Promise<boolean> {
   const { listStorageKeysForUser, purgeR2StorageKeys } =
     await import("./uploads");
+  const { recountCommentCounts } = await import("./posts");
   const keys = await listStorageKeysForUser(id);
 
   const pool = getPool();
-  const [result] = await pool.query("DELETE FROM users WHERE id = ?", [id]);
-  const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  const conn = await pool.getConnection();
+  let ok = false;
+  let touchedPostIds: string[] = [];
+  try {
+    await conn.beginTransaction();
+    const [commentRows] = await conn.query<RowDataPacket[]>(
+      "SELECT DISTINCT post_id AS postId FROM post_comments WHERE user_id = ?",
+      [id],
+    );
+    touchedPostIds = commentRows
+      .map((r) => String(r.postId ?? ""))
+      .filter(Boolean);
+
+    const [result] = await conn.query<ResultSetHeader>(
+      "DELETE FROM users WHERE id = ?",
+      [id],
+    );
+    ok = (result.affectedRows ?? 0) > 0;
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+
+  if (ok && touchedPostIds.length) {
+    await recountCommentCounts(touchedPostIds);
+  }
   if (ok && keys.length) {
     await purgeR2StorageKeys(keys);
   }
