@@ -11,10 +11,11 @@
 #      restores the `:previous` image tag.
 #   4. If the new container fails its health check, we retag the previous
 #      image as :latest and recreate the app.
-#   5. Prunes leftover images/containers around the build: before build
-#      (free disk), on build failure (partial layers), and after a healthy
-#      deploy (multi-stage intermediates, old SHA tags, stopped containers).
-#      Always keeps :latest / :previous / the new SHA; never touches volumes.
+#   5. Prunes *old app SHA tags* and stopped containers around the build.
+#      Keeps :latest / :previous / the new SHA / :builder-cache (layer cache
+#      for apk + npm ci). Avoids `system prune` / builder-cache wipe on every
+#      deploy — that was forcing cold npm ci (~6 min) on the Pi. Aggressive
+#      prune only runs when free disk is critically low. Never touches volumes.
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
@@ -61,6 +62,10 @@ GIT_SHA="${GIT_SHA:-$(git rev-parse --short HEAD 2>/dev/null || echo manual)}"
 NEW_TAG="${IMAGE}:${GIT_SHA}"
 LATEST_TAG="${IMAGE}:latest"
 PREV_TAG="${IMAGE}:previous"
+# Tagged builder stage so apk + npm ci layers survive post-deploy cleanup.
+BUILDER_CACHE_TAG="${IMAGE}:builder-cache"
+# Only run aggressive prune (dangling + system) below this free space (GiB).
+DISK_FREE_MIN_GIB="${MGMT_DISK_FREE_MIN_GIB:-4}"
 
 log() { echo "[ci-deploy] $*"; }
 die() { echo "[ci-deploy] ERROR: $*" >&2; exit 1; }
@@ -85,14 +90,31 @@ restore_previous_tag() {
   fi
 }
 
-# Free Podman/Docker layer storage around builds. Keeps :latest / :previous /
-# the in-flight SHA tag (and any currently-running containers) intact.
-# Never prunes named volumes (MySQL data). Never uses `image prune -a` —
-# that would delete :previous while only :latest is running.
+disk_free_gib() {
+  # Free space on / in GiB (integer). Falls back to 999 if df is unreadable.
+  local avail
+  avail="$(df -BG / 2>/dev/null | awk 'NR==2 { gsub(/G/, "", $4); print $4 }' || true)"
+  if [[ "${avail}" =~ ^[0-9]+$ ]]; then
+    echo "${avail}"
+  else
+    echo 999
+  fi
+}
+
+# Free Podman/Docker storage carefully. Keeps :latest / :previous / in-flight
+# SHA / :builder-cache intact. Never uses `image prune -a` (would delete
+# :previous). Never touches named volumes (MySQL data).
 #
 # Extra keep refs can be passed as args (e.g. prune_image_storage "${NEW_TAG}").
+# Set aggressive=1 via env MGMT_PRUNE_AGGRESSIVE=1 or when free disk is low.
 prune_image_storage() {
-  log "pruning unused ${RUNTIME} images/containers to free disk"
+  local free_gib aggressive=false
+  free_gib="$(disk_free_gib)"
+  if [[ "${MGMT_PRUNE_AGGRESSIVE:-0}" == "1" ]] || (( free_gib < DISK_FREE_MIN_GIB )); then
+    aggressive=true
+  fi
+
+  log "pruning old app tags / stopped containers (free=${free_gib}G; aggressive=${aggressive})"
   df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
 
   local keep_ref
@@ -100,6 +122,7 @@ prune_image_storage() {
   KEEP["${LATEST_TAG}"]=1
   KEEP["${PREV_TAG}"]=1
   KEEP["${NEW_TAG}"]=1
+  KEEP["${BUILDER_CACHE_TAG}"]=1
   for keep_ref in "$@"; do
     [[ -n "${keep_ref}" ]] && KEEP["${keep_ref}"]=1
   done
@@ -128,14 +151,11 @@ prune_image_storage() {
 
   remove_dangling_images() {
     local id
-    # Built-in dangling prune first…
     if [[ "${RUNTIME}" == "podman" ]]; then
       podman image prune -f >/dev/null 2>&1 || true
     else
       docker image prune -f >/dev/null 2>&1 || true
     fi
-    # …then force-remove any leftover <none> IDs `prune -f` sometimes leaves
-    # on rootless Podman after multi-stage builds (builder stages, failed COPY).
     while IFS= read -r id; do
       [[ -z "${id}" ]] && continue
       log "removing dangling image ${id}"
@@ -157,17 +177,31 @@ prune_image_storage() {
   fi
 
   remove_old_app_tags
-  remove_dangling_images
 
-  # Unused networks / build cache only — never volumes.
-  if [[ "${RUNTIME}" == "podman" ]]; then
-    podman system prune -f >/dev/null 2>&1 || true
-  else
-    docker builder prune -f >/dev/null 2>&1 || true
-    docker system prune -f >/dev/null 2>&1 || true
+  # Aggressive mode only: wipe dangling intermediates + unused networks.
+  # Skipping this on healthy disks preserves builder layer cache (apk/npm ci).
+  if [[ "${aggressive}" == true ]]; then
+    log "disk low or MGMT_PRUNE_AGGRESSIVE=1 — pruning dangling images + system leftovers"
+    remove_dangling_images
+    if [[ "${RUNTIME}" == "podman" ]]; then
+      podman system prune -f >/dev/null 2>&1 || true
+    else
+      docker builder prune -f >/dev/null 2>&1 || true
+      docker system prune -f >/dev/null 2>&1 || true
+    fi
   fi
 
   df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
+}
+
+# Refresh the tagged builder stage so the next deploy can reuse apk + npm ci
+# layers. Cheap when those steps are already cached; never fails the deploy.
+refresh_builder_cache() {
+  log "refreshing builder cache tag ${BUILDER_CACHE_TAG}"
+  if ! "${RUNTIME}" build -f docker/Dockerfile.prod --target builder \
+    -t "${BUILDER_CACHE_TAG}" .; then
+    log "WARNING: could not refresh ${BUILDER_CACHE_TAG} — next build may be colder"
+  fi
 }
 
 health_ok() {
@@ -399,14 +433,15 @@ else
   log "no existing ${LATEST_TAG} — first deploy, rollback target unavailable"
 fi
 
-# Free space *after* snapshotting :previous so rollback stays available.
+# Free old SHA tags *after* snapshotting :previous so rollback stays available.
+# Does not wipe builder layer cache unless disk is critically low.
 prune_image_storage
 
 # ── Build (failure here leaves the running stack untouched) ──────────────
-log "building ${NEW_TAG} (includes npm ci for app libs)"
+log "building ${NEW_TAG} (npm ci cached when lockfile + builder-cache unchanged)"
 if ! "${RUNTIME}" build -f docker/Dockerfile.prod -t "${NEW_TAG}" .; then
-  # Another prune pass helps the next CI run if this one OOM'd the disk.
-  prune_image_storage
+  # Aggressive prune on failure — reclaim partial layers for the next attempt.
+  MGMT_PRUNE_AGGRESSIVE=1 prune_image_storage
   die "image build failed — running stack was not restarted"
 fi
 tag_image "${NEW_TAG}" "${LATEST_TAG}"
@@ -449,9 +484,9 @@ fi
 
 log "deploy succeeded (${GIT_SHA})"
 
-# Drop multi-stage build leftovers + old SHA tags now that :latest is healthy.
-# :previous stays for the next rollback window.
-log "pruning build leftovers after successful deploy"
+# Tag builder layers for the next deploy's apk/npm ci cache, then drop old SHAs.
+refresh_builder_cache
+log "pruning old app tags after successful deploy"
 prune_image_storage "${NEW_TAG}"
 
 PUBLIC_URL="https://dntechx.com"
@@ -463,5 +498,6 @@ echo "Production stack is healthy."
 echo "  Public: ${PUBLIC_URL:-https://dntechx.com}"
 echo "  LAN:    http://${LAN_IP}:8080"
 echo "  Image:  ${NEW_TAG}"
-echo "  Libs:   uv sync + image npm ci"
+echo "  Cache:  ${BUILDER_CACHE_TAG}"
+echo "  Libs:   uv sync + image npm ci (layer-cached)"
 echo "  DB:     migrations applied before app switch"

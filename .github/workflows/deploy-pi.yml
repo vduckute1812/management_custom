@@ -13,6 +13,17 @@ name: Deploy (Raspberry Pi)
 on:
   push:
     branches: [master]
+    # Docs / agent rules / tests do not change the running image — skip the
+    # ~15–25 min Pi rebuild. Touch any app/docker path to deploy.
+    paths-ignore:
+      - "**.md"
+      - "implement/**"
+      - ".cursor/**"
+      - "tests/**"
+      - "vitest.config.ts"
+      - ".prettierignore"
+      - ".prettierrc.json"
+      - "LICENSE*"
   workflow_dispatch:
 
 concurrency:
@@ -47,9 +58,6 @@ jobs:
           fi
           uv --version
 
-      - name: Sync ops libraries (uv)
-        run: uv sync --frozen
-
       - name: Link Pi secrets into workspace
         env:
           # Override via repo variable if secrets live elsewhere under $HOME.
@@ -66,5 +74,5 @@ jobs:
           set -euo pipefail
           export GIT_SHA
           GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
-          # ci-deploy.sh also re-runs uv sync, builds (npm ci), migrates, then switches the app.
+          # ci-deploy.sh syncs uv, builds (layer-cached npm ci), migrates, switches the app.
           bash docker/ci-deploy.sh

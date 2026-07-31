@@ -4,19 +4,32 @@ Production deploys run **on the Pi itself** via a GitHub Actions self-hosted run
 
 Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproject.toml`). There is no Poetry/pyenv absolute path.
 
+**Image runtime.** `docker/Dockerfile.prod` builds on `node:26.5.0-alpine`. The **builder** installs npm 12 + build tools, runs `npm ci` + `nuxt build`. The **runtime** only installs `tsx` + `mysql2` (migrate / DB wait) and copies Nitro `.output` — it does **not** copy the full builder `node_modules` (that COPY was ~6 min on the Pi SD card).
+
+### Build-time knobs (why deploys got faster)
+
+| Change | Effect |
+| ------ | ------ |
+| Keep `:builder-cache`; skip `system prune` unless free disk &lt; ~4 GiB | Reuses apk + `npm ci` layers when `package-lock.json` is unchanged |
+| Slim runtime image (no full `node_modules` COPY) | Removes the multi-minute SD-card copy after every Nuxt build |
+| Tighter `.dockerignore` | Smaller `COPY . .` context |
+| Workflow `paths-ignore` for docs/tests | Docs-only master pushes skip the Pi job |
+
+Overrides: `MGMT_PRUNE_AGGRESSIVE=1` forces a full prune; `MGMT_DISK_FREE_MIN_GIB` (default `4`) sets the low-disk threshold.
+
 ## What happens on every `master` push
 
-1. The Pi runner checks out the commit into its workspace (`actions/checkout`, `clean: false` so local secrets survive).
-2. **Sync libs** — `uv sync --frozen` installs ops deps (`podman-compose`). App npm deps sync inside the image build via `npm ci` (Dockerfile retries on registry timeouts).
-3. `docker/ci-deploy.sh` snapshots the current app image as `:previous`, then **prunes** unused Podman/Docker layers (old SHA tags of `mgmt-app-prod`, dangling images, stopped containers, build cache) so Pi disks do not fill up mid-`COPY node_modules`.
-4. It builds a new image tagged with the git SHA.
-5. **If the build fails** → the running stack is **not** restarted (and prune runs again to reclaim partial layers).
-6. MySQL is ensured up; **DB migrations** run with the _new_ image (`scripts/migrate.ts up`) while the old app is still serving.
-7. **If migrate fails** → `:latest` is restored to `:previous` and the live app is **not** restarted.
-8. On success it recreates **only the app** container (`--no-deps --force-recreate app`) so nginx stays up for Cloudflare Tunnel, then health-checks `http://${LAN_IP}:3000/`.
-9. Reloads nginx so `docker/nginx.prod.conf` edits (e.g. chat SSE proxy settings) take effect without bouncing the tunnel upstream.
-10. **If health fails** → it retags `:previous` → `:latest`, recreates the app, and fails the job.
-11. **After a healthy deploy** → prune again: multi-stage `<none>` intermediates, old SHA tags, and stopped one-shot containers. Keeps `:latest` / `:previous` / the new SHA; **never** deletes named volumes (MySQL data).
+1. The Pi runner checks out the commit (`clean: false` so local secrets survive). Docs/test-only pushes are skipped via `paths-ignore` (use **Run workflow** to force a deploy).
+2. **Sync libs** — `uv sync --frozen` inside `ci-deploy.sh` installs ops deps (`podman-compose`). App npm deps sync via image `npm ci` (retries on flaky links; layers reused from `:builder-cache` when the lockfile is unchanged).
+3. Snapshots `:latest` → `:previous`, then removes **old app SHA tags** + stopped containers (builder cache kept unless disk is critically low).
+4. Builds a new image tagged with the git SHA.
+5. **If the build fails** → running stack untouched; aggressive prune reclaims partial layers.
+6. MySQL up; **DB migrations** with the new image while the old app still serves.
+7. **If migrate fails** → `:latest` restored to `:previous`; live app not restarted.
+8. Recreates **only the app** (`--no-deps --force-recreate app`); nginx stays up for Cloudflare Tunnel; health-check `http://${LAN_IP}:3000/`.
+9. Reloads nginx so bind-mounted `nginx.prod.conf` edits take effect.
+10. **If health fails** → retag `:previous` → `:latest`, recreate app, fail the job.
+11. **After a healthy deploy** → refresh `:builder-cache`, drop old SHA tags / stopped containers. Keeps `:latest` / `:previous` / new SHA / `:builder-cache`; **never** deletes named volumes.
 
 Chat SSE (`/api/chat/inbox/stream`, `/api/chat/conversations/:id/stream`) needs the dedicated nginx locations in `nginx.prod.conf` (HTTP/1.1, `proxy_buffering off`, long read timeout). Without them, long-lived EventSource connections 504 behind Cloudflare.
 
@@ -99,13 +112,15 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 
 ## Useful env overrides
 
-| Variable              | Default                                  | Purpose                  |
-| --------------------- | ---------------------------------------- | ------------------------ |
-| `MGMT_COMPOSE`        | `uv run --project <repo> podman-compose` | Compose CLI override     |
-| `MGMT_IMAGE`          | `localhost/mgmt-app-prod`                | App image name           |
-| `MGMT_HEALTH_URL`     | `http://127.0.0.1:3000/`                 | Post-deploy probe        |
-| `MGMT_HEALTH_RETRIES` | `30`                                     | Probe attempts           |
-| `LAN_IP`              | `192.168.1.4`                            | Printed in deploy output |
+| Variable                   | Default                                  | Purpose                                      |
+| -------------------------- | ---------------------------------------- | -------------------------------------------- |
+| `MGMT_COMPOSE`             | `uv run --project <repo> podman-compose` | Compose CLI override                         |
+| `MGMT_IMAGE`               | `localhost/mgmt-app-prod`                | App image name                               |
+| `MGMT_HEALTH_URL`          | `http://127.0.0.1:3000/`                 | Post-deploy probe                            |
+| `MGMT_HEALTH_RETRIES`      | `30`                                     | Probe attempts                               |
+| `MGMT_DISK_FREE_MIN_GIB`   | `4`                                      | Below this, prune also wipes build cache     |
+| `MGMT_PRUNE_AGGRESSIVE`    | `0`                                      | `1` = always prune dangling + system leftovers |
+| `LAN_IP`                   | `192.168.1.4`                            | Printed in deploy output                     |
 
 ## Workflow file
 
