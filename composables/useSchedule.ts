@@ -1,5 +1,6 @@
 import dayjs, { type Dayjs } from "dayjs";
 import type { Task, TimeBlock } from "~/types/task";
+import { newClientId } from "~/utils/clientId";
 
 /**
  * Scheduling helpers shared by quick capture, Up next, and rollover review.
@@ -99,8 +100,7 @@ export function useSchedule() {
     );
     const sameDayBlock = sameDayIdx >= 0 ? blocks[sameDayIdx] : undefined;
     const newBlock: TimeBlock = {
-      id:
-        sameDayBlock?.id ?? `block_${Math.random().toString(16).slice(2, 10)}`,
+      id: sameDayBlock?.id ?? newClientId("block"),
       start: start.toISOString(),
       end: end.toISOString(),
       spentHours: sameDayBlock?.spentHours,

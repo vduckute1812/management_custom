@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import dayjs, { type Dayjs } from "dayjs";
+import { newClientId } from "~/utils/clientId";
 import {
   STATUS_BORDER,
   STATUS_DOTS,
@@ -234,7 +235,7 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
     };
   } else {
     blocks.push({
-      id: `block_${Math.random().toString(16).slice(2, 10)}`,
+      id: newClientId("block"),
       start: start.toISOString(),
       end: end.toISOString(),
     });

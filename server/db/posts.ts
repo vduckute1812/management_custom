@@ -745,7 +745,14 @@ export async function createPost(
   } catch (err) {
     await conn.rollback();
     const code = (err as { code?: string })?.code;
-    if (code === "ER_DUP_ENTRY") {
+    // Only the translation-group unique key means "already translated". Any
+    // other duplicate (e.g. a primary-key collision) is a genuine fault and
+    // must not be dressed up as a 409 the client can act on.
+    const sqlMessage = (err as { sqlMessage?: string })?.sqlMessage ?? "";
+    if (
+      code === "ER_DUP_ENTRY" &&
+      sqlMessage.includes("uq_posts_group_locale")
+    ) {
       throw Object.assign(
         new Error("A translation already exists for this language"),
         { statusCode: 409 },
