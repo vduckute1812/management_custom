@@ -81,6 +81,7 @@ MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 | `posts.visibility`                                                                         | `TINYINT UNSIGNED`      | `Public=0, Private=1, Shared=2` (`PostVisibility` in `types/post.ts`)                   |
 | `posts.format`                                                                             | `TINYINT UNSIGNED`      | `Update=0, Manuscript=1` (`PostFormat` in `types/post.ts`)                              |
 | `uploads.kind` / `post_attachments.kind`                                                   | `TINYINT UNSIGNED`      | `Image=0, Document=1, Audio=2` (`UploadKind` in `types/post.ts`)                        |
+| `jobs.status`                                                                              | `TINYINT UNSIGNED`      | `Pending=0, Processing=1, Completed=2, Dead=3` (`JobStatus` in `types/job.ts`)          |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -89,10 +90,9 @@ outside the type system. It's stored as `VARCHAR(16)`.
 
 ### Legacy string tokens (pending integer migration)
 
-| Column        | Current DB    | Current TS               | Suggested integer const                        |
-| ------------- | ------------- | ------------------------ | ---------------------------------------------- |
-| `jobs.status` | `VARCHAR(16)` | `JobStatus` string union | `Pending=0, Processing=1, Completed=2, Dead=3` |
-| `jobs.type`   | `VARCHAR(64)` | `JobTypes` string consts | integer `JobKind` for each worker type         |
+| Column      | Current DB    | Current TS               | Notes                                                                               |
+| ----------- | ------------- | ------------------------ | ----------------------------------------------------------------------------------- |
+| `jobs.type` | `VARCHAR(64)` | `JobTypes` string consts | Extensible worker registry key (`email.send`, …); kept as VARCHAR by design for now |
 
 `post_attachments.kind` uses the same `UploadKind` values as uploads; today
 post attachments are image/document only, while audio uploads attach via

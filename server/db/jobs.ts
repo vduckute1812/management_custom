@@ -2,15 +2,15 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
+import { JobStatus, type JobStatus as JobStatusValue } from "../../types/job";
 
-export type JobStatus =
-  "pending" | "processing" | "completed" | "failed" | "dead";
+export type { JobStatusValue as JobStatus };
 
 export interface JobRow {
   id: string;
   type: string;
   payload: Record<string, unknown>;
-  status: JobStatus;
+  status: JobStatusValue;
   attempts: number;
   maxAttempts: number;
   availableAt: string;
@@ -25,7 +25,7 @@ interface JobDbRow extends RowDataPacket {
   id: string;
   type: string;
   payload: string | Record<string, unknown>;
-  status: JobStatus;
+  status: number;
   attempts: number;
   max_attempts: number;
   available_at: string;
@@ -50,12 +50,25 @@ function parsePayload(
   return {};
 }
 
+function toJobStatus(raw: number): JobStatusValue {
+  const n = Number(raw);
+  if (
+    n === JobStatus.Pending ||
+    n === JobStatus.Processing ||
+    n === JobStatus.Completed ||
+    n === JobStatus.Dead
+  ) {
+    return n;
+  }
+  return JobStatus.Pending;
+}
+
 function mapJob(row: JobDbRow): JobRow {
   return {
     id: row.id,
     type: row.type,
     payload: parsePayload(row.payload),
-    status: row.status,
+    status: toJobStatus(row.status),
     attempts: Number(row.attempts ?? 0),
     maxAttempts: Number(row.max_attempts ?? 5),
     availableAt: dbToISO(row.available_at),
@@ -85,11 +98,12 @@ export async function enqueueJob(args: {
     `INSERT INTO jobs
        (id, type, payload, status, attempts, max_attempts, available_at,
         locked_at, locked_by, last_error, created_at, updated_at)
-     VALUES (?, ?, CAST(? AS JSON), 'pending', 0, ?, ?, NULL, NULL, NULL, ?, ?)`,
+     VALUES (?, ?, CAST(? AS JSON), ?, 0, ?, ?, NULL, NULL, NULL, ?, ?)`,
     [
       id,
       args.type,
       JSON.stringify(args.payload ?? {}),
+      JobStatus.Pending,
       maxAttempts,
       isoToDB(availableAt),
       isoToDB(now),
@@ -122,11 +136,11 @@ export async function claimNextJob(workerId: string): Promise<JobRow | null> {
     await conn.beginTransaction();
     const [rows] = await conn.query<JobDbRow[]>(
       `SELECT * FROM jobs
-       WHERE status = 'pending' AND available_at <= ?
+       WHERE status = ? AND available_at <= ?
        ORDER BY available_at ASC, created_at ASC
        LIMIT 1
        FOR UPDATE SKIP LOCKED`,
-      [isoToDB(nowISO())],
+      [JobStatus.Pending, isoToDB(nowISO())],
     );
     const row = rows[0];
     if (!row) {
@@ -137,13 +151,13 @@ export async function claimNextJob(workerId: string): Promise<JobRow | null> {
     const now = nowISO();
     await conn.query(
       `UPDATE jobs
-       SET status = 'processing',
+       SET status = ?,
            attempts = attempts + 1,
            locked_at = ?,
            locked_by = ?,
            updated_at = ?
        WHERE id = ?`,
-      [isoToDB(now), workerId, isoToDB(now), row.id],
+      [JobStatus.Processing, isoToDB(now), workerId, isoToDB(now), row.id],
     );
     await conn.commit();
 
@@ -162,13 +176,13 @@ export async function completeJob(id: string): Promise<void> {
   const now = nowISO();
   await pool.query(
     `UPDATE jobs
-     SET status = 'completed',
+     SET status = ?,
          locked_at = NULL,
          locked_by = NULL,
          last_error = NULL,
          updated_at = ?
      WHERE id = ?`,
-    [isoToDB(now), id],
+    [JobStatus.Completed, isoToDB(now), id],
   );
 }
 
@@ -191,13 +205,13 @@ export async function failJob(
   if (exhausted) {
     await pool.query(
       `UPDATE jobs
-       SET status = 'dead',
+       SET status = ?,
            locked_at = NULL,
            locked_by = NULL,
            last_error = ?,
            updated_at = ?
        WHERE id = ?`,
-      [message, isoToDB(now), id],
+      [JobStatus.Dead, message, isoToDB(now), id],
     );
   } else {
     // Exponential backoff: 15s, 30s, 60s, … capped at 15 minutes.
@@ -205,14 +219,14 @@ export async function failJob(
     const availableAt = new Date(Date.now() + backoffSec * 1000).toISOString();
     await pool.query(
       `UPDATE jobs
-       SET status = 'pending',
+       SET status = ?,
            available_at = ?,
            locked_at = NULL,
            locked_by = NULL,
            last_error = ?,
            updated_at = ?
        WHERE id = ?`,
-      [isoToDB(availableAt), message, isoToDB(now), id],
+      [JobStatus.Pending, isoToDB(availableAt), message, isoToDB(now), id],
     );
   }
 
@@ -228,30 +242,35 @@ export async function requeueStaleJobs(
   const now = nowISO();
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE jobs
-     SET status = 'pending',
+     SET status = ?,
          locked_at = NULL,
          locked_by = NULL,
          updated_at = ?
-     WHERE status = 'processing' AND locked_at IS NOT NULL AND locked_at < ?`,
-    [isoToDB(now), isoToDB(cutoff)],
+     WHERE status = ? AND locked_at IS NOT NULL AND locked_at < ?`,
+    [JobStatus.Pending, isoToDB(now), JobStatus.Processing, isoToDB(cutoff)],
   );
   return result.affectedRows ?? 0;
 }
 
-export async function countJobsByStatus(): Promise<Record<JobStatus, number>> {
+/** Named counts for the admin queue snapshot (stable JSON keys). */
+export async function countJobsByStatus(): Promise<{
+  pending: number;
+  processing: number;
+  completed: number;
+  dead: number;
+}> {
   const pool = getPool();
   const [rows] = await pool.query<
-    (RowDataPacket & { status: JobStatus; cnt: number })[]
+    (RowDataPacket & { status: number; cnt: number })[]
   >(`SELECT status, COUNT(*) AS cnt FROM jobs GROUP BY status`);
-  const out: Record<JobStatus, number> = {
-    pending: 0,
-    processing: 0,
-    completed: 0,
-    failed: 0,
-    dead: 0,
-  };
+  const out = { pending: 0, processing: 0, completed: 0, dead: 0 };
   for (const row of rows) {
-    out[row.status] = Number(row.cnt ?? 0);
+    const status = toJobStatus(row.status);
+    const n = Number(row.cnt ?? 0);
+    if (status === JobStatus.Pending) out.pending = n;
+    else if (status === JobStatus.Processing) out.processing = n;
+    else if (status === JobStatus.Completed) out.completed = n;
+    else if (status === JobStatus.Dead) out.dead = n;
   }
   return out;
 }
@@ -264,8 +283,8 @@ export async function purgeOldJobs(olderThanDays = 14): Promise<number> {
   ).toISOString();
   const [result] = await pool.query<ResultSetHeader>(
     `DELETE FROM jobs
-     WHERE status IN ('completed', 'dead') AND updated_at < ?`,
-    [isoToDB(cutoff)],
+     WHERE status IN (?, ?) AND updated_at < ?`,
+    [JobStatus.Completed, JobStatus.Dead, isoToDB(cutoff)],
   );
   return result.affectedRows ?? 0;
 }
