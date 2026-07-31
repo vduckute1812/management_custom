@@ -69,6 +69,6 @@ Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sq
 | `GET`    | `/api/chat/catalog`                                         | Stickers + emoji list                                                   |
 | `POST`   | `/api/uploads`                                              | Upload image/audio bytes before sending media messages                  |
 
-Prod nginx must special-case the two SSE paths (HTTP/1.1, buffering off, long read timeout) — see `docker/nginx.prod.conf` and the note in [`api.md`](./api.md).
+Prod nginx must special-case the two SSE paths (HTTP/1.1, buffering off, long read timeout) — see `docker/nginx.prod.conf.template` and the note in [`api.md`](./api.md).
 
 See [`api.md`](./api.md#chat-direct-messages) and [`database.md`](./database.md) for the as-built reference.

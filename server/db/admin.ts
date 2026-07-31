@@ -36,31 +36,41 @@ export interface AdminUserSummaryRow {
 
 export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
   const pool = getPool();
+  // Aggregates via LEFT JOIN subqueries (one scan each) instead of correlated
+  // SELECT-per-row — cheaper as the user table grows.
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT
        u.id, u.email, u.name, u.role, u.email_verified,
        u.created_at, u.updated_at, u.last_login_at,
-       (SELECT COUNT(*) FROM tasks t WHERE t.user_id = u.id)       AS task_count,
-       (SELECT COUNT(*) FROM epics e WHERE e.user_id = u.id)       AS epic_count,
-       COALESCE((
-         SELECT SUM(b.spent_hours)
-           FROM time_blocks b
-           JOIN tasks t2 ON t2.id = b.task_id
-          WHERE t2.user_id = u.id
-       ), 0) AS hours_logged,
-       (
-         SELECT MAX(b.end_at)
-           FROM time_blocks b
-           JOIN tasks t3 ON t3.id = b.task_id
-          WHERE t3.user_id = u.id
-       ) AS last_activity
-       FROM users u
-       ORDER BY u.created_at ASC`
+       COALESCE(tc.task_count, 0) AS task_count,
+       COALESCE(ec.epic_count, 0) AS epic_count,
+       COALESCE(tb.hours_logged, 0) AS hours_logged,
+       tb.last_activity AS last_activity
+     FROM users u
+     LEFT JOIN (
+       SELECT user_id, COUNT(*) AS task_count
+         FROM tasks
+        GROUP BY user_id
+     ) tc ON tc.user_id = u.id
+     LEFT JOIN (
+       SELECT user_id, COUNT(*) AS epic_count
+         FROM epics
+        GROUP BY user_id
+     ) ec ON ec.user_id = u.id
+     LEFT JOIN (
+       SELECT t.user_id,
+              COALESCE(SUM(b.spent_hours), 0) AS hours_logged,
+              MAX(b.end_at) AS last_activity
+         FROM tasks t
+         INNER JOIN time_blocks b ON b.task_id = t.id
+        GROUP BY t.user_id
+     ) tb ON tb.user_id = u.id
+     ORDER BY u.created_at ASC`,
   );
   return rows.map((r) => ({
     id: String(r.id),
     email: String(r.email),
-    name: r.name ?? undefined,
+    name: r.name == null ? null : String(r.name),
     role: coerceRole(Number(r.role)),
     emailVerified: Number(r.email_verified) === 1,
     createdAt: dbToISO(String(r.created_at)),
@@ -68,7 +78,9 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
     taskCount: Number(r.task_count ?? 0),
     epicCount: Number(r.epic_count ?? 0),
     hoursLogged: roundHours(Number(r.hours_logged ?? 0)),
-    lastActivity: r.last_activity ? dbToISO(String(r.last_activity)) : undefined,
+    lastActivity: r.last_activity
+      ? dbToISO(String(r.last_activity))
+      : undefined,
     lastLoginAt: r.last_login_at ? dbToISO(String(r.last_login_at)) : undefined,
   }));
 }
@@ -96,7 +108,7 @@ export interface DailyHoursRow {
 
 /** Total hours logged per day across all users (last `days` days). */
 export async function getDailyHoursAllUsers(
-  days = 30
+  days = 30,
 ): Promise<DailyHoursRow[]> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -106,7 +118,7 @@ export async function getDailyHoursAllUsers(
       WHERE b.end_at >= DATE_SUB(UTC_DATE(), INTERVAL ? DAY)
       GROUP BY DATE(b.end_at)
       ORDER BY DATE(b.end_at) ASC`,
-    [days]
+    [days],
   );
   return rows.map((r) => ({
     date: String(r.d),
@@ -123,10 +135,12 @@ export interface TaskStatusBucket {
   count: number;
 }
 
-export async function getStatusBreakdownAllUsers(): Promise<TaskStatusBucket[]> {
+export async function getStatusBreakdownAllUsers(): Promise<
+  TaskStatusBucket[]
+> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT status, COUNT(*) AS n FROM tasks GROUP BY status`
+    `SELECT status, COUNT(*) AS n FROM tasks GROUP BY status`,
   );
   const out: TaskStatusBucket[] = [
     { status: TaskStatus.Todo, count: 0 },

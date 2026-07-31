@@ -7,7 +7,7 @@
  * `mgmt_at` cookie (EventSource cannot set Authorization).
  *
  * Prod nginx must proxy chat inbox/thread stream paths with HTTP/1.1,
- * buffering off, and a long read timeout — see `docker/nginx.prod.conf`.
+ * buffering off, and a long read timeout — see `docker/nginx.prod.conf.template`.
  */
 import { createEventStream } from "h3";
 import { getPeerUserId } from "~/server/utils/db";

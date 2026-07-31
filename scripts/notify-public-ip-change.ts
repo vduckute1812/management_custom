@@ -12,10 +12,13 @@ function notifyTo(): string {
   if (from) return from;
   const user = process.env.SMTP_USER?.trim();
   if (user) return user;
-  throw new Error("Set IP_CHANGE_NOTIFY_EMAIL or SMTP_USER in docker/.env.prod");
+  throw new Error(
+    "Set IP_CHANGE_NOTIFY_EMAIL or SMTP_USER in docker/.env.prod",
+  );
 }
 
-const [oldIp, newIp, lanIp = "192.168.1.4"] = process.argv.slice(2);
+const [oldIp, newIp, lanIpArg] = process.argv.slice(2);
+const lanIp = lanIpArg || process.env.LAN_IP?.trim() || "192.168.1.4";
 if (!oldIp || !newIp) {
   console.error("Usage: notify-public-ip-change.ts OLD_IP NEW_IP [LAN_IP]");
   process.exit(2);

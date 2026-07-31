@@ -342,7 +342,7 @@ run_migrations() {
   #
   # Do NOT force DB_HOST=mysql. On this Pi, podman-compose puts services on the
   # default `podman` network (no service-name DNS), while .env.prod points at the
-  # published LAN bind (192.168.1.4:3306). Overriding to `mysql` caused
+  # published LAN bind (${LAN_IP}:3306). Overriding to `mysql` caused
   # getaddrinfo ENOTFOUND. Only rewrite loopback hosts that cannot work in-container.
   local db_host
   db_host="$(grep -E '^DB_HOST=' docker/.env.prod 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]' || true)"
@@ -367,8 +367,8 @@ recreate_app() {
   # Cloudflare/gateway errors during every GitHub-triggered deploy.
   log "recreating app container (leave nginx/mysql running)"
   mgmt_compose up -d --no-deps --force-recreate app
-  # Ensure reverse proxy is up without bouncing it; reload so bind-mounted
-  # nginx.prod.conf edits from this checkout take effect.
+  # Ensure reverse proxy is up without bouncing it; reload so the rendered
+  # nginx.prod.rendered.conf (from the template + LAN_IP) takes effect.
   mgmt_compose up -d nginx
   "${RUNTIME}" exec mgmt-nginx-prod nginx -s reload >/dev/null 2>&1 || true
 }

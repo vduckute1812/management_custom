@@ -9,12 +9,22 @@
 #   MGMT_COMPOSE_FILE — compose file relative to repo root
 #                       (default: docker/docker-compose.prod.yml)
 #   MGMT_IMAGE        — app image name (default: localhost/mgmt-app-prod)
-#   LAN_IP            — LAN address advertised in deploy output
+#   LAN_IP            — Pi LAN bind for app/mysql publish + nginx upstream
+#                       (default: 192.168.1.4). Used by compose interpolation
+#                       and docker/render-nginx-conf.sh.
 
 mgmt_repo_root() {
   local here
   here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   echo "${here}"
+}
+
+# Render nginx upstream to the current LAN_IP before any compose call that
+# may start/reload nginx. Cheap; keeps bind-mount + reload in sync.
+mgmt_render_nginx() {
+  local root
+  root="$(mgmt_repo_root)"
+  LAN_IP="${LAN_IP:-192.168.1.4}" bash "${root}/docker/render-nginx-conf.sh"
 }
 
 mgmt_compose_cmd() {
@@ -73,5 +83,8 @@ mgmt_compose() {
   root="$(mgmt_repo_root)"
   file="${MGMT_COMPOSE_FILE:-docker/docker-compose.prod.yml}"
   mgmt_compose_cmd || return 1
+  # Export so compose `${LAN_IP:-…}` port binds + nginx render agree.
+  export LAN_IP="${LAN_IP:-192.168.1.4}"
+  mgmt_render_nginx || return 1
   (cd "${root}" && "${COMPOSE_ARR[@]}" -f "${file}" "$@")
 }

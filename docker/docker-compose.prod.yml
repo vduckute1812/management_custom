@@ -6,7 +6,9 @@ services:
       - "8080:80"
       - "8443:443"
     volumes:
-      - ./nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      # Rendered from nginx.prod.conf.template via docker/render-nginx-conf.sh
+      # (LAN_IP). Do not edit the rendered file by hand.
+      - ./nginx.prod.rendered.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
       - app
@@ -19,7 +21,8 @@ services:
       dockerfile: docker/Dockerfile.prod
     container_name: mgmt-app-prod
     ports:
-      - "192.168.1.4:3000:3000"
+      # Bind to the Pi LAN NIC only. Override with LAN_IP=… before compose.
+      - "${LAN_IP:-192.168.1.4}:3000:3000"
     env_file:
       - .env.prod
     depends_on:
@@ -44,13 +47,17 @@ services:
       TZ: "Asia/Ho_Chi_Minh"
     ports:
       - "127.0.0.1:3306:3306"
-      - "192.168.1.4:3306:3306"
+      - "${LAN_IP:-192.168.1.4}:3306:3306"
     volumes:
       - mgmt-mysql-data:/var/lib/mysql
     healthcheck:
       # Use MYSQL_PWD so '@' in the password is not parsed as -p flag noise.
       # Avoid Docker-only $$ quoting that Podman healthchecks often mishandle.
-      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_ROOT_PASSWORD\" mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      test:
+        [
+          "CMD-SHELL",
+          'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h 127.0.0.1 -uroot --silent',
+        ]
       interval: 10s
       timeout: 5s
       retries: 10

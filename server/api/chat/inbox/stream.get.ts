@@ -7,7 +7,7 @@
  * closing an idle connection.
  *
  * Prod nginx must proxy these paths with HTTP/1.1, `proxy_buffering off`, and
- * a long `proxy_read_timeout` (see `docker/nginx.prod.conf`) — the generic
+ * a long `proxy_read_timeout` (see `docker/nginx.prod.conf.template`) — the generic
  * `/api/` location otherwise 504s long-lived EventSource connections.
  */
 import { createEventStream } from "h3";
