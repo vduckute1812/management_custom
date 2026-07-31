@@ -700,6 +700,18 @@ export async function sendMessage(
     await conn.commit();
   } catch (err) {
     await conn.rollback();
+    const code = (err as { code?: string })?.code;
+    const sqlMessage = (err as { sqlMessage?: string })?.sqlMessage ?? "";
+    if (
+      code === "ER_DUP_ENTRY" &&
+      sqlMessage.includes("uniq_chat_messages_upload")
+    ) {
+      const conflict = new Error(
+        "Upload is already attached to a message",
+      ) as Error & { statusCode?: number };
+      conflict.statusCode = 400;
+      throw conflict;
+    }
     throw err;
   } finally {
     conn.release();
