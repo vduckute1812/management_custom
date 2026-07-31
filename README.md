@@ -32,8 +32,8 @@ A local-first productivity tool with three surfaces on one install: **Time Manag
 
 These five principles are the lens for every product decision. When in doubt, ranking is top-to-bottom.
 
-1. **Local & owned.** Primary data lives in a MySQL database you administer. Optional Cloudflare R2 holds feed/story file bytes when attachments are enabled — still under your account, not a multi-tenant SaaS. No telemetry. JSON / CSV / iCal export for tasks is one click away in `Settings → Your data`.
-2. **Calm by default.** No badges screaming for attention, no dopamine animations, no notifications you didn't ask for. The tool waits patiently and reports faithfully.
+1. **Local & owned.** Primary data lives in a MySQL database you administer. Optional Cloudflare R2 holds feed/story attachments, chat photos/voice notes, and profile avatars when media is enabled — still under your account, not a multi-tenant SaaS. No telemetry. JSON / CSV / iCal export for tasks is one click away in `Settings → Your data`.
+2. **Calm by default.** No gamification badges or dopamine loops. Chat unread counts and opt-in pre-task alerts exist only as practical signals you control — the tool otherwise waits patiently and reports faithfully.
 3. **One screen, one job.** Hub picks a module. Time Management plans on `/tasks`. Feed shares on `/feed`. Chat messages on `/chat`. Analytics reflects. We resist cramming "everything everywhere."
 4. **Keyboard-first.** Every primary action has a shortcut. The mouse is a fallback, not the contract.
 5. **Honest math.** Aggregates are always computed, never stored. If two views show different numbers, the tool is broken — not "eventually consistent."
@@ -50,7 +50,7 @@ A useful negative principle: **no gamification.** Streaks, points, and combos wo
 | **The Researcher**    | Long-running Epics (months) with many small, mixed tasks underneath.                |
 | **The Solo Operator** | Visibility across projects without the ceremony of Jira or Notion databases.        |
 
-Not for: teams, clients, billing, or anything that requires sharing.
+Not for: client handoff, billing, or multi-tenant team workflows. Install members can share Feed posts and chat 1:1 with each other.
 
 ---
 
@@ -78,11 +78,11 @@ The "now" indicator ticks every 30 seconds and snaps forward when the tab regain
 
 ### Share on the Feed
 
-Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
+Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. Scroll the stream to load older pages. On phones (or coarse pointers), the reaction picker opens as a compact sheet. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
 
 ### Chat with other members
 
-Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text, stickers, **photos**, or **voice notes**; emoji from the picker insert into your draft before you send. Images and audio go through the same upload pipeline as the Feed (Cloudflare R2). Conversations stay private to the two participants. When the other person has read your messages, a **Read** label appears. Unread counts show on the conversation list and as a badge on **Chat** in the header; new messages also trigger an in-app toast (and a desktop notification if you have granted permission).
+Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text, stickers, **photos**, or **voice notes**; emoji from the picker insert into your draft before you send. Images and audio go through the same upload pipeline as the Feed (Cloudflare R2). Scroll up in a thread to load older messages. Long-press a bubble to react with an emoji; chips under the bubble show aggregates. Conversations stay private to the two participants. When the other person has read your messages, a **Read** label appears. Unread counts show on the conversation list and as a badge on **Chat** in the header; new messages also trigger an in-app toast (and a desktop notification if you have granted permission).
 
 ### Edit your profile
 
@@ -90,7 +90,7 @@ Open **Profile** from the account menu (or Settings → Edit profile). Update di
 
 ### Switch language
 
-The interface is available in **English**, **Vietnamese**, **Simplified Chinese**, and **Traditional Chinese**. Preference is saved on this device only (same store as theme and density) — URLs do not change when you switch.
+The interface is available in **English**, **Vietnamese**, **Simplified Chinese**, and **Traditional Chinese**. On first visit the app guesses from your Cloudflare country or timezone when available; after that the preference is saved on this device only (same store as theme and density) — URLs do not change when you switch.
 
 | Where                 | What                              |
 | --------------------- | --------------------------------- |
@@ -470,8 +470,8 @@ A few choices that look opinionated and aren't accidents.
 - **Local database, not a cloud service.** Your data stays on-device. The export pipeline (JSON / CSV / iCal) still produces a portable snapshot whenever you want one — the data is no less yours.
 - **Aggregates are never stored.** Eliminates an entire class of "the sidebar says 5h but the modal says 6h" bugs.
 - **Undo over confirm.** Confirm dialogs train muscle memory to click "OK." Undo is a more honest contract: the action happens, and we trust you to notice if it was wrong.
-- **No streaks, no badges.** The whole point is to face accurate numbers. Game mechanics distort them.
-- **System fonts only.** A productivity tool shouldn't ever wait on Google Fonts.
+- **No streaks, no gamification badges.** The whole point is to face accurate numbers. Game mechanics distort them. (Chat unread counts are functional, not gamified.)
+- **System fonts for app chrome.** Manuscript Feed surfaces defer-load Source Serif 4 with `font-display: swap` so chrome never blocks on Google Fonts.
 - **Skeletons over spinners.** Spinners say "loading"; skeletons say "you're about to see _this much_ content," which is calmer.
 - **Three views, not five.** Day, Week, Month. We resisted Quarter and Agenda — they're rarely useful and they add UI weight that costs every user every day.
 - **In-app alerts only by default; desktop pop-ups are opt-in.** A calm tool doesn't ambush you with OS pop-ups, but a silent calendar is no better than no calendar. The compromise: a non-intrusive in-app toast fires 5 min before each scheduled block by default (no permission prompt, no system surface — only visible when the app is open). Granting browser Notification permission is an explicit upgrade that adds the matching desktop pop-up; the alert is otherwise identical. The whole feature is one toggle in `Settings → Pre-task alerts`.
@@ -495,6 +495,7 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 | HttpOnly cookies, JWT/refresh, client session        | [`implement/auth.md`](./implement/auth.md)                       |
 | UI languages, plural `t()`, SEO titles             | [`implement/i18n.md`](./implement/i18n.md)                       |
 | Original Authentication & RBAC feature spec          | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
+| Direct chat feature spec                             | [`implement/chat-spec.md`](./implement/chat-spec.md)             |
 | Phase-by-phase engineering progress                | [`implement/roadmap.md`](./implement/roadmap.md)                 |
 | Cache & durable job queue                          | [`implement/cache-queue.md`](./implement/cache-queue.md)         |
 | Raspberry Pi CI/CD deploy + rollback               | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |

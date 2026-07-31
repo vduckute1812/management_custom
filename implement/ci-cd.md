@@ -4,6 +4,8 @@ Production deploys run **on the Pi itself** via a GitHub Actions self-hosted run
 
 Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproject.toml`). There is no Poetry/pyenv absolute path.
 
+**Image runtime.** `docker/Dockerfile.prod` builds on `node:26.5.0-alpine`, installs **npm 12.0.2** globally (`npm install -g` — Alpine omits Corepack and Corepack `--activate` does not persist across layers), and sets `HUSKY=0` so prepare hooks do not fail without `.git`.
+
 ## What happens on every `master` push
 
 1. The Pi runner checks out the commit into its workspace (`actions/checkout`, `clean: false` so local secrets survive).

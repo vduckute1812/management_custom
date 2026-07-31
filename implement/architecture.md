@@ -8,21 +8,21 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 | Layer      | Technology                     | Purpose                                                                                             |
 | ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 3 / Vue 3                 | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                         |
+| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                         |
 | Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                    |
 | i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)             |
 | SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                      |
 | Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                  |
-| Backend    | Nitro (bundled with Nuxt 3)    | Server-side API routes                                                                              |
+| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                              |
 | Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                              |
 | Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                  |
-| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate); see [`cache-queue.md`](./cache-queue.md)         |
-| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md) |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
 | Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                              |
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                                   |
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` |
 | Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                        |
-| Tests      | Vitest                         | `npm test` — schema, security helpers, markdown sanitization                                        |
+| Tests      | Vitest                         | `npm test` — schemas, security, rate-limit, chat inbox/thread, SEO search, markdown sanitize        |
 
 ## Project facts
 
@@ -31,11 +31,11 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Project Path | `~/Projects/management_custom`                                         |
 | Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                 |
 | Runtime      | Node.js ≥ 26.5 + npm 12 via Corepack (see `.nvmrc` / `packageManager`) |
-| Framework    | Nuxt 3 (Vue 3), **hybrid SSR** for public routes                       |
+| Framework    | Nuxt 4.5 (Vue 3), **hybrid SSR** for public routes                     |
 | TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)   |
 | Styling      | TailwindCSS v4                                                         |
 | Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)    |
-| Object store | Cloudflare R2 when `R2_*` env vars are set (feed attachments/stories)  |
+| Object store | Cloudflare R2 when `R2_*` set (feed/story attachments, chat media, avatars) |
 | Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)            |
 | Telemetry    | None                                                                   |
 
@@ -43,13 +43,13 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Runtime topology
 
-Two product modules share one install: **Feed** (posts/stories) and **Time Management** (tasks/epics/calendar). Auth and admin sit across both.
+Three product modules share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), and **Chat** (1:1 DMs). Auth and admin sit across all three.
 
 ```
 Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
     │
     ▼
-Nuxt 3 / Nitro API Routes (/server/api/...)
+Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │
     ├── server/middleware/security-headers.ts  →  CSP + baseline headers
     ├── server/middleware/rate-limit.ts      →  per-IP fixed-window caps on /api/*
@@ -58,16 +58,17 @@ Nuxt 3 / Nitro API Routes (/server/api/...)
     ├── server/utils/cache.ts  →  memory | Redis (optional)
     │
     ├── server/services/*      →  selective workflow orchestration
-    │     (task save, timer start/stop, post create, …)
+    │     (task save, timer start/stop, post create, chat send/read, …)
     │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
     │     tables: users (+ last_login_at, profile fields via 0010), auth_*,
     │             epics, tasks, time_blocks, checklist_items, active_timer,
     │             posts, post_*, uploads, stories, story_*,
     │             post_categories, jobs, schema_migrations,
-    │             chat_conversations, chat_messages, chat_conversation_reads
+    │             chat_conversations, chat_messages, chat_conversation_reads,
+    │             chat_message_reactions
     │
-    ├── server/plugins/job-worker.ts  →  claims `jobs` → mailer / cache bust
+    ├── server/plugins/job-worker.ts  →  claims `jobs` → mailer / cache bust / media purge
     │
     └── server/utils/r2.ts  ←→  Cloudflare R2 (when configured)
 ```
@@ -139,7 +140,7 @@ Add new services only for workflows that span several DB calls or need shared tr
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-Frame-Options: SAMEORIGIN`
-- `Permissions-Policy` (camera/mic/geo disabled)
+- `Permissions-Policy` — `camera=()`, `geolocation=()`, `microphone=(self)` (chat voice notes)
 
 Tighten CSP further when inline boot scripts can be nonce-based.
 
@@ -177,7 +178,9 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── stories/                 # 24h stories, views, reactions, insights
 │   │   ├── uploads/                 # R2 upload + signed GET
 │   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
-│   │   ├── chat/                    # DM conversations, messages, catalog
+│   │   ├── chat/                    # DM conversations, messages, reactions, SSE streams, catalog
+│   │   ├── feed/                    # GET /api/feed bootstrap (categories + posts + stories)
+│   │   ├── geo.get.ts               # Public Cloudflare country hint for first-visit locale
 │   │   └── users/directory.get.ts   # people picker for shared visibility + chat
 │   ├── schemas/
 │   │   └── index.ts                 # Shared Zod request schemas
@@ -187,7 +190,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── postService.ts           # Post create + cache bust
 │   │   └── chatService.ts           # Chat send/read + inbox SSE push
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0016 SQL files
+│   │   └── migrations/              # 0001…0018 SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
@@ -204,12 +207,18 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
+│       ├── queue.ts                 # Enqueue helpers (email.*, cache.invalidate, media.purgeExpired)
 │       ├── r2.ts                    # S3-compatible Cloudflare R2 client
 │       └── fileSignature.ts         # Magic-byte sniff for uploads
 ├── tests/                           # Vitest (`npm test`)
 │   ├── schemas.test.ts
 │   ├── security-utils.test.ts
 │   ├── rate-limit.test.ts
+│   ├── api-request-key.test.ts
+│   ├── api-error-message.test.ts
+│   ├── chat-inbox.test.ts
+│   ├── chat-thread.test.ts
+│   ├── seo-search.test.ts
 │   └── render-post-body.test.ts
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*
@@ -235,7 +244,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
 │   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
-│   ├── useChat.ts                   # DM list / thread / SSE live / send
+│   ├── useChat.ts                   # DM list / thread / module-scoped SSE singleton / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
 ├── middleware/auth.global.ts
@@ -243,11 +252,11 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── plugins/
 │   ├── auth.client.ts               # Cookie session hydrate + legacy LS migration
 │   ├── theme.client.ts
-│   ├── i18n-locale.client.ts
+│   ├── i18n-locale.client.ts        # Settings ↔ i18n; first visit: /api/geo → timezone → browser
 │   ├── chat-inbox.client.ts         # Unread badge / toast via SSE inbox stream
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
-├── types/                           # task.ts, post.ts, story.ts, chat.ts, locale.ts
+├── types/                           # task.ts, post.ts, story.ts, chat.ts, reaction.ts, locale.ts
 ├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, …
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts
@@ -255,7 +264,9 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 └── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```
 
-Note: chat send/read orchestration (+ inbox SSE fan-out) lives in `server/services/chatService.ts`; the SSE bus is `server/utils/chatInbox.ts`.
+**Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
+
+**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`.
 
 ---
 
@@ -282,7 +293,7 @@ After deploy, verify `/`, `/feed`, `/robots.txt`, `/sitemap.xml`, and `/llms.txt
 
 The chrome is fully translated; user content is not. Locale is a **device preference** in `mgmt:settings:v1`, not a URL prefix and not a MySQL column.
 
-Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.client.ts` → `setLocale` + Day.js pack + `document.documentElement.lang`. Details: [`i18n.md`](./i18n.md).
+Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.client.ts` → `setLocale` + Day.js pack + `document.documentElement.lang`. On first visit (no stored locale), the plugin tries `GET /api/geo` (Cloudflare `CF-IPCountry`) → device timezone → browser/i18n fallback. Details: [`i18n.md`](./i18n.md).
 
 ---
 

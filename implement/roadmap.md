@@ -6,7 +6,7 @@ Engineering progress, phase by phase. Each item is one shippable subtask.
 
 ## Phase 1 — Environment Setup
 
-- [x] Initialize Nuxt 3 project
+- [x] Initialize Nuxt project (now **Nuxt 4.5** / Vue 3; Node ≥ 26.5 + npm 12)
 - [x] Configure TailwindCSS
 - [x] Set up project directory structure
 - [x] Provision a local MySQL `rc` database with the schema owned by versioned SQL migrations in `server/db/migrations/`
@@ -315,6 +315,37 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Conversation SSE `GET /api/chat/conversations/:id/stream` (`message` + `read`)
 - [x] `useChat` uses EventSource while a thread is open; 15s REST fallback after repeated stream failures
 
-### Later (out of sprint 5)
+## Phase 20 — Feed UX, chat reactions, stack upgrade
+
+**Feed**
+
+- [x] `GET /api/feed` bootstrap (categories + first posts page + stories when signed in)
+- [x] Infinite scroll on `/feed` via IntersectionObserver + `GET /api/posts?cursor=…`
+- [x] Mobile / coarse-pointer reaction picker on post cards
+
+**Chat**
+
+- [x] Scroll-load older message pages (`before` cursor) with preserved scroll position
+- [x] Message reactions (`0017_chat_message_reactions`) using shared integer `ReactionType`
+- [x] Migration `0018_reaction_int_enums` — post/story reactions → same `TINYINT` constants
+- [x] Long-press-only teleported emoji reaction bar (`ChatMessageThread`)
+- [x] Thread SSE emits `reaction`; module-scoped EventSource singleton across `useChat` callers
+- [x] Nginx SSE locations for inbox + thread streams (avoid 504 behind Cloudflare Tunnel)
+
+**i18n / queue / security**
+
+- [x] First-visit locale via `GET /api/geo` (Cloudflare country) → timezone → browser fallback
+- [x] Password-reset email job type `email.passwordReset` + `enqueuePasswordResetEmail`
+- [x] Never log raw verify/reset URLs on enqueue failure
+- [x] `Permissions-Policy` allows `microphone=(self)` for chat voice notes; camera/geo stay off
+
+**Stack & deploy**
+
+- [x] Nuxt **4.5.1**, Node **26.5.x**, npm **12.0.2** (`packageManager` + `.nvmrc` + engines)
+- [x] Docker Alpine: global `npm@12.0.2` install (Corepack unreliable on Alpine) + `HUSKY=0` in image builds
+- [x] Deploy prune: unused SHA tags / dangling images / stopped containers before build, on failure, and after healthy deploy (keeps `:latest` / `:previous` / new SHA; never volumes)
+
+### Later
 
 - Lightweight tasks list API (blocks on demand)
+- Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts

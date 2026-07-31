@@ -4,7 +4,7 @@ Feature spec for signed-in **1:1 chat** between users, with **emoji** and **stic
 
 ## Goal
 
-Let members of the same install message each other privately from `/chat`, without requiring Redis. Thread delivery still uses short polling while the chat page is open; the install-wide unread badge uses a Server-Sent Events (SSE) inbox stream.
+Let members of the same install message each other privately from `/chat`, without requiring Redis. Live delivery uses Server-Sent Events: an install-wide inbox stream for the unread badge/toasts, and a per-thread stream while a conversation is open (with slow REST fallback if the stream drops).
 
 ## Scope
 
@@ -26,7 +26,7 @@ Let members of the same install message each other privately from `/chat`, witho
 - Group / channel chat
 - File attachments beyond image / voice (already in)
 - Email push for new DMs
-- Full WebSocket duplex for thread messages (SSE covers inbox badge today)
+- Full WebSocket duplex (SSE already covers inbox badge + open-thread `message`/`read`/`reaction`; sends stay REST)
 
 ## UX
 
@@ -40,7 +40,7 @@ Let members of the same install message each other privately from `/chat`, witho
 8. While `/chat` is open on a thread, live updates via `GET /api/chat/conversations/:id/stream` (SSE); slow REST fallback if the stream is down
 9. Inbox badge via `GET /api/chat/inbox/stream` (SSE) while signed in
 10. Scroll toward the top of a thread to load older pages (cursor `before`); scroll position is preserved while prepending
-11. Hover/tap 🙂 on a bubble to react; chips under the bubble show aggregates and toggle your reaction
+11. Long-press a bubble for a fixed/teleported emoji reaction bar (no always-on React button); movement beyond a small threshold cancels. Chips under the bubble show aggregates and toggle your reaction
 
 ## Data
 

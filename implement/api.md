@@ -4,10 +4,11 @@ All routes are handled by Nitro under `/server/api/`.
 
 **Auth rules (summary):**
 
-- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`.
-- **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted.
+- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`, `GET /api/geo`.
+- **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted. `POST /api/auth/logout` also uses optional auth — it revokes the presented refresh token (cookie/body) without requiring an access JWT; `everywhere: true` only works when an access context identifies the caller.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
+- Cookie-based `refresh` / `logout` enforce a same-origin `Origin`/`Referer` check and can return `403`.
 - **Rate limited:** all `/api/*` routes are throttled per client IP (see [Rate limiting](#rate-limiting) below).
 
 See [`auth.md`](./auth.md) for the token model and client route guard; see [`database.md`](./database.md) for the underlying field types.
@@ -34,16 +35,18 @@ Implementation: `server/rate-limit/` module (policies, in-memory store, check) +
 
 ## Enum encoding
 
-Every enum-shaped field on this API is a small integer end-to-end (TS code, JSON wire format, MySQL `TINYINT UNSIGNED`). The mapping mirrors `~/types/task.ts`:
+Integer wire enums (TS code, JSON, MySQL `TINYINT UNSIGNED`) cover task/epic status & priority, recurrence, user role, `ReactionType`, and `ChatMessageKind`. Request bodies for these fields must send numbers; the server rejects string values with `400`.
 
-| Field             | 0        | 1            | 2            |
-| ----------------- | -------- | ------------ | ------------ |
-| `status`          | `Todo`   | `InProgress` | `Done`       |
-| `priority`        | `Low`    | `Normal`     | `High`       |
-| `recurrence.rule` | `Daily`  | `Weekly`     | `Monthly`    |
-| `role`            | `Normal` | `Admin`      | `Superadmin` |
+| Field             | 0        | 1            | 2            | 3     | 4     | 5     |
+| ----------------- | -------- | ------------ | ------------ | ----- | ----- | ----- |
+| `status`          | `Todo`   | `InProgress` | `Done`       |       |       |       |
+| `priority`        | `Low`    | `Normal`     | `High`       |       |       |       |
+| `recurrence.rule` | `Daily`  | `Weekly`     | `Monthly`    |       |       |       |
+| `role`            | `Normal` | `Admin`      | `Superadmin` |       |       |       |
+| `ReactionType`    | `Like`   | `Love`       | `Haha`       | `Wow` | `Sad` | `Angry` |
+| `ChatMessageKind` | `Text`   | `Emoji`      | `Sticker`    | `Image` | `Audio` |     |
 
-Request bodies that include these fields must send them as numbers; the server rejects string values with `400`. Handlers wired through `server/schemas` + `parseBody` enforce this explicitly for tasks/epics/timer/login; remaining routes are migrating to the same pattern. See [`database.md`](./database.md#integer-enums-end-to-end) for the rationale.
+Some API fields are still intentional **string tokens** in current code (legacy / pending integer migration): post `visibility`, post `format`, `fontFamily`, `textColor`, upload `kind`, sticker `category`. New closed domains must use integer consts — see [`database.md`](./database.md#integer-enums-end-to-end).
 
 ---
 
@@ -56,7 +59,7 @@ Shared Zod schemas live in `server/schemas/index.ts`. Handlers should use:
 
 Service-layer business failures throw `DomainError(statusCode, message)`; route handlers catch with `mapDomainError(err)`.
 
-**Feed list query** (`GET /api/posts`): `limit` (1–50, default 20), optional `cursor`, `categoryId`, `locale`.
+**Feed list query** (`GET /api/feed`, `GET /api/posts`): `limit` (1–50, default 20), optional `cursor` (ISO `createdAt` from prior `nextCursor`), `categoryId`, `locale` (`en` / `vi` / `zh-CN` / `zh-TW`; unsupported values are ignored after length validation).
 
 Details: [`architecture.md`](./architecture.md#request-validation--services).
 
@@ -66,15 +69,15 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 | Method  | Endpoint                    | Description                                                                                                                                                                                                                                                                                                                                                   |
 | ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`  | `/api/auth/signup`          | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction.                                                                                                                                                                        |
-| `POST`  | `/api/auth/login`           | Body `{ email, password }`. Requires verified email. Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`.                                                                                                                                                                                      |
-| `POST`  | `/api/auth/refresh`         | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns a new access token + sets cookies.                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/logout`          | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies.                                                                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/verify-email`    | Body `{ token }`. Consumes a one-shot verification link.                                                                                                                                                                                                                                                                                                      |
-| `POST`  | `/api/auth/forgot-password` | Body `{ email }`. Sends a one-shot password-reset link when the account exists and email is verified. Always returns `{ ok: true }` (no account enumeration).                                                                                                                                                                                                 |
-| `POST`  | `/api/auth/reset-password`  | Body `{ token, password }`. Consumes a reset link, updates `password_hash`, revokes all refresh sessions. Returns `{ ok: true }`. User must sign in manually.                                                                                                                                                                                                 |
-| `GET`   | `/api/auth/me`              | Returns the current user as the server knows them (`{ user: AuthUser }`).                                                                                                                                                                                                                                                                                     |
-| `PATCH` | `/api/auth/profile`         | Body `{ name?, avatarUploadId?, title?, job?, location? }`. Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller (from `POST /api/uploads`). Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
+| `POST`  | `/api/auth/signup`          | Body `{ email, password, name? }`. Creates a `normal` user and **enqueues** an email-verification job (`email.verification`). User + verification row are inserted in one transaction. Returns `{ user, verificationSent }` (account is **not** logged in). `verificationSent` is `false` if enqueue fails — the raw verify URL is **never** logged. |
+| `POST`  | `/api/auth/login`           | Body `{ email, password }`. Requires verified email (`403` if not). Returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` and sets HttpOnly cookies `mgmt_rt` / `mgmt_at`. Invalid credentials → `401`. |
+| `POST`  | `/api/auth/refresh`         | Cookie `mgmt_rt` (preferred) or body `{ refreshToken }` (legacy). Atomically rotates refresh; returns `{ user, accessToken, accessExpiresAt, refreshExpiresAt }` + sets cookies. Cross-origin cookie use → `403`. |
+| `POST`  | `/api/auth/logout`          | Cookie / body refresh + optional `everywhere`. Revokes token(s) and clears auth cookies. Returns `{ ok: true }`. Access JWT optional unless `everywhere: true`. |
+| `POST`  | `/api/auth/verify-email`    | Body `{ token }`. Consumes a one-shot verification link. Returns `{ ok: true, user }`. |
+| `POST`  | `/api/auth/forgot-password` | Body `{ email }`. Enqueues `email.passwordReset` when the account exists and email is verified. Always returns `{ ok: true }` (no account enumeration). Raw reset URL is never logged on enqueue failure. |
+| `POST`  | `/api/auth/reset-password`  | Body `{ token, password }`. Consumes a reset link, updates `password_hash`, revokes all refresh sessions. Returns `{ ok: true }`. User must sign in manually. |
+| `GET`   | `/api/auth/me`              | Returns the current user as the server knows them (`{ user: AuthUser }`). |
+| `PATCH` | `/api/auth/profile`         | Body `{ name?, avatarUploadId?, title?, job?, location? }` — **at least one** field required (`400` if empty). Empty string / `null` clears a field. Text fields max 120 chars. `avatarUploadId` must be an **image** upload owned by the caller. Previous avatar is orphan-purged when changed/cleared. Reply: `{ user: AuthUser }` — `avatarUrl` is `/api/uploads/{id}` when set. Role, email, and verification are **not** editable here. |
 
 **Token model.** Access tokens are 15-minute HS256 JWTs carrying `{ sub, email, role }`, where `role` is the same `0` / `1` / `2` integer that lives in MySQL — no string translation at any layer. Refresh tokens are 30-day opaque base64url strings stored only as SHA-256 hashes; they live in the HttpOnly `mgmt_rt` cookie (not localStorage). Logout revokes them; refresh rotates them inside one DB transaction.
 
@@ -85,9 +88,9 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 | Method   | Endpoint                    | Description                                                                                                                                                                                                            |
 | -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/admin/users`          | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
-| `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix, for dashboard charts.                                                                                                                                            |
+| `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix. Query `days` clamped `1..365`, default `30`.                                                                                                                     |
 | `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                   |
-| `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`403`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
+| `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`400`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
 | `DELETE` | `/api/admin/users/:id`      | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
 
 ---
@@ -108,6 +111,16 @@ Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*
 
 ---
 
+## Geo
+
+| Method | Endpoint   | Auth   | Description                                                                                                      |
+| ------ | ---------- | ------ | ---------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/geo` | Public | Returns `{ country }` from Cloudflare `CF-IPCountry`, or `null` when unavailable / unknown (`XX`, `T1`, missing). |
+
+Used by `plugins/i18n-locale.client.ts` for first-visit locale detection. Direct LAN access typically gets `null` and falls through to timezone / browser detection.
+
+---
+
 ## Posts / feed
 
 Visibility: `public` \| `private` \| `shared` (+ `post_audience` for shared). Guests see public posts only.  
@@ -118,21 +131,25 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 
 | Method   | Endpoint                             | Auth     | Description                                                                  |
 | -------- | ------------------------------------ | -------- | ---------------------------------------------------------------------------- |
-| `GET`    | `/api/feed`                          | Optional | Bootstrap: categories + first posts page (+ stories tray when signed in).    |
-| `GET`    | `/api/posts`                         | Optional | Paginated feed for the viewer (or public-only when anonymous).               |
-| `POST`   | `/api/posts`                         | Required | Create a post/manuscript (body, format, title?, visibility, …).              |
-| `GET`    | `/api/posts/:id`                     | Optional | Single post when visible; includes `audience` authors when `canEdit`.        |
-| `PATCH`  | `/api/posts/:id`                     | Required | Update own post (body, title?, visibility, attachments, …). Format is fixed. |
+| `GET`    | `/api/feed`                          | Optional | Bootstrap: `{ categories, posts, nextCursor, stories }` (`stories` is `null` for anonymous). |
+| `GET`    | `/api/posts`                         | Optional | Paginated feed `{ posts, nextCursor }` (public-only when anonymous).         |
+| `POST`   | `/api/posts`                         | Required | Create a post/manuscript. Body below.                                        |
+| `GET`    | `/api/posts/:id`                     | Optional | `{ post, audience }` — `audience` author cards only when viewer can edit a shared post; else `[]`. |
+| `PATCH`  | `/api/posts/:id`                     | Required | Update own post. Format / translation fields stay fixed. Body below.         |
 | `DELETE` | `/api/posts/:id`                     | Required | Delete own post.                                                             |
-| `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible to the viewer.                        |
-| `POST`   | `/api/posts/:id/comments`            | Required | Add a comment.                                                               |
-| `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete own comment (or post owner).                                          |
-| `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`ReactionType` int: `0` like … `5` angry).                     |
-| `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction.                                                              |
-| `POST`   | `/api/posts/:id/share`               | Required | Share a post into the caller's feed.                                         |
+| `GET`    | `/api/posts/:id/comments`            | Optional | List comments when the post is visible (`{ comments }`).                     |
+| `POST`   | `/api/posts/:id/comments`            | Required | Body `{ body }` (max 2000). Returns `{ comment }`.                           |
+| `DELETE` | `/api/posts/:id/comments/:commentId` | Required | Delete **own** comment only.                                                 |
+| `POST`   | `/api/posts/:id/reactions`           | Required | Set reaction (`ReactionType` int). Returns `{ post, myReaction, reactions, reactionCount }`. |
+| `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction. Same response shape; `myReaction` is `null`.                 |
+| `POST`   | `/api/posts/:id/share`               | Required | Body `{ body?, visibility?, audienceUserIds? }`. `body` defaults to `"Shared a post"` (max 5000). Returns `{ post }`. |
+
+**`POST /api/posts` body:** `{ body, title?, format?, visibility?, audienceUserIds?, attachmentIds?, categoryId?, fontFamily?, textColor?, contentLocale?, translationGroupId? }`. Updates max 5,000 chars; manuscripts max 100,000 and require `title` (max 160). Shared visibility needs at least one non-self audience user. Attachments max 10 (owned uploads). Returns `{ post }`. Duplicate translation locale → `409`; translation group ownership mismatch → `403`.
+
+**`PATCH /api/posts/:id` body:** send the full editable state (`body` required; `title`, `visibility` defaulting to `public` if omitted, `audienceUserIds`, `attachmentIds`, `categoryId`, `fontFamily`, `textColor`). Does **not** accept `format`, `contentLocale`, or `translationGroupId`.
 
 DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts`.  
-`GET /api/feed` is the Feed page first-paint call (categories + posts + optional stories). Later pages use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
+`GET /api/feed` is the Feed page first-paint call. Later pages / infinite scroll use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
 
@@ -142,13 +159,13 @@ DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `ser
 
 | Method   | Endpoint                     | Auth     | Description                                                                                                |
 | -------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/stories`               | Required | Active stories tray for the install (expired rows filtered in SQL; physical purge runs in the job worker). |
-| `POST`   | `/api/stories`               | Required | Create a story (text and/or media).                                                                        |
+| `GET`    | `/api/stories`               | Required | Active stories tray `{ groups }` (expired rows filtered in SQL; physical purge runs in the job worker).    |
+| `POST`   | `/api/stories`               | Required | Body `{ body?, uploadId? }` — at least one required. `body` max 500; `uploadId` must be an owned image. Returns `{ story }`. |
 | `DELETE` | `/api/stories/:id`           | Required | Delete own story.                                                                                          |
-| `POST`   | `/api/stories/:id/view`      | Required | Record a view.                                                                                             |
-| `POST`   | `/api/stories/:id/reactions` | Required | Set reaction (`ReactionType` int).                                                                         |
-| `DELETE` | `/api/stories/:id/reactions` | Required | Clear reaction.                                                                                            |
-| `GET`    | `/api/stories/:id/insights`  | Required | Owner-only viewers + reactions rollup.                                                                     |
+| `POST`   | `/api/stories/:id/view`      | Required | Record a view. Returns `{ ok: true }`.                                                                     |
+| `POST`   | `/api/stories/:id/reactions` | Required | Set reaction (`ReactionType` int). Returns `{ story, myReaction, reactions, reactionCount }`.              |
+| `DELETE` | `/api/stories/:id/reactions` | Required | Clear reaction. Same response shape.                                                                       |
+| `GET`    | `/api/stories/:id/insights`  | Required | Owner-only viewers + reactions rollup (`{ insights }`).                                                    |
 
 DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
 
@@ -162,14 +179,16 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 
 | Method | Endpoint           | Auth     | Description                                                                                                                                                                                                                                                                                                                           |
 | ------ | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST` | `/api/uploads`     | Required | Upload a file; returns upload metadata. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). The client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code` maps to `uploads.errors.*` on the client. |
-| `GET`  | `/api/uploads/:id` | Optional | Redirect/signed URL when the caller may access the object. Same-origin requests authenticate via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` is still accepted but should not be used in new UI.                                                                                                           |
+| `POST` | `/api/uploads`     | Required | Multipart form field `file`. Returns `{ upload: { id, fileName, mime, kind, sizeBytes, url } }`. Rejects by extension, declared MIME, size, and magic-byte sniff (`utils/uploadPolicy.ts`, `server/utils/fileSignature.ts`). Client downscales JPEG/PNG/WebP first (`utils/compressImage.ts`, max edge 1920) via `useUploads`. Error `data.code`: `empty`, `unsupportedType`, `tooLarge`, `nameTooLong`, `contentMismatch`. Oversized multipart → `413`; missing R2 → `503`. |
+| `GET`  | `/api/uploads/:id` | Optional | Default `302` to a signed R2 URL. `?redirect=0` / `?redirect=false` streams bytes through the API (`Content-Disposition: inline`). Same-origin auth via HttpOnly `mgmt_at` or `Authorization: Bearer`. Legacy `?access_token=` still accepted. `503` when R2 is unavailable. |
+
+**Allowed types / size caps:** JPEG/PNG/WebP 3MB; GIF 8MB; PDF/DOCX 10MB; TXT/Markdown 512KB; WebM/Ogg/M4A/MP4/MP3 audio 5MB.
 
 **Lifecycle / cleanup.** When media is no longer displayable, the corresponding R2 object is deleted:
 
 - User deletes a **post** → orphaned attachments purged from MySQL + R2
 - User deletes a **story** → its upload purged if unused elsewhere
-- **Story expires** (24h) → purged on tray load and every ~2 min by the job worker
+- **Story expires** (24h) → filtered out by reads; physical DB/R2 purge runs in the job worker (~2 min)
 - User **changes or clears their avatar** → previous `avatar_upload_id` is orphan-purged when unused elsewhere
 - Admin **deletes a user** → CASCADE removes DB rows; storage keys are deleted from R2 afterwards
 
@@ -181,7 +200,7 @@ Orphan check: an upload is kept while referenced by `post_attachments`, a **non-
 
 | Method | Endpoint               | Auth     | Description                                                                                                              |
 | ------ | ---------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `GET`  | `/api/users/directory` | Required | Searchable people list for “share with specific people” and starting a chat. Returns `id`, `name`, `email`, `avatarUrl`. |
+| `GET`  | `/api/users/directory` | Required | Query `q` (required, length 1–100), `limit` (1–20, default 20). Returns `{ users }` each `{ id, name, email, avatarUrl }`. |
 
 ---
 
@@ -193,17 +212,17 @@ Signed-in 1:1 messaging. Spec: [`chat-spec.md`](./chat-spec.md). Tables: migrati
 | -------- | ----------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`    | `/api/chat/conversations`                                   | Required | List the caller's conversations (peer, last message, `unreadCount`, `peerLastReadAt`) plus `unreadTotal`.                                                                                                                                                                                                                                                |
 | `POST`   | `/api/chat/conversations`                                   | Required | Body `{ peerUserId }` — get-or-create the 1:1 conversation with that user (`400` if self, `404` if unknown).                                                                                                                                                                                                                                             |
-| `GET`    | `/api/chat/conversations/:id/messages`                      | Required | Query `limit` (default 50), optional `before` / `after` (message id cursors). Returns `{ messages, hasMore, peerLastReadAt }` chronological. Each message includes `reactions` / `reactionCount` / `myReaction`. Media messages include `attachment` (`url`, `mime`, …). Marks read unless `after` is set (silent catch-up). Non-participants get `404`. |
-| `GET`    | `/api/chat/conversations/:id/stream`                        | Required | **SSE** for the open thread. Auth via HttpOnly `mgmt_at`. Emits `message` (`{ type, message }`), `read` (`{ type, userId, lastReadAt }`), `reaction` (`{ type, messageId, conversationId, userId, reaction, reactions, reactionCount }`), and `ping` heartbeats. Participants only.                                                                      |
-| `POST`   | `/api/chat/conversations/:id/messages`                      | Required | Body `{ kind?, body?, stickerId?, uploadId?, durationMs? }`. `kind`: `0` text, `1` emoji, `2` sticker, `3` image, `4` audio. Text/emoji need `body`. Stickers need `stickerId`. Image/audio need a prior `POST /api/uploads` `uploadId` (owned; matching kind). Audio also needs `durationMs` (200–120000).                                              |
-| `POST`   | `/api/chat/conversations/:id/messages/:messageId/reactions` | Required | Body `{ reaction }` — set/replace the caller's reaction (`ReactionType` int: `0` Like … `5` Angry). Returns `{ message, myReaction, reactions, reactionCount }` and fans out an SSE `reaction` event.                                                                                                                                                    |
-| `DELETE` | `/api/chat/conversations/:id/messages/:messageId/reactions` | Required | Clear the caller's reaction. Same response shape as POST.                                                                                                                                                                                                                                                                                                |
-| `POST`   | `/api/chat/conversations/:id/read`                          | Required | Set the caller's `last_read_at` to now.                                                                                                                                                                                                                                                                                                                  |
-| `GET`    | `/api/chat/unread`                                          | Required | REST unread snapshot: `{ unreadTotal, latest }`. Prefer the SSE stream for the live badge.                                                                                                                                                                                                                                                               |
-| `GET`    | `/api/chat/inbox/stream`                                    | Required | **SSE** inbox stream. Auth via HttpOnly `mgmt_at` cookie (EventSource cannot set `Authorization`). Emits `inbox` events with the same JSON as `/unread`, plus `ping` heartbeats. Send/read paths push to live subscribers.                                                                                                                               |
+| `GET`    | `/api/chat/conversations/:id/messages`                      | Required | Query `limit` (1–100, default 50), optional `before` / `after` (message id cursors; ISO timestamp fallback accepted). Returns `{ messages, hasMore, peerLastReadAt }` chronological. `hasMore` is forced `false` when `after` is used. Each message includes `reactions` / `reactionCount` / `myReaction`; media includes `attachment`. Marks read unless `after` is set. Non-participants get `404`. |
+| `GET`    | `/api/chat/conversations/:id/stream`                        | Required | **SSE** for the open thread. Auth via HttpOnly `mgmt_at`. Emits initial `ready`, then `message` / `read` / `reaction`, plus `ping` every ~25s. Thread `message` payloads omit viewer-specific `mine` / `readByPeer` (clients derive them); `myReaction` on the wire message is `null`. Participants only. |
+| `POST`   | `/api/chat/conversations/:id/messages`                      | Required | Body `{ kind?, body?, stickerId?, uploadId?, durationMs? }`. `kind`: `0` text … `4` audio. Text/emoji `body` max 4000. Stickers: catalog `stickerId` max 64. Image/audio: owned `uploadId` max 64 matching kind; upload cannot already be attached to another chat message. Audio needs `durationMs` 200–120000. Returns `{ message }`. |
+| `POST`   | `/api/chat/conversations/:id/messages/:messageId/reactions` | Required | Body `{ reaction }` — integer `0..5` (`ReactionType`). Returns `{ message, myReaction, reactions, reactionCount }` and fans out an SSE `reaction` event. |
+| `DELETE` | `/api/chat/conversations/:id/messages/:messageId/reactions` | Required | Clear the caller's reaction. Same response shape; `myReaction` is `null`. |
+| `POST`   | `/api/chat/conversations/:id/read`                          | Required | Set the caller's `last_read_at` to now. Returns `{ lastReadAt }`; fans out thread SSE `read` and refreshes inbox unread. |
+| `GET`    | `/api/chat/unread`                                          | Required | REST unread snapshot: `{ unreadTotal, latest }` where `latest` is `{ conversationId, peerName, peerEmail, preview, createdAt } \| null`. Prefer the SSE stream for the live badge. |
+| `GET`    | `/api/chat/inbox/stream`                                    | Required | **SSE** inbox stream. Auth via HttpOnly `mgmt_at`. Emits initial `inbox` snapshot, then `ready`, later `inbox` + `ping` (~25s). Headers include `X-Accel-Buffering: no`. |
 | `GET`    | `/api/chat/catalog`                                         | Required | Built-in `{ stickers, emoji }` lists for the picker UI.                                                                                                                                                                                                                                                                                                  |
 
-Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. Live delivery: inbox badge via `/api/chat/inbox/stream`; open thread via `/api/chat/conversations/:id/stream` (`useChat`). Chat media requires R2 (same as feed uploads).
+Message `kind` is the same integer-enum convention as the rest of the API (`ChatMessageKind` in `types/chat.ts`). The emoji picker **inserts into the composer draft** (does not auto-send); stickers, images, and voice notes send immediately after upload. Read receipts use `chat_conversation_reads`. Live delivery: inbox badge via `/api/chat/inbox/stream`; open thread via `/api/chat/conversations/:id/stream` (`useChat` module-scoped EventSource singleton + slow REST fallback). Reaction UI: long-press a bubble for a teleported emoji bar (no always-on React button). Chat media requires R2 (same as feed uploads).
 
 **SSE + nginx:** Prod `docker/nginx.prod.conf` has dedicated locations for `/api/chat/inbox/stream` and `/api/chat/conversations/:id/stream` (`proxy_http_version 1.1`, `proxy_buffering off`, 1h read/send timeouts). The generic `/api/` block must not front these — its 60s timeout + default HTTP/1.0 buffering yields **504** on long-lived EventSource connections (especially behind Cloudflare Tunnel). Handlers also set `X-Accel-Buffering: no`.
 
