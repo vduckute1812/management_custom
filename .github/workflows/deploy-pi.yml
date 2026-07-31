@@ -19,6 +19,8 @@ on:
       - "**.md"
       - "implement/**"
       - ".cursor/**"
+      - ".github/**"
+      - ".husky/**"
       - "tests/**"
       - "vitest.config.ts"
       - ".prettierignore"
