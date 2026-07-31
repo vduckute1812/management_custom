@@ -118,19 +118,15 @@ SET @sql := IF(
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- chat_messages.upload_id UNIQUE ----------------------------------------
+-- InnoDB refuses DROP INDEX on the only index supporting
+-- fk_chat_messages_upload. Swap non-unique → UNIQUE in a single ALTER so the
+-- FK keeps a usable supporting index throughout.
 SET @idx_old := (
   SELECT COUNT(*) FROM information_schema.STATISTICS
    WHERE TABLE_SCHEMA = DATABASE()
      AND TABLE_NAME = 'chat_messages'
      AND INDEX_NAME = 'idx_chat_messages_upload'
 );
-SET @sql := IF(
-  @idx_old > 0,
-  'ALTER TABLE chat_messages DROP INDEX idx_chat_messages_upload',
-  'SELECT 1'
-);
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
 SET @idx_uq := (
   SELECT COUNT(*) FROM information_schema.STATISTICS
    WHERE TABLE_SCHEMA = DATABASE()
@@ -138,8 +134,12 @@ SET @idx_uq := (
      AND INDEX_NAME = 'uniq_chat_messages_upload'
 );
 SET @sql := IF(
-  @idx_uq = 0,
-  'ALTER TABLE chat_messages ADD UNIQUE KEY uniq_chat_messages_upload (upload_id)',
-  'SELECT 1'
+  @idx_uq > 0,
+  'SELECT 1',
+  IF(
+    @idx_old > 0,
+    'ALTER TABLE chat_messages DROP INDEX idx_chat_messages_upload, ADD UNIQUE KEY uniq_chat_messages_upload (upload_id)',
+    'ALTER TABLE chat_messages ADD UNIQUE KEY uniq_chat_messages_upload (upload_id)'
+  )
 );
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
