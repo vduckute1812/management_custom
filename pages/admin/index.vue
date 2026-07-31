@@ -454,6 +454,8 @@ function formatDateTime(iso?: string): string {
         {{ error }}
       </p>
 
+      <AdminSystemMonitor v-if="isSuperAdmin" />
+
       <div v-if="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">
