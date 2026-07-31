@@ -3,7 +3,7 @@ import { collectSystemSnapshot } from "~/server/utils/systemMetrics";
 
 /**
  * GET /api/admin/system — **superadmin only**.
- * Live ops snapshot: process RAM/CPU, disk, DB/HTTP latency, cache + queue.
+ * Live ops snapshot: process RAM/CPU, disk, DB/readiness/Redis latency, cache + queue.
  */
 export default defineEventHandler(async (event) => {
   requireSuperAdmin(event);
