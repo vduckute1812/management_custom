@@ -26,7 +26,7 @@ Overrides: `MGMT_PRUNE_AGGRESSIVE=1` forces a full prune; `MGMT_DISK_FREE_MIN_GI
 5. **If the build fails** → running stack untouched; aggressive prune reclaims partial layers.
 6. MySQL up; **DB migrations** with the new image while the old app still serves.
 7. **If migrate fails** → `:latest` restored to `:previous`; live app not restarted.
-8. Recreates **only the app** (`--no-deps --force-recreate app`); nginx stays up for Cloudflare Tunnel; health-check `http://${LAN_IP}:3000/`.
+8. Redis up (cache); then recreates **only the app** (`--no-deps --force-recreate app`); nginx stays up for Cloudflare Tunnel; health-check `http://${LAN_IP}:3000/`.
 9. Renders `nginx.prod.conf.template` → `nginx.prod.rendered.conf` (`LAN_IP`) and reloads nginx so bind-mounted edits take effect.
 10. **If health fails** → retag `:previous` → `:latest`, recreate app, fail the job.
 11. **After a healthy deploy** → refresh `:builder-cache`, drop old SHA tags / stopped containers. Keeps `:latest` / `:previous` / new SHA / `:builder-cache`; **never** deletes named volumes.
@@ -116,15 +116,15 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 
 ## Useful env overrides
 
-| Variable                 | Default                                  | Purpose                                                                                                                                                               |
-| ------------------------ | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MGMT_COMPOSE`           | `uv run --project <repo> podman-compose` | Compose CLI override                                                                                                                                                  |
-| `MGMT_IMAGE`             | `localhost/mgmt-app-prod`                | App image name                                                                                                                                                        |
-| `MGMT_HEALTH_URL`        | `http://${LAN_IP}:3000/api/health`       | Post-deploy probe (requires HTTP 200)                                                                                                                                 |
-| `MGMT_HEALTH_RETRIES`    | `30`                                     | Probe attempts                                                                                                                                                        |
-| `MGMT_DISK_FREE_MIN_GIB` | `4`                                      | Below this, prune also wipes build cache                                                                                                                              |
-| `MGMT_PRUNE_AGGRESSIVE`  | `0`                                      | `1` = always prune dangling + system leftovers                                                                                                                        |
-| `LAN_IP`                 | `192.168.1.4`                            | Pi LAN bind for app/mysql publish, nginx upstream (`docker/nginx.prod.conf.template` → `nginx.prod.rendered.conf`), migrate `DB_HOST` rewrite, and deploy output URLs |
+| Variable                 | Default                                  | Purpose                                                                                                                                                                                      |
+| ------------------------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MGMT_COMPOSE`           | `uv run --project <repo> podman-compose` | Compose CLI override                                                                                                                                                                         |
+| `MGMT_IMAGE`             | `localhost/mgmt-app-prod`                | App image name                                                                                                                                                                               |
+| `MGMT_HEALTH_URL`        | `http://${LAN_IP}:3000/api/health`       | Post-deploy probe (requires HTTP 200)                                                                                                                                                        |
+| `MGMT_HEALTH_RETRIES`    | `30`                                     | Probe attempts                                                                                                                                                                               |
+| `MGMT_DISK_FREE_MIN_GIB` | `4`                                      | Below this, prune also wipes build cache                                                                                                                                                     |
+| `MGMT_PRUNE_AGGRESSIVE`  | `0`                                      | `1` = always prune dangling + system leftovers                                                                                                                                               |
+| `LAN_IP`                 | `192.168.1.4`                            | Pi LAN bind for app/mysql/redis publish, nginx upstream (`docker/nginx.prod.conf.template` → `nginx.prod.rendered.conf`), migrate `DB_HOST` rewrite, app `REDIS_URL`, and deploy output URLs |
 
 ## Workflow file
 

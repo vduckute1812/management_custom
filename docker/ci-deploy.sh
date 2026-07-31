@@ -47,6 +47,8 @@ HEALTH_RETRIES="${MGMT_HEALTH_RETRIES:-30}"
 HEALTH_SLEEP="${MGMT_HEALTH_SLEEP:-2}"
 MYSQL_CONTAINER="${MGMT_MYSQL_CONTAINER:-mgmt-mysql-prod}"
 MYSQL_WAIT_RETRIES="${MGMT_MYSQL_WAIT_RETRIES:-60}"
+REDIS_CONTAINER="${MGMT_REDIS_CONTAINER:-mgmt-redis-prod}"
+REDIS_WAIT_RETRIES="${MGMT_REDIS_WAIT_RETRIES:-30}"
 
 for arg in "$@"; do
   case "${arg}" in
@@ -305,6 +307,44 @@ wait_mysql() {
   return 1
 }
 
+redis_container_running() {
+  local status
+  status="$("${RUNTIME}" inspect -f '{{.State.Status}}' "${REDIS_CONTAINER}" 2>/dev/null || true)"
+  [[ "${status}" == "running" ]]
+}
+
+redis_port_open() {
+  timeout 1 bash -c 'echo > /dev/tcp/127.0.0.1/6379' >/dev/null 2>&1
+}
+
+redis_healthy() {
+  redis_container_running || return 1
+  redis_port_open || return 1
+  if "${RUNTIME}" exec "${REDIS_CONTAINER}" redis-cli ping 2>/dev/null | grep -qi PONG; then
+    return 0
+  fi
+  # Port open is enough for the app's fail-open connect attempt.
+  return 0
+}
+
+ensure_redis() {
+  log "starting Redis (leave current app running)"
+  mgmt_compose up -d redis
+}
+
+wait_redis() {
+  local i
+  log "waiting for Redis (${REDIS_CONTAINER})"
+  for i in $(seq 1 "${REDIS_WAIT_RETRIES}"); do
+    if redis_healthy; then
+      log "Redis is ready (attempt ${i}/${REDIS_WAIT_RETRIES})"
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 read_mysql_root_password() {
   # Secret lives only in the gitignored docker/.env.prod: prefer an explicit
   # MYSQL_ROOT_PASSWORD, otherwise reuse DB_PASS (the app connects as root).
@@ -457,6 +497,15 @@ if ! wait_mysql; then
   die "MySQL not ready — running app not restarted"
 fi
 
+if ! ensure_redis; then
+  restore_previous_tag
+  die "could not start Redis — running app not restarted"
+fi
+if ! wait_redis; then
+  restore_previous_tag
+  die "Redis not ready — running app not restarted"
+fi
+
 if ! run_migrations; then
   restore_previous_tag
   die "database migration failed — running app not restarted"
@@ -501,3 +550,4 @@ echo "  Image:  ${NEW_TAG}"
 echo "  Cache:  ${BUILDER_CACHE_TAG}"
 echo "  Libs:   uv sync + image npm ci (layer-cached)"
 echo "  DB:     migrations applied before app switch"
+echo "  Redis:  ${LAN_IP}:6379 (app cache; fail-open to memory)"

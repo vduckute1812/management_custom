@@ -9,7 +9,7 @@
 #   MGMT_COMPOSE_FILE — compose file relative to repo root
 #                       (default: docker/docker-compose.prod.yml)
 #   MGMT_IMAGE        — app image name (default: localhost/mgmt-app-prod)
-#   LAN_IP            — Pi LAN bind for app/mysql publish + nginx upstream
+#   LAN_IP            — Pi LAN bind for app/mysql/redis publish + nginx upstream
 #                       (default: 192.168.1.4). Used by compose interpolation
 #                       and docker/render-nginx-conf.sh.
 
