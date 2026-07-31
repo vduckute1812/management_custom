@@ -1,12 +1,7 @@
 <script setup lang="ts">
 const { t } = useI18n();
-const {
-  activeTimer,
-  elapsedSeconds,
-  formatElapsed,
-  stop,
-  hydrate,
-} = useTimer();
+const { activeTimer, elapsedSeconds, formatElapsed, stop, hydrate } =
+  useTimer();
 const { findTask } = useTasks();
 const { pushToast } = useToasts();
 
@@ -34,7 +29,7 @@ async function onStop() {
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.couldNotStopTimer"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     busy.value = false;
@@ -95,7 +90,9 @@ async function onStop() {
 <style scoped>
 .slide-enter-active,
 .slide-leave-active {
-  transition: transform 200ms ease-out, opacity 200ms ease-out;
+  transition:
+    transform 200ms ease-out,
+    opacity 200ms ease-out;
 }
 .slide-enter-from,
 .slide-leave-to {
@@ -111,13 +108,20 @@ async function onStop() {
 }
 
 @keyframes timer-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 .timer-pulse {
   animation: timer-pulse 1.2s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .timer-pulse { animation: none; }
+  .timer-pulse {
+    animation: none;
+  }
 }
 </style>

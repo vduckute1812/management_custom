@@ -27,7 +27,7 @@ export default defineNuxtPlugin(() => {
   watch(
     () => settings.value.density,
     (next) => applyDensity(next),
-    { immediate: false }
+    { immediate: false },
   );
 
   if (window.matchMedia) {

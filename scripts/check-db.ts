@@ -8,11 +8,7 @@
  *   npm run check:db
  */
 
-import {
-  countUsers,
-  getPool,
-  migrationStatus,
-} from "../server/utils/db";
+import { countUsers, getPool, migrationStatus } from "../server/utils/db";
 
 function fmt(ms: number) {
   return `${ms.toFixed(0)}ms`;
@@ -35,27 +31,24 @@ async function main() {
   const [pingRows] = await pool.query<any[]>(
     "SELECT VERSION() AS version, NOW(3) AS server_time, @@time_zone AS tz, DATABASE() AS db",
   );
-  console.log(
-    `[check] ping ok in ${fmt(Date.now() - t0)} ->`,
-    pingRows[0],
-  );
+  console.log(`[check] ping ok in ${fmt(Date.now() - t0)} ->`, pingRows[0]);
 
   const t1 = Date.now();
   const status = await migrationStatus();
   if (status.drift.length) {
     throw new Error(
       `Migration checksum drift on: ${status.drift.map((d) => d.id).join(", ")}. ` +
-        "See `npm run migrate:status` for details."
+        "See `npm run migrate:status` for details.",
     );
   }
   if (status.pending.length) {
     throw new Error(
       `Pending migrations: ${status.pending.map((m) => m.id).join(", ")}. ` +
-        "Run `npm run migrate` to apply."
+        "Run `npm run migrate` to apply.",
     );
   }
   console.log(
-    `[check] migrations ok in ${fmt(Date.now() - t1)} (${status.applied.length} applied)`
+    `[check] migrations ok in ${fmt(Date.now() - t1)} (${status.applied.length} applied)`,
   );
 
   const t2 = Date.now();
@@ -93,9 +86,7 @@ async function main() {
 
   const t3 = Date.now();
   const users = await countUsers();
-  console.log(
-    `[check] live reads in ${fmt(Date.now() - t3)}: users=${users}`,
-  );
+  console.log(`[check] live reads in ${fmt(Date.now() - t3)}: users=${users}`);
   if (users === 0) {
     console.warn(
       "[check] WARNING: no users in the database — run `npm run migrate:auth` to seed the initial admin.",

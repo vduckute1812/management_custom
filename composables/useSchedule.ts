@@ -32,7 +32,7 @@ export function useSchedule() {
   function nextFreeSlot(
     day: Dayjs = dayjs(),
     durationMin = 60,
-    earliest?: Dayjs
+    earliest?: Dayjs,
   ): { start: Dayjs; end: Dayjs } {
     const dayStart = day.startOf("day");
     let cursorMin = 9 * 60;
@@ -52,9 +52,7 @@ export function useSchedule() {
 
     while (cursorMin + durationMin <= dayEnd) {
       const slotEnd = cursorMin + durationMin;
-      const conflict = busy.some(
-        (r) => cursorMin < r.end && slotEnd > r.start
-      );
+      const conflict = busy.some((r) => cursorMin < r.end && slotEnd > r.start);
       if (!conflict) {
         const start = dayStart.add(cursorMin, "minute");
         return { start, end: start.add(durationMin, "minute") };
@@ -73,8 +71,8 @@ export function useSchedule() {
     const blocks = (task.timeBlocks ?? []).filter((b) => !b.projected);
     if (!blocks.length) return 60;
     // Prefer the most recent past block's duration, else the first block.
-    const sorted = [...blocks].sort((a, b) =>
-      dayjs(b.start).valueOf() - dayjs(a.start).valueOf()
+    const sorted = [...blocks].sort(
+      (a, b) => dayjs(b.start).valueOf() - dayjs(a.start).valueOf(),
     );
     const b = sorted[0];
     const mins = dayjs(b.end).diff(dayjs(b.start), "minute");
@@ -85,7 +83,10 @@ export function useSchedule() {
    * Move (or create) a single day's focus block for `task` onto `day` at the
    * next free slot. Preserves duration from the latest existing block.
    */
-  async function rescheduleToDay(task: Task, day: Dayjs = dayjs()): Promise<Task> {
+  async function rescheduleToDay(
+    task: Task,
+    day: Dayjs = dayjs(),
+  ): Promise<Task> {
     const durationMin = blockDurationMinutes(task);
     const { start, end } = nextFreeSlot(day, durationMin);
     const blocks = [...(task.timeBlocks ?? [])].filter((b) => !b.projected);
@@ -93,7 +94,7 @@ export function useSchedule() {
     // Prefer moving the most recent past / any block on a different day;
     // if the task already has a block on the target day, move that one.
     const sameDayIdx = blocks.findIndex((b) =>
-      dayjs(b.start).isSame(day, "day")
+      dayjs(b.start).isSame(day, "day"),
     );
     const newBlock: TimeBlock = {
       id:
@@ -102,8 +103,7 @@ export function useSchedule() {
           : `block_${Math.random().toString(16).slice(2, 10)}`,
       start: start.toISOString(),
       end: end.toISOString(),
-      spentHours:
-        sameDayIdx >= 0 ? blocks[sameDayIdx].spentHours : undefined,
+      spentHours: sameDayIdx >= 0 ? blocks[sameDayIdx].spentHours : undefined,
     };
 
     let nextBlocks: TimeBlock[];
@@ -112,11 +112,11 @@ export function useSchedule() {
     } else if (blocks.length) {
       // Replace the oldest past block when rolling over; keep future ones.
       const pastIdx = blocks.findIndex((b) =>
-        dayjs(b.end).isBefore(dayjs().startOf("day"))
+        dayjs(b.end).isBefore(dayjs().startOf("day")),
       );
       if (pastIdx >= 0) {
         nextBlocks = blocks.map((b, i) =>
-          i === pastIdx ? { ...newBlock, id: b.id } : b
+          i === pastIdx ? { ...newBlock, id: b.id } : b,
         );
       } else {
         nextBlocks = [...blocks, newBlock];

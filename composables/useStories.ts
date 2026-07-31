@@ -4,14 +4,14 @@ import type { StoriesTray, Story, StoryInsights } from "~/types/story";
 function patchStoryInTray(
   tray: StoriesTray,
   id: string,
-  next: Story
+  next: Story,
 ): StoriesTray {
   return {
     groups: tray.groups.map((g) => ({
       ...g,
       stories: g.stories.map((s) => (s.id === id ? next : s)),
       hasUnseen: g.stories.some((s) =>
-        s.id === id ? !next.viewedByMe : !s.viewedByMe
+        s.id === id ? !next.viewedByMe : !s.viewedByMe,
       ),
     })),
   };
@@ -55,7 +55,7 @@ export const useStories = () => {
       groups: tray.value.groups.map((g) => ({
         ...g,
         stories: g.stories.map((s) =>
-          s.id === id ? { ...s, viewedByMe: true } : s
+          s.id === id ? { ...s, viewedByMe: true } : s,
         ),
         hasUnseen: g.stories.some((s) => s.id !== id && !s.viewedByMe),
       })),
@@ -70,11 +70,11 @@ export const useStories = () => {
 
   async function setReaction(
     id: string,
-    reaction: PostReactionType
+    reaction: PostReactionType,
   ): Promise<Story> {
     const res = await apiFetch<{ story: Story }>(
       `/api/stories/${id}/reactions`,
-      { method: "POST", body: { reaction } }
+      { method: "POST", body: { reaction } },
     );
     tray.value = patchStoryInTray(tray.value, id, res.story);
     return res.story;
@@ -83,7 +83,7 @@ export const useStories = () => {
   async function clearReaction(id: string): Promise<Story> {
     const res = await apiFetch<{ story: Story }>(
       `/api/stories/${id}/reactions`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     tray.value = patchStoryInTray(tray.value, id, res.story);
     return res.story;
@@ -91,7 +91,7 @@ export const useStories = () => {
 
   async function fetchInsights(id: string): Promise<StoryInsights> {
     const res = await apiFetch<{ insights: StoryInsights }>(
-      `/api/stories/${id}/insights`
+      `/api/stories/${id}/insights`,
     );
     return res.insights;
   }

@@ -26,7 +26,9 @@ export function dbToISO(value: string | null): string {
   return normalized.endsWith("Z") ? normalized : `${normalized}Z`;
 }
 
-export function dateOnlyOrNull(input: string | null | undefined): string | null {
+export function dateOnlyOrNull(
+  input: string | null | undefined,
+): string | null {
   if (!input) return null;
   // Accept either "YYYY-MM-DD" directly or an ISO datetime; coerce to date.
   const m = /^\d{4}-\d{2}-\d{2}/.exec(input);

@@ -37,7 +37,7 @@ watch(
         ? String(props.block.spentHours)
         : "";
     await nextTick();
-  }
+  },
 );
 
 const rangeLabel = computed(() => {
@@ -57,7 +57,7 @@ const durationHours = computed(() => {
 });
 
 const alreadyLogged = computed(
-  () => typeof props.block?.spentHours === "number"
+  () => typeof props.block?.spentHours === "number",
 );
 
 const panelStyle = computed(() => {
@@ -85,7 +85,7 @@ async function persistSpent(nextSpent: number | undefined) {
   saving.value = true;
   try {
     const updatedBlocks = (props.task.timeBlocks ?? []).map((b) =>
-      b.id === props.block!.id ? { ...b, spentHours: nextSpent } : b
+      b.id === props.block!.id ? { ...b, spentHours: nextSpent } : b,
     );
     const saved = await saveTask({ ...props.task, timeBlocks: updatedBlocks });
     emit("saved", saved);
@@ -93,13 +93,13 @@ async function persistSpent(nextSpent: number | undefined) {
       nextSpent === undefined
         ? t("toasts.clearedSpentHours")
         : t("toasts.loggedHours", { hours: nextSpent }),
-      { tone: "success", duration: 2200 }
+      { tone: "success", duration: 2200 },
     );
     emit("close");
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToSaveSpent"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     saving.value = false;
@@ -174,13 +174,16 @@ function onKeydown(e: KeyboardEvent) {
             <p class="text-[11px] text-slate-500 tabular-nums mt-0.5">
               {{ rangeLabel }}
               <span v-if="durationHours">
-                {{ $t("tasks.spentPopover.blockDuration", { hours: durationHours }) }}
+                {{
+                  $t("tasks.spentPopover.blockDuration", {
+                    hours: durationHours,
+                  })
+                }}
               </span>
-              <span
-                v-if="alreadyLogged"
-                class="ml-1 text-emerald-600"
-              >
-                {{ $t("tasks.spentPopover.logged", { hours: block.spentHours }) }}
+              <span v-if="alreadyLogged" class="ml-1 text-emerald-600">
+                {{
+                  $t("tasks.spentPopover.logged", { hours: block.spentHours })
+                }}
               </span>
             </p>
           </header>
@@ -196,8 +199,12 @@ function onKeydown(e: KeyboardEvent) {
                 saving
                   ? $t("tasks.spentPopover.saving")
                   : alreadyLogged
-                  ? $t("tasks.spentPopover.updateToHours", { hours: durationHours })
-                  : $t("tasks.spentPopover.logHours", { hours: durationHours })
+                    ? $t("tasks.spentPopover.updateToHours", {
+                        hours: durationHours,
+                      })
+                    : $t("tasks.spentPopover.logHours", {
+                        hours: durationHours,
+                      })
               }}
             </button>
             <p class="text-[11px] text-slate-500 text-center">
@@ -244,9 +251,7 @@ function onKeydown(e: KeyboardEvent) {
             </div>
           </div>
 
-          <footer
-            class="px-3.5 pb-3 flex items-center justify-between gap-2"
-          >
+          <footer class="px-3.5 pb-3 flex items-center justify-between gap-2">
             <button
               type="button"
               class="text-[11px] font-medium text-slate-600 hover:text-slate-900 px-1 py-1"

@@ -8,20 +8,20 @@ If you came here to **use** the app, start at the root README. If you came here 
 
 ## Map
 
-| File                                           | What's in it                                                                                                   |
-| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [`getting-started.md`](./getting-started.md)   | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                                  |
-| [`architecture.md`](./architecture.md)         | Tech stack, hybrid SSR topology, auth cookies, validation/services layers, SEO, project structure.              |
-| [`cache-queue.md`](./cache-queue.md)           | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).                          |
-| [`database.md`](./database.md)                 | Schema DDL + feed/stories/jobs tables, field references, migration policy.                                     |
+| File                                           | What's in it                                                                                                |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [`getting-started.md`](./getting-started.md)   | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                               |
+| [`architecture.md`](./architecture.md)         | Tech stack, hybrid SSR topology, auth cookies, validation/services layers, SEO, project structure.          |
+| [`cache-queue.md`](./cache-queue.md)           | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).                       |
+| [`database.md`](./database.md)                 | Schema DDL + feed/stories/jobs tables, field references, migration policy.                                  |
 | [`api.md`](./api.md)                           | REST/SSE endpoints under `/api/*` (auth, tasks, feed bootstrap, stories, chat, uploads, geo, admin, queue). |
-| [`auth.md`](./auth.md)                         | Roles, HttpOnly cookies, JWT/refresh, client session, profile, bootstrap superadmin, email transport.           |
-| [`i18n.md`](./i18n.md)                         | Locales, first-visit geo/timezone detection, plural `t()` shape, Day.js / SEO titles.                           |
-| [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                           |
-| [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                                |
-| [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                               |
-| [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, Nuxt 4.5 / Node 26, deploy prune).         |
-| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, Docker npm 12 image, auto-build on `master`, rollback + prune rules.          |
+| [`auth.md`](./auth.md)                         | Roles, HttpOnly cookies, JWT/refresh, client session, profile, bootstrap superadmin, email transport.       |
+| [`i18n.md`](./i18n.md)                         | Locales, first-visit geo/timezone detection, plural `t()` shape, Day.js / SEO titles.                       |
+| [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                        |
+| [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                             |
+| [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                            |
+| [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, Nuxt 4.5 / Node 26, deploy prune).      |
+| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, Docker npm 12 image, auto-build on `master`, rollback + prune rules.       |
 
 ## Feature specs vs. implementation docs
 

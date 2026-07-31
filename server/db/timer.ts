@@ -10,12 +10,12 @@ import type { RunningTimer } from "./types";
  */
 
 export async function getActiveTimer(
-  userId: string
+  userId: string,
 ): Promise<RunningTimer | null> {
   const pool = getPool();
   const [rows] = await pool.query<TimerRow[]>(
     "SELECT * FROM active_timer WHERE user_id = ? LIMIT 1",
-    [userId]
+    [userId],
   );
   if (!rows.length) return null;
   return {
@@ -26,7 +26,7 @@ export async function getActiveTimer(
 
 export async function setActiveTimer(
   userId: string,
-  timer: RunningTimer | null
+  timer: RunningTimer | null,
 ): Promise<void> {
   const pool = getPool();
   if (!timer) {
@@ -39,6 +39,6 @@ export async function setActiveTimer(
      ON DUPLICATE KEY UPDATE
        task_id = VALUES(task_id),
        started_at = VALUES(started_at)`,
-    [userId, timer.taskId, isoToDB(timer.startedAt)]
+    [userId, timer.taskId, isoToDB(timer.startedAt)],
   );
 }

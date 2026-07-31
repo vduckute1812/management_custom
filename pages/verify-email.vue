@@ -52,8 +52,8 @@ onMounted(async () => {
           status === "pending"
             ? $t("auth.verifying")
             : status === "ok"
-            ? $t("auth.emailVerified")
-            : $t("auth.couldNotVerify")
+              ? $t("auth.emailVerified")
+              : $t("auth.couldNotVerify")
         }}
       </p>
       <p v-if="status === 'pending'" class="text-sm text-slate-500">

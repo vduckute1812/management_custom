@@ -52,7 +52,7 @@ function entriesForDay(day: Dayjs): DayEntry[] {
 
   for (const t of props.tasks) {
     const blocksToday = (t.timeBlocks ?? []).filter((b) =>
-      dayjs(b.start).isSame(day, "day")
+      dayjs(b.start).isSame(day, "day"),
     );
     for (const b of blocksToday) {
       entries.push({
@@ -104,7 +104,7 @@ function onDragStart(e: DragEvent, entry: DayEntry) {
   dragPayload.value = { taskId: entry.task.id, blockId: entry.block.id };
   e.dataTransfer?.setData(
     "application/x-mgmt-block",
-    JSON.stringify(dragPayload.value)
+    JSON.stringify(dragPayload.value),
   );
   e.dataTransfer && (e.dataTransfer.effectAllowed = "move");
 }
@@ -164,7 +164,7 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
   const updatedBlocks = (task.timeBlocks ?? []).map((b) =>
     b.id === block.id
       ? { ...b, start: newStart.toISOString(), end: newEnd.toISOString() }
-      : b
+      : b,
   );
 
   try {
@@ -181,7 +181,7 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToMoveBlock"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   }
 }
@@ -207,7 +207,9 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
         :class="{ 'bg-brand-50': day.isSame(now, 'day') }"
       >
         <div>
-          <div class="text-[10px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+          <div
+            class="text-[10px] font-medium text-slate-500 uppercase tracking-wide flex items-center gap-1.5"
+          >
             <span>{{ weekdayLabel(dayIndex) }}</span>
             <span
               v-if="day.isSame(now, 'day')"
@@ -220,9 +222,7 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
           <div
             class="text-lg font-semibold tabular-nums"
             :class="
-              day.isSame(now, 'day')
-                ? 'text-brand-700'
-                : 'text-slate-900'
+              day.isSame(now, 'day') ? 'text-brand-700' : 'text-slate-900'
             "
           >
             {{ day.format("D") }}
@@ -259,13 +259,13 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
             colorOfTask(entry.task).text,
             colorOfTask(entry.task).ring,
             STATUS_BORDER[entry.task.status],
-            entry.block?.projected ? 'opacity-60 border-dashed cursor-pointer' : '',
+            entry.block?.projected
+              ? 'opacity-60 border-dashed cursor-pointer'
+              : '',
             entry.block && !entry.block.projected
               ? 'cursor-grab active:cursor-grabbing'
               : '',
-            dragPayload &&
-            entry.block &&
-            dragPayload.blockId === entry.block.id
+            dragPayload && entry.block && dragPayload.blockId === entry.block.id
               ? 'opacity-50'
               : '',
           ]"
@@ -284,7 +284,9 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
               class="inline-block w-1.5 h-1.5 rounded-full shrink-0"
               :class="STATUS_DOTS[entry.task.status]"
             />
-            <div class="text-xs font-semibold truncate">{{ entry.task.title }}</div>
+            <div class="text-xs font-semibold truncate">
+              {{ entry.task.title }}
+            </div>
             <svg
               v-if="entry.block?.projected"
               xmlns="http://www.w3.org/2000/svg"
@@ -295,17 +297,22 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
               class="w-3 h-3 shrink-0 opacity-70"
               aria-hidden="true"
             >
-              <path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round" />
+              <path
+                d="M3 12a9 9 0 1 0 3-6.7L3 8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M3 3v5h5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
             </svg>
           </div>
           <div class="text-[10px] opacity-80 tabular-nums">
             <template v-if="entry.block">
               {{ blockLabel(entry.block) }}
-              <span
-                v-if="entry.block.projected"
-                class="ml-1 italic opacity-80"
-              >
+              <span v-if="entry.block.projected" class="ml-1 italic opacity-80">
                 · {{ $t("calendar.recurring") }}
               </span>
               <span

@@ -74,7 +74,8 @@ export function readPresentedRefreshToken(
 ): string {
   const fromCookie = getCookie(event, REFRESH_COOKIE);
   if (fromCookie && fromCookie.trim()) return fromCookie.trim();
-  if (typeof bodyToken === "string" && bodyToken.trim()) return bodyToken.trim();
+  if (typeof bodyToken === "string" && bodyToken.trim())
+    return bodyToken.trim();
   return "";
 }
 

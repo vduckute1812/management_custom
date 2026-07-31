@@ -44,9 +44,7 @@ async function onSubmit() {
       timeBlocks: [parsed.block],
     };
     const saved = await saveTask(payload);
-    const tagHint = parsed.tags.length
-      ? ` · #${parsed.tags.join(" #")}`
-      : "";
+    const tagHint = parsed.tags.length ? ` · #${parsed.tags.join(" #")}` : "";
     pushToast(
       t("toasts.captured", {
         title: saved.title,
@@ -56,13 +54,13 @@ async function onSubmit() {
       {
         tone: "success",
         duration: 3500,
-      }
+      },
     );
     quickCaptureOpen.value = false;
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToCapture"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     submitting.value = false;
@@ -135,9 +133,15 @@ function onBackdrop(e: MouseEvent) {
           <p
             class="px-4 pb-3 text-[11px] text-slate-500 flex items-center gap-3 flex-wrap"
           >
-            <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Enter</kbd>
+            <kbd
+              class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono"
+              >Enter</kbd
+            >
             {{ $t("tasks.quickCapture.enterToSave") }}
-            <kbd class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono">Esc</kbd>
+            <kbd
+              class="px-1.5 py-0.5 bg-slate-100 rounded text-slate-700 font-mono"
+              >Esc</kbd
+            >
             {{ $t("tasks.quickCapture.escToCancel") }}
             <span class="ml-auto italic">
               {{ $t("tasks.quickCapture.hint") }}

@@ -34,7 +34,8 @@ export const useToasts = () => {
       id,
       message,
       tone: options.tone ?? "info",
-      actionLabel: options.actionLabel ?? (options.onAction ? "Undo" : undefined),
+      actionLabel:
+        options.actionLabel ?? (options.onAction ? "Undo" : undefined),
       onAction: options.onAction,
       duration: options.duration ?? 5000,
     };

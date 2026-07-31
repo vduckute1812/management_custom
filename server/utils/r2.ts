@@ -28,9 +28,7 @@ export function r2Config() {
   const bucket = process.env.R2_BUCKET?.trim() || "";
   const endpoint =
     process.env.R2_ENDPOINT?.trim() ||
-    (accountId
-      ? `https://${accountId}.r2.cloudflarestorage.com`
-      : "");
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
   const signedTtl = Number(process.env.R2_SIGNED_URL_TTL || "3600");
 
   return {
@@ -40,7 +38,9 @@ export function r2Config() {
     bucket,
     endpoint,
     signedTtl:
-      Number.isFinite(signedTtl) && signedTtl > 0 ? Math.floor(signedTtl) : 3600,
+      Number.isFinite(signedTtl) && signedTtl > 0
+        ? Math.floor(signedTtl)
+        : 3600,
   };
 }
 
@@ -49,9 +49,9 @@ export function assertR2Configured(): void {
   if (!c.accountId || !c.accessKeyId || !c.secretAccessKey || !c.bucket) {
     throw Object.assign(
       new Error(
-        "Cloudflare R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET."
+        "Cloudflare R2 is not configured. Set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET.",
       ),
-      { statusCode: 503 }
+      { statusCode: 503 },
     );
   }
 }
@@ -84,7 +84,7 @@ export async function r2PutObject(args: {
       Key: args.key,
       Body: args.body,
       ContentType: args.contentType,
-    })
+    }),
   );
 }
 
@@ -94,7 +94,7 @@ export async function r2DeleteObject(key: string): Promise<void> {
     new DeleteObjectCommand({
       Bucket: c.bucket,
       Key: key,
-    })
+    }),
   );
 }
 
@@ -107,7 +107,7 @@ export async function r2GetObjectBuffer(key: string): Promise<{
     new GetObjectCommand({
       Bucket: c.bucket,
       Key: key,
-    })
+    }),
   );
   const bytes = await out.Body?.transformToByteArray();
   if (!bytes) {
@@ -128,6 +128,6 @@ export async function r2SignedGetUrl(key: string): Promise<string> {
       Bucket: c.bucket,
       Key: key,
     }),
-    { expiresIn: c.signedTtl }
+    { expiresIn: c.signedTtl },
   );
 }

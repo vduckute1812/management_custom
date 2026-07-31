@@ -48,7 +48,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 // day takes ~75% as much vertical space. Snap grid, min-height and overall
 // day height all derive from this so the math stays consistent.
 const HOUR_HEIGHT = computed(() =>
-  settings.value.density === "compact" ? 44 : 56
+  settings.value.density === "compact" ? 44 : 56,
 );
 const SNAP_PX = computed(() => HOUR_HEIGHT.value / 4); // 15-minute grid
 const MIN_HEIGHT_PX = computed(() => SNAP_PX.value * 2); // 30-minute minimum
@@ -100,7 +100,12 @@ const dayBlocks = computed<PositionedBlock[]>(() => {
   const dayStart = props.date.startOf("day");
   const dayEnd = props.date.endOf("day");
 
-  const ranged: { task: Task; block: TimeBlock; startMin: number; endMin: number }[] = [];
+  const ranged: {
+    task: Task;
+    block: TimeBlock;
+    startMin: number;
+    endMin: number;
+  }[] = [];
   for (const t of props.tasks) {
     for (const block of t.timeBlocks ?? []) {
       const start = dayjs(block.start);
@@ -136,7 +141,7 @@ const dayBlocks = computed<PositionedBlock[]>(() => {
     top: (r.startMin / 60) * HOUR_HEIGHT.value,
     height: Math.max(
       28,
-      ((r.endMin - r.startMin) / 60) * HOUR_HEIGHT.value - 4
+      ((r.endMin - r.startMin) / 60) * HOUR_HEIGHT.value - 4,
     ),
     column: r.lane,
     columnCount: totalLanes,
@@ -148,10 +153,10 @@ const undatedTasks = computed(() =>
     if (!t.dueDate) return false;
     if (!dayjs(t.dueDate).isSame(props.date, "day")) return false;
     const hasBlockToday = (t.timeBlocks ?? []).some((b) =>
-      dayjs(b.start).isSame(props.date, "day")
+      dayjs(b.start).isSame(props.date, "day"),
     );
     return !hasBlockToday;
-  })
+  }),
 );
 
 // Live "now" indicator — only meaningful when the column actually represents
@@ -218,7 +223,7 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
   const blocks = [...(task.timeBlocks ?? [])].filter((b) => !b.projected);
 
   const todayIdx = blocks.findIndex((b) =>
-    dayjs(b.start).isSame(props.date, "day")
+    dayjs(b.start).isSame(props.date, "day"),
   );
   if (todayIdx >= 0) {
     blocks[todayIdx] = {
@@ -244,13 +249,13 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
       {
         tone: "success",
         duration: 2500,
-      }
+      },
     );
     emit("scheduled", saved);
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToSchedule"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   }
 }
@@ -294,7 +299,11 @@ function blockStyle(entry: PositionedBlock) {
   };
 }
 
-function onPointerDown(e: PointerEvent, entry: PositionedBlock, mode: DragMode) {
+function onPointerDown(
+  e: PointerEvent,
+  entry: PositionedBlock,
+  mode: DragMode,
+) {
   if (e.button !== 0) return;
   // Projected (recurring) ghosts aren't draggable; clicking still opens the
   // modal so the user can edit the recurrence rule itself.
@@ -333,14 +342,14 @@ function onPointerMove(e: PointerEvent) {
     d.currentTop = clamp(
       snap(d.startTop + dy),
       0,
-      DAY_HEIGHT.value - d.startHeight
+      DAY_HEIGHT.value - d.startHeight,
     );
     d.currentHeight = d.startHeight;
   } else if (d.mode === "resize-top") {
     const proposedTop = clamp(
       snap(d.startTop + dy),
       0,
-      d.startTop + d.startHeight - MIN_HEIGHT_PX.value
+      d.startTop + d.startHeight - MIN_HEIGHT_PX.value,
     );
     d.currentTop = proposedTop;
     d.currentHeight = d.startTop + d.startHeight - proposedTop;
@@ -349,7 +358,7 @@ function onPointerMove(e: PointerEvent) {
     d.currentHeight = clamp(
       snap(d.startHeight + dy),
       MIN_HEIGHT_PX.value,
-      DAY_HEIGHT.value - d.startTop
+      DAY_HEIGHT.value - d.startTop,
     );
   }
 }
@@ -381,18 +390,18 @@ async function onPointerUp() {
   const dayStart = props.date.startOf("day");
   const newStart = dayStart.add(
     (d.currentTop / HOUR_HEIGHT.value) * 60,
-    "minute"
+    "minute",
   );
   const newEnd = dayStart.add(
     ((d.currentTop + d.currentHeight) / HOUR_HEIGHT.value) * 60,
-    "minute"
+    "minute",
   );
 
   const task = d.entry.task;
   const updatedBlocks = (task.timeBlocks ?? []).map((b) =>
     b.id === d.entry.block.id
       ? { ...b, start: newStart.toISOString(), end: newEnd.toISOString() }
-      : b
+      : b,
   );
 
   d.saving = true;
@@ -401,7 +410,7 @@ async function onPointerUp() {
   } catch (err: unknown) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToReschedule"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     drag.value = null;
@@ -466,7 +475,10 @@ onBeforeUnmount(() => {
           :class="colorOfTask(t).ring"
           @click="emit('select-task', t)"
         >
-          <span class="w-1.5 h-1.5 rounded-full" :class="colorOfTask(t).solid" />
+          <span
+            class="w-1.5 h-1.5 rounded-full"
+            :class="colorOfTask(t).solid"
+          />
           {{ t.title }}
         </button>
       </div>
@@ -495,7 +507,11 @@ onBeforeUnmount(() => {
               $t('calendar.createOrDropAt', { hour: formatHourLabel(h) })
             "
             class="border-b border-slate-100 hover:bg-brand-50/30 cursor-pointer transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
-            :class="dropHour === h ? 'bg-brand-50/60 ring-1 ring-inset ring-brand-300' : ''"
+            :class="
+              dropHour === h
+                ? 'bg-brand-50/60 ring-1 ring-inset ring-brand-300'
+                : ''
+            "
             :style="{ height: HOUR_HEIGHT + 'px' }"
             @click="onSlotClick(h)"
             @keydown="onSlotKeydown($event, h)"
@@ -521,7 +537,9 @@ onBeforeUnmount(() => {
               <span
                 class="absolute -left-1 -top-[5px] w-2.5 h-2.5 rounded-full bg-rose-600 ring-2 ring-white"
               />
-              <span class="block h-px bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]" />
+              <span
+                class="block h-px bg-rose-500 shadow-[0_0_0_1px_rgba(244,63,94,0.25)]"
+              />
             </div>
           </div>
 
@@ -538,8 +556,8 @@ onBeforeUnmount(() => {
               entry.block.projected
                 ? 'opacity-60 border-dashed cursor-pointer'
                 : drag && drag.entry.block.id === entry.block.id
-                ? 'cursor-grabbing shadow-lg'
-                : 'cursor-grab',
+                  ? 'cursor-grabbing shadow-lg'
+                  : 'cursor-grab',
             ]"
             :style="blockStyle(entry)"
             :title="
@@ -576,8 +594,16 @@ onBeforeUnmount(() => {
                 class="w-3 h-3 shrink-0 opacity-70"
                 aria-hidden="true"
               >
-                <path d="M3 12a9 9 0 1 0 3-6.7L3 8" stroke-linecap="round" stroke-linejoin="round" />
-                <path d="M3 3v5h5" stroke-linecap="round" stroke-linejoin="round" />
+                <path
+                  d="M3 12a9 9 0 1 0 3-6.7L3 8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M3 3v5h5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </div>
             <div class="text-[10px] opacity-80 tabular-nums">

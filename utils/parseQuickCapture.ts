@@ -20,7 +20,10 @@ function nextHourStart(from: Dayjs = dayjs()): Dayjs {
 }
 
 function parseHourToken(raw: string): number | null {
-  const m = raw.trim().toLowerCase().match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  const m = raw
+    .trim()
+    .toLowerCase()
+    .match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
   if (!m) return null;
   let h = Number(m[1]);
   const mins = m[2] ? Number(m[2]) : 0;

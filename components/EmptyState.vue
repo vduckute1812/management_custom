@@ -9,7 +9,7 @@ const props = withDefaults(
     secondaryLabel?: string;
     secondaryLoading?: boolean;
   }>(),
-  { illustration: "spark" }
+  { illustration: "spark" },
 );
 
 const emit = defineEmits<{
@@ -22,7 +22,9 @@ const emit = defineEmits<{
   <div
     class="rounded-2xl border border-dashed border-slate-300 bg-white px-8 py-12 text-center max-w-lg mx-auto"
   >
-    <div class="mx-auto w-16 h-16 mb-4 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-500">
+    <div
+      class="mx-auto w-16 h-16 mb-4 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-500"
+    >
       <svg
         v-if="props.illustration === 'calendar'"
         xmlns="http://www.w3.org/2000/svg"
@@ -65,7 +67,11 @@ const emit = defineEmits<{
         aria-hidden="true"
       >
         <path d="M3 3v18h18" stroke-linecap="round" />
-        <path d="M7 14l4-4 4 4 5-7" stroke-linecap="round" stroke-linejoin="round" />
+        <path
+          d="M7 14l4-4 4 4 5-7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
       </svg>
       <svg
         v-else

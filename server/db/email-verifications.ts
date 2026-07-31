@@ -24,7 +24,7 @@ export async function createEmailVerification(input: {
       input.tokenHash,
       isoToDB(input.expiresAt),
       isoToDB(nowISO()),
-    ]
+    ],
   );
 }
 
@@ -33,7 +33,7 @@ export async function createEmailVerification(input: {
  * to. Returns null if the token is unknown, already consumed, or expired.
  */
 export async function consumeEmailVerification(
-  tokenHash: string
+  tokenHash: string,
 ): Promise<string | null> {
   const pool = getPool();
   const [rows] = await pool.query<EmailVerificationRow[]>(
@@ -42,13 +42,13 @@ export async function consumeEmailVerification(
         AND consumed_at IS NULL
         AND expires_at > UTC_TIMESTAMP(3)
       LIMIT 1`,
-    [tokenHash]
+    [tokenHash],
   );
   if (!rows.length) return null;
   const row = rows[0];
   await pool.query(
     "UPDATE auth_email_verifications SET consumed_at = ? WHERE id = ?",
-    [isoToDB(nowISO()), row.id]
+    [isoToDB(nowISO()), row.id],
   );
   return row.user_id;
 }

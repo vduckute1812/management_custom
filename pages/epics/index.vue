@@ -21,9 +21,7 @@ useSeoMeta({
   description: () => t("seo.epicsDescription"),
 });
 
-usePageShortcuts([
-  { key: "e", handler: () => openCreate() },
-]);
+usePageShortcuts([{ key: "e", handler: () => openCreate() }]);
 
 function openCreate() {
   editingEpic.value = null;
@@ -53,7 +51,7 @@ async function seedSamples() {
   } catch (err) {
     pushToast(
       err instanceof Error ? err.message : t("toasts.failedToLoadSamples"),
-      { tone: "danger" }
+      { tone: "danger" },
     );
   } finally {
     seeding.value = false;
@@ -67,7 +65,9 @@ async function seedSamples() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">{{ $t("epics.title") }}</h1>
+        <h1 class="text-xl font-semibold text-slate-900">
+          {{ $t("epics.title") }}
+        </h1>
         <p class="text-xs text-slate-500 mt-0.5">
           {{ $t("epics.subtitle") }}
         </p>
@@ -87,7 +87,10 @@ async function seedSamples() {
           <path d="M12 5v14M5 12h14" stroke-linecap="round" />
         </svg>
         {{ $t("epics.newEpic") }}
-        <kbd class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono">e</kbd>
+        <kbd
+          class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono"
+          >e</kbd
+        >
       </button>
     </header>
 
@@ -118,10 +121,7 @@ async function seedSamples() {
         />
       </div>
 
-      <div
-        v-else
-        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
-      >
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <EpicCard
           v-for="epic in epics"
           :key="epic.id"

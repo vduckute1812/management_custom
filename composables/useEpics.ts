@@ -1,4 +1,9 @@
-import { epicColorOf, type Epic, type EpicColorClasses, type Task } from "~/types/task";
+import {
+  epicColorOf,
+  type Epic,
+  type EpicColorClasses,
+  type Task,
+} from "~/types/task";
 
 interface EpicsApiResponse {
   epics: Epic[];
@@ -37,7 +42,7 @@ export const useEpics = () => {
       epics.value = [...epics.value, data.epic];
     } else {
       epics.value = epics.value.map((e) =>
-        e.id === data.epic.id ? data.epic : e
+        e.id === data.epic.id ? data.epic : e,
       );
     }
     return data.epic;

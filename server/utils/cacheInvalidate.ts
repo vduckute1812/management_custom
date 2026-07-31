@@ -1,8 +1,4 @@
-import {
-  CacheKeys,
-  cacheDel,
-  cacheDelPrefix,
-} from "~/server/utils/cache";
+import { CacheKeys, cacheDel, cacheDelPrefix } from "~/server/utils/cache";
 
 /** Bust category catalog caches after admin mutations. */
 export async function invalidateCategoryCaches(): Promise<void> {

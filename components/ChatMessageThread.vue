@@ -339,7 +339,7 @@ function isMessageHighlighted(messageId: string) {
 
 const pickerMessage = computed(() =>
   pickerForId.value
-    ? props.messages.find((m) => m.id === pickerForId.value) ?? null
+    ? (props.messages.find((m) => m.id === pickerForId.value) ?? null)
     : null,
 );
 
@@ -521,7 +521,6 @@ defineExpose({ scrollToBottom });
                 · {{ t("chat.readReceipt") }}
               </span>
             </div>
-
           </div>
 
           <!-- Existing reaction chips only (no always-on React button) -->

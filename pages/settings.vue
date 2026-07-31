@@ -96,8 +96,7 @@ const notifStatusLabel = computed(() => {
 
 const canRequestDesktop = computed(
   () =>
-    notifPermission.value === "default" &&
-    settings.value.notificationsEnabled
+    notifPermission.value === "default" && settings.value.notificationsEnabled,
 );
 
 const dataCountsLabel = computed(() => {
@@ -134,7 +133,7 @@ const SunIcon: Component = () =>
         d: "M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41",
         "stroke-linecap": "round",
       }),
-    ]
+    ],
   );
 const MoonIcon: Component = () =>
   h(
@@ -153,7 +152,7 @@ const MoonIcon: Component = () =>
         d: "M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z",
         "stroke-linejoin": "round",
       }),
-    ]
+    ],
   );
 const SystemIcon: Component = () =>
   h(
@@ -173,13 +172,25 @@ const SystemIcon: Component = () =>
         d: "M8 21h8M12 17v4",
         "stroke-linecap": "round",
       }),
-    ]
+    ],
   );
 
 const themeOptions = computed(() => [
-  { value: "system" as const, label: t("settings.appearance.system"), icon: SystemIcon },
-  { value: "light" as const, label: t("settings.appearance.light"), icon: SunIcon },
-  { value: "dark" as const, label: t("settings.appearance.dark"), icon: MoonIcon },
+  {
+    value: "system" as const,
+    label: t("settings.appearance.system"),
+    icon: SystemIcon,
+  },
+  {
+    value: "light" as const,
+    label: t("settings.appearance.light"),
+    icon: SunIcon,
+  },
+  {
+    value: "dark" as const,
+    label: t("settings.appearance.dark"),
+    icon: MoonIcon,
+  },
 ]);
 
 // Export data is loaded lazily — settings chrome must not wait on full
@@ -247,7 +258,9 @@ async function doExportICS() {
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">{{ $t("settings.title") }}</h1>
+        <h1 class="text-xl font-semibold text-slate-900">
+          {{ $t("settings.title") }}
+        </h1>
         <p class="text-xs text-slate-500 mt-0.5">
           {{ $t("settings.subtitle") }}
         </p>
@@ -261,7 +274,9 @@ async function doExportICS() {
           class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm"
         >
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.account.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.account.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{ $t("settings.account.subtitle") }}
             </p>
@@ -282,9 +297,7 @@ async function doExportICS() {
                   <span v-if="auth.user.value.title">{{
                     auth.user.value.title
                   }}</span>
-                  <span
-                    v-if="auth.user.value.title && auth.user.value.job"
-                  >
+                  <span v-if="auth.user.value.title && auth.user.value.job">
                     ·
                   </span>
                   <span v-if="auth.user.value.job">{{
@@ -336,7 +349,9 @@ async function doExportICS() {
         <!-- Appearance -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.appearance.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.appearance.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{ $t("settings.appearance.subtitle") }}
             </p>
@@ -366,7 +381,11 @@ async function doExportICS() {
               </button>
             </div>
             <p class="mt-3 text-[11px] text-slate-500">
-              {{ $t("settings.appearance.currentlyPainted", { theme: effectiveTheme }) }}
+              {{
+                $t("settings.appearance.currentlyPainted", {
+                  theme: effectiveTheme,
+                })
+              }}
               <template v-if="settings.theme === 'system'">
                 {{ $t("settings.appearance.followingOs") }}
               </template>
@@ -375,7 +394,9 @@ async function doExportICS() {
             <div class="mt-5 pt-4 border-t border-slate-100">
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-sm font-medium text-slate-800">{{ $t("settings.appearance.density") }}</p>
+                  <p class="text-sm font-medium text-slate-800">
+                    {{ $t("settings.appearance.density") }}
+                  </p>
                   <p class="text-[11px] text-slate-500">
                     {{ $t("settings.appearance.densityHint") }}
                   </p>
@@ -384,7 +405,7 @@ async function doExportICS() {
                   class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0"
                 >
                   <button
-                    v-for="opt in (['comfortable', 'compact'] as const)"
+                    v-for="opt in ['comfortable', 'compact'] as const"
                     :key="opt"
                     type="button"
                     class="px-3 py-1.5 text-xs font-medium transition"
@@ -410,7 +431,9 @@ async function doExportICS() {
         <!-- Calendar preferences -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.calendar.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.calendar.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{ $t("settings.calendar.subtitle") }}
             </p>
@@ -419,14 +442,18 @@ async function doExportICS() {
           <div class="px-5 py-4 space-y-5">
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm font-medium text-slate-800">{{ $t("settings.calendar.weekStartsOn") }}</p>
+                <p class="text-sm font-medium text-slate-800">
+                  {{ $t("settings.calendar.weekStartsOn") }}
+                </p>
                 <p class="text-[11px] text-slate-500">
                   {{ $t("settings.calendar.weekStartsHint") }}
                 </p>
               </div>
-              <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0">
+              <div
+                class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0"
+              >
                 <button
-                  v-for="opt in (['sun', 'mon'] as const)"
+                  v-for="opt in ['sun', 'mon'] as const"
                   :key="opt"
                   type="button"
                   class="px-3 py-1.5 text-xs font-medium transition"
@@ -448,14 +475,18 @@ async function doExportICS() {
 
             <div class="flex items-center justify-between gap-4">
               <div>
-                <p class="text-sm font-medium text-slate-800">{{ $t("settings.calendar.timeFormat") }}</p>
+                <p class="text-sm font-medium text-slate-800">
+                  {{ $t("settings.calendar.timeFormat") }}
+                </p>
                 <p class="text-[11px] text-slate-500">
                   {{ $t("settings.calendar.timeFormatHint") }}
                 </p>
               </div>
-              <div class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0">
+              <div
+                class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden shrink-0"
+              >
                 <button
-                  v-for="opt in (['24h', '12h'] as const)"
+                  v-for="opt in ['24h', '12h'] as const"
                   :key="opt"
                   type="button"
                   class="px-3 py-1.5 text-xs font-medium transition"
@@ -480,7 +511,9 @@ async function doExportICS() {
         <!-- Notifications -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.notifications.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.notifications.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{
                 $t("settings.notifications.subtitle", {
@@ -554,7 +587,11 @@ async function doExportICS() {
                   step="1"
                   :value="settings.notificationLeadMinutes"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  @input="updateLeadMinutes(Number(($event.target as HTMLInputElement).value))"
+                  @input="
+                    updateLeadMinutes(
+                      Number(($event.target as HTMLInputElement).value),
+                    )
+                  "
                 />
                 <p class="mt-1 text-[11px] text-slate-500">
                   {{ $t("settings.notifications.leadHint") }}
@@ -597,7 +634,9 @@ async function doExportICS() {
         <!-- Data ownership -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.data.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.data.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{ dataCountsLabel }}
             </p>
@@ -618,7 +657,11 @@ async function doExportICS() {
                   stroke-width="2"
                   class="w-3.5 h-3.5"
                 >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
+                  <path
+                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 {{ $t("settings.data.jsonSnapshot") }}
               </button>
@@ -635,7 +678,11 @@ async function doExportICS() {
                   stroke-width="2"
                   class="w-3.5 h-3.5"
                 >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
+                  <path
+                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 {{ $t("settings.data.tasksCsv") }}
               </button>
@@ -652,7 +699,11 @@ async function doExportICS() {
                   stroke-width="2"
                   class="w-3.5 h-3.5"
                 >
-                  <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke-linecap="round" stroke-linejoin="round" />
+                  <path
+                    d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
                 </svg>
                 {{ $t("settings.data.epicsCsv") }}
               </button>
@@ -679,7 +730,9 @@ async function doExportICS() {
             </div>
 
             <details class="text-xs">
-              <summary class="cursor-pointer text-slate-600 hover:text-slate-800 select-none">
+              <summary
+                class="cursor-pointer text-slate-600 hover:text-slate-800 select-none"
+              >
                 {{ $t("settings.data.formatReference") }}
               </summary>
               <ul class="mt-2 pl-5 list-disc text-slate-500 space-y-1">
@@ -695,17 +748,18 @@ async function doExportICS() {
         <!-- Print -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
           <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("settings.print.title") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("settings.print.title") }}
+            </h2>
             <p class="text-[11px] text-slate-500">
               {{ $t("settings.print.subtitle") }}
             </p>
           </header>
           <div class="px-5 py-4 text-xs text-slate-600 leading-relaxed">
             {{ $t("settings.print.body") }}
-            <NuxtLink
-              to="/tasks"
-              class="ml-1 text-brand-700 hover:underline"
-            >{{ $t("settings.print.dashboardLink") }}</NuxtLink>
+            <NuxtLink to="/tasks" class="ml-1 text-brand-700 hover:underline">{{
+              $t("settings.print.dashboardLink")
+            }}</NuxtLink>
           </div>
         </section>
       </div>

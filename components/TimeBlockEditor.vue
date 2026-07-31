@@ -68,7 +68,7 @@ watch(
     if (incomingIds !== persistableIds) {
       drafts.value = next.map(blockToDraft);
     }
-  }
+  },
 );
 
 function pushUp() {
@@ -167,7 +167,9 @@ const totals = computed(() => {
       >
         <div class="grid grid-cols-12 gap-2 items-end">
           <div class="col-span-4">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.date") }}
             </label>
             <input
@@ -178,7 +180,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-2">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.start") }}
             </label>
             <input
@@ -189,7 +193,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-2">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.end") }}
             </label>
             <input
@@ -200,7 +206,9 @@ const totals = computed(() => {
             />
           </div>
           <div class="col-span-3">
-            <label class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1">
+            <label
+              class="block text-[10px] uppercase tracking-wide font-medium text-slate-500 mb-1"
+            >
               {{ $t("tasks.timeBlocksEditor.spent") }}
             </label>
             <div class="flex items-center gap-1">
@@ -238,7 +246,11 @@ const totals = computed(() => {
                 stroke-width="2"
                 class="w-4 h-4"
               >
-                <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke-linecap="round" stroke-linejoin="round" />
+                <path
+                  d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
             </button>
           </div>

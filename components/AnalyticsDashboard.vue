@@ -37,19 +37,20 @@ interface Bucket {
 function estimatedShareForBucket(
   task: Task,
   bucketStart: dayjs.Dayjs,
-  unit: "day" | "week" | "month"
+  unit: "day" | "week" | "month",
 ): number {
   const blocks = task.timeBlocks ?? [];
   if (!task.estimatedHours || blocks.length === 0) return 0;
   const blocksInBucket = blocks.filter((b) =>
-    dayjs(b.start).isSame(bucketStart, unit)
+    dayjs(b.start).isSame(bucketStart, unit),
   );
   if (blocksInBucket.length === 0) return 0;
   return (task.estimatedHours * blocksInBucket.length) / blocks.length;
 }
 
 const buckets = computed<Bucket[]>(() => {
-  const periods = granularity.value === "day" ? 14 : granularity.value === "week" ? 8 : 6;
+  const periods =
+    granularity.value === "day" ? 14 : granularity.value === "week" ? 8 : 6;
   const unit = granularity.value;
   const today = dayjs().startOf(unit);
   const result: Bucket[] = [];
@@ -75,12 +76,15 @@ const buckets = computed<Bucket[]>(() => {
 
     // Tasks whose deadline lands in this bucket — used for completion stats.
     const dueInBucket = props.tasks.filter(
-      (task) => task.dueDate && dayjs(task.dueDate).isSame(start, unit)
+      (task) => task.dueDate && dayjs(task.dueDate).isSame(start, unit),
     );
-    const completed = dueInBucket.filter((task) => task.status === TaskStatus.Done).length;
+    const completed = dueInBucket.filter(
+      (task) => task.status === TaskStatus.Done,
+    ).length;
     const rolledOver = dueInBucket.filter(
       (task) =>
-        task.status !== TaskStatus.Done && dayjs(task.dueDate).isBefore(end, unit)
+        task.status !== TaskStatus.Done &&
+        dayjs(task.dueDate).isBefore(end, unit),
     ).length;
 
     result.push({
@@ -89,8 +93,8 @@ const buckets = computed<Bucket[]>(() => {
         unit === "day"
           ? start.format("MMM D")
           : unit === "week"
-          ? `W${start.isoWeek()} ${start.format("MMM D")}`
-          : start.format("MMM YYYY"),
+            ? `W${start.isoWeek()} ${start.format("MMM D")}`
+            : start.format("MMM YYYY"),
       estimated: Math.round(estimated * 10) / 10,
       spent: Math.round(spent * 10) / 10,
       completed,
@@ -102,23 +106,35 @@ const buckets = computed<Bucket[]>(() => {
 
 const totals = computed(() => {
   const taskList = props.tasks;
-  const completed = taskList.filter((task) => task.status === TaskStatus.Done).length;
-  const inProgress = taskList.filter((task) => task.status === TaskStatus.InProgress).length;
-  const todo = taskList.filter((task) => task.status === TaskStatus.Todo).length;
-  const totalEstimated = taskList.reduce((s, task) => s + (task.estimatedHours ?? 0), 0);
-  const totalSpent = taskList.reduce((s, task) => s + (task.spentHours ?? 0), 0);
+  const completed = taskList.filter(
+    (task) => task.status === TaskStatus.Done,
+  ).length;
+  const inProgress = taskList.filter(
+    (task) => task.status === TaskStatus.InProgress,
+  ).length;
+  const todo = taskList.filter(
+    (task) => task.status === TaskStatus.Todo,
+  ).length;
+  const totalEstimated = taskList.reduce(
+    (s, task) => s + (task.estimatedHours ?? 0),
+    0,
+  );
+  const totalSpent = taskList.reduce(
+    (s, task) => s + (task.spentHours ?? 0),
+    0,
+  );
   const overdue = taskList.filter(
     (task) =>
       task.status !== TaskStatus.Done &&
       task.dueDate &&
-      dayjs(task.dueDate).isBefore(dayjs(), "day")
+      dayjs(task.dueDate).isBefore(dayjs(), "day"),
   ).length;
 
   const completionRate =
     taskList.length === 0 ? 0 : Math.round((completed / taskList.length) * 100);
 
   const accuracyTasks = taskList.filter(
-    (task) => (task.estimatedHours ?? 0) > 0 && (task.spentHours ?? 0) > 0
+    (task) => (task.estimatedHours ?? 0) > 0 && (task.spentHours ?? 0) > 0,
   );
   const avgVariance =
     accuracyTasks.length === 0
@@ -126,7 +142,7 @@ const totals = computed(() => {
       : accuracyTasks.reduce(
           (sum, task) =>
             sum + ((task.spentHours ?? 0) - (task.estimatedHours ?? 0)),
-          0
+          0,
         ) / accuracyTasks.length;
 
   return {
@@ -170,7 +186,7 @@ async function ensureChartLib() {
     mod.LinearScale,
     mod.Tooltip,
     mod.Legend,
-    mod.Filler
+    mod.Filler,
   );
   ChartCtor = mod.Chart;
   return ChartCtor;
@@ -253,9 +269,13 @@ async function renderCharts() {
 onMounted(() => {
   renderCharts();
 });
-watch([buckets, () => props.granularity, locale], () => {
-  renderCharts();
-}, { deep: true });
+watch(
+  [buckets, () => props.granularity, locale],
+  () => {
+    renderCharts();
+  },
+  { deep: true },
+);
 onBeforeUnmount(() => {
   velocityInst?.destroy();
   completionInst?.destroy();
@@ -266,7 +286,9 @@ onBeforeUnmount(() => {
   <div class="space-y-5">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4 shadow-sm">
-        <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+        <p
+          class="text-[11px] font-medium text-slate-500 uppercase tracking-wide"
+        >
           {{ $t("analytics.completionRate") }}
         </p>
         <p class="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
@@ -283,7 +305,9 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4 shadow-sm">
-        <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+        <p
+          class="text-[11px] font-medium text-slate-500 uppercase tracking-wide"
+        >
           {{ $t("analytics.estimatedVsActual") }}
         </p>
         <p class="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
@@ -304,7 +328,9 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4 shadow-sm">
-        <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+        <p
+          class="text-[11px] font-medium text-slate-500 uppercase tracking-wide"
+        >
           {{ $t("analytics.inProgress") }}
         </p>
         <p class="mt-1 text-2xl font-semibold text-amber-600 tabular-nums">
@@ -316,7 +342,9 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="bg-white ring-1 ring-slate-200 rounded-xl p-4 shadow-sm">
-        <p class="text-[11px] font-medium text-slate-500 uppercase tracking-wide">
+        <p
+          class="text-[11px] font-medium text-slate-500 uppercase tracking-wide"
+        >
           {{ $t("analytics.overdue") }}
         </p>
         <p
@@ -338,7 +366,11 @@ onBeforeUnmount(() => {
             {{ $t("analytics.velocityTitle") }}
           </h3>
           <span class="text-[11px] text-slate-500 capitalize">
-            {{ $t("analytics.perGranularity", { granularity: $t(GRANULARITY_KEYS[granularity]) }) }}
+            {{
+              $t("analytics.perGranularity", {
+                granularity: $t(GRANULARITY_KEYS[granularity]),
+              })
+            }}
           </span>
         </header>
         <div class="h-64">
@@ -352,7 +384,11 @@ onBeforeUnmount(() => {
             {{ $t("analytics.completionVsRollover") }}
           </h3>
           <span class="text-[11px] text-slate-500 capitalize">
-            {{ $t("analytics.perGranularity", { granularity: $t(GRANULARITY_KEYS[granularity]) }) }}
+            {{
+              $t("analytics.perGranularity", {
+                granularity: $t(GRANULARITY_KEYS[granularity]),
+              })
+            }}
           </span>
         </header>
         <div class="h-64">
@@ -366,16 +402,15 @@ onBeforeUnmount(() => {
       class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm"
     >
       <header class="px-4 py-3 border-b border-slate-100">
-        <h3 class="text-sm font-semibold text-slate-800">{{ $t("analytics.epicVelocity") }}</h3>
+        <h3 class="text-sm font-semibold text-slate-800">
+          {{ $t("analytics.epicVelocity") }}
+        </h3>
         <p class="text-[11px] text-slate-500">
           {{ $t("analytics.epicVelocityHint") }}
         </p>
       </header>
       <ul class="divide-y divide-slate-100">
-        <li
-          v-for="row in epicBreakdown"
-          :key="row.epic.id"
-        >
+        <li v-for="row in epicBreakdown" :key="row.epic.id">
           <NuxtLink
             :to="`/epics/${row.epic.id}`"
             class="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-300"
@@ -402,7 +437,9 @@ onBeforeUnmount(() => {
             <div class="text-right tabular-nums">
               <p class="text-sm font-semibold text-slate-900">
                 {{ row.epic.spentHours }}h /
-                <span class="text-slate-400">{{ row.epic.estimatedHours }}h</span>
+                <span class="text-slate-400"
+                  >{{ row.epic.estimatedHours }}h</span
+                >
               </p>
               <p
                 class="text-[11px] font-medium"

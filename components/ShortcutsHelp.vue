@@ -108,7 +108,9 @@ function onBackdrop(e: MouseEvent) {
             </button>
           </header>
 
-          <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto scrollbar-thin">
+          <div
+            class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[70vh] overflow-y-auto scrollbar-thin"
+          >
             <section v-for="section in sections" :key="section.title">
               <h3
                 class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2"

@@ -11,7 +11,7 @@ export default defineNitroPlugin(async () => {
   try {
     await verifyMigrationsApplied();
     console.info(
-      `[db] schema up to date on database '${process.env.DB_NAME || "rc"}'`
+      `[db] schema up to date on database '${process.env.DB_NAME || "rc"}'`,
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

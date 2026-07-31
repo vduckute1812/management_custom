@@ -50,7 +50,7 @@ export const useTasks = () => {
       tasks.value = [...tasks.value, data.task];
     } else {
       tasks.value = tasks.value.map((t) =>
-        t.id === data.task.id ? data.task : t
+        t.id === data.task.id ? data.task : t,
       );
     }
     return data.task;
@@ -59,7 +59,7 @@ export const useTasks = () => {
   async function deleteTask(id: string): Promise<Task | null> {
     const data = await apiFetch<{ ok: boolean; removed: Task }>(
       `/api/tasks/${id}`,
-      { method: "DELETE" }
+      { method: "DELETE" },
     );
     tasks.value = tasks.value.filter((t) => t.id !== id);
     return data.removed ?? null;

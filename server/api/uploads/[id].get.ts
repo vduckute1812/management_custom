@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     setHeader(
       event,
       "Content-Disposition",
-      `inline; filename="${row.file_name.replace(/"/g, "")}"`
+      `inline; filename="${row.file_name.replace(/"/g, "")}"`,
     );
     setHeader(event, "Cache-Control", "private, max-age=300");
     return data;

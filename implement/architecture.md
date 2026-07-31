@@ -6,38 +6,38 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Tech Stack
 
-| Layer      | Technology                     | Purpose                                                                                             |
-| ---------- | ------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                         |
-| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                    |
-| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)             |
-| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                      |
-| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                  |
-| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                              |
-| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                              |
-| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                  |
-| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md) |
+| Layer      | Technology                     | Purpose                                                                                                    |
+| ---------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                |
+| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                           |
+| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)                    |
+| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                             |
+| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                         |
+| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                                     |
+| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                                     |
+| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                         |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md)   |
 | Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
-| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                              |
-| Charts     | Chart.js                       | Velocity and trend visualizations                                                                   |
-| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` |
-| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                        |
-| Tests      | Vitest                         | `npm test` — schemas, security, rate-limit, chat inbox/thread, SEO search, markdown sanitize        |
+| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                                     |
+| Charts     | Chart.js                       | Velocity and trend visualizations                                                                          |
+| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`        |
+| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                               |
+| Tests      | Vitest                         | `npm test` — schemas, security, rate-limit, chat inbox/thread, SEO search, markdown sanitize               |
 
 ## Project facts
 
-| Property     | Value                                                                  |
-| ------------ | ---------------------------------------------------------------------- |
-| Project Path | `~/Projects/management_custom`                                         |
-| Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                 |
-| Runtime      | Node.js ≥ 26.5 + npm 12 via Corepack (see `.nvmrc` / `packageManager`) |
-| Framework    | Nuxt 4.5 (Vue 3), **hybrid SSR** for public routes                     |
-| TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)   |
-| Styling      | TailwindCSS v4                                                         |
-| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)    |
+| Property     | Value                                                                       |
+| ------------ | --------------------------------------------------------------------------- |
+| Project Path | `~/Projects/management_custom`                                              |
+| Public site  | `https://dntechx.com` (`site.url` in `nuxt.config.ts`)                      |
+| Runtime      | Node.js ≥ 26.5 + npm 12 via Corepack (see `.nvmrc` / `packageManager`)      |
+| Framework    | Nuxt 4.5 (Vue 3), **hybrid SSR** for public routes                          |
+| TypeScript   | **5.9.x** (pinned for `vue-tsc` / Volar; do not bump to native TS 7)        |
+| Styling      | TailwindCSS v4                                                              |
+| Storage      | MySQL 8 — database `rc` on `localhost:3306` (override via env vars)         |
 | Object store | Cloudflare R2 when `R2_*` set (feed/story attachments, chat media, avatars) |
-| Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)            |
-| Telemetry    | None                                                                   |
+| Auth cookies | HttpOnly `mgmt_rt` (refresh) + `mgmt_at` (access for media)                 |
+| Telemetry    | None                                                                        |
 
 ---
 

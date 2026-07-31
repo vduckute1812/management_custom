@@ -66,9 +66,13 @@ const isOverdue = computed(() => {
         </span>
       </header>
 
-      <div class="flex items-center gap-3 text-[11px] text-slate-500 tabular-nums">
+      <div
+        class="flex items-center gap-3 text-[11px] text-slate-500 tabular-nums"
+      >
         <span>
-          <strong class="font-semibold text-slate-700">{{ epic.taskCount ?? 0 }}</strong>
+          <strong class="font-semibold text-slate-700">{{
+            epic.taskCount ?? 0
+          }}</strong>
           {{ $t("epics.card.tasks") }}
         </span>
         <span>
@@ -96,10 +100,14 @@ const isOverdue = computed(() => {
           v-if="epic.dueDate"
           :class="isOverdue ? 'text-rose-600 font-medium' : 'text-slate-500'"
         >
-          {{ $t("epics.due", { date: dayjs(epic.dueDate).format("MMM D, YYYY") }) }}
+          {{
+            $t("epics.due", { date: dayjs(epic.dueDate).format("MMM D, YYYY") })
+          }}
           <span v-if="isOverdue">{{ $t("epics.card.overdue") }}</span>
         </span>
-        <span v-else class="text-slate-400 italic">{{ $t("epics.card.noDeadline") }}</span>
+        <span v-else class="text-slate-400 italic">{{
+          $t("epics.card.noDeadline")
+        }}</span>
 
         <button
           type="button"

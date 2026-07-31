@@ -20,7 +20,10 @@ type InboxSink = (payload: ChatInboxPayload) => void | Promise<void>;
 
 const subscribers = new Map<string, Set<InboxSink>>();
 
-export function subscribeChatInbox(userId: string, sink: InboxSink): () => void {
+export function subscribeChatInbox(
+  userId: string,
+  sink: InboxSink,
+): () => void {
   let set = subscribers.get(userId);
   if (!set) {
     set = new Set();
@@ -37,7 +40,10 @@ export function chatInboxSubscriberCount(userId: string): number {
   return subscribers.get(userId)?.size ?? 0;
 }
 
-export function publishChatInbox(userId: string, payload: ChatInboxPayload): void {
+export function publishChatInbox(
+  userId: string,
+  payload: ChatInboxPayload,
+): void {
   const set = subscribers.get(userId);
   if (!set?.size) return;
   for (const sink of set) {
@@ -61,10 +67,7 @@ export async function refreshAndPushInbox(userId: string): Promise<void> {
     const payload = await getUnreadInbox(userId);
     publishChatInbox(userId, payload);
   } catch (err) {
-    console.warn(
-      "[chat-inbox] push failed:",
-      (err as Error)?.message || err,
-    );
+    console.warn("[chat-inbox] push failed:", (err as Error)?.message || err);
   }
 }
 

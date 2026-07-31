@@ -12,12 +12,8 @@
  *   should still surface the 14:00 standup notice if it hasn't fired yet.
  */
 export default defineNuxtPlugin(() => {
-  const {
-    hydratePermission,
-    scheduleAll,
-    clearAll,
-    resetFired,
-  } = useNotifications();
+  const { hydratePermission, scheduleAll, clearAll, resetFired } =
+    useNotifications();
   const { settings } = useSettings();
   const { tasks } = useTasks();
 
@@ -42,22 +38,27 @@ export default defineNuxtPlugin(() => {
       () => settings.value.notificationsEnabled,
       () => settings.value.notificationLeadMinutes,
       () =>
-        tasks.value.map(
-          (t) =>
-            `${t.id}:${(t.timeBlocks ?? [])
-              .map((b) => `${b.id}@${b.start}`)
-              .join(",")}:${t.recurrence?.rule ?? ""}:${
-              t.recurrence?.interval ?? ""
-            }:${t.recurrence?.until ?? ""}`
-        ).join("|"),
+        tasks.value
+          .map(
+            (t) =>
+              `${t.id}:${(t.timeBlocks ?? [])
+                .map((b) => `${b.id}@${b.start}`)
+                .join(",")}:${t.recurrence?.rule ?? ""}:${
+                t.recurrence?.interval ?? ""
+              }:${t.recurrence?.until ?? ""}`,
+          )
+          .join("|"),
     ],
     reschedule,
-    { immediate: true }
+    { immediate: true },
   );
 
   // Re-run scheduling every 15 minutes to catch blocks that crossed into the
   // 24-hour horizon since the last evaluation.
-  rolling = window.setInterval(() => reschedule(), 15 * 60 * 1000) as unknown as number;
+  rolling = window.setInterval(
+    () => reschedule(),
+    15 * 60 * 1000,
+  ) as unknown as number;
 
   // When the tab comes back from hidden, decide whether to clear the
   // "already fired" memo: gone for > 5 min → user expects fresh notifications.

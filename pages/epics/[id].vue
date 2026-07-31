@@ -37,7 +37,8 @@ const totals = computed(() => {
   return {
     estimated: e.estimatedHours ?? 0,
     spent: e.spentHours ?? 0,
-    variance: Math.round(((e.spentHours ?? 0) - (e.estimatedHours ?? 0)) * 10) / 10,
+    variance:
+      Math.round(((e.spentHours ?? 0) - (e.estimatedHours ?? 0)) * 10) / 10,
     progress: e.progress ?? 0,
     taskCount: e.taskCount ?? children.value.length,
   };
@@ -112,7 +113,10 @@ async function onEpicDeleted() {
         <h1 v-else class="text-xl font-semibold text-slate-900">
           {{ $t("epics.notFound") }}
         </h1>
-        <p v-if="epic?.description" class="text-xs text-slate-500 mt-1 max-w-2xl">
+        <p
+          v-if="epic?.description"
+          class="text-xs text-slate-500 mt-1 max-w-2xl"
+        >
           {{ epic.description }}
         </p>
       </div>
@@ -154,7 +158,9 @@ async function onEpicDeleted() {
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
               {{ $t("epics.tasks") }}
             </p>
-            <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
+            <p
+              class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5"
+            >
               {{ totals.taskCount }}
             </p>
           </div>
@@ -162,7 +168,9 @@ async function onEpicDeleted() {
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
               {{ $t("epics.progress") }}
             </p>
-            <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
+            <p
+              class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5"
+            >
               {{ totals.progress }}%
             </p>
             <div class="mt-1 h-1 rounded-full bg-slate-100 overflow-hidden">
@@ -177,7 +185,9 @@ async function onEpicDeleted() {
             <p class="text-[11px] uppercase tracking-wide text-slate-500">
               {{ $t("epics.hours") }}
             </p>
-            <p class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5">
+            <p
+              class="text-2xl font-semibold text-slate-900 tabular-nums mt-0.5"
+            >
               {{ totals.spent }}h /
               <span class="text-slate-400">{{ totals.estimated }}h</span>
             </p>
@@ -188,22 +198,29 @@ async function onEpicDeleted() {
             </p>
             <p
               class="text-2xl font-semibold tabular-nums mt-0.5"
-              :class="totals.variance > 0 ? 'text-rose-600' : 'text-emerald-600'"
+              :class="
+                totals.variance > 0 ? 'text-rose-600' : 'text-emerald-600'
+              "
             >
               {{ totals.variance > 0 ? "+" : "" }}{{ totals.variance }}h
             </p>
-            <p
-              v-if="epic.dueDate"
-              class="text-[11px] text-slate-500 mt-0.5"
-            >
-              {{ $t("epics.due", { date: dayjs(epic.dueDate).format("MMM D, YYYY") }) }}
+            <p v-if="epic.dueDate" class="text-[11px] text-slate-500 mt-0.5">
+              {{
+                $t("epics.due", {
+                  date: dayjs(epic.dueDate).format("MMM D, YYYY"),
+                })
+              }}
             </p>
           </div>
         </div>
 
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
-          <header class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-semibold text-slate-800">{{ $t("epics.childTasks") }}</h2>
+          <header
+            class="px-4 py-3 border-b border-slate-100 flex items-center justify-between"
+          >
+            <h2 class="text-sm font-semibold text-slate-800">
+              {{ $t("epics.childTasks") }}
+            </h2>
             <span class="text-[11px] text-slate-500 tabular-nums">
               {{ $t("epics.totalCount", { count: children.length }) }}
             </span>
@@ -228,23 +245,34 @@ async function onEpicDeleted() {
                 <p class="text-sm font-medium text-slate-800 truncate">
                   {{ task.title }}
                 </p>
-                <p class="text-[11px] text-slate-500 mt-0.5 tabular-nums flex flex-wrap gap-2 items-center">
+                <p
+                  class="text-[11px] text-slate-500 mt-0.5 tabular-nums flex flex-wrap gap-2 items-center"
+                >
                   <StatusPill :task="task" @updated="fetchEpics" />
                   <span
-                    v-if="task.priority !== undefined && task.priority !== TaskPriority.Normal"
+                    v-if="
+                      task.priority !== undefined &&
+                      task.priority !== TaskPriority.Normal
+                    "
                     class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
                     :class="PRIORITY_BADGE[task.priority]"
                   >
                     {{ $t(PRIORITY_I18N_KEYS[task.priority]) }}
                   </span>
                   <span v-if="task.dueDate">
-                    {{ $t("epics.due", { date: dayjs(task.dueDate).format("MMM D") }) }}
+                    {{
+                      $t("epics.due", {
+                        date: dayjs(task.dueDate).format("MMM D"),
+                      })
+                    }}
                   </span>
                   <span>
                     {{ task.spentHours ?? 0 }}h /
                     {{ task.estimatedHours ?? 0 }}h
                   </span>
-                  <span>{{ $t("epics.blocks", { count: task.timeBlocks?.length ?? 0 }) }}</span>
+                  <span>{{
+                    $t("epics.blocks", { count: task.timeBlocks?.length ?? 0 })
+                  }}</span>
                 </p>
               </div>
               <div class="w-24 shrink-0">
@@ -255,7 +283,9 @@ async function onEpicDeleted() {
                     :style="{ width: (task.progress ?? 0) + '%' }"
                   />
                 </div>
-                <p class="text-[10px] text-slate-500 text-right tabular-nums mt-0.5">
+                <p
+                  class="text-[10px] text-slate-500 text-right tabular-nums mt-0.5"
+                >
                   {{ task.progress ?? 0 }}%
                 </p>
               </div>

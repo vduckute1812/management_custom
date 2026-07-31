@@ -195,11 +195,11 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 ## Roles & Permissions
 
-| Role         | Sees                                                              | Can do                                                                                                                                                                             |
-| ------------ | ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Role         | Sees                                                                       | Can do                                                                                                                                                                             |
+| ------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `normal`     | Own epics/tasks/timer; Feed per visibility rules; Chat with other members. | Full Time Management for own data; create/react/comment on the Feed; DM other users.                                                                                               |
-| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.     | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
-| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account. | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
+| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.              | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
+| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account.          | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
 
 Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). Chat is private 1:1 between signed-in members. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
 
@@ -486,16 +486,16 @@ A few choices that look opinionated and aren't accidents.
 
 The engineering side of the project lives in [`implement/`](./implement/README.md):
 
-| Topic                                            | Document                                                         |
-| ------------------------------------------------ | ---------------------------------------------------------------- |
+| Topic                                              | Document                                                         |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
 | Install, env vars, scripts, type-check, tests, SEO | [`implement/getting-started.md`](./implement/getting-started.md) |
 | Stack, topology, auth cookies, validation, layout  | [`implement/architecture.md`](./implement/architecture.md)       |
-| Database schema (DDL), field references              | [`implement/database.md`](./implement/database.md)               |
+| Database schema (DDL), field references            | [`implement/database.md`](./implement/database.md)               |
 | REST endpoints + Zod validation patterns           | [`implement/api.md`](./implement/api.md)                         |
-| HttpOnly cookies, JWT/refresh, client session        | [`implement/auth.md`](./implement/auth.md)                       |
+| HttpOnly cookies, JWT/refresh, client session      | [`implement/auth.md`](./implement/auth.md)                       |
 | UI languages, plural `t()`, SEO titles             | [`implement/i18n.md`](./implement/i18n.md)                       |
-| Original Authentication & RBAC feature spec          | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
-| Direct chat feature spec                             | [`implement/chat-spec.md`](./implement/chat-spec.md)             |
+| Original Authentication & RBAC feature spec        | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
+| Direct chat feature spec                           | [`implement/chat-spec.md`](./implement/chat-spec.md)             |
 | Phase-by-phase engineering progress                | [`implement/roadmap.md`](./implement/roadmap.md)                 |
 | Cache & durable job queue                          | [`implement/cache-queue.md`](./implement/cache-queue.md)         |
 | Raspberry Pi CI/CD deploy + rollback               | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |

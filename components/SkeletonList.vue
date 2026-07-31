@@ -6,7 +6,7 @@ const props = withDefaults(
     /** Variant. `row` = single-line list, `card` = card grid item. */
     variant?: "row" | "card" | "calendarDay";
   }>(),
-  { rows: 4, variant: "row" }
+  { rows: 4, variant: "row" },
 );
 </script>
 

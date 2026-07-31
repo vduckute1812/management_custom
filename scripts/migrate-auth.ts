@@ -40,7 +40,7 @@ async function main() {
 
   if (!password || password.length < 8) {
     throw new Error(
-      "ADMIN_INITIAL_PASSWORD must be set to a value of at least 8 characters before seeding the initial admin."
+      "ADMIN_INITIAL_PASSWORD must be set to a value of at least 8 characters before seeding the initial admin.",
     );
   }
 
@@ -51,12 +51,12 @@ async function main() {
   if (existing) {
     if (existing.role === UserRole.Superadmin) {
       console.log(
-        `[migrate:auth] superadmin ${existing.email} already exists (id=${existing.id}); nothing to do`
+        `[migrate:auth] superadmin ${existing.email} already exists (id=${existing.id}); nothing to do`,
       );
     } else {
       await updateUserRole(existing.id, UserRole.Superadmin);
       console.log(
-        `[migrate:auth] promoted ${existing.email} (id=${existing.id}) role=${existing.role} -> superadmin (${UserRole.Superadmin})`
+        `[migrate:auth] promoted ${existing.email} (id=${existing.id}) role=${existing.role} -> superadmin (${UserRole.Superadmin})`,
       );
     }
   } else {
@@ -69,7 +69,7 @@ async function main() {
       emailVerified: true,
     });
     console.log(
-      `[migrate:auth] seeded superadmin ${admin.email} (id=${admin.id}); user count ${before} -> ${before + 1}`
+      `[migrate:auth] seeded superadmin ${admin.email} (id=${admin.id}); user count ${before} -> ${before + 1}`,
     );
   }
 

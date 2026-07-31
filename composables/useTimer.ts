@@ -81,7 +81,7 @@ export const useTimer = () => {
     const { tasks } = useTasks();
     if (data.task) {
       tasks.value = tasks.value.map((t) =>
-        t.id === data.task.id ? data.task : t
+        t.id === data.task.id ? data.task : t,
       );
     }
     return data;
@@ -95,7 +95,7 @@ export const useTimer = () => {
     const { tasks } = useTasks();
     if (data.task) {
       tasks.value = tasks.value.map((t) =>
-        t.id === data.task!.id ? data.task! : t
+        t.id === data.task!.id ? data.task! : t,
       );
     }
     return data;

@@ -122,7 +122,8 @@ export const RecurrenceRule = {
   Weekly: 1,
   Monthly: 2,
 } as const;
-export type RecurrenceRule = (typeof RecurrenceRule)[keyof typeof RecurrenceRule];
+export type RecurrenceRule =
+  (typeof RecurrenceRule)[keyof typeof RecurrenceRule];
 
 export const RECURRENCE_RULES: readonly RecurrenceRule[] = [
   RecurrenceRule.Daily,
@@ -197,13 +198,7 @@ export function isAdminRole(role: UserRole): boolean {
 // -------------------------------------------------------------------------
 
 export type EpicColor =
-  | "brand"
-  | "sky"
-  | "emerald"
-  | "amber"
-  | "rose"
-  | "violet"
-  | "slate";
+  "brand" | "sky" | "emerald" | "amber" | "rose" | "violet" | "slate";
 
 export const EPIC_COLORS: EpicColor[] = [
   "brand",
