@@ -8,6 +8,7 @@
  *
  * Browser-only — callers must not import this from Nitro handlers.
  */
+import { UploadKind } from "~/types/post";
 import { KB, MB, resolveUploadRule } from "~/utils/uploadPolicy";
 
 /** Longest edge after compression. Enough for feed / story display. */
@@ -192,7 +193,7 @@ export function willAttemptImageCompress(file: {
   if (typeof window === "undefined") return false;
   if (typeof createImageBitmap !== "function") return false;
   const rule = resolveUploadRule(file.name, file.type);
-  if (!rule || rule.kind !== "image") return false;
+  if (!rule || rule.kind !== UploadKind.Image) return false;
   if (!COMPRESSIBLE_MIME.has(rule.mime)) return false;
   if (file.size <= 0 || file.size > IMAGE_COMPRESS_INPUT_MAX_BYTES)
     return false;

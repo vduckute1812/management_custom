@@ -4,18 +4,19 @@ import { generateId, nowISO } from "./ids";
 import { rowToUser, type UserRow } from "./mappers";
 import { getPool } from "./pool";
 import { UserRole, type UserRecord } from "./types";
+import { UploadKind } from "../../types/post";
 
 // -------------------------------------------------------------------------
 // Reads
 // -------------------------------------------------------------------------
 
 export async function getUserByEmail(
-  email: string
+  email: string,
 ): Promise<UserRecord | null> {
   const pool = getPool();
   const [rows] = await pool.query<UserRow[]>(
     "SELECT * FROM users WHERE email = ? LIMIT 1",
-    [email.toLowerCase()]
+    [email.toLowerCase()],
   );
   return rows.length ? rowToUser(rows[0]) : null;
 }
@@ -24,7 +25,7 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
   const pool = getPool();
   const [rows] = await pool.query<UserRow[]>(
     "SELECT * FROM users WHERE id = ? LIMIT 1",
-    [id]
+    [id],
   );
   return rows.length ? rowToUser(rows[0]) : null;
 }
@@ -32,7 +33,7 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
 export async function listUsers(): Promise<UserRecord[]> {
   const pool = getPool();
   const [rows] = await pool.query<UserRow[]>(
-    "SELECT * FROM users ORDER BY created_at ASC"
+    "SELECT * FROM users ORDER BY created_at ASC",
   );
   return rows.map(rowToUser);
 }
@@ -40,7 +41,7 @@ export async function listUsers(): Promise<UserRecord[]> {
 export async function countUsers(): Promise<number> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    "SELECT COUNT(*) AS n FROM users"
+    "SELECT COUNT(*) AS n FROM users",
   );
   return Number(rows[0]?.n ?? 0);
 }
@@ -76,7 +77,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
       verified,
       isoToDB(now),
       isoToDB(now),
-    ]
+    ],
   );
   const created = await getUserById(id);
   if (!created) {
@@ -116,7 +117,7 @@ export async function createUserWithEmailVerification(input: {
         verified,
         isoToDB(now),
         isoToDB(now),
-      ]
+      ],
     );
     await conn.query(
       `INSERT INTO auth_email_verifications
@@ -128,7 +129,7 @@ export async function createUserWithEmailVerification(input: {
         input.tokenHash,
         isoToDB(input.expiresAt),
         isoToDB(now),
-      ]
+      ],
     );
     await conn.commit();
   } catch (err) {
@@ -148,34 +149,35 @@ export async function createUserWithEmailVerification(input: {
 
 export async function updateUserRole(
   id: string,
-  role: UserRole
+  role: UserRole,
 ): Promise<void> {
   const pool = getPool();
-  await pool.query(
-    "UPDATE users SET role = ?, updated_at = ? WHERE id = ?",
-    [role, isoToDB(nowISO()), id]
-  );
+  await pool.query("UPDATE users SET role = ?, updated_at = ? WHERE id = ?", [
+    role,
+    isoToDB(nowISO()),
+    id,
+  ]);
 }
 
 export async function setEmailVerified(
   id: string,
-  verified: boolean
+  verified: boolean,
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
     "UPDATE users SET email_verified = ?, updated_at = ? WHERE id = ?",
-    [verified ? 1 : 0, isoToDB(nowISO()), id]
+    [verified ? 1 : 0, isoToDB(nowISO()), id],
   );
 }
 
 export async function updateUserPassword(
   id: string,
-  passwordHash: string
+  passwordHash: string,
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
     "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
-    [passwordHash, isoToDB(nowISO()), id]
+    [passwordHash, isoToDB(nowISO()), id],
   );
 }
 
@@ -191,7 +193,7 @@ export interface UpdateUserProfileInput {
 
 function normalizeOptionalText(
   value: string | null | undefined,
-  max: number
+  max: number,
 ): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null) return null;
@@ -211,12 +213,12 @@ function normalizeOptionalText(
  */
 export async function updateUserProfile(
   id: string,
-  input: UpdateUserProfileInput
+  input: UpdateUserProfileInput,
 ): Promise<{ user: UserRecord; previousAvatarUploadId: string | null }> {
   const pool = getPool();
   const [existingRows] = await pool.query<UserRow[]>(
     "SELECT * FROM users WHERE id = ? LIMIT 1",
-    [id]
+    [id],
   );
   if (!existingRows.length) {
     throw Object.assign(new Error("User not found"), { statusCode: 404 });
@@ -242,7 +244,7 @@ export async function updateUserProfile(
           statusCode: 400,
         });
       }
-      if (upload.kind !== "image") {
+      if (upload.kind !== UploadKind.Image) {
         throw Object.assign(new Error("Avatar must be an image"), {
           statusCode: 400,
         });
@@ -284,10 +286,7 @@ export async function updateUserProfile(
   params.push(isoToDB(nowISO()));
   params.push(id);
 
-  await pool.query(
-    `UPDATE users SET ${sets.join(", ")} WHERE id = ?`,
-    params
-  );
+  await pool.query(`UPDATE users SET ${sets.join(", ")} WHERE id = ?`, params);
 
   const updated = await getUserById(id);
   if (!updated) {
@@ -295,8 +294,7 @@ export async function updateUserProfile(
   }
 
   const avatarChanged =
-    avatarUploadId !== undefined &&
-    avatarUploadId !== previousAvatarUploadId;
+    avatarUploadId !== undefined && avatarUploadId !== previousAvatarUploadId;
 
   return {
     user: updated,
@@ -312,10 +310,10 @@ export async function updateUserProfile(
  */
 export async function recordUserLogin(id: string): Promise<void> {
   const pool = getPool();
-  await pool.query(
-    "UPDATE users SET last_login_at = ? WHERE id = ?",
-    [isoToDB(nowISO()), id]
-  );
+  await pool.query("UPDATE users SET last_login_at = ? WHERE id = ?", [
+    isoToDB(nowISO()),
+    id,
+  ]);
 }
 
 /**
@@ -324,16 +322,12 @@ export async function recordUserLogin(id: string): Promise<void> {
  * (CASCADE cannot touch object storage).
  */
 export async function deleteUser(id: string): Promise<boolean> {
-  const { listStorageKeysForUser, purgeR2StorageKeys } = await import(
-    "./uploads"
-  );
+  const { listStorageKeysForUser, purgeR2StorageKeys } =
+    await import("./uploads");
   const keys = await listStorageKeysForUser(id);
 
   const pool = getPool();
-  const [result] = await pool.query(
-    "DELETE FROM users WHERE id = ?",
-    [id]
-  );
+  const [result] = await pool.query("DELETE FROM users WHERE id = ?", [id]);
   const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
   if (ok && keys.length) {
     await purgeR2StorageKeys(keys);

@@ -8,7 +8,10 @@ import {
 import {
   POST_FONT_FAMILIES,
   POST_FORMATS,
+  POST_VISIBILITIES,
   POST_TEXT_COLORS,
+  PostFormat,
+  PostVisibility,
 } from "~/types/post";
 import { REACTION_TYPES, type ReactionType } from "~/types/reaction";
 import {
@@ -138,6 +141,23 @@ export const postReactionBodySchema = z.object({
 
 export const chatMessageReactionBodySchema = postReactionBodySchema;
 
+const postFormatSchema = z
+  .number()
+  .int()
+  .refine(
+    (v): v is PostFormat => (POST_FORMATS as readonly number[]).includes(v),
+    { message: "Invalid format" },
+  );
+
+const postVisibilitySchema = z
+  .number()
+  .int()
+  .refine(
+    (v): v is PostVisibility =>
+      (POST_VISIBILITIES as readonly number[]).includes(v),
+    { message: "Invalid visibility" },
+  );
+
 export const taskUpsertBodySchema = z.object({
   id: z.string().min(1).optional(),
   epicId: z.string().min(1).nullable().optional(),
@@ -194,14 +214,8 @@ export const postCreateBodySchema = z
   .object({
     body: z.string().trim().min(1, "Post body is required"),
     title: z.string().trim().max(POST_TITLE_MAX).optional().nullable(),
-    format: z
-      .enum(POST_FORMATS as unknown as [string, ...string[]])
-      .optional()
-      .default("update"),
-    visibility: z
-      .enum(["public", "private", "shared"])
-      .optional()
-      .default("public"),
+    format: postFormatSchema.optional().default(PostFormat.Update),
+    visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
     audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
     attachmentIds: z
       .array(z.string().min(1))
@@ -225,7 +239,7 @@ export const postCreateBodySchema = z
   })
   .superRefine((data, ctx) => {
     const max =
-      data.format === "manuscript"
+      data.format === PostFormat.Manuscript
         ? POST_BODY_MAX_MANUSCRIPT
         : POST_BODY_MAX_UPDATE;
     if (data.body.length > max) {
@@ -238,7 +252,7 @@ export const postCreateBodySchema = z
         message: `Post body must be at most ${max} characters`,
       });
     }
-    if (data.format === "manuscript") {
+    if (data.format === PostFormat.Manuscript) {
       const title = (data.title ?? "").trim();
       if (!title) {
         ctx.addIssue({
@@ -254,10 +268,7 @@ export const postCreateBodySchema = z
 export const postPatchBodySchema = z.object({
   body: z.string().trim().min(1, "Post body is required"),
   title: z.string().trim().max(POST_TITLE_MAX).optional().nullable(),
-  visibility: z
-    .enum(["public", "private", "shared"])
-    .optional()
-    .default("public"),
+  visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
   attachmentIds: z
     .array(z.string().min(1))
@@ -277,10 +288,7 @@ export const postPatchBodySchema = z.object({
 
 export const postShareBodySchema = z.object({
   body: z.string().trim().max(5_000).optional().default(""),
-  visibility: z
-    .enum(["public", "private", "shared"])
-    .optional()
-    .default("public"),
+  visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
 });
 

@@ -3,7 +3,10 @@ import type { Post, PostReactionType } from "~/types/post";
 import {
   POST_REACTION_TYPES,
   REACTION_EMOJI,
+  PostFormat,
+  PostVisibility,
   ReactionType,
+  UploadKind,
 } from "~/types/post";
 import { REACTION_I18N_KEY } from "~/types/reaction";
 import { categoryDisplayName } from "~/utils/categoryLabel";
@@ -42,7 +45,7 @@ const localeSwitching = ref(false);
 
 const translationOptions = computed(() => {
   const p = view.value;
-  if (p.format !== "manuscript") return [];
+  if (p.format !== PostFormat.Manuscript) return [];
   const map = new Map<
     string,
     { id: string; locale: string; title: string | null }
@@ -84,7 +87,7 @@ function localeChipLabel(code: string) {
 /** Gallery tiles: skip images already shown inline in the markdown body. */
 const galleryAttachments = computed(() =>
   (view.value.attachments ?? []).filter((att) => {
-    if (att.kind !== "image") return true;
+    if (att.kind !== UploadKind.Image) return true;
     return !bodyReferencesUpload(view.value.body || "", att.uploadId, att.url);
   }),
 );
@@ -128,7 +131,9 @@ const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
 const BODY_COLLAPSE_CHARS = 900;
 const bodyExpanded = ref(false);
 
-const isManuscript = computed(() => view.value.format === "manuscript");
+const isManuscript = computed(
+  () => view.value.format === PostFormat.Manuscript,
+);
 
 const bodyNeedsCollapse = computed(() => {
   if (isManuscript.value) return true;
@@ -188,8 +193,12 @@ function formatWhen(iso: string) {
 }
 
 const visibilityBadge = computed(() => {
-  if (props.post.visibility === "private") return t("feed.post.onlyYou");
-  if (props.post.visibility === "shared") return t("feed.post.shared");
+  if (props.post.visibility === PostVisibility.Private) {
+    return t("feed.post.onlyYou");
+  }
+  if (props.post.visibility === PostVisibility.Shared) {
+    return t("feed.post.shared");
+  }
   return t("feed.post.public");
 });
 
@@ -506,7 +515,7 @@ async function onPlanClick() {
       >
         <template v-for="att in galleryAttachments" :key="att.id">
           <a
-            v-if="att.kind === 'image'"
+            v-if="att.kind === UploadKind.Image"
             :href="mediaUrl(att.url)"
             target="_blank"
             rel="noopener"
@@ -555,7 +564,7 @@ async function onPlanClick() {
             · {{ formatWhen(post.sharedPost.createdAt) }}
           </span>
           <span
-            v-if="post.sharedPost.format === 'manuscript'"
+            v-if="post.sharedPost.format === PostFormat.Manuscript"
             class="ml-1 rounded-full manuscript-pill px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
           >
             {{ $t("manuscript.badge") }}

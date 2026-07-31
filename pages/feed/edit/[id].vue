@@ -3,11 +3,11 @@ import type {
   Post,
   PostAuthor,
   PostFontFamily,
-  PostFormat,
   PostTextColor,
   PostVisibility,
   UploadRecord,
 } from "~/types/post";
+import { PostFormat } from "~/types/post";
 import { isContentLocale } from "~/utils/contentLocale";
 
 definePageMeta({
@@ -167,7 +167,7 @@ function onCancel() {
       </div>
 
       <ManuscriptStudio
-        v-else-if="post.format === 'manuscript'"
+        v-else-if="post.format === PostFormat.Manuscript"
         :submitting="submitting"
         :categories="categories"
         :initial="manuscriptInitial"

@@ -14,6 +14,7 @@ import {
   type ChatMessageReactionType,
   type ChatPeer,
 } from "~/types/chat";
+import { UploadKind, toUploadKind } from "~/types/post";
 import { toReactionType } from "~/types/reaction";
 import { isoToDB, dbToISO } from "./datetime";
 import { generateId, nowISO } from "./ids";
@@ -52,7 +53,7 @@ interface ConversationRow extends RowDataPacket {
   last_msg_created_at: string | null;
   last_upl_file_name: string | null;
   last_upl_mime: string | null;
-  last_upl_kind: string | null;
+  last_upl_kind: UploadKind | null;
   last_upl_size_bytes: number | null;
   unread_count: number;
   peer_last_read_at: string | null;
@@ -70,7 +71,7 @@ interface MessageRow extends RowDataPacket {
   created_at: string;
   upl_file_name: string | null;
   upl_mime: string | null;
-  upl_kind: string | null;
+  upl_kind: UploadKind | null;
   upl_size_bytes: number | null;
 }
 
@@ -87,16 +88,13 @@ function toAttachment(args: {
   uploadId: string | null | undefined;
   fileName: string | null | undefined;
   mime: string | null | undefined;
-  kind: string | null | undefined;
+  kind: UploadKind | null | undefined;
   sizeBytes: number | null | undefined;
 }): ChatAttachment | null {
-  if (!args.uploadId || !args.mime || !args.kind || !args.fileName) return null;
-  const kind =
-    args.kind === "audio"
-      ? "audio"
-      : args.kind === "image"
-        ? "image"
-        : "document";
+  if (!args.uploadId || !args.mime || args.kind == null || !args.fileName) {
+    return null;
+  }
+  const kind = toUploadKind(args.kind);
   return {
     id: args.uploadId,
     url: `/api/uploads/${args.uploadId}`,
@@ -134,7 +132,7 @@ function toMessage(
     created_at: string;
     upl_file_name?: string | null;
     upl_mime?: string | null;
-    upl_kind?: string | null;
+    upl_kind?: UploadKind | null;
     upl_size_bytes?: number | null;
   },
   viewerId?: string,
@@ -358,9 +356,12 @@ export async function getOrCreateDirectConversation(
     [a, b],
   );
   if (existing.length) {
-    const list = await listConversations(userId);
-    const found = list.find((c) => c.id === String(existing[0].id));
-    if (found) return found;
+    const existingRow = existing[0];
+    if (existingRow) {
+      const list = await listConversations(userId);
+      const found = list.find((c) => c.id === String(existingRow.id));
+      if (found) return found;
+    }
   }
 
   const id = generateId("chat");
@@ -413,10 +414,12 @@ async function loadConversationRow(
     [conversationId],
   );
   if (!rows.length) return null;
+  const row = rows[0];
+  if (!row) return null;
   return {
-    id: String(rows[0].id),
-    user_a_id: String(rows[0].user_a_id),
-    user_b_id: String(rows[0].user_b_id),
+    id: String(row.id),
+    user_a_id: String(row.user_a_id),
+    user_b_id: String(row.user_b_id),
   };
 }
 
@@ -461,12 +464,9 @@ export async function listMessages(
       "SELECT id, created_at FROM chat_messages WHERE id = ? AND conversation_id = ? LIMIT 1",
       [options.after, conversationId],
     );
-    if (cursorRows.length) {
-      params.push(
-        cursorRows[0].created_at,
-        cursorRows[0].created_at,
-        cursorRows[0].id,
-      );
+    const cursor = cursorRows[0];
+    if (cursor) {
+      params.push(cursor.created_at, cursor.created_at, cursor.id);
     } else {
       // ISO timestamp fallback
       params.push(isoToDB(options.after), isoToDB(options.after), "");
@@ -477,12 +477,9 @@ export async function listMessages(
       "SELECT id, created_at FROM chat_messages WHERE id = ? AND conversation_id = ? LIMIT 1",
       [options.before, conversationId],
     );
-    if (cursorRows.length) {
-      params.push(
-        cursorRows[0].created_at,
-        cursorRows[0].created_at,
-        cursorRows[0].id,
-      );
+    const cursor = cursorRows[0];
+    if (cursor) {
+      params.push(cursor.created_at, cursor.created_at, cursor.id);
     } else {
       params.push(isoToDB(options.before), isoToDB(options.before), "");
     }
@@ -595,10 +592,14 @@ export async function sendMessage(
       throw err;
     }
     const expectedKind =
-      input.kind === ChatMessageKind.Image ? "image" : "audio";
-    if (upload.kind !== expectedKind) {
+      input.kind === ChatMessageKind.Image
+        ? UploadKind.Image
+        : UploadKind.Audio;
+    if (toUploadKind(upload.kind) !== expectedKind) {
+      const expectedKindLabel =
+        expectedKind === UploadKind.Image ? "image" : "audio";
       const err = new Error(
-        `Upload must be an ${expectedKind} file`,
+        `Upload must be an ${expectedKindLabel} file`,
       ) as Error & { statusCode?: number };
       err.statusCode = 400;
       throw err;
@@ -758,11 +759,12 @@ export async function getChatMessageForParticipant(
      LIMIT 1`,
     [messageId, conversationId],
   );
-  if (!rows.length) return null;
+  const row = rows[0];
+  if (!row) return null;
 
   const { counts, mine } = await loadMessageReactionMaps([messageId], userId);
   return toMessage(
-    rows[0],
+    row,
     userId,
     peerLastReadAt,
     counts.get(messageId),
@@ -921,11 +923,11 @@ export async function getUnreadInbox(
     [userId],
   );
 
-  if (!rows.length) {
+  const row = rows[0];
+  if (!row) {
     return { unreadTotal, latest: null };
   }
 
-  const row = rows[0];
   const kind = Number(row.kind ?? 0);
   let preview = "";
   if (kind === ChatMessageKind.Sticker) {

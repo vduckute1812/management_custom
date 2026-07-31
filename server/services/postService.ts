@@ -1,16 +1,8 @@
-import {
-  createPost,
-  getPostById,
-  updatePost,
-} from "~/server/utils/db";
+import { createPost, getPostById, updatePost } from "~/server/utils/db";
 import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
 import { DomainError } from "~/server/utils/http";
-import type {
-  PostFontFamily,
-  PostFormat,
-  PostTextColor,
-  PostVisibility,
-} from "~/types/post";
+import type { PostFontFamily, PostTextColor } from "~/types/post";
+import { PostFormat, PostVisibility } from "~/types/post";
 import {
   POST_BODY_MAX_MANUSCRIPT,
   POST_BODY_MAX_UPDATE,
@@ -48,7 +40,7 @@ export async function createPostForUser(
 ) {
   try {
     const post = await createPost(userId, input);
-    if (post.visibility === "public") {
+    if (post.visibility === PostVisibility.Public) {
       await invalidatePublicFeedCaches();
     }
     return { post };
@@ -77,16 +69,13 @@ export async function updatePostForUser(
   }
 
   const max =
-    existing.format === "manuscript"
+    existing.format === PostFormat.Manuscript
       ? POST_BODY_MAX_MANUSCRIPT
       : POST_BODY_MAX_UPDATE;
   if (input.body.length > max) {
-    throw new DomainError(
-      400,
-      `Post body must be at most ${max} characters`,
-    );
+    throw new DomainError(400, `Post body must be at most ${max} characters`);
   }
-  if (existing.format === "manuscript") {
+  if (existing.format === PostFormat.Manuscript) {
     const title = (input.title ?? "").trim();
     if (!title) {
       throw new DomainError(400, "Manuscript title is required");
@@ -104,7 +93,10 @@ export async function updatePostForUser(
       fontFamily: input.fontFamily,
       textColor: input.textColor,
     });
-    if (previousVisibility === "public" || post.visibility === "public") {
+    if (
+      previousVisibility === PostVisibility.Public ||
+      post.visibility === PostVisibility.Public
+    ) {
       await invalidatePublicFeedCaches();
     }
     return { post };
@@ -130,7 +122,7 @@ export async function sharePostForUser(
       audienceUserIds: input.audienceUserIds,
       sharedPostId,
     });
-    if (post.visibility === "public") {
+    if (post.visibility === PostVisibility.Public) {
       await invalidatePublicFeedCaches();
     }
     return { post };

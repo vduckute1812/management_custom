@@ -5,7 +5,7 @@
  * server (`/api/uploads`). The client copy is a UX convenience only — every
  * rule here is re-enforced server-side against the received bytes.
  */
-import type { AttachmentKind } from "~/types/post";
+import { UploadKind } from "~/types/post";
 
 export const KB = 1024;
 export const MB = 1024 * KB;
@@ -14,7 +14,7 @@ export interface UploadTypeRule {
   /** Canonical MIME stored in the DB and sent to R2 as Content-Type. */
   mime: string;
   /** Coarse bucket used by the feed UI to decide inline render vs. link. */
-  kind: AttachmentKind;
+  kind: UploadKind;
   /** Lowercase extensions (with dot) that map to this MIME. */
   extensions: string[];
   /** Per-type ceiling in bytes. */
@@ -32,84 +32,84 @@ export interface UploadTypeRule {
 export const UPLOAD_RULES: readonly UploadTypeRule[] = [
   {
     mime: "image/jpeg",
-    kind: "image",
+    kind: UploadKind.Image,
     extensions: [".jpg", ".jpeg"],
     maxBytes: 3 * MB,
     label: "JPEG",
   },
   {
     mime: "image/png",
-    kind: "image",
+    kind: UploadKind.Image,
     extensions: [".png"],
     maxBytes: 3 * MB,
     label: "PNG",
   },
   {
     mime: "image/webp",
-    kind: "image",
+    kind: UploadKind.Image,
     extensions: [".webp"],
     maxBytes: 3 * MB,
     label: "WebP",
   },
   {
     mime: "image/gif",
-    kind: "image",
+    kind: UploadKind.Image,
     extensions: [".gif"],
     maxBytes: 8 * MB,
     label: "GIF",
   },
   {
     mime: "application/pdf",
-    kind: "document",
+    kind: UploadKind.Document,
     extensions: [".pdf"],
     maxBytes: 10 * MB,
     label: "PDF",
   },
   {
     mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    kind: "document",
+    kind: UploadKind.Document,
     extensions: [".docx"],
     maxBytes: 10 * MB,
     label: "Word (.docx)",
   },
   {
     mime: "text/plain",
-    kind: "document",
+    kind: UploadKind.Document,
     extensions: [".txt"],
     maxBytes: 512 * KB,
     label: "Text",
   },
   {
     mime: "text/markdown",
-    kind: "document",
+    kind: UploadKind.Document,
     extensions: [".md", ".markdown"],
     maxBytes: 512 * KB,
     label: "Markdown",
   },
   {
     mime: "audio/webm",
-    kind: "audio",
+    kind: UploadKind.Audio,
     extensions: [".webm"],
     maxBytes: 5 * MB,
     label: "WebM audio",
   },
   {
     mime: "audio/ogg",
-    kind: "audio",
+    kind: UploadKind.Audio,
     extensions: [".ogg", ".oga"],
     maxBytes: 5 * MB,
     label: "Ogg audio",
   },
   {
     mime: "audio/mp4",
-    kind: "audio",
+    kind: UploadKind.Audio,
     extensions: [".m4a", ".mp4"],
     maxBytes: 5 * MB,
     label: "M4A audio",
   },
   {
     mime: "audio/mpeg",
-    kind: "audio",
+    kind: UploadKind.Audio,
     extensions: [".mp3"],
     maxBytes: 5 * MB,
     label: "MP3",
@@ -145,14 +145,14 @@ export const UPLOAD_ACCEPT_ATTR = [
 
 /** Same, restricted to images (story composer). */
 export const UPLOAD_ACCEPT_IMAGES_ATTR = UPLOAD_RULES.filter(
-  (r) => r.kind === "image",
+  (r) => r.kind === UploadKind.Image,
 )
   .flatMap((r) => [...r.extensions, r.mime])
   .join(",");
 
 /** Audio accept list for voice notes / chat. */
 export const UPLOAD_ACCEPT_AUDIO_ATTR = UPLOAD_RULES.filter(
-  (r) => r.kind === "audio",
+  (r) => r.kind === UploadKind.Audio,
 )
   .flatMap((r) => [...r.extensions, r.mime])
   .join(",");
@@ -164,7 +164,7 @@ export const UPLOAD_ALLOWED_EXTENSIONS = UPLOAD_RULES.flatMap((r) =>
 
 /** Same, restricted to images. */
 export const UPLOAD_ALLOWED_IMAGE_EXTENSIONS = UPLOAD_RULES.filter(
-  (r) => r.kind === "image",
+  (r) => r.kind === UploadKind.Image,
 ).flatMap((r) => r.extensions.map((e) => e.slice(1)));
 
 export function fileExtension(fileName: string): string {

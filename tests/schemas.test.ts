@@ -6,6 +6,7 @@ import {
   loginBodySchema,
   logoutBodySchema,
   postReactionBodySchema,
+  postCreateBodySchema,
   refreshBodySchema,
   resetPasswordBodySchema,
   signupBodySchema,
@@ -18,6 +19,7 @@ import {
 } from "../server/schemas";
 import { TaskPriority, TaskStatus } from "../types/task";
 import { ChatMessageKind } from "../types/chat";
+import { PostFormat, PostVisibility } from "../types/post";
 
 describe("loginBodySchema", () => {
   it("accepts a valid email/password", () => {
@@ -85,6 +87,35 @@ describe("postReactionBodySchema", () => {
     expect(postReactionBodySchema.safeParse({ reaction: 9 }).success).toBe(
       false,
     );
+  });
+});
+
+describe("postCreateBodySchema", () => {
+  it("accepts integer visibility and format", () => {
+    const parsed = postCreateBodySchema.safeParse({
+      body: "Hello feed",
+      format: PostFormat.Manuscript,
+      title: "A manuscript",
+      visibility: PostVisibility.Shared,
+      audienceUserIds: ["user_abc"],
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects string visibility and format", () => {
+    expect(
+      postCreateBodySchema.safeParse({
+        body: "Hello feed",
+        format: "manuscript",
+        title: "A manuscript",
+      }).success,
+    ).toBe(false);
+    expect(
+      postCreateBodySchema.safeParse({
+        body: "Hello feed",
+        visibility: "public",
+      }).success,
+    ).toBe(false);
   });
 });
 

@@ -2,6 +2,7 @@
  * Direct-message chat between users (1:1).
  */
 
+import type { UploadKind } from "./post";
 import type { ReactionType } from "./reaction";
 import {
   ReactionType as ChatMessageReaction,
@@ -55,7 +56,7 @@ export interface ChatAttachment {
   id: string;
   url: string;
   mime: string;
-  kind: "image" | "audio" | "document";
+  kind: UploadKind;
   fileName: string;
   sizeBytes: number;
 }

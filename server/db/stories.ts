@@ -9,7 +9,7 @@ import {
   purgeR2StorageKeys,
 } from "./uploads";
 import type { PostAuthor, PostReactionType } from "../../types/post";
-import { POST_REACTION_TYPES } from "../../types/post";
+import { POST_REACTION_TYPES, UploadKind } from "../../types/post";
 import {
   emptyReactions as emptyReactionCounts,
   toReactionType,
@@ -283,9 +283,14 @@ export async function createStory(
   let storageKey: string | null = null;
   if (uploadId) {
     const [up] = await assertOwnedUploads(userId, [uploadId]);
+    if (!up) {
+      throw Object.assign(new Error("Story media is invalid"), {
+        statusCode: 400,
+      });
+    }
     // Stories are rendered as media; a document here would surface as a
     // broken <img>, so reject it rather than store an unviewable story.
-    if (up.kind !== "image") {
+    if (up.kind !== UploadKind.Image) {
       throw Object.assign(new Error("Story media must be an image"), {
         statusCode: 400,
       });
@@ -358,7 +363,7 @@ export async function deleteStory(
   ]);
   if (!rows.length) return false;
 
-  const uploadId = rows[0].upload_id;
+  const uploadId = rows[0]?.upload_id ?? null;
   const [result] = await pool.query(
     "DELETE FROM stories WHERE id = ? AND user_id = ?",
     [storyId, userId],

@@ -4,6 +4,7 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
+import { PostFormat, UploadKind } from "~/types/post";
 import {
   UPLOAD_ACCEPT_IMAGES_ATTR,
   UPLOAD_ALLOWED_IMAGE_EXTENSIONS,
@@ -183,7 +184,7 @@ watch(
 );
 
 async function onCreate(payload: {
-  format?: "update" | "manuscript";
+  format?: PostFormat;
   title?: string;
   body: string;
   visibility: PostVisibility;
@@ -197,7 +198,7 @@ async function onCreate(payload: {
   submitting.value = true;
   try {
     await createPost({
-      format: payload.format ?? "update",
+      format: payload.format ?? PostFormat.Update,
       title: payload.title ?? null,
       body: payload.body,
       visibility: payload.visibility,
@@ -268,7 +269,7 @@ async function onStoryFile(e: Event) {
 
   // Stories render as media, so narrow the shared allowlist to images here.
   const rule = resolveUploadRule(file.name, file.type);
-  if (!rule || rule.kind !== "image") {
+  if (!rule || rule.kind !== UploadKind.Image) {
     pushToast(
       t("uploads.errors.imageOnly", {
         allowed: UPLOAD_ALLOWED_IMAGE_EXTENSIONS.join(", "),

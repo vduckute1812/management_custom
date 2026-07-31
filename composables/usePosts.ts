@@ -6,11 +6,10 @@ import type {
   PostCategory,
   PostComment,
   PostFontFamily,
-  PostFormat,
   PostReactionType,
   PostTextColor,
-  PostVisibility,
 } from "~/types/post";
+import { PostFormat, PostVisibility } from "~/types/post";
 import type { StoriesTray } from "~/types/story";
 import { applyOptimisticReaction } from "~/utils/optimisticReaction";
 
@@ -170,14 +169,14 @@ export const usePosts = () => {
     contentLocale?: string | null;
     translationGroupId?: string | null;
   }): Promise<Post> {
-    const format = args.format ?? "update";
+    const format = args.format ?? PostFormat.Update;
     const res = await apiFetch<{ post: Post }>("/api/posts", {
       method: "POST",
       body: {
         body: args.body,
         title: args.title ?? null,
         format,
-        visibility: args.visibility ?? "public",
+        visibility: args.visibility ?? PostVisibility.Public,
         audienceUserIds: args.audienceUserIds ?? [],
         attachmentIds: args.attachmentIds ?? [],
         categoryId: args.categoryId ?? null,
@@ -195,7 +194,7 @@ export const usePosts = () => {
       posts.value = [res.post, ...posts.value];
     }
     pushToast(
-      format === "manuscript"
+      format === PostFormat.Manuscript
         ? t("toasts.manuscriptPublished")
         : t("toasts.postShared"),
       { tone: "success", duration: 2500 },
@@ -245,7 +244,7 @@ export const usePosts = () => {
         body: {
           body: args.body,
           title: args.title ?? null,
-          visibility: args.visibility ?? "public",
+          visibility: args.visibility ?? PostVisibility.Public,
           audienceUserIds: args.audienceUserIds ?? [],
           attachmentIds: args.attachmentIds ?? [],
           categoryId: args.categoryId ?? null,
@@ -298,6 +297,7 @@ export const usePosts = () => {
     const idx = posts.value.findIndex((p) => p.id === id);
     if (idx < 0) return;
     const prev = posts.value[idx];
+    if (!prev) return;
     if (reaction === null && prev.myReaction == null) return;
     if (reaction !== null && prev.myReaction === reaction) return;
 
@@ -352,7 +352,7 @@ export const usePosts = () => {
   async function sharePost(
     id: string,
     note?: string,
-    visibility: PostVisibility = "public",
+    visibility: PostVisibility = PostVisibility.Public,
   ): Promise<Post> {
     const res = await apiFetch<{ post: Post }>(`/api/posts/${id}/share`, {
       method: "POST",

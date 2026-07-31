@@ -4,10 +4,15 @@ import type {
   PostCategory,
   PostFontFamily,
   PostTextColor,
-  PostVisibility,
   UploadRecord,
 } from "~/types/post";
-import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
+import {
+  POST_FONT_FAMILIES,
+  POST_TEXT_COLORS,
+  PostFormat,
+  PostVisibility,
+  UploadKind,
+} from "~/types/post";
 import {
   POST_BODY_MAX_MANUSCRIPT,
   POST_TITLE_MAX,
@@ -66,7 +71,7 @@ const emit = defineEmits<{
   (
     e: "submit",
     payload: {
-      format: "manuscript";
+      format: PostFormat;
       title: string;
       body: string;
       visibility: PostVisibility;
@@ -104,7 +109,9 @@ function defaultLocale(): ContentLocale {
 const title = ref(props.initial?.title ?? "");
 const body = ref(props.initial?.body ?? "");
 const contentLocale = ref<ContentLocale>(defaultLocale());
-const visibility = ref<PostVisibility>(props.initial?.visibility ?? "public");
+const visibility = ref<PostVisibility>(
+  props.initial?.visibility ?? PostVisibility.Public,
+);
 const categoryId = ref(props.initial?.categoryId || "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "serif");
 const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
@@ -142,11 +149,11 @@ const canSubmit = computed(
     body.value.trim().length > 0 &&
     !props.submitting &&
     !uploading.value &&
-    (visibility.value !== "shared" || audience.value.length > 0),
+    (visibility.value !== PostVisibility.Shared || audience.value.length > 0),
 );
 
 watch(audienceQuery, (q) => {
-  if (visibility.value === "shared") searchDebounced(q);
+  if (visibility.value === PostVisibility.Shared) searchDebounced(q);
 });
 
 function pickAudience(user: PostAuthor) {
@@ -233,7 +240,9 @@ async function onImagesSelected(e: Event) {
   for (const file of files) {
     const reason = validateFile(file);
     if (reason) pushToast(reason, { tone: "danger" });
-    else if (resolveUploadRule(file.name, file.type)?.kind !== "image") {
+    else if (
+      resolveUploadRule(file.name, file.type)?.kind !== UploadKind.Image
+    ) {
       pushToast(t("feed.composer.imageOnly"), { tone: "danger" });
     } else accepted.push(file);
   }
@@ -263,7 +272,7 @@ async function onImagesSelected(e: Event) {
 function onSubmit() {
   if (!canSubmit.value) return;
   emit("submit", {
-    format: "manuscript",
+    format: PostFormat.Manuscript,
     title: title.value.trim(),
     body: body.value.trim(),
     visibility: visibility.value,
@@ -281,7 +290,7 @@ function clear() {
   title.value = "";
   body.value = "";
   contentLocale.value = defaultLocale();
-  visibility.value = "public";
+  visibility.value = PostVisibility.Public;
   categoryId.value = "";
   fontFamily.value = "serif";
   textColor.value = "default";
@@ -300,11 +309,11 @@ onMounted(() => {
   nextTick(() => titleEl.value?.focus());
 });
 
-const visibilityLabel = computed<Record<PostVisibility, string>>(() => ({
-  public: t("feed.composer.public"),
-  private: t("feed.composer.onlyMe"),
-  shared: t("feed.composer.specificPeople"),
-}));
+const visibilityOptions = computed(() => [
+  { value: PostVisibility.Public, label: t("feed.composer.public") },
+  { value: PostVisibility.Private, label: t("feed.composer.onlyMe") },
+  { value: PostVisibility.Shared, label: t("feed.composer.specificPeople") },
+]);
 
 const fontLabels = computed<Record<PostFontFamily, string>>(() => ({
   default: t("feed.composer.fontDefault"),
@@ -488,13 +497,13 @@ const bodyStyle = computed(() => ({
 
           <label class="manuscript-studio__field" for="ms-visibility">
             <span>{{ $t("feed.composer.visibility") }}</span>
-            <select id="ms-visibility" v-model="visibility">
+            <select id="ms-visibility" v-model.number="visibility">
               <option
-                v-for="(label, key) in visibilityLabel"
-                :key="key"
-                :value="key"
+                v-for="opt in visibilityOptions"
+                :key="opt.value"
+                :value="opt.value"
               >
-                {{ label }}
+                {{ opt.label }}
               </option>
             </select>
           </label>
@@ -597,7 +606,7 @@ const bodyStyle = computed(() => ({
         </div>
 
         <div
-          v-if="visibility === 'shared'"
+          v-if="visibility === PostVisibility.Shared"
           class="manuscript-studio__panel space-y-2"
         >
           <label class="block text-xs font-medium" for="ms-audience">

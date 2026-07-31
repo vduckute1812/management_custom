@@ -2,7 +2,12 @@ import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import type { AttachmentKind, UploadRecord } from "../../types/post";
+import type { UploadKind, UploadRecord } from "../../types/post";
+import {
+  PostVisibility,
+  UPLOAD_KIND_STORAGE_FOLDER,
+  toUploadKind,
+} from "../../types/post";
 import {
   assertR2Configured,
   r2DeleteObject,
@@ -19,18 +24,19 @@ interface UploadRow extends RowDataPacket {
   user_id: string;
   file_name: string;
   mime: string;
-  kind: AttachmentKind;
+  kind: UploadKind;
   size_bytes: number;
   storage_key: string;
   created_at: string;
 }
 
 function toRecord(row: UploadRow): UploadRecord {
+  const kind = toUploadKind(row.kind);
   return {
     id: row.id,
     fileName: row.file_name,
     mime: row.mime,
-    kind: row.kind,
+    kind,
     sizeBytes: Number(row.size_bytes),
     // App-proxied URL: ACL checked, then redirect to a short R2 signed URL.
     url: `/api/uploads/${row.id}`,
@@ -41,7 +47,7 @@ export async function createUpload(args: {
   userId: string;
   fileName: string;
   mime: string;
-  kind: AttachmentKind;
+  kind: UploadKind;
   sizeBytes: number;
   data: Buffer;
 }): Promise<UploadRecord> {
@@ -54,10 +60,11 @@ export async function createUpload(args: {
   const yyyy = String(d.getUTCFullYear());
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   const safeName = args.fileName.replace(/[^\w.\-()+ ]+/g, "_").slice(0, 180);
+  const kind = toUploadKind(args.kind);
   // S3/R2 keys always use forward slashes. Group by attachment/message kind
   // (`image` / `document` / `audio`) so chat media and feed assets are easy
   // to browse in the bucket. Existing rows keep their legacy keys as stored.
-  const storageKey = `uploads/${args.kind}/${yyyy}/${mm}/${id}_${safeName}`;
+  const storageKey = `uploads/${UPLOAD_KIND_STORAGE_FOLDER[kind]}/${yyyy}/${mm}/${id}_${safeName}`;
 
   await r2PutObject({
     key: storageKey,
@@ -75,7 +82,7 @@ export async function createUpload(args: {
         args.userId,
         args.fileName.slice(0, 255),
         args.mime,
-        args.kind,
+        kind,
         args.sizeBytes,
         storageKey,
         isoToDB(now),
@@ -90,7 +97,7 @@ export async function createUpload(args: {
     id,
     fileName: args.fileName.slice(0, 255),
     mime: args.mime,
-    kind: args.kind,
+    kind,
     sizeBytes: args.sizeBytes,
     url: `/api/uploads/${id}`,
   };
@@ -103,7 +110,8 @@ export async function getUploadById(id: string): Promise<UploadRow | null> {
      FROM uploads WHERE id = ? LIMIT 1`,
     [id],
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  return row ? { ...row, kind: toUploadKind(row.kind) } : null;
 }
 
 export async function getUploadRecord(
@@ -151,7 +159,7 @@ export async function canViewerAccessUpload(
       `SELECT pa.post_id
        FROM post_attachments pa
        INNER JOIN posts p ON p.id = pa.post_id
-       WHERE pa.upload_id = ? AND p.visibility = 'public'
+       WHERE pa.upload_id = ? AND p.visibility = ${PostVisibility.Public}
        LIMIT 1`,
       [uploadId],
     );
@@ -164,10 +172,10 @@ export async function canViewerAccessUpload(
      INNER JOIN posts p ON p.id = pa.post_id
      WHERE pa.upload_id = ?
        AND (
-         p.visibility = 'public'
+         p.visibility = ${PostVisibility.Public}
          OR p.user_id = ?
          OR (
-           p.visibility = 'shared'
+           p.visibility = ${PostVisibility.Shared}
            AND EXISTS (
              SELECT 1 FROM post_audience a
              WHERE a.post_id = p.id AND a.user_id = ?
@@ -220,7 +228,7 @@ export async function assertOwnedUploads(
       statusCode: 400,
     });
   }
-  return rows;
+  return rows.map((row) => ({ ...row, kind: toUploadKind(row.kind) }));
 }
 
 /** Storage keys for every upload owned by a user (pre-delete R2 sweep). */

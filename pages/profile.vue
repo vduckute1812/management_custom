@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { UploadKind } from "~/types/post";
 import { ROLE_I18N_KEYS } from "~/types/task";
 import { INTL_LOCALE, type AppLocale } from "~/types/locale";
 
@@ -77,7 +78,7 @@ async function onAvatarPicked(event: Event) {
   error.value = null;
   try {
     const upload = await uploadFile(file);
-    if (upload.kind !== "image") {
+    if (upload.kind !== UploadKind.Image) {
       error.value = t("profile.avatarMustBeImage");
       return;
     }
@@ -201,10 +202,7 @@ onMounted(async () => {
               {{ user.name || $t("profile.unnamedUser") }}
             </p>
             <p class="truncate text-sm text-slate-500">{{ user.email }}</p>
-            <p
-              v-if="user.title"
-              class="mt-1 truncate text-sm text-slate-700"
-            >
+            <p v-if="user.title" class="mt-1 truncate text-sm text-slate-700">
               {{ user.title }}
             </p>
             <p
@@ -217,11 +215,7 @@ onMounted(async () => {
             </p>
           </template>
 
-          <form
-            v-else
-            class="space-y-3"
-            @submit.prevent="onSave"
-          >
+          <form v-else class="space-y-3" @submit.prevent="onSave">
             <div>
               <label
                 class="block text-xs font-medium text-slate-600"
@@ -300,10 +294,7 @@ onMounted(async () => {
         {{ error }}
       </p>
 
-      <dl
-        v-if="!editing"
-        class="mt-6 space-y-3 text-sm"
-      >
+      <dl v-if="!editing" class="mt-6 space-y-3 text-sm">
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
           <dt class="text-slate-500">{{ $t("profile.role") }}</dt>
           <dd class="font-medium text-slate-800">

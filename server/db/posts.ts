@@ -15,18 +15,21 @@ import type {
   PostCategory,
   PostComment,
   PostFontFamily,
-  PostFormat,
   PostReactionType,
   PostTextColor,
   PostTranslationRef,
-  PostVisibility,
   SharedPostPreview,
 } from "../../types/post";
 import {
   POST_FONT_FAMILIES,
-  POST_FORMATS,
   POST_REACTION_TYPES,
   POST_TEXT_COLORS,
+  PostFormat,
+  PostVisibility,
+  UploadKind,
+  toPostFormat,
+  toPostVisibility,
+  toUploadKind,
 } from "../../types/post";
 import {
   emptyReactions as emptyReactionCounts,
@@ -39,7 +42,7 @@ interface PostRow extends RowDataPacket {
   id: string;
   user_id: string;
   body: string;
-  format: string | null;
+  format: PostFormat | null;
   title: string | null;
   visibility: PostVisibility;
   category_id: string | null;
@@ -63,7 +66,7 @@ interface PostRow extends RowDataPacket {
   category_sort_order: number | null;
   shared_body: string | null;
   shared_title: string | null;
-  shared_format: string | null;
+  shared_format: PostFormat | null;
   shared_created_at: string | null;
   shared_author_id: string | null;
   shared_author_name: string | null;
@@ -95,7 +98,7 @@ interface AttachmentRow extends RowDataPacket {
   id: string;
   post_id: string;
   upload_id: string;
-  kind: "image" | "document";
+  kind: UploadKind;
   file_name: string;
   mime: string;
   size_bytes: number;
@@ -136,10 +139,10 @@ function toAuthor(
 /** ACL for authenticated viewers (public + own + shared-with-me). */
 function visibilityClause(alias = "p"): string {
   return `(
-    ${alias}.visibility = 'public'
+    ${alias}.visibility = ${PostVisibility.Public}
     OR ${alias}.user_id = ?
     OR (
-      ${alias}.visibility = 'shared'
+      ${alias}.visibility = ${PostVisibility.Shared}
       AND EXISTS (
         SELECT 1 FROM post_audience a
         WHERE a.post_id = ${alias}.id AND a.user_id = ?
@@ -150,7 +153,7 @@ function visibilityClause(alias = "p"): string {
 
 /** Anonymous visitors may only see explicitly public posts. */
 function publicOnlyClause(alias = "p"): string {
-  return `${alias}.visibility = 'public'`;
+  return `${alias}.visibility = ${PostVisibility.Public}`;
 }
 
 const POST_SELECT = `
@@ -204,13 +207,6 @@ function normalizeFontFamily(value: string | null | undefined): PostFontFamily {
     return value as PostFontFamily;
   }
   return "default";
-}
-
-function normalizeFormat(value: string | null | undefined): PostFormat {
-  if (value && (POST_FORMATS as readonly string[]).includes(value)) {
-    return value as PostFormat;
-  }
-  return "update";
 }
 
 function normalizeTitle(value: string | null | undefined): string | null {
@@ -295,7 +291,7 @@ async function loadAttachments(
     list.push({
       id: row.id,
       uploadId: row.upload_id,
-      kind: row.kind,
+      kind: toUploadKind(row.kind),
       fileName: row.file_name,
       mime: row.mime,
       sizeBytes: Number(row.size_bytes),
@@ -343,7 +339,7 @@ function rowToPost(
       id: row.shared_post_id,
       title: normalizeTitle(row.shared_title),
       body: row.shared_body,
-      format: normalizeFormat(row.shared_format),
+      format: toPostFormat(row.shared_format),
       createdAt: dbToISO(row.shared_created_at),
       author: toAuthor(
         row.shared_author_id,
@@ -367,10 +363,10 @@ function rowToPost(
 
   return {
     id: row.id,
-    format: normalizeFormat(row.format),
+    format: toPostFormat(row.format),
     title: normalizeTitle(row.title),
     body: row.body,
-    visibility: row.visibility,
+    visibility: toPostVisibility(row.visibility),
     category: categoryFromRow(row),
     fontFamily: normalizeFontFamily(row.font_family),
     textColor: normalizeTextColor(row.text_color),
@@ -614,16 +610,16 @@ export async function createPost(
   const id = generateId("post");
   const now = nowISO();
   const trimmed = args.body.trim();
-  const format = normalizeFormat(args.format);
+  const format = toPostFormat(args.format);
   const title = normalizeTitle(args.title);
-  if (format === "manuscript" && !title) {
+  if (format === PostFormat.Manuscript && !title) {
     throw Object.assign(new Error("Manuscript title is required"), {
       statusCode: 400,
     });
   }
-  const visibility: PostVisibility = args.visibility ?? "public";
+  const visibility = toPostVisibility(args.visibility);
   const audienceUserIds =
-    visibility === "shared"
+    visibility === PostVisibility.Shared
       ? [
           ...new Set(
             (args.audienceUserIds ?? []).filter((x) => x && x !== userId),
@@ -631,7 +627,7 @@ export async function createPost(
         ]
       : [];
 
-  if (visibility === "shared" && audienceUserIds.length === 0) {
+  if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
     throw Object.assign(
       new Error("Shared posts require at least one audience member"),
       { statusCode: 400 },
@@ -647,7 +643,7 @@ export async function createPost(
   }
 
   const fontFamily =
-    format === "manuscript" && !args.fontFamily
+    format === PostFormat.Manuscript && !args.fontFamily
       ? ("serif" as PostFontFamily)
       : normalizeFontFamily(args.fontFamily);
   const textColor = normalizeTextColor(args.textColor);
@@ -655,7 +651,7 @@ export async function createPost(
   let contentLocale = "und";
   let translationGroupId: string | null = null;
 
-  if (format === "manuscript") {
+  if (format === PostFormat.Manuscript) {
     contentLocale = isContentLocale(args.contentLocale)
       ? args.contentLocale
       : "vi";
@@ -670,7 +666,7 @@ export async function createPost(
       >(
         `SELECT id, user_id, content_locale
          FROM posts
-         WHERE translation_group_id = ? AND format = 'manuscript'
+         WHERE translation_group_id = ? AND format = ${PostFormat.Manuscript}
          LIMIT 50`,
         [requestedGroup],
       );
@@ -721,7 +717,7 @@ export async function createPost(
         userId,
         trimmed,
         format,
-        format === "manuscript" ? title : null,
+        format === PostFormat.Manuscript ? title : null,
         visibility,
         categoryId,
         fontFamily === "default" ? null : fontFamily,
@@ -812,7 +808,7 @@ export async function updatePost(
   const [ownerRows] = await pool.query<
     (RowDataPacket & {
       user_id: string;
-      format: string | null;
+      format: PostFormat | null;
       visibility: PostVisibility;
     })[]
   >("SELECT user_id, format, visibility FROM posts WHERE id = ? LIMIT 1", [
@@ -823,7 +819,7 @@ export async function updatePost(
     throw Object.assign(new Error("Post not found"), { statusCode: 404 });
   }
 
-  const format = normalizeFormat(owner.format);
+  const format = toPostFormat(owner.format);
   const trimmed = args.body.trim();
   if (!trimmed) {
     throw Object.assign(new Error("Post body is required"), {
@@ -831,15 +827,15 @@ export async function updatePost(
     });
   }
   const title = normalizeTitle(args.title);
-  if (format === "manuscript" && !title) {
+  if (format === PostFormat.Manuscript && !title) {
     throw Object.assign(new Error("Manuscript title is required"), {
       statusCode: 400,
     });
   }
 
-  const visibility: PostVisibility = args.visibility ?? "public";
+  const visibility = toPostVisibility(args.visibility);
   const audienceUserIds =
-    visibility === "shared"
+    visibility === PostVisibility.Shared
       ? [
           ...new Set(
             (args.audienceUserIds ?? []).filter((x) => x && x !== userId),
@@ -847,7 +843,7 @@ export async function updatePost(
         ]
       : [];
 
-  if (visibility === "shared" && audienceUserIds.length === 0) {
+  if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
     throw Object.assign(
       new Error("Shared posts require at least one audience member"),
       { statusCode: 400 },
@@ -863,7 +859,7 @@ export async function updatePost(
   }
 
   const fontFamily =
-    format === "manuscript" && !args.fontFamily
+    format === PostFormat.Manuscript && !args.fontFamily
       ? ("serif" as PostFontFamily)
       : normalizeFontFamily(args.fontFamily);
   const textColor = normalizeTextColor(args.textColor);
@@ -894,7 +890,7 @@ export async function updatePost(
        WHERE id = ? AND user_id = ?`,
       [
         trimmed,
-        format === "manuscript" ? title : null,
+        format === PostFormat.Manuscript ? title : null,
         visibility,
         categoryId,
         fontFamily === "default" ? null : fontFamily,
@@ -939,7 +935,10 @@ export async function updatePost(
   if (!updated) {
     throw new Error("Failed to load updated post");
   }
-  return { post: updated, previousVisibility: owner.visibility };
+  return {
+    post: updated,
+    previousVisibility: toPostVisibility(owner.visibility),
+  };
 }
 
 export async function deletePost(
@@ -1025,10 +1024,7 @@ export type PostCommentsPage = {
   nextBefore: string | null;
 };
 
-function mapCommentRow(
-  r: CommentRow,
-  viewerId: string | null,
-): PostComment {
+function mapCommentRow(r: CommentRow, viewerId: string | null): PostComment {
   return {
     id: r.id,
     postId: r.post_id,
@@ -1084,7 +1080,7 @@ export async function listPostComments(
   return {
     comments,
     hasMore,
-    nextBefore: comments.length ? comments[0].createdAt : null,
+    nextBefore: comments[0]?.createdAt ?? null,
   };
 }
 

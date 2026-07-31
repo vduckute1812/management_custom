@@ -4,10 +4,14 @@ import type {
   PostCategory,
   PostFontFamily,
   PostTextColor,
-  PostVisibility,
   UploadRecord,
 } from "~/types/post";
-import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
+import {
+  POST_FONT_FAMILIES,
+  POST_TEXT_COLORS,
+  PostFormat,
+  PostVisibility,
+} from "~/types/post";
 import { POST_BODY_MAX_UPDATE } from "~/utils/postBodyLimits";
 import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
 import { categoryDisplayName } from "~/utils/categoryLabel";
@@ -33,7 +37,7 @@ const emit = defineEmits<{
   (
     e: "submit",
     payload: {
-      format: "update";
+      format: PostFormat;
       body: string;
       visibility: PostVisibility;
       audienceUserIds: string[];
@@ -56,7 +60,9 @@ function catLabel(cat: PostCategory) {
 }
 
 const body = ref(props.initial?.body ?? "");
-const visibility = ref<PostVisibility>(props.initial?.visibility ?? "public");
+const visibility = ref<PostVisibility>(
+  props.initial?.visibility ?? PostVisibility.Public,
+);
 const categoryId = ref(props.initial?.categoryId ?? "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "default");
 const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
@@ -78,11 +84,11 @@ const canSubmit = computed(
     body.value.trim().length > 0 &&
     !props.submitting &&
     !uploading.value &&
-    (visibility.value !== "shared" || audience.value.length > 0),
+    (visibility.value !== PostVisibility.Shared || audience.value.length > 0),
 );
 
 watch(audienceQuery, (q) => {
-  if (visibility.value === "shared") searchDebounced(q);
+  if (visibility.value === PostVisibility.Shared) searchDebounced(q);
 });
 
 function pickAudience(user: PostAuthor) {
@@ -161,7 +167,7 @@ function insertLatex(block = false) {
 function onSubmit() {
   if (!canSubmit.value) return;
   emit("submit", {
-    format: "update",
+    format: PostFormat.Update,
     body: body.value.trim(),
     visibility: visibility.value,
     audienceUserIds: audience.value.map((u) => u.id),
@@ -174,7 +180,7 @@ function onSubmit() {
 
 function clear() {
   body.value = "";
-  visibility.value = "public";
+  visibility.value = PostVisibility.Public;
   categoryId.value = "";
   fontFamily.value = "default";
   textColor.value = "default";
@@ -189,11 +195,17 @@ function focus() {
 
 defineExpose({ clear, focus });
 
-const visibilityLabel = computed<Record<PostVisibility, string>>(() => ({
-  public: t("feed.composer.public"),
-  private: t("feed.composer.onlyMe"),
-  shared: t("feed.composer.specificPeople"),
-}));
+const visibilityOptions = computed(() => [
+  { value: PostVisibility.Public, label: t("feed.composer.public") },
+  { value: PostVisibility.Private, label: t("feed.composer.onlyMe") },
+  { value: PostVisibility.Shared, label: t("feed.composer.specificPeople") },
+]);
+
+const visibilityLabel = computed(
+  () =>
+    visibilityOptions.value.find((opt) => opt.value === visibility.value)
+      ?.label ?? t("feed.composer.public"),
+);
 
 const fontLabels = computed<Record<PostFontFamily, string>>(() => ({
   default: t("feed.composer.fontDefault"),
@@ -232,7 +244,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           {{ userLabel }}
         </p>
         <p class="text-[11px] text-slate-400">
-          {{ visibilityLabel[visibility] }}
+          {{ visibilityLabel }}
         </p>
       </div>
       <NuxtLink
@@ -377,15 +389,15 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           }}</label>
           <select
             id="post-visibility"
-            v-model="visibility"
+            v-model.number="visibility"
             class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
           >
             <option
-              v-for="(label, key) in visibilityLabel"
-              :key="key"
-              :value="key"
+              v-for="opt in visibilityOptions"
+              :key="opt.value"
+              :value="opt.value"
             >
-              {{ label }}
+              {{ opt.label }}
             </option>
           </select>
 
@@ -432,7 +444,7 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
       </div>
 
       <div
-        v-if="visibility === 'shared'"
+        v-if="visibility === PostVisibility.Shared"
         class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3"
       >
         <label

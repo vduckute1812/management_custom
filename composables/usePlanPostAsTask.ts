@@ -5,6 +5,7 @@
  * creating a research task from a post and the success/failure toasts.
  */
 import type { Post } from "~/types/post";
+import { PostFormat } from "~/types/post";
 import { TaskStatus } from "~/types/task";
 
 function authorLabel(name: string | null | undefined, email: string): string {
@@ -31,7 +32,9 @@ export function usePlanPostAsTask() {
         post.title?.trim() ||
         (post.body || "").replace(/\s+/g, " ").trim().slice(0, 80) ||
         t("feed.post.planUntitled");
-      const tags = [post.format === "manuscript" ? "manuscript" : "article"];
+      const tags = [
+        post.format === PostFormat.Manuscript ? "manuscript" : "article",
+      ];
       if (post.category?.slug) tags.push(post.category.slug);
       await saveTask({
         title: t("feed.post.planTaskTitle", { title: excerpt }),

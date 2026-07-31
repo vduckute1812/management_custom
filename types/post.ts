@@ -8,14 +8,92 @@ import {
   emptyReactions as emptyReactionCounts,
 } from "./reaction";
 
-export type PostVisibility = "public" | "private" | "shared";
+/** Who can see a post — integer end-to-end (MySQL → API → UI). */
+export const PostVisibility = {
+  Public: 0,
+  Private: 1,
+  Shared: 2,
+} as const;
+export type PostVisibility =
+  (typeof PostVisibility)[keyof typeof PostVisibility];
+export const POST_VISIBILITIES = [
+  PostVisibility.Public,
+  PostVisibility.Private,
+  PostVisibility.Shared,
+] as const;
 
 /**
  * Content format — short social updates vs long-form manuscripts
  * (essays, thesis chapters, research notes).
  */
-export const POST_FORMATS = ["update", "manuscript"] as const;
-export type PostFormat = (typeof POST_FORMATS)[number];
+export const PostFormat = {
+  Update: 0,
+  Manuscript: 1,
+} as const;
+export type PostFormat = (typeof PostFormat)[keyof typeof PostFormat];
+export const POST_FORMATS = [PostFormat.Update, PostFormat.Manuscript] as const;
+
+/** Coarse upload / attachment bucket (feed + chat media). */
+export const UploadKind = {
+  Image: 0,
+  Document: 1,
+  Audio: 2,
+} as const;
+export type UploadKind = (typeof UploadKind)[keyof typeof UploadKind];
+export const UPLOAD_KINDS = [
+  UploadKind.Image,
+  UploadKind.Document,
+  UploadKind.Audio,
+] as const;
+
+/** @deprecated Prefer `UploadKind`. */
+export type AttachmentKind = UploadKind;
+
+/** R2 key folder segment for new objects — keeps the bucket browsable. */
+export const UPLOAD_KIND_STORAGE_FOLDER: Record<UploadKind, string> = {
+  [UploadKind.Image]: "image",
+  [UploadKind.Document]: "document",
+  [UploadKind.Audio]: "audio",
+};
+
+export function isPostVisibility(value: unknown): value is PostVisibility {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    (POST_VISIBILITIES as readonly number[]).includes(value)
+  );
+}
+
+export function toPostVisibility(value: unknown): PostVisibility {
+  const n = typeof value === "string" ? Number(value) : value;
+  return isPostVisibility(n) ? n : PostVisibility.Public;
+}
+
+export function isPostFormat(value: unknown): value is PostFormat {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    (POST_FORMATS as readonly number[]).includes(value)
+  );
+}
+
+export function toPostFormat(value: unknown): PostFormat {
+  const n = typeof value === "string" ? Number(value) : value;
+  return isPostFormat(n) ? n : PostFormat.Update;
+}
+
+export function isUploadKind(value: unknown): value is UploadKind {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    (UPLOAD_KINDS as readonly number[]).includes(value)
+  );
+}
+
+export function toUploadKind(value: unknown): UploadKind {
+  const n = typeof value === "string" ? Number(value) : value;
+  return isUploadKind(n) ? n : UploadKind.Image;
+}
 
 /** @deprecated Prefer `ReactionType` from `~/types/reaction`. */
 export type PostReactionType = ReactionType;
@@ -69,8 +147,6 @@ export const POST_TEXT_COLOR_CSS: Record<PostTextColor, string> = {
   emerald: "#059669",
   amber: "#d97706",
 };
-
-export type AttachmentKind = "image" | "document" | "audio";
 
 export interface PostCategory {
   id: string;
@@ -128,7 +204,7 @@ export interface PostTranslationRef {
 export interface PostAttachment {
   id: string;
   uploadId: string;
-  kind: AttachmentKind;
+  kind: UploadKind;
   fileName: string;
   mime: string;
   sizeBytes: number;
@@ -208,7 +284,7 @@ export interface UploadRecord {
   id: string;
   fileName: string;
   mime: string;
-  kind: AttachmentKind;
+  kind: UploadKind;
   sizeBytes: number;
   url: string;
 }

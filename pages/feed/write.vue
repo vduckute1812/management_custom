@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type {
   PostFontFamily,
-  PostFormat,
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
+import { PostFormat } from "~/types/post";
 import {
   CONTENT_LOCALES,
   isContentLocale,
@@ -118,7 +118,7 @@ async function onPublish(payload: {
   submitting.value = true;
   try {
     await createPost({
-      format: "manuscript",
+      format: PostFormat.Manuscript,
       title: payload.title,
       body: payload.body,
       visibility: payload.visibility,
