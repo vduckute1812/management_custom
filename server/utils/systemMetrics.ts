@@ -7,7 +7,7 @@ import { countJobsByStatus } from "~/server/db/jobs";
 import { cacheDriverName } from "~/server/utils/cache";
 import type { SystemSnapshot } from "~/types/system";
 
-const CPU_SAMPLE_MS = 120;
+const CPU_SAMPLE_MS = 80;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -26,27 +26,35 @@ async function measureDbLatency(): Promise<{
   }
 }
 
-async function measureHttpLatency(): Promise<{
+/**
+ * Redis PING latency. Returns null when REDIS_URL is unset.
+ * Uses a short-lived connection so we do not share state with the cache driver.
+ */
+async function measureRedisLatency(): Promise<{
   ok: boolean;
   ms: number | null;
-  status: number | null;
-}> {
-  const port = (
-    process.env.APP_PORT ||
-    process.env.NITRO_PORT ||
-    process.env.PORT ||
-    "3000"
-  ).trim();
-  const url = `http://127.0.0.1:${port}/api/health`;
+} | null> {
+  const url = process.env.REDIS_URL?.trim();
+  if (!url) return null;
   const t0 = Date.now();
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      signal: AbortSignal.timeout(4000),
+    const { default: Redis } = await import("ioredis");
+    const client = new Redis(url, {
+      maxRetriesPerRequest: 1,
+      enableReadyCheck: true,
+      connectTimeout: 1500,
+      lazyConnect: true,
+      retryStrategy: () => null,
     });
-    return { ok: res.ok, ms: Date.now() - t0, status: res.status };
+    try {
+      await client.connect();
+      await client.ping();
+      return { ok: true, ms: Date.now() - t0 };
+    } finally {
+      client.disconnect();
+    }
   } catch {
-    return { ok: false, ms: Date.now() - t0, status: null };
+    return { ok: false, ms: Date.now() - t0 };
   }
 }
 
@@ -62,8 +70,9 @@ async function measureCpuPercent(): Promise<{
   const usage = process.cpuUsage(usage0);
   const elapsedUs = Number(hrtime.bigint() - t0) / 1000;
   const cpuUs = usage.user + usage.system;
+  // Normalize to 0–100 across all cores for a clearer gauge.
   const percent =
-    elapsedUs > 0 ? Math.min(100 * cores, (cpuUs / elapsedUs) * 100) : 0;
+    elapsedUs > 0 ? Math.min(100, (cpuUs / elapsedUs / cores) * 100) : 0;
   return {
     percent: Math.round(percent * 10) / 10,
     sampleMs: CPU_SAMPLE_MS,
@@ -92,26 +101,39 @@ async function readDisk(path: string): Promise<{
 }
 
 /**
- * Superadmin ops snapshot: process RAM/CPU, container disk/memory, DB/HTTP
+ * Superadmin ops snapshot: process RAM/CPU, container disk/memory, DB/Redis
  * latency, cache driver, and job queue depths.
  *
  * Values from `os.*` / `statfs('/')` reflect the process cgroup when running
  * inside the app container — not necessarily the full Pi host.
+ *
+ * Health latency is an inline readiness probe (DB + migrations), not a
+ * self-HTTP fetch — localhost round-trips were hanging under Podman/undici.
  */
 export async function collectSystemSnapshot(): Promise<SystemSnapshot> {
   const collectedAt = new Date().toISOString();
   const mem = process.memoryUsage();
 
-  const [db, http, cpu, diskRoot, cacheDriver, jobs, migrations] =
+  const healthStarted = Date.now();
+  const [db, redis, cpu, diskRoot, cacheDriver, jobs, migrations] =
     await Promise.all([
       measureDbLatency(),
-      measureHttpLatency(),
+      measureRedisLatency(),
       measureCpuPercent(),
       readDisk("/"),
       cacheDriverName(),
       countJobsByStatus(),
       migrationStatus().catch(() => null),
     ]);
+  const migrationsOk = migrations
+    ? migrations.pending.length === 0 && migrations.drift.length === 0
+    : false;
+  const healthOk = db.ok && migrationsOk;
+  const health = {
+    ok: healthOk,
+    ms: Date.now() - healthStarted,
+    status: healthOk ? 200 : 503,
+  };
 
   const totalMem = totalmem();
   const freeMem = freemem();
@@ -146,15 +168,14 @@ export async function collectSystemSnapshot(): Promise<SystemSnapshot> {
       disk: diskRoot,
     },
     latency: {
-      db: db,
-      http: http,
+      db,
+      http: health,
+      redis,
     },
     health: {
       db: db.ok,
       migrations: {
-        ok: migrations
-          ? migrations.pending.length === 0 && migrations.drift.length === 0
-          : false,
+        ok: migrationsOk,
         pending: migrations?.pending.length ?? null,
         drift: migrations?.drift.length ?? null,
       },

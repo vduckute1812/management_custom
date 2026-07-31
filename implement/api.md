@@ -7,7 +7,7 @@ All routes are handled by Nitro under `/server/api/`.
 - **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`, `GET /api/geo`, `GET /api/health`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted. `POST /api/auth/logout` also uses optional auth — it revokes the presented refresh token (cookie/body) without requiring an access JWT; `everywhere: true` only works when an access context identifies the caller.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
-- **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`, `GET /api/admin/system`.
+- **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`, `GET /api/admin/system`, `GET /api/admin/system/logs`.
 - Cookie-based `refresh` / `logout` enforce a same-origin `Origin`/`Referer` check and can return `403`.
 - **Rate limited:** all `/api/*` routes are throttled per client IP (see [Rate limiting](#rate-limiting) below).
 
@@ -97,7 +97,8 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 | `GET`    | `/api/admin/users`          | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
 | `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix. Query `days` clamped `1..365`, default `30`.                                                                                                                     |
 | `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                   |
-| `GET`    | `/api/admin/system`         | **Superadmin only.** Live ops snapshot: process RAM/CPU, container memory/disk, DB + local `/api/health` latency, migrations, cache driver, job queue.                                                                 |
+| `GET`    | `/api/admin/system`         | **Superadmin only.** Live ops snapshot: process RAM/CPU, container memory/disk, DB + readiness + Redis latency, migrations, cache driver, job queue.                                                                   |
+| `GET`    | `/api/admin/system/logs`    | **Superadmin only.** Recent in-process console lines from the app container (ring buffer; not sibling containers).                                                                                                     |
 | `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`400`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
 | `DELETE` | `/api/admin/users/:id`      | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
 
