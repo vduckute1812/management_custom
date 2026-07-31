@@ -4,7 +4,7 @@ All routes are handled by Nitro under `/server/api/`.
 
 **Auth rules (summary):**
 
-- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`, `GET /api/geo`.
+- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`, `GET /api/geo`, `GET /api/health`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted. `POST /api/auth/logout` also uses optional auth — it revokes the presented refresh token (cookie/body) without requiring an access JWT; `everywhere: true` only works when an access context identifies the caller.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`.
@@ -118,6 +118,16 @@ Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*
 | `GET`  | `/api/geo` | Public | Returns `{ country }` from Cloudflare `CF-IPCountry`, or `null` when unavailable / unknown (`XX`, `T1`, missing). |
 
 Used by `plugins/i18n-locale.client.ts` for first-visit locale detection. Direct LAN access typically gets `null` and falls through to timezone / browser detection.
+
+---
+
+## Health
+
+| Method | Endpoint      | Auth   | Description                                                                                          |
+| ------ | ------------- | ------ | ---------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/health` | Public | Readiness probe. `200` + `{ ok: true }` when MySQL answers and migrations have no pending/drift; else `503`. |
+
+Used by Pi deploy (`ci-deploy.sh`) after recreating the app container.
 
 ---
 

@@ -42,7 +42,7 @@ cd "${ROOT}"
 LAN_IP="${LAN_IP:-192.168.1.4}"
 IMAGE="${MGMT_IMAGE:-localhost/mgmt-app-prod}"
 # The app publishes ${LAN_IP}:3000 (not 127.0.0.1), so probe the LAN bind.
-HEALTH_URL="${MGMT_HEALTH_URL:-http://${LAN_IP}:3000/}"
+HEALTH_URL="${MGMT_HEALTH_URL:-http://${LAN_IP}:3000/api/health}"
 HEALTH_RETRIES="${MGMT_HEALTH_RETRIES:-30}"
 HEALTH_SLEEP="${MGMT_HEALTH_SLEEP:-2}"
 MYSQL_CONTAINER="${MGMT_MYSQL_CONTAINER:-mgmt-mysql-prod}"
@@ -205,12 +205,12 @@ refresh_builder_cache() {
 }
 
 health_ok() {
-  # Any HTTP response from the app means Nitro is up. 401/302/200 all count —
-  # we only care that the new process is answering, not that auth succeeds.
+  # Require HTTP 200 from /api/health (DB + migrations current). Other codes
+  # (503 degraded, connection refused) keep waiting / trigger rollback.
   local code
   code="$(curl -sS -o /dev/null -w '%{http_code}' --connect-timeout 2 --max-time 5 \
     "${HEALTH_URL}" 2>/dev/null || true)"
-  [[ -n "${code}" && "${code}" != "000" ]]
+  [[ "${code}" == "200" ]]
 }
 
 wait_healthy() {

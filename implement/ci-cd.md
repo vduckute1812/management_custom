@@ -99,6 +99,10 @@ Required at minimum: `~/.config/management/.env.prod`
 | App recreate / health fail | Restored from `:previous` image (nginx stays up) |
 | Success                    | New SHA is live as `:latest`                     |
 
+**Migrations are not rolled back with the image.** `ci-deploy.sh` applies SQL with the *new* image before switching traffic. If the app then fails health and the image is retagged to `:previous`, the database may already be on the newer schema. **Every migration must stay backward-compatible with the previous app release for at least one deploy window** (additive columns with defaults, no destructive renames/drops in the same release that needs the new code).
+
+Post-switch health probes `GET /api/health` (HTTP **200** required): MySQL `SELECT 1` plus zero pending/drifted migrations.
+
 ### Troubleshooting: brief 5xx while a deploy is running
 
 Old deploys used `compose up --force-recreate` on the **whole** stack, which bounced nginx and made Cloudflare Tunnel briefly unable to reach `127.0.0.1:8080`. That shows up as a short public outage (often a gateway / internal error page) right when GitHub Actions switches the release. Current `ci-deploy.sh` only recreates the app container.
@@ -116,7 +120,7 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 | -------------------------- | ---------------------------------------- | -------------------------------------------- |
 | `MGMT_COMPOSE`             | `uv run --project <repo> podman-compose` | Compose CLI override                         |
 | `MGMT_IMAGE`               | `localhost/mgmt-app-prod`                | App image name                               |
-| `MGMT_HEALTH_URL`          | `http://${LAN_IP}:3000/`                 | Post-deploy probe                            |
+| `MGMT_HEALTH_URL`          | `http://${LAN_IP}:3000/api/health`       | Post-deploy probe (requires HTTP 200)        |
 | `MGMT_HEALTH_RETRIES`      | `30`                                     | Probe attempts                               |
 | `MGMT_DISK_FREE_MIN_GIB`   | `4`                                      | Below this, prune also wipes build cache     |
 | `MGMT_PRUNE_AGGRESSIVE`    | `0`                                      | `1` = always prune dangling + system leftovers |
