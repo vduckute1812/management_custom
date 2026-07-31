@@ -13,7 +13,13 @@
  * file rather than relying on the middleware to know which paths are
  * protected (which is fragile when route filenames change).
  */
-import type { H3Event } from "h3";
+import {
+  createError,
+  getCookie,
+  getQuery,
+  getRequestHeader,
+  type H3Event,
+} from "h3";
 import { verifyAccessToken, type AccessTokenClaims } from "./auth";
 import { UserRole, isAdminRole } from "./db";
 import { ACCESS_COOKIE } from "./refreshCookie";

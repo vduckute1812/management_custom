@@ -100,7 +100,7 @@ Cache & queue design notes: [`cache-queue.md`](./cache-queue.md).
 | `npm run migrate`      | Apply pending SQL migrations                                     |
 | `npm run migrate:auth` | Seed superadmin (idempotent)                                     |
 | `npm run check:db`     | Verify schema + migration checksums + user count                 |
-| `npm test`             | Vitest unit tests (schemas, security helpers, markdown sanitize) |
+| `npm test`             | Vitest unit tests (auth JWT/guards, schemas, security, markdown) |
 | `npm run test:watch`   | Vitest watch mode                                                |
 | `npm run format`       | Prettier write                                                   |
 | `npm run scan:secrets` | Scan repo for accidental secrets                                 |
