@@ -122,15 +122,16 @@ cannot double-run the same job.
 
 ### Job types
 
-| Type                 | Payload                        | Handler                                                |
-| -------------------- | ------------------------------ | ------------------------------------------------------ |
-| `email.verification` | `{ to, token }`                | `sendVerificationEmail`                                |
-| `email.send`         | `{ to, subject, text, html? }` | `sendMail`                                             |
-| `cache.invalidate`   | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                  |
-| `media.purgeExpired` | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads) |
+| Type                   | Payload                        | Handler                                                |
+| ---------------------- | ------------------------------ | ------------------------------------------------------ |
+| `email.verification`   | `{ to, token }`                | `sendVerificationEmail`                                |
+| `email.passwordReset`  | `{ to, token }`                | `sendPasswordResetEmail`                               |
+| `email.send`           | `{ to, subject, text, html? }` | `sendMail`                                             |
+| `cache.invalidate`     | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                  |
+| `media.purgeExpired`   | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads) |
 
 Enqueue helpers live in `server/utils/queue.ts`
-(`enqueueVerificationEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
+(`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
 
 ### Worker
 
@@ -152,8 +153,10 @@ AFTER:   signup handler ──insert jobs row──► response
               worker later ──► SMTP (retries / dry-run)
 ```
 
-If enqueue itself fails, signup still returns; the verification link is
-logged once for operators (same safety net as the old sync path).
+If enqueue itself fails, signup still returns `{ user, verificationSent: false }`.
+The raw verification token / URL is **never** logged. Password-reset enqueue
+failures are likewise silent about the raw token (forgot-password still
+returns `{ ok: true }` to avoid account enumeration).
 
 ---
 

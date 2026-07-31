@@ -1,9 +1,43 @@
+# Build artifacts / deps (recreated inside the image)
 node_modules
 .nuxt
 .output
+.venv
+
+# VCS / editor / agent / CI metadata (not needed for `nuxt build`)
 .git
 .gitignore
+.husky
+.cursor
+.github
+.vscode
+.idea
+
+# Docs & tests — not part of the production image
 *.md
+implement
+tests
+coverage
+**/*.test.ts
+vitest.config.ts
+
+# Secrets / local env (prod secrets are bind-mounted / linked on the Pi)
 .env
 .env.*
 !docker/.env.prod
+
+# Ops tooling used on the host, not inside the app image
+uv.lock
+pyproject.toml
+.python-version
+.secretsignore
+scripts/scan-secrets.mjs
+scripts/notify-public-ip-change.ts
+docker/bin
+docker/cloudflared
+docker/ssl
+docker/*.sh
+!docker/entrypoint.prod.sh
+docker/nginx.prod.conf
+docker/docker-compose.prod.yml
+docker/*.service

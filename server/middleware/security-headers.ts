@@ -12,7 +12,8 @@ export default defineEventHandler((event) => {
   setHeader(
     event,
     "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()",
+    // Chat voice notes need same-origin mic; camera/geo stay off.
+    "camera=(), microphone=(self), geolocation=()",
   );
   setHeader(event, "Content-Security-Policy", CONTENT_SECURITY_POLICY);
 });

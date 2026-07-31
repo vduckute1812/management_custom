@@ -63,8 +63,8 @@ export default defineNuxtConfig({
   // because SSR never sees a session; `isAuthenticatedUi` paints after mount.
   //
   // Implemented via per-route `routeRules` rather than top-level `ssr: false`
-  // because Nuxt 3.21.8 has a regression where the top-level toggle trips
-  // `resolveServerEntry` ("No entry found in rollupOptions.input").
+  // (a Nuxt 3.x-era top-level `ssr: false` regression tripped
+  // `resolveServerEntry` — "No entry found in rollupOptions.input").
   routeRules: {
     "/": { ssr: true, swr: 120 },
     "/feed": { ssr: true, swr: 60 },

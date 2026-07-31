@@ -24,7 +24,7 @@ The role is enforced in three layers:
 | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `/`, `/feed` (+ nested)                                                     | Public                                                                                    |
 | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; if already authenticated → `/` (or `?redirect=`) for login/signup/forgot-password |
-| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, …                | Require session → else `/login?redirect=…`                                                |
+| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, `/chat`, …       | Require session → else `/login?redirect=…`                                                |
 | `/admin`                                                                    | Require admin role → else `/` + toast                                                     |
 
 See `middleware/auth.global.ts`.
@@ -94,7 +94,7 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 
 `server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail / Google Workspace you need an [App Password](https://myaccount.google.com/apppasswords), not your account password. Production typically sets `SMTP_FROM` to a display name + address (e.g. `Danang TechX <admin@dntechx.com>`) while `SMTP_USER` remains the mailbox used to authenticate.
 
-Outbound mail from product flows should go through the **job queue** (`enqueueVerificationEmail` / `enqueueEmailSend`) so HTTP handlers stay fast and SMTP failures retry with backoff. Direct `sendMail` remains available for scripts and the worker itself.
+Outbound mail from product flows should go through the **job queue** (`enqueueVerificationEmail` / `enqueuePasswordResetEmail` / `enqueueEmailSend`) so HTTP handlers stay fast and SMTP failures retry with backoff. Direct `sendMail` remains available for scripts and the worker itself. Password reset uses job type `email.passwordReset`.
 
 The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudflare Tunnel). Otherwise it is built from `APP_HOST` / `APP_PORT` (and optional `APP_PROTOCOL`, defaulting to `http`). The port is omitted when it matches the protocol default (80 for http, 443 for https) so the rendered link stays canonical.
 

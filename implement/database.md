@@ -26,10 +26,14 @@ The "migrations are immutable once applied" rule is enforced via SHA-256: editin
 
 ## Integer enums, end-to-end
 
-Every enum-shaped column on this database is `TINYINT UNSIGNED` and the
-same integer flows unchanged through the entire stack: MySQL → row mapper →
-API JSON → JWT claim → frontend code. There are no string ↔ integer
-translation helpers anywhere; the TypeScript type _is_ the integer.
+**New** enum-shaped columns must be `TINYINT UNSIGNED` + named integer consts —
+the same integer flows unchanged through MySQL → row mapper → API JSON → JWT
+claim → frontend. There are no string ↔ integer translation helpers for those
+domains; the TypeScript type _is_ the integer.
+
+Compliant integer columns are listed below. A few **legacy string-token**
+columns remain (post visibility/format, upload/attachment kind, job
+type/status) and should be migrated forward-only — do not add more of them.
 
 In source, each enum is exported as a `const` object plus a numeric union:
 
@@ -78,6 +82,20 @@ MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 token (`brand`, `sky`, `emerald`, …) composed into class names like
 `bg-${color}-100` all over the UI, so the strings carry real meaning
 outside the type system. It's stored as `VARCHAR(16)`.
+
+### Legacy string tokens (pending integer migration)
+
+| Column                   | Current DB                                     | Current TS                         | Suggested integer const                          |
+| ------------------------ | ---------------------------------------------- | ---------------------------------- | ------------------------------------------------ |
+| `posts.visibility`       | `ENUM('public','private','shared')`            | string union                       | `Public=0, Private=1, Shared=2`                  |
+| `posts.format`           | `VARCHAR(32)` (`update` / `manuscript`)        | `POST_FORMATS` strings             | `Update=0, Manuscript=1`                         |
+| `uploads.kind`           | `ENUM('image','document','audio')`             | string union                       | `Image=0, Document=1, Audio=2`                   |
+| `post_attachments.kind`  | `ENUM('image','document')`                     | narrowed from `AttachmentKind`     | align with `UploadKind` (audio is chat-only)     |
+| `jobs.status`            | `VARCHAR(16)`                                  | `JobStatus` string union           | `Pending=0, Processing=1, Completed=2, Dead=3`   |
+| `jobs.type`              | `VARCHAR(64)`                                  | `JobTypes` string consts           | integer `JobKind` for each worker type           |
+
+`post_attachments.kind` is image/document only — audio uploads attach via
+`chat_messages.upload_id`, not post attachments.
 
 ---
 
@@ -235,7 +253,7 @@ CREATE TABLE active_timer (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-> **Note:** `epic.estimatedHours`, `epic.spentHours`, `epic.progress`, and `task.spentHours`, `task.checklistProgress` are **never stored** — they are always computed at read time in `server/utils/db.ts` and attached to the response by the API.
+> **Note:** `epic.estimatedHours`, `epic.spentHours`, `epic.progress`, and `task.spentHours`, `task.checklistProgress` are **never stored** — they are always computed at read time in `server/db/compute.ts` (re-exported through `server/utils/db.ts`) and attached to the response by the API.
 
 ---
 
@@ -349,7 +367,7 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 | `post_audience`    | ACL rows for `visibility = shared`                                                                                                                                                                                                                                       |
 | `post_reactions`   | One reaction per `(post_id, user_id)`; `reaction` is `TINYINT` (`ReactionType`: Like=0 … Angry=5)                                                                                                                                                                        |
 | `post_comments`    | Threaded comments on a post                                                                                                                                                                                                                                              |
-| `post_attachments` | Attachment metadata linked to `uploads`                                                                                                                                                                                                                                  |
+| `post_attachments` | Attachment metadata linked to `uploads`; `kind` is `image`/`document` only (audio is chat-only via `chat_messages.upload_id`)                                                                                                                                            |
 | `post_categories`  | Install-wide category catalog (seeded; no `user_id`). `0005` seeds generic dirs; `0006` seeds Electronics / Mechanical Engineering / IT / IoT with low `sort_order`                                                                                                      |
 | `uploads`          | Upload metadata + R2 `storage_key` (`uploads/{kind}/{yyyy}/{mm}/…` for new objects; `kind` = `image`/`document`/`audio`)                                                                                                                                                 |
 | `stories`          | 24h stories (`expires_at`), optional media                                                                                                                                                                                                                               |
@@ -368,20 +386,20 @@ Wire DTOs: `~/types/post.ts`, `~/types/story.ts`. Domain SQL: `server/db/posts.t
 
 ---
 
-## Chat (migrations 0013–0015)
+## Chat (migrations 0013–0017)
 
 Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.md).
 
 | Table                     | Purpose                                                                                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `chat_conversations`      | One row per unordered pair of users (`user_a_id` &lt; `user_b_id`), with `last_message_at` + denormalized `last_message_id`              |
+| `chat_conversations`      | One row per pair; app enforces `user_a_id` &lt; `user_b_id` before insert (`UNIQUE(user_a_id, user_b_id)`). `last_message_at` + denormalized `last_message_id` (indexed, **no FK**) |
 | `chat_messages`           | Messages: `kind` (`0` text / `1` emoji / `2` sticker / `3` image / `4` audio), optional `body`, `sticker_id`, `upload_id`, `duration_ms` |
 | `chat_conversation_reads` | Per `(conversation_id, user_id)` `last_read_at` + denormalized `unread_count` for badge/list                                             |
-| `chat_message_reactions`  | One reaction per `(message_id, user_id)`; `reaction` is `TINYINT` (`ReactionType`)                                                       |
+| `chat_message_reactions`  | One reaction per `(message_id, user_id)`; `reaction` is `TINYINT` (`ReactionType`); FK cascade from message/user                         |
 
 Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Migration `0017` adds message reactions as `TINYINT`. Migration `0018` converts legacy post/story `ENUM` reaction strings to the same `TINYINT` `ReactionType` constants. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
-Wire DTOs + sticker catalog: `~/types/chat.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
+Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
 
 ---
 

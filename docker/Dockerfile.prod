@@ -1,12 +1,19 @@
-# Latest Node Current on Docker Hub. Official images still ship npm 11.x;
-# Alpine also omits Corepack. Upgrade npm in-image with `npm install -g`
-# so the version persists across layers (Corepack --activate does not).
+# Production image for the Pi (Podman). Optimized for rebuild speed:
+# - Early layers (apk / npm) stay cached across deploys via :builder-cache
+# - Runtime stage does NOT copy the full node_modules tree (was ~6 min on SD)
+# - Nitro `.output` is self-contained; only mysql2+tsx are needed for migrate
+#
+# Official node images still ship npm 11.x; Alpine omits Corepack. Upgrade npm
+# in the *builder* with `npm install -g` so it persists across layers.
 FROM node:26.5.0-alpine AS builder
 
 WORKDIR /app
 
 # Skip husky in image builds (.git is not copied into the build context).
 ENV HUSKY=0
+ENV npm_config_update_notifier=false
+ENV npm_config_fund=false
+ENV npm_config_audit=false
 
 RUN apk add --no-cache python3 make gcc g++ musl-dev \
     && ln -sf python3 /usr/bin/python \
@@ -31,22 +38,30 @@ RUN set -eu; \
 COPY . .
 RUN npm run build
 
+# ── Runtime ───────────────────────────────────────────────────────────────
 FROM node:26.5.0-alpine AS production
 
 WORKDIR /app
 
 ENV HUSKY=0
+ENV npm_config_update_notifier=false
+ENV npm_config_fund=false
+ENV npm_config_audit=false
 
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S nuxt -u 1001 \
-    && npm install -g npm@12.0.2 tsx@4.23.1 \
-    && node -v && npm -v
+    && npm install -g tsx@4.23.1 \
+    && node -v && tsx --version
+
+# Migrate / DB-wait only need mysql2. Do NOT copy builder node_modules
+# (hundreds of MB → multi-minute COPY on the Pi's SD card).
+COPY docker/runtime-package.json ./package.json
+RUN npm install --omit=dev --no-audit --no-fund \
+    && npm cache clean --force
 
 COPY --from=builder --chown=nuxt:nodejs /app/.output /app/.output
 COPY --from=builder --chown=nuxt:nodejs /app/scripts /app/scripts
 COPY --from=builder --chown=nuxt:nodejs /app/server/db /app/server/db
-COPY --from=builder --chown=nuxt:nodejs /app/package.json /app/package.json
-COPY --from=builder --chown=nuxt:nodejs /app/node_modules /app/node_modules
 COPY --chown=nuxt:nodejs docker/entrypoint.prod.sh /app/entrypoint.prod.sh
 
 RUN chmod +x /app/entrypoint.prod.sh

@@ -7,9 +7,8 @@ Everything you need to take a fresh checkout from "I just cloned this" to "I'm l
 ## Prerequisites
 
 - **Node.js ≥ 26.5** and **npm ≥ 12** (see `.nvmrc` / `package.json` `engines` + `packageManager`; enable with `corepack enable`)
-- npm
 - **MySQL 8** running on `localhost:3306` (or wherever you point the env vars)
-- Optional: **Cloudflare R2** credentials if you want feed/story file attachments
+- Optional: **Cloudflare R2** credentials for feed/story attachments, chat image/voice notes, and profile avatars
 - Optional: **Redis** (`REDIS_URL`) if you want a shared cache across app processes — not required; memory cache is the default
 
 ## Provision the database
@@ -65,7 +64,8 @@ APP_HOST=localhost
 APP_PORT=3000
 # APP_PROTOCOL=http
 
-# Cloudflare R2 (optional) — required for Attach on posts/stories.
+# Cloudflare R2 (optional) — required for Attach on posts/stories,
+# chat photos/voice notes, and profile avatars.
 # R2_ACCOUNT_ID=…
 # R2_ACCESS_KEY_ID=…
 # R2_SECRET_ACCESS_KEY=…
@@ -156,7 +156,7 @@ Sign in with the seed superadmin, or sign up a normal user — the verification 
 
 **Sessions.** Refresh tokens live in the HttpOnly cookie `mgmt_rt`; the access JWT is held in memory (and mirrored as `mgmt_at` for media). After login, a page reload should keep you signed in without re-entering credentials. On plain `http://localhost`, set `COOKIE_SECURE=false` in `.env` if cookies are rejected.
 
-UI language defaults to English (or a browser match on first visit). Change it anytime under **Settings → Language**, or from the header account menu — preference stays in local storage for that browser. See [`i18n.md`](./i18n.md).
+UI language on first visit tries Cloudflare country (`GET /api/geo`) → device timezone → browser/i18n match, then defaults to English. Change it anytime under **Settings → Language**, or from the header account menu — preference stays in local storage for that browser. See [`i18n.md`](./i18n.md).
 
 ## Building for production
 
@@ -186,7 +186,7 @@ Requires **TypeScript 5.9.x** (classic compiler API). Do **not** upgrade to nati
 
 ```bash
 npm run check:db
-npm test                 # Vitest unit tests (schemas, security helpers, sanitize)
+npm test                 # Vitest (schemas, security, rate-limit, chat, SEO, sanitize)
 ```
 
 Pings the DB, verifies no migrations are pending or have drifted, confirms expected core tables are present, and reports the current user count. Exits non-zero if the schema is incomplete.
