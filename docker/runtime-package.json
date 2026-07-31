@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "mysql2": "3.23.2"
+    "mysql2": "3.23.2",
+    "tsx": "4.23.1"
   }
 }

@@ -50,14 +50,15 @@ ENV npm_config_audit=false
 
 RUN addgroup -g 1001 -S nodejs \
     && adduser -S nuxt -u 1001 \
-    && npm install -g tsx@4.23.1 \
-    && node -v && tsx --version
+    && node -v && npm -v
 
-# Migrate / DB-wait only need mysql2. Do NOT copy builder node_modules
-# (hundreds of MB → multi-minute COPY on the Pi's SD card).
+# Migrate / DB-wait need local mysql2 + tsx (`node --import tsx` resolves
+# from /app/node_modules — a global install is not enough). Do NOT copy
+# builder node_modules (hundreds of MB → multi-minute COPY on the Pi SD).
 COPY docker/runtime-package.json ./package.json
 RUN npm install --omit=dev --no-audit --no-fund \
-    && npm cache clean --force
+    && npm cache clean --force \
+    && node --import tsx -e "console.log('tsx ok')"
 
 COPY --from=builder --chown=nuxt:nodejs /app/.output /app/.output
 COPY --from=builder --chown=nuxt:nodejs /app/scripts /app/scripts
