@@ -8,9 +8,8 @@
  * revokes all refresh sessions so the user must sign in again everywhere.
  */
 import {
-  consumePasswordReset,
-  revokeAllRefreshTokensForUser,
-  updateUserPassword,
+  passwordResetIsRedeemable,
+  redeemPasswordReset,
 } from "~/server/utils/db";
 import { hashOpaqueToken, hashPassword } from "~/server/utils/auth";
 import { parseBody } from "~/server/utils/http";
@@ -30,16 +29,24 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const userId = await consumePasswordReset(hashOpaqueToken(presented));
-  if (!userId) {
-    throw createError({
+  const tokenHash = hashOpaqueToken(presented);
+
+  const invalidToken = () =>
+    createError({
       statusCode: 400,
       statusMessage: "Reset link is invalid or expired",
     });
-  }
 
-  await updateUserPassword(userId, await hashPassword(password));
-  await revokeAllRefreshTokensForUser(userId);
+  // Reject junk tokens before spending a bcrypt hash on them; `redeem` below
+  // re-checks the same predicate atomically, so this is an optimisation, not
+  // the security boundary.
+  if (!(await passwordResetIsRedeemable(tokenHash))) throw invalidToken();
+
+  const userId = await redeemPasswordReset({
+    tokenHash,
+    passwordHash: await hashPassword(password),
+  });
+  if (!userId) throw invalidToken();
 
   return { ok: true };
 });
