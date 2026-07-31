@@ -11,13 +11,8 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
-import { emptyReactions as emptyReactionCounts } from "~/types/post";
 import type { StoriesTray } from "~/types/story";
 import { applyOptimisticReaction } from "~/utils/optimisticReaction";
-
-function emptyReactions(): Record<PostReactionType, number> {
-  return emptyReactionCounts();
-}
 
 function patchPost(list: Post[], id: string, next: Post): Post[] {
   const idx = list.findIndex((p) => p.id === id);
