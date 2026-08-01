@@ -104,7 +104,8 @@
     "googleEmailUnverified": "Your Google email must be verified.",
     "googleConflict": "That Google account is already linked elsewhere, or the email does not match.",
     "googleAuthRequired": "Sign in again to link Google.",
-    "googleFailed": "Google sign-in failed. Try again."
+    "googleFailed": "Google sign-in failed. Try again.",
+    "googleAccountUseGoogle": "This account uses Google sign-in. Continue with Google instead."
   },
   "settings": {
     "title": "Settings",

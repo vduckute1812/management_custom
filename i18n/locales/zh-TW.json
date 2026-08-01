@@ -104,7 +104,8 @@
     "googleEmailUnverified": "您的 Google 電子郵件尚未驗證。",
     "googleConflict": "該 Google 帳號已連結到其他帳戶，或電子郵件不符。",
     "googleAuthRequired": "請重新登入後再連結 Google。",
-    "googleFailed": "Google 登入失敗，請重試。"
+    "googleFailed": "Google 登入失敗，請重試。",
+    "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。"
   },
   "settings": {
     "title": "設定",

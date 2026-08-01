@@ -20,12 +20,12 @@ The role is enforced in three layers:
 
 ## Client route access
 
-| Paths                                                                       | Rule                                                                                      |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `/`, `/feed` (+ nested)                                                     | Public                                                                                    |
-| `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; if already authenticated → `/` (or `?redirect=`) for login/signup/forgot-password |
-| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, `/chat`, …       | Require session → else `/login?redirect=…`                                                |
-| `/admin`                                                                    | Require admin role → else `/` + toast                                                     |
+| Paths                                                                                         | Rule                                                                                                                                               |
+| --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`, `/feed` (+ nested)                                                                       | Public                                                                                                                                             |
+| `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password`, `/auth/continue` | Public; if already authenticated → `/` (or `?redirect=`) for login/signup/forgot-password. `/auth/continue` hydrates OAuth cookies into `useAuth`. |
+| `/tasks`, `/epics`, `/analytics`, `/settings`, `/profile`, `/chat`, …                         | Require session → else `/login?redirect=…`                                                                                                         |
+| `/admin`                                                                                      | Require admin role → else `/` + toast                                                                                                              |
 
 See `middleware/auth.global.ts`.
 
@@ -46,8 +46,8 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 Optional. When `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set:
 
 1. Login/signup show **Continue with Google** → `GET /api/auth/google?intent=login`.
-2. Callback creates an OAuth-only user (`password_hash NULL`, `email_verified=1`) or links an existing email, then issues the same cookie session as password login.
-3. Settings → Account can **Link Google** (`intent=link`, emails must match) or **Unlink** (requires a local password so the account is not locked out).
+2. Callback creates an OAuth-only user (`password_hash NULL`, `email_verified=1`) or links an existing email, then issues the same cookie session as password login and redirects to **`/auth/continue?redirect=…`** so the client can hydrate `useAuth` from the HttpOnly cookies (otherwise a fresh browser has no `auth:hasSession` flag and would paint as a guest).
+3. Settings → Account can **Link Google** (`intent=link`, emails must match; client refreshes the access cookie first) or **Unlink** (requires a local password so the account is not locked out). Cancel/error during link returns to Settings, not Login.
 
 Redirect URI: `{APP_BASE_URL}/api/auth/google/callback` (or `GOOGLE_REDIRECT_URI`). Provider enum: `AuthProvider.Google = 0` in `auth_identities.provider`.
 

@@ -79,30 +79,37 @@ if (import.meta.client) {
   void loadIdentities();
   const oauthErr =
     typeof route.query.oauth_error === "string" ? route.query.oauth_error : "";
-  if (oauthErr) {
-    const key =
-      (
-        {
-          denied: "auth.googleDenied",
-          state: "auth.googleStateInvalid",
-          config: "auth.googleNotConfigured",
-          email: "auth.googleEmailUnverified",
-          conflict: "auth.googleConflict",
-          auth: "auth.googleAuthRequired",
-          failed: "auth.googleFailed",
-        } as Record<string, string>
-      )[oauthErr] || "auth.googleFailed";
-    queueMicrotask(() => {
-      pushToast(t(key), { tone: "danger", duration: 4200 });
-    });
-  } else if (route.query.linked === "google") {
-    queueMicrotask(() => {
-      pushToast(t("settings.account.googleLinked"), {
-        tone: "success",
-        duration: 2200,
+  const linked = route.query.linked === "google";
+  if (oauthErr || linked) {
+    if (oauthErr) {
+      const key =
+        (
+          {
+            denied: "auth.googleDenied",
+            state: "auth.googleStateInvalid",
+            config: "auth.googleNotConfigured",
+            email: "auth.googleEmailUnverified",
+            conflict: "auth.googleConflict",
+            auth: "auth.googleAuthRequired",
+            failed: "auth.googleFailed",
+          } as Record<string, string>
+        )[oauthErr] || "auth.googleFailed";
+      queueMicrotask(() => {
+        pushToast(t(key), { tone: "danger", duration: 4200 });
       });
-    });
-    googleLinked.value = true;
+    } else {
+      queueMicrotask(() => {
+        pushToast(t("settings.account.googleLinked"), {
+          tone: "success",
+          duration: 2200,
+        });
+      });
+      googleLinked.value = true;
+    }
+    const nextQuery = { ...route.query };
+    delete nextQuery.oauth_error;
+    delete nextQuery.linked;
+    void router.replace({ path: "/settings", query: nextQuery });
   }
 }
 
