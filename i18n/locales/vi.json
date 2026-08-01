@@ -95,7 +95,16 @@
     "passwordResetBody": "Mật khẩu đã được thay đổi. Đăng nhập bằng mật khẩu mới.",
     "newPassword": "Mật khẩu mới",
     "missingResetToken": "Liên kết đặt lại không hợp lệ hoặc thiếu.",
-    "requestNewResetLink": "Yêu cầu liên kết mới"
+    "requestNewResetLink": "Yêu cầu liên kết mới",
+    "continueWithGoogle": "Tiếp tục với Google",
+    "orEmailPassword": "hoặc email & mật khẩu",
+    "googleDenied": "Đã hủy đăng nhập Google.",
+    "googleStateInvalid": "Phiên Google hết hạn. Thử lại.",
+    "googleNotConfigured": "Đăng nhập Google hiện không khả dụng.",
+    "googleEmailUnverified": "Email Google của bạn chưa được xác minh.",
+    "googleConflict": "Tài khoản Google đã được liên kết nơi khác, hoặc email không khớp.",
+    "googleAuthRequired": "Đăng nhập lại để liên kết Google.",
+    "googleFailed": "Đăng nhập Google thất bại. Thử lại."
   },
   "settings": {
     "title": "Cài đặt",
@@ -109,7 +118,16 @@
       "title": "Tài khoản",
       "subtitle": "Phiên đăng nhập trên trình duyệt này.",
       "editProfile": "Chỉnh sửa hồ sơ",
-      "signOut": "Đăng xuất"
+      "signOut": "Đăng xuất",
+      "googleHint": "Liên kết Google để đăng nhập nhanh hơn lần sau.",
+      "googleLinkedStatus": "Đã kết nối Google",
+      "googleNotLinked": "Chưa kết nối Google",
+      "linkGoogle": "Liên kết Google",
+      "unlinkGoogle": "Hủy liên kết Google",
+      "googleLinked": "Đã liên kết tài khoản Google",
+      "googleUnlinked": "Đã hủy liên kết Google",
+      "googleUnlinkFailed": "Không thể hủy liên kết Google",
+      "googleUnlinkNeedPassword": "Đặt mật khẩu (Quên mật khẩu) trước khi hủy liên kết Google."
     },
     "appearance": {
       "title": "Giao diện",

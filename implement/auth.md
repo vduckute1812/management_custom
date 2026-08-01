@@ -35,16 +35,27 @@ The `users.role` column is `TINYINT UNSIGNED` and the same integer flows unchang
 
 ## HttpOnly cookies
 
-| Cookie    | Purpose                                     | Max-Age | JS readable |
-| --------- | ------------------------------------------- | ------- | ----------- |
-| `mgmt_rt` | Refresh token (opaque, SHA-256 hash in DB)  | 30 days | No          |
-| `mgmt_at` | Access JWT (mirrors in-memory Bearer token) | 15 min  | No          |
+| Cookie       | Purpose                                              | Max-Age | JS readable |
+| ------------ | ---------------------------------------------------- | ------- | ----------- |
+| `mgmt_rt`    | Refresh token (opaque, SHA-256 hash in DB)           | 30 days | No          |
+| `mgmt_at`    | Access JWT mirror for same-origin media              | 15 min  | No          |
+| `mgmt_oauth` | Short-lived OAuth CSRF nonce (Google start/callback) | 10 min  | No          |
 
-Both are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to on in production / when `APP_BASE_URL` is `https://`; override with `COOKIE_SECURE=false` for plain `http://localhost` dev.
+## Google OAuth
+
+Optional. When `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set:
+
+1. Login/signup show **Continue with Google** → `GET /api/auth/google?intent=login`.
+2. Callback creates an OAuth-only user (`password_hash NULL`, `email_verified=1`) or links an existing email, then issues the same cookie session as password login.
+3. Settings → Account can **Link Google** (`intent=link`, emails must match) or **Unlink** (requires a local password so the account is not locked out).
+
+Redirect URI: `{APP_BASE_URL}/api/auth/google/callback` (or `GOOGLE_REDIRECT_URI`). Provider enum: `AuthProvider.Google = 0` in `auth_identities.provider`.
+
+Both auth cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to on in production / when `APP_BASE_URL` is `https://`; override with `COOKIE_SECURE=false` for plain `http://localhost` dev.
 
 Login and refresh set both cookies. Logout revokes the refresh hash server-side and clears cookies.
 
-Cookie-authenticated auth mutations (`refresh`, `logout`) apply a soft same-origin check (`Origin` / `Referer` must match `Host` when a cookie is used) to reduce CSRF risk.
+Cookie-authenticated auth mutations (`refresh`, `logout`, Google unlink) apply a soft same-origin check (`Origin` / `Referer` must match `Host` when a cookie is used) to reduce CSRF risk.
 
 ---
 

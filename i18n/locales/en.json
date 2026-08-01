@@ -95,7 +95,16 @@
     "passwordResetBody": "Your password was changed. Sign in with your new password.",
     "newPassword": "New password",
     "missingResetToken": "Missing or invalid reset link.",
-    "requestNewResetLink": "Request a new reset link"
+    "requestNewResetLink": "Request a new reset link",
+    "continueWithGoogle": "Continue with Google",
+    "orEmailPassword": "or email & password",
+    "googleDenied": "Google sign-in was cancelled.",
+    "googleStateInvalid": "Google sign-in expired. Try again.",
+    "googleNotConfigured": "Google sign-in is not available right now.",
+    "googleEmailUnverified": "Your Google email must be verified.",
+    "googleConflict": "That Google account is already linked elsewhere, or the email does not match.",
+    "googleAuthRequired": "Sign in again to link Google.",
+    "googleFailed": "Google sign-in failed. Try again."
   },
   "settings": {
     "title": "Settings",
@@ -109,7 +118,16 @@
       "title": "Account",
       "subtitle": "Signed-in session for this browser.",
       "editProfile": "Edit profile",
-      "signOut": "Sign out"
+      "signOut": "Sign out",
+      "googleHint": "Sign in faster next time by linking Google to this account.",
+      "googleLinkedStatus": "Google connected",
+      "googleNotLinked": "Google not connected",
+      "linkGoogle": "Link Google",
+      "unlinkGoogle": "Unlink Google",
+      "googleLinked": "Google account linked",
+      "googleUnlinked": "Google account unlinked",
+      "googleUnlinkFailed": "Could not unlink Google",
+      "googleUnlinkNeedPassword": "Set a password (Forgot password) before unlinking Google."
     },
     "appearance": {
       "title": "Appearance",

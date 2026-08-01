@@ -23,6 +23,7 @@
  *   - tasks.ts                 — Task CRUD + appendBlock
  *   - timer.ts                 — Active-timer get/set
  *   - users.ts                 — User CRUD + role/password/verified mutators
+ *   - auth-identities.ts       — OAuth provider identities (Google, …)
  *   - refresh-tokens.ts        — Refresh-token lifecycle
  *   - email-verifications.ts   — Email-verification lifecycle
  *   - admin.ts                 — Cross-user aggregations (UNSCOPED)
@@ -46,6 +47,7 @@ export * from "../db/epics";
 export * from "../db/tasks";
 export * from "../db/timer";
 export * from "../db/users";
+export * from "../db/auth-identities";
 export * from "../db/refresh-tokens";
 export * from "../db/email-verifications";
 export * from "../db/password-resets";

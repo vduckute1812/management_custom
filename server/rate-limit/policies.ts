@@ -13,6 +13,8 @@ export const ROUTE_POLICIES: Array<{
   limit: number;
   windowMs: number;
 }> = [
+  { prefix: "/api/auth/google/unlink", limit: 10, windowMs: 60_000 },
+  { prefix: "/api/auth/google", limit: 20, windowMs: 60_000 },
   { prefix: "/api/auth/login", limit: 10, windowMs: 60_000 },
   { prefix: "/api/auth/signup", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/refresh", limit: 30, windowMs: 60_000 },

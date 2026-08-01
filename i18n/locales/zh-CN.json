@@ -95,7 +95,16 @@
     "passwordResetBody": "您的密码已更改。请使用新密码登录。",
     "newPassword": "新密码",
     "missingResetToken": "重置链接无效或缺失。",
-    "requestNewResetLink": "请求新的重置链接"
+    "requestNewResetLink": "请求新的重置链接",
+    "continueWithGoogle": "使用 Google 继续",
+    "orEmailPassword": "或使用邮箱和密码",
+    "googleDenied": "已取消 Google 登录。",
+    "googleStateInvalid": "Google 登录已过期，请重试。",
+    "googleNotConfigured": "目前无法使用 Google 登录。",
+    "googleEmailUnverified": "您的 Google 邮箱尚未验证。",
+    "googleConflict": "该 Google 账号已关联到其他账户，或邮箱不匹配。",
+    "googleAuthRequired": "请重新登录后再关联 Google。",
+    "googleFailed": "Google 登录失败，请重试。"
   },
   "settings": {
     "title": "设置",
@@ -109,7 +118,16 @@
       "title": "账户",
       "subtitle": "此浏览器中的登录会话。",
       "editProfile": "编辑资料",
-      "signOut": "退出登录"
+      "signOut": "退出登录",
+      "googleHint": "关联 Google 后下次可更快登录。",
+      "googleLinkedStatus": "已连接 Google",
+      "googleNotLinked": "未连接 Google",
+      "linkGoogle": "关联 Google",
+      "unlinkGoogle": "取消关联 Google",
+      "googleLinked": "已关联 Google 账号",
+      "googleUnlinked": "已取消关联 Google",
+      "googleUnlinkFailed": "无法取消关联 Google",
+      "googleUnlinkNeedPassword": "取消关联 Google 前请先设置密码（忘记密码）。"
     },
     "appearance": {
       "title": "外观",

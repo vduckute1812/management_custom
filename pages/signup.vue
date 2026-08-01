@@ -24,6 +24,7 @@ const name = ref("");
 const busy = ref(false);
 const error = ref<string | null>(null);
 const success = ref<{ verificationSent: boolean } | null>(null);
+const googleEnabled = ref(false);
 
 const RULE_I18N: Record<PasswordRuleId, string> = {
   minLength: "auth.passwordRuleMinLength",
@@ -42,6 +43,15 @@ const passwordsMatch = computed(
 const canSubmit = computed(
   () => isPasswordStrong(password.value) && passwordsMatch.value && !busy.value,
 );
+
+onMounted(async () => {
+  try {
+    const providers = await $fetch<{ google: boolean }>("/api/auth/providers");
+    googleEnabled.value = providers.google === true;
+  } catch {
+    googleEnabled.value = false;
+  }
+});
 
 async function onSubmit() {
   if (busy.value) return;
@@ -122,6 +132,15 @@ async function onSubmit() {
         class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4"
         @submit.prevent="onSubmit"
       >
+        <template v-if="googleEnabled">
+          <GoogleSignInButton intent="login" redirect="/" :busy="busy" />
+          <div class="flex items-center gap-3 text-[11px] text-slate-400">
+            <span class="flex-1 h-px bg-slate-200" />
+            <span>{{ $t("auth.orEmailPassword") }}</span>
+            <span class="flex-1 h-px bg-slate-200" />
+          </div>
+        </template>
+
         <div>
           <label
             for="signup-name"

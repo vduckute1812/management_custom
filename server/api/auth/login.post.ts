@@ -1,24 +1,9 @@
 /**
  * POST /api/auth/login — Zod-validated; sets HttpOnly auth cookies.
  */
-import {
-  getUserByEmail,
-  issueRefreshToken,
-  recordUserLogin,
-  toAuthUser,
-} from "~/server/utils/db";
-import {
-  generateOpaqueToken,
-  hashOpaqueToken,
-  nowPlusSeconds,
-  signAccessToken,
-  TOKEN_TTL,
-  verifyPassword,
-} from "~/server/utils/auth";
-import {
-  setAccessCookie,
-  setRefreshCookie,
-} from "~/server/utils/refreshCookie";
+import { getUserByEmail } from "~/server/utils/db";
+import { verifyPassword } from "~/server/utils/auth";
+import { issueAuthSession } from "~/server/utils/authSession";
 import { parseBody } from "~/server/utils/http";
 import { loginBodySchema } from "~/server/schemas";
 import { assertAccountRateLimit } from "~/server/rate-limit";
@@ -39,6 +24,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 401, statusMessage: GENERIC_INVALID });
   }
 
+  if (!user.passwordHash) {
+    throw createError({
+      statusCode: 401,
+      statusMessage:
+        "This account uses Google sign-in. Continue with Google instead.",
+    });
+  }
+
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) {
     throw createError({ statusCode: 401, statusMessage: GENERIC_INVALID });
@@ -52,32 +45,5 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const accessToken = signAccessToken({
-    sub: user.id,
-    email: user.email,
-    role: user.role,
-  });
-  const accessExpiresAt = nowPlusSeconds(TOKEN_TTL.accessSeconds);
-
-  const refreshToken = generateOpaqueToken();
-  const refreshExpiresAt = nowPlusSeconds(TOKEN_TTL.refreshSeconds);
-  await issueRefreshToken({
-    userId: user.id,
-    tokenHash: hashOpaqueToken(refreshToken),
-    expiresAt: refreshExpiresAt,
-    userAgent: getRequestHeader(event, "user-agent") ?? undefined,
-    ip: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
-  });
-
-  setRefreshCookie(event, refreshToken);
-  setAccessCookie(event, accessToken);
-
-  await recordUserLogin(user.id).catch(() => {});
-
-  return {
-    user: toAuthUser(user),
-    accessToken,
-    accessExpiresAt,
-    refreshExpiresAt,
-  };
+  return issueAuthSession(event, user);
 });

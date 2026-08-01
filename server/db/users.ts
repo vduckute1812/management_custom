@@ -55,7 +55,8 @@ export async function countUsers(): Promise<number> {
 
 export interface CreateUserInput {
   email: string;
-  passwordHash: string;
+  /** Null for OAuth-only accounts. */
+  passwordHash: string | null;
   name?: string;
   role?: UserRole;
   emailVerified?: boolean;
@@ -160,6 +161,15 @@ export async function updateUserRole(
     isoToDB(nowISO()),
     id,
   ]);
+}
+
+/** Mark email verified after a trusted IdP (e.g. Google) confirmed it. */
+export async function markUserEmailVerified(id: string): Promise<void> {
+  const pool = getPool();
+  await pool.query(
+    "UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ? AND email_verified = 0",
+    [isoToDB(nowISO()), id],
+  );
 }
 
 // `email_verified` and `password_hash` are written inside the transactions in

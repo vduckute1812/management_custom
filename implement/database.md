@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities`.
 
 ## Migration system
 
@@ -72,6 +72,7 @@ MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 | Column                                                                                     | Type                    | Mapping                                                                                 |
 | ------------------------------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------- |
 | `users.role`                                                                               | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`                                                       |
+| `auth_identities.provider`                                                                 | `TINYINT UNSIGNED`      | `AuthProvider.Google=0`                                                                 |
 | `epics.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
 | `tasks.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
 | `tasks.priority`                                                                           | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`                                                               |
@@ -109,7 +110,7 @@ post attachments are image/document only, while audio uploads attach via
 CREATE TABLE users (
   id              VARCHAR(64) PRIMARY KEY,
   email           VARCHAR(320) NOT NULL,
-  password_hash   VARCHAR(255) NOT NULL,
+  password_hash   VARCHAR(255) NULL,   -- NULL = OAuth-only (migration 0023)
   name            VARCHAR(255) NULL,
   avatar_upload_id VARCHAR(64) NULL,   -- migration 0010; FK → uploads(id)
   title           VARCHAR(120) NULL,   -- migration 0010
@@ -124,6 +125,22 @@ CREATE TABLE users (
   INDEX idx_users_role (role),
   CONSTRAINT fk_users_avatar_upload FOREIGN KEY (avatar_upload_id)
     REFERENCES uploads(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- OAuth identities (migration 0023). AuthProvider: Google=0
+CREATE TABLE auth_identities (
+  id               VARCHAR(64) PRIMARY KEY,
+  user_id          VARCHAR(64) NOT NULL,
+  provider         TINYINT UNSIGNED NOT NULL,
+  provider_subject VARCHAR(255) NOT NULL,
+  provider_email   VARCHAR(320) NULL,
+  created_at       DATETIME(3) NOT NULL,
+  updated_at       DATETIME(3) NOT NULL,
+  UNIQUE KEY uniq_auth_identities_provider_subject (provider, provider_subject),
+  UNIQUE KEY uniq_auth_identities_user_provider (user_id, provider),
+  CONSTRAINT fk_auth_identities_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_auth_identities_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Refresh tokens ------------------------------------------------------

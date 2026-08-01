@@ -124,7 +124,8 @@ import type { AuthUser as _AuthUser } from "../../types/task";
 
 /** Same as AuthUser but with the password hash — server-internal only. */
 export interface UserRecord extends _AuthUser {
-  passwordHash: string;
+  /** Null for OAuth-only accounts (no local password set). */
+  passwordHash: string | null;
 }
 
 export interface RefreshTokenRecord {
