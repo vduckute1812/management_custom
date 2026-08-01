@@ -4,7 +4,7 @@ All routes are handled by Nitro under `/server/api/`.
 
 **Auth rules (summary):**
 
-- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/categories`, `GET /api/geo`, `GET /api/health`.
+- **Public (no session):** `POST /api/auth/{signup,login,refresh,verify-email,forgot-password,reset-password}`, `GET /api/auth/{providers,google,google/callback}`, `GET /api/categories`, `GET /api/geo`, `GET /api/health`. Client route `/auth/continue` hydrates OAuth cookies into `useAuth`.
 - **Optional auth:** some **GET** feed/media routes use `getOptionalUser` so anonymous clients can read **public** posts / signed media when allowed; with a Bearer token or HttpOnly access cookie the viewer also sees private/shared content they own or were granted. `POST /api/auth/logout` also uses optional auth — it revokes the presented refresh token (cookie/body) without requiring an access JWT; `everywhere: true` only works when an access context identifies the caller.
 - **Authenticated:** everything else requires a valid access JWT via `Authorization: Bearer …` or the `mgmt_at` cookie (`401` without it). Time-management CRUD is always scoped to the caller.
 - **Admin:** `role >= 1` (`403` otherwise). **Superadmin-only:** `DELETE /api/admin/users/:id`, `GET /api/admin/system`, `GET /api/admin/system/logs`.
