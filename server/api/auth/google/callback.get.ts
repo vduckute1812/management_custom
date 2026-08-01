@@ -14,39 +14,60 @@ import {
 } from "~/server/utils/googleOAuth";
 import { resolveGoogleOAuthUser } from "~/server/utils/googleOAuthUser";
 
-function failRedirect(redirectBase: string, code: string): string {
-  const path = redirectBase.startsWith("/settings") ? "/settings" : "/login";
+function failRedirect(
+  intent: (typeof AuthOAuthIntent)[keyof typeof AuthOAuthIntent] | null,
+  code: string,
+): string {
+  const path = intent === AuthOAuthIntent.Link ? "/settings" : "/login";
   const url = new URL(path, "http://local.invalid");
   url.searchParams.set("oauth_error", code);
   return `${url.pathname}?${url.searchParams.toString()}`;
 }
 
+/** After login/signup OAuth: hydrate client session from cookies. */
+function continueRedirect(redirect: string): string {
+  const dest = safeOAuthRedirect(redirect, "/");
+  const url = new URL("/auth/continue", "http://local.invalid");
+  url.searchParams.set("redirect", dest);
+  return `${url.pathname}?${url.searchParams.toString()}`;
+}
+
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
+  const stateRaw = typeof query.state === "string" ? query.state : "";
+  const stateHint = stateRaw ? parseOAuthState(stateRaw) : null;
+
   const config = getGoogleOAuthConfig();
   if (!config) {
     clearOAuthStateCookie(event);
-    return sendRedirect(event, failRedirect("/login", "config"), 302);
+    return sendRedirect(
+      event,
+      failRedirect(stateHint?.intent ?? null, "config"),
+      302,
+    );
   }
 
   const err = typeof query.error === "string" ? query.error : "";
   if (err) {
     clearOAuthStateCookie(event);
-    return sendRedirect(event, failRedirect("/login", "denied"), 302);
+    return sendRedirect(
+      event,
+      failRedirect(stateHint?.intent ?? null, "denied"),
+      302,
+    );
   }
 
   const code = typeof query.code === "string" ? query.code : "";
-  const stateRaw = typeof query.state === "string" ? query.state : "";
   const cookieNonce = readOAuthStateCookie(event);
   clearOAuthStateCookie(event);
 
-  const state = stateRaw ? parseOAuthState(stateRaw) : null;
+  const state = stateHint;
   if (!state || !cookieNonce || state.nonce !== cookieNonce) {
-    return sendRedirect(event, failRedirect("/login", "state"), 302);
+    return sendRedirect(event, failRedirect(null, "state"), 302);
   }
 
   if (!code) {
-    return sendRedirect(event, failRedirect(state.redirect, "denied"), 302);
+    return sendRedirect(event, failRedirect(state.intent, "denied"), 302);
   }
 
   try {
@@ -73,7 +94,7 @@ export default defineEventHandler(async (event) => {
       );
     }
 
-    return sendRedirect(event, safeOAuthRedirect(state.redirect, "/"), 302);
+    return sendRedirect(event, continueRedirect(state.redirect), 302);
   } catch (e: unknown) {
     const status = (e as { statusCode?: number }).statusCode;
     const msg = (e as { statusMessage?: string }).statusMessage ?? "";
@@ -82,8 +103,6 @@ export default defineEventHandler(async (event) => {
     if (status === 409) codeKey = "conflict";
     else if (status === 403) codeKey = "email";
     else if (status === 401) codeKey = "auth";
-    const bounce =
-      state.intent === AuthOAuthIntent.Link ? "/settings" : "/login";
-    return sendRedirect(event, failRedirect(bounce, codeKey), 302);
+    return sendRedirect(event, failRedirect(state.intent, codeKey), 302);
   }
 });

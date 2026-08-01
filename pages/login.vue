@@ -36,6 +36,9 @@ onMounted(async () => {
     typeof route.query.oauth_error === "string" ? route.query.oauth_error : "";
   if (errCode) {
     error.value = t(OAUTH_ERROR_KEYS[errCode] || "auth.googleFailed");
+    const nextQuery = { ...route.query };
+    delete nextQuery.oauth_error;
+    void router.replace({ path: "/login", query: nextQuery });
   }
   try {
     const providers = await $fetch<{ google: boolean }>("/api/auth/providers");
@@ -53,11 +56,16 @@ async function onSubmit() {
     await auth.login(email.value.trim(), password.value);
     await router.replace(redirectTarget.value);
   } catch (err: unknown) {
-    error.value =
+    const statusMessage =
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
         ?.data?.statusMessage ??
       (err as { statusMessage?: string }).statusMessage ??
-      t("auth.loginFailed");
+      null;
+    if (statusMessage && /google sign-in/i.test(statusMessage)) {
+      error.value = t("auth.googleAccountUseGoogle");
+    } else {
+      error.value = statusMessage ?? t("auth.loginFailed");
+    }
   } finally {
     busy.value = false;
   }

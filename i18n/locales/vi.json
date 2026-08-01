@@ -104,7 +104,8 @@
     "googleEmailUnverified": "Email Google của bạn chưa được xác minh.",
     "googleConflict": "Tài khoản Google đã được liên kết nơi khác, hoặc email không khớp.",
     "googleAuthRequired": "Đăng nhập lại để liên kết Google.",
-    "googleFailed": "Đăng nhập Google thất bại. Thử lại."
+    "googleFailed": "Đăng nhập Google thất bại. Thử lại.",
+    "googleAccountUseGoogle": "Tài khoản này dùng đăng nhập Google. Hãy chọn Tiếp tục với Google."
   },
   "settings": {
     "title": "Cài đặt",

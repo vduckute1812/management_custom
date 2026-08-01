@@ -1,6 +1,8 @@
 <script setup lang="ts">
 /**
  * Shared Google OAuth CTA — full-page redirect to /api/auth/google.
+ * Link intent refreshes the access cookie first so a stale 15-min JWT
+ * does not 401 the start endpoint while the SPA still looks signed-in.
  */
 const props = withDefaults(
   defineProps<{
@@ -16,13 +18,39 @@ const props = withDefaults(
   },
 );
 
-function startGoogle() {
-  if (props.busy) return;
-  const params = new URLSearchParams({
-    intent: props.intent,
-    redirect: props.redirect || "/",
-  });
-  window.location.assign(`/api/auth/google?${params.toString()}`);
+const emit = defineEmits<{
+  (e: "busy", value: boolean): void;
+}>();
+
+const starting = ref(false);
+
+async function startGoogle() {
+  if (props.busy || starting.value) return;
+  starting.value = true;
+  emit("busy", true);
+  try {
+    if (props.intent === "link") {
+      const auth = useAuth();
+      try {
+        await auth.refresh();
+      } catch {
+        await navigateTo({
+          path: "/login",
+          query: { redirect: "/settings", oauth_error: "auth" },
+        });
+        return;
+      }
+    }
+    const params = new URLSearchParams({
+      intent: props.intent,
+      redirect: props.redirect || "/",
+    });
+    window.location.assign(`/api/auth/google?${params.toString()}`);
+  } finally {
+    // Full navigation usually unloads; keep local state tidy if it does not.
+    starting.value = false;
+    emit("busy", false);
+  }
 }
 </script>
 
@@ -30,7 +58,7 @@ function startGoogle() {
   <button
     type="button"
     class="w-full inline-flex items-center justify-center gap-2 py-2 rounded-md text-sm font-semibold border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed transition"
-    :disabled="busy"
+    :disabled="busy || starting"
     @click="startGoogle"
   >
     <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0" aria-hidden="true">

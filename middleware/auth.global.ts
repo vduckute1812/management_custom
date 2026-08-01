@@ -23,6 +23,7 @@ const PUBLIC_PATHS = new Set([
   "/verify-email",
   "/forgot-password",
   "/reset-password",
+  "/auth/continue",
 ]);
 const AUTH_FORM_PATHS = new Set(["/login", "/signup", "/forgot-password"]);
 
