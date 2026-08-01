@@ -613,7 +613,8 @@ async function onPlanClick() {
 
     <div
       ref="reactRoot"
-      class="relative grid grid-cols-4 border-t border-slate-100 bg-slate-50/40 px-1 py-1"
+      class="relative border-t border-slate-100 bg-slate-50/40 px-1 py-1 grid"
+      :class="isManuscript ? 'grid-cols-4' : 'grid-cols-3'"
     >
       <div
         class="relative"
@@ -714,6 +715,7 @@ async function onPlanClick() {
         {{ $t("feed.post.share") }}
       </button>
       <button
+        v-if="isManuscript"
         type="button"
         class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-slate-600 transition hover:bg-white hover:text-slate-900 hover:shadow-sm disabled:opacity-50 sm:text-sm"
         :disabled="planBusy"
