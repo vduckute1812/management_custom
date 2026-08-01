@@ -17,6 +17,33 @@ const email = ref("");
 const password = ref("");
 const busy = ref(false);
 const error = ref<string | null>(null);
+const googleEnabled = ref(false);
+
+const OAUTH_ERROR_KEYS: Record<string, string> = {
+  denied: "auth.googleDenied",
+  state: "auth.googleStateInvalid",
+  config: "auth.googleNotConfigured",
+  email: "auth.googleEmailUnverified",
+  conflict: "auth.googleConflict",
+  auth: "auth.googleAuthRequired",
+  failed: "auth.googleFailed",
+};
+
+const redirectTarget = computed(() => (route.query.redirect as string) || "/");
+
+onMounted(async () => {
+  const errCode =
+    typeof route.query.oauth_error === "string" ? route.query.oauth_error : "";
+  if (errCode) {
+    error.value = t(OAUTH_ERROR_KEYS[errCode] || "auth.googleFailed");
+  }
+  try {
+    const providers = await $fetch<{ google: boolean }>("/api/auth/providers");
+    googleEnabled.value = providers.google === true;
+  } catch {
+    googleEnabled.value = false;
+  }
+});
 
 async function onSubmit() {
   if (busy.value) return;
@@ -24,8 +51,7 @@ async function onSubmit() {
   busy.value = true;
   try {
     await auth.login(email.value.trim(), password.value);
-    const redirect = (route.query.redirect as string) || "/";
-    await router.replace(redirect);
+    await router.replace(redirectTarget.value);
   } catch (err: unknown) {
     error.value =
       (err as { data?: { statusMessage?: string }; statusMessage?: string })
@@ -61,6 +87,19 @@ async function onSubmit() {
         class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4"
         @submit.prevent="onSubmit"
       >
+        <template v-if="googleEnabled">
+          <GoogleSignInButton
+            intent="login"
+            :redirect="redirectTarget"
+            :busy="busy"
+          />
+          <div class="flex items-center gap-3 text-[11px] text-slate-400">
+            <span class="flex-1 h-px bg-slate-200" />
+            <span>{{ $t("auth.orEmailPassword") }}</span>
+            <span class="flex-1 h-px bg-slate-200" />
+          </div>
+        </template>
+
         <div>
           <label
             for="login-email"

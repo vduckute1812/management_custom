@@ -113,7 +113,7 @@ export interface TimerRow extends RowDataPacket {
 export interface UserRow extends RowDataPacket {
   id: string;
   email: string;
-  password_hash: string;
+  password_hash: string | null;
   name: string | null;
   avatar_upload_id: string | null;
   title: string | null;

@@ -95,7 +95,16 @@
     "passwordResetBody": "您的密碼已變更。請使用新密碼登入。",
     "newPassword": "新密碼",
     "missingResetToken": "重設連結無效或缺失。",
-    "requestNewResetLink": "要求新的重設連結"
+    "requestNewResetLink": "要求新的重設連結",
+    "continueWithGoogle": "使用 Google 繼續",
+    "orEmailPassword": "或使用電子郵件與密碼",
+    "googleDenied": "已取消 Google 登入。",
+    "googleStateInvalid": "Google 登入已過期，請重試。",
+    "googleNotConfigured": "目前無法使用 Google 登入。",
+    "googleEmailUnverified": "您的 Google 電子郵件尚未驗證。",
+    "googleConflict": "該 Google 帳號已連結到其他帳戶，或電子郵件不符。",
+    "googleAuthRequired": "請重新登入後再連結 Google。",
+    "googleFailed": "Google 登入失敗，請重試。"
   },
   "settings": {
     "title": "設定",
@@ -109,7 +118,16 @@
       "title": "帳戶",
       "subtitle": "此瀏覽器中的登入工作階段。",
       "editProfile": "編輯資料",
-      "signOut": "登出"
+      "signOut": "登出",
+      "googleHint": "連結 Google 後下次可更快登入。",
+      "googleLinkedStatus": "已連接 Google",
+      "googleNotLinked": "未連接 Google",
+      "linkGoogle": "連結 Google",
+      "unlinkGoogle": "取消連結 Google",
+      "googleLinked": "已連結 Google 帳號",
+      "googleUnlinked": "已取消連結 Google",
+      "googleUnlinkFailed": "無法取消連結 Google",
+      "googleUnlinkNeedPassword": "取消連結 Google 前請先設定密碼（忘記密碼）。"
     },
     "appearance": {
       "title": "外觀",

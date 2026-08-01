@@ -154,9 +154,9 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 
 **Deferred (per spec)**
 
-- [ ] **Phase 2: SMS sign-up.** `implement/auth-rbac.md` explicitly marks SMS as a later phase. Hook-in point would be a new `auth/signup-sms.post.ts` + a `phone_numbers` table linked to `users`; the rest of the token / role machinery is provider-agnostic.
 - [x] Password reset via email (`POST /api/auth/forgot-password`, `POST /api/auth/reset-password`, `auth_password_resets`, job type `email.passwordReset`). Change-password while logged in remains a follow-up.
-- [ ] OAuth ("Sign in with Google"). The spec text was ambiguous between SMTP-verified email/password and OAuth; we shipped the former. Adding the latter is additive (a new route that creates/links a user and issues the same JWT/refresh pair).
+- [x] OAuth ("Sign in with Google"): `GET /api/auth/google` + callback, `auth_identities` (`AuthProvider.Google=0`), nullable `password_hash`, Settings link/unlink. Requires `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+- [ ] **Phase 2: SMS sign-up.** `implement/auth-rbac.md` explicitly marks SMS as a later phase. Hook-in point would be a new `auth/signup-sms.post.ts` + a `phone_numbers` table linked to `users`; the rest of the token / role machinery is provider-agnostic.
 
 ## Phase 9 — Superadmin role + integer enums end-to-end
 
