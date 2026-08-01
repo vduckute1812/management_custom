@@ -335,6 +335,7 @@
       "plan": "计划",
       "planTitle": "将此文章作为研究任务加入时间管理",
       "planUntitled": "分享的文章",
+      "planManuscriptOnly": "仅手稿类帖子可规划为研究任务",
       "planTaskTitle": "研究：{title}",
       "planTaskNotes": "作者 {author} · 发布于 {date}\n动态文章 ID：{id}",
       "planTaskCreated": "已在时间管理中创建研究任务",

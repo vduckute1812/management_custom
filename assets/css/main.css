@@ -199,6 +199,11 @@ html[data-theme="dark"] {
 .to-white {
   --tw-gradient-to: var(--surface);
 }
+.from-slate-50 {
+  --tw-gradient-from: var(--surface-muted);
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--tw-gradient-to, rgb(248 250 252 / 0));
+}
 
 .manuscript-card {
   background-color: var(--mf-paper) !important;

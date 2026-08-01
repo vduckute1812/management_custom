@@ -25,6 +25,10 @@ export function usePlanPostAsTask() {
       await navigateTo({ path: "/login", query: { redirect: "/feed" } });
       return false;
     }
+    if (post.format !== PostFormat.Manuscript) {
+      pushToast(t("feed.post.planManuscriptOnly"), { tone: "danger" });
+      return false;
+    }
     if (planBusy.value) return false;
     planBusy.value = true;
     try {

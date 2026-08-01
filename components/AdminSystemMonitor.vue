@@ -56,9 +56,18 @@ async function ensureChartLib() {
   return ChartCtor;
 }
 
+function chartInkColors() {
+  const styles = getComputedStyle(document.documentElement);
+  const ink = styles.getPropertyValue("--ink").trim() || "#0f172a";
+  const muted = styles.getPropertyValue("--ink-muted").trim() || "#64748b";
+  const border = styles.getPropertyValue("--border").trim() || "#e2e8f0";
+  return { ink, muted, border };
+}
+
 async function renderTrend() {
   if (!trendChart.value || history.value.length < 2) return;
   const Chart = await ensureChartLib();
+  const { muted, border } = chartInkColors();
   const labels = history.value.map((h) =>
     new Date(h.at).toLocaleTimeString(undefined, {
       hour: "2-digit",
@@ -111,26 +120,37 @@ async function renderTrend() {
       plugins: {
         legend: {
           position: "bottom" as const,
-          labels: { boxWidth: 10, font: { size: 11 } },
+          labels: { boxWidth: 10, font: { size: 11 }, color: muted },
         },
       },
       scales: {
         x: {
           grid: { display: false },
-          ticks: { maxTicksLimit: 6, font: { size: 10 } },
+          ticks: { maxTicksLimit: 6, font: { size: 10 }, color: muted },
         },
         y: {
           min: 0,
           max: 100,
-          title: { display: true, text: "%", font: { size: 10 } },
-          ticks: { font: { size: 10 } },
+          title: {
+            display: true,
+            text: "%",
+            font: { size: 10 },
+            color: muted,
+          },
+          ticks: { font: { size: 10 }, color: muted },
+          grid: { color: border },
         },
         y1: {
           position: "right" as const,
           min: 0,
           grid: { drawOnChartArea: false },
-          title: { display: true, text: "ms", font: { size: 10 } },
-          ticks: { font: { size: 10 } },
+          title: {
+            display: true,
+            text: "ms",
+            font: { size: 10 },
+            color: muted,
+          },
+          ticks: { font: { size: 10 }, color: muted },
         },
       },
     },
@@ -138,6 +158,7 @@ async function renderTrend() {
 
   if (trendInst) {
     trendInst.data = cfg.data;
+    trendInst.options = cfg.options;
     trendInst.update("none");
     return;
   }
@@ -360,7 +381,7 @@ onBeforeUnmount(() => {
     </p>
 
     <template v-else-if="snapshot">
-      <p class="text-[11px] text-slate-400">
+      <p class="text-[11px] text-slate-500">
         {{
           $t("admin.systemCollectedAt", {
             time: new Date(snapshot.collectedAt).toLocaleString(),
@@ -400,10 +421,10 @@ onBeforeUnmount(() => {
             },
           ]"
           :key="gauge.key"
-          class="rounded-xl border border-slate-100 bg-gradient-to-b from-slate-50 to-white px-4 py-3"
+          class="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
         >
           <div class="flex items-baseline justify-between gap-2">
-            <p class="text-[11px] uppercase tracking-wider text-slate-400">
+            <p class="text-[11px] uppercase tracking-wider text-slate-500">
               {{ gauge.label }}
             </p>
             <p class="text-2xl font-semibold tabular-nums text-slate-900">
@@ -424,12 +445,12 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Trend chart -->
-      <div class="rounded-xl border border-slate-100 p-3">
+      <div class="rounded-xl border border-slate-200 bg-white p-3">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-xs font-semibold text-slate-700">
             {{ $t("admin.systemTrendTitle") }}
           </h3>
-          <p class="text-[11px] text-slate-400">
+          <p class="text-[11px] text-slate-500">
             {{ $t("admin.systemTrendHint") }}
           </p>
         </div>
@@ -438,7 +459,7 @@ onBeforeUnmount(() => {
         </div>
         <p
           v-if="history.length < 2"
-          class="text-[11px] text-slate-400 text-center -mt-40 relative"
+          class="text-[11px] text-slate-500 text-center -mt-40 relative"
         >
           {{ $t("admin.systemTrendWaiting") }}
         </p>
@@ -446,7 +467,9 @@ onBeforeUnmount(() => {
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
         <!-- Latency -->
-        <div class="rounded-xl border border-slate-100 px-3 py-3 space-y-3">
+        <div
+          class="rounded-xl border border-slate-200 bg-white px-3 py-3 space-y-3"
+        >
           <h3 class="text-xs font-semibold text-slate-700">
             {{ $t("admin.systemLatency") }}
           </h3>
@@ -483,7 +506,7 @@ onBeforeUnmount(() => {
                 {{ row.ok ? $t("admin.systemOk") : $t("admin.systemFail") }}
               </span>
             </div>
-            <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div class="h-1.5 rounded-full bg-slate-200 overflow-hidden">
               <div
                 class="h-full rounded-full transition-all"
                 :class="
@@ -513,13 +536,15 @@ onBeforeUnmount(() => {
 
         <!-- Services -->
         <div
-          class="rounded-xl border border-slate-100 px-3 py-3 space-y-3 text-xs"
+          class="rounded-xl border border-slate-200 bg-white px-3 py-3 space-y-3 text-xs text-slate-600"
         >
           <h3 class="text-xs font-semibold text-slate-700">
             {{ $t("admin.systemServices") }}
           </h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <div class="rounded-lg bg-slate-50 px-3 py-2">
+            <div
+              class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
               <p class="font-semibold text-slate-700 mb-1">
                 {{ $t("admin.systemHealth") }}
               </p>
@@ -552,7 +577,9 @@ onBeforeUnmount(() => {
                 >
               </p>
             </div>
-            <div class="rounded-lg bg-slate-50 px-3 py-2">
+            <div
+              class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
               <p class="font-semibold text-slate-700 mb-1">
                 {{ $t("admin.systemCache") }}
               </p>
@@ -566,7 +593,9 @@ onBeforeUnmount(() => {
                 }}
               </p>
             </div>
-            <div class="rounded-lg bg-slate-50 px-3 py-2 sm:col-span-2">
+            <div
+              class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:col-span-2"
+            >
               <p class="font-semibold text-slate-700 mb-1">
                 {{ $t("admin.systemQueue") }}
               </p>
@@ -602,9 +631,9 @@ onBeforeUnmount(() => {
                     },
                   ]"
                   :key="cell.label"
-                  class="rounded-md bg-white border border-slate-100 px-1 py-1.5"
+                  class="rounded-md bg-white border border-slate-200 px-1 py-1.5"
                 >
-                  <p class="text-[10px] uppercase text-slate-400">
+                  <p class="text-[10px] uppercase text-slate-500">
                     {{ cell.label }}
                   </p>
                   <p
@@ -621,9 +650,9 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- Logs -->
-      <div class="rounded-xl border border-slate-100 overflow-hidden">
+      <div class="rounded-xl border border-slate-200 overflow-hidden">
         <div
-          class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50"
+          class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-b border-slate-200 bg-slate-50"
         >
           <div>
             <h3 class="text-xs font-semibold text-slate-700">
