@@ -27,6 +27,7 @@ const OAUTH_ERROR_KEYS: Record<string, string> = {
   conflict: "auth.googleConflict",
   auth: "auth.googleAuthRequired",
   failed: "auth.googleFailed",
+  google: "auth.googleUpstream",
 };
 
 const redirectTarget = computed(() => (route.query.redirect as string) || "/");

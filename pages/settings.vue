@@ -92,6 +92,7 @@ if (import.meta.client) {
             conflict: "auth.googleConflict",
             auth: "auth.googleAuthRequired",
             failed: "auth.googleFailed",
+            google: "auth.googleUpstream",
           } as Record<string, string>
         )[oauthErr] || "auth.googleFailed";
       queueMicrotask(() => {

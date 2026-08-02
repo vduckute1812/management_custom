@@ -105,6 +105,7 @@
     "googleConflict": "That Google account is already linked elsewhere, or the email does not match.",
     "googleAuthRequired": "Sign in again to link Google.",
     "googleFailed": "Google sign-in failed. Try again.",
+    "googleUpstream": "Google could not complete sign-in. Try again in a moment.",
     "googleAccountUseGoogle": "This account uses Google sign-in. Continue with Google instead."
   },
   "settings": {
