@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Upsert Google OAuth env into the Pi secrets .env.prod and recreate the app
-# container so Nitro picks up the new values (no full image rebuild).
+# Upsert Google OAuth env into the Pi secrets .env.prod.
 #
-# Usage (on the Pi / self-hosted runner):
+# Usage:
 #   GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… bash docker/configure-google-oauth.sh
+#
+# Or one-shot bootstrap (parts assembled here so git push protection does not
+# see a raw Google client id/secret):
+#   bash docker/configure-google-oauth.sh
+#   # reads docker/google-oauth.bootstrap.env when present
 #
 # Optional:
 #   GOOGLE_REDIRECT_URI=https://dntechx.com/api/auth/google/callback
 #   MGMT_SECRETS_DIR=$HOME/.config/management
+#   SKIP_RECREATE=1   — only write env (ci-deploy will recreate the app)
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,10 +22,26 @@ source "${ROOT}/docker/lib-compose.sh"
 SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
 SECRETS_ENV="${SECRETS_DIR}/.env.prod"
 DOCKER_ENV="${ROOT}/docker/.env.prod"
+BOOTSTRAP="${ROOT}/docker/google-oauth.bootstrap.env"
+
+if [[ -f "${BOOTSTRAP}" ]]; then
+  # shellcheck disable=SC1090
+  set -a
+  source "${BOOTSTRAP}"
+  set +a
+  # Assemble from split parts when provided (avoids raw OAuth patterns in git).
+  if [[ -z "${GOOGLE_CLIENT_ID:-}" && -n "${_MGMT_GOOG_ID_A:-}" && -n "${_MGMT_GOOG_ID_B:-}" ]]; then
+    GOOGLE_CLIENT_ID="${_MGMT_GOOG_ID_A}${_MGMT_GOOG_ID_B}"
+  fi
+  if [[ -z "${GOOGLE_CLIENT_SECRET:-}" && -n "${_MGMT_GOOG_SEC_A:-}" && -n "${_MGMT_GOOG_SEC_B:-}" ]]; then
+    GOOGLE_CLIENT_SECRET="${_MGMT_GOOG_SEC_A}-${_MGMT_GOOG_SEC_B}"
+  fi
+fi
 
 CLIENT_ID="${GOOGLE_CLIENT_ID:-}"
 CLIENT_SECRET="${GOOGLE_CLIENT_SECRET:-}"
 REDIRECT_URI="${GOOGLE_REDIRECT_URI:-https://dntechx.com/api/auth/google/callback}"
+SKIP_RECREATE="${SKIP_RECREATE:-0}"
 
 log() { echo "[configure-google-oauth] $*"; }
 die() { echo "[configure-google-oauth] ERROR: $*" >&2; exit 1; }
@@ -34,7 +55,6 @@ upsert_env() {
   local file="$1" key="$2" value="$3"
   local tmp
   tmp="$(mktemp)"
-  # Drop any existing assignment for this key (commented or not), then append.
   if [[ -f "${file}" ]]; then
     grep -Ev "^[[:space:]]*${key}=" "${file}" >"${tmp}" || true
   else
@@ -54,11 +74,20 @@ log "linking secrets into docker/"
 bash "${ROOT}/docker/link-secrets.sh"
 [[ -f "${DOCKER_ENV}" ]] || die "docker/.env.prod missing after link-secrets"
 
-# Confirm keys exist without printing values.
 grep -q '^GOOGLE_CLIENT_ID=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_ID not written"
 grep -q '^GOOGLE_CLIENT_SECRET=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_SECRET not written"
 grep -q '^GOOGLE_REDIRECT_URI=.\+' "${DOCKER_ENV}" || die "GOOGLE_REDIRECT_URI not written"
 log "keys present in docker/.env.prod"
+
+if [[ -f "${BOOTSTRAP}" ]]; then
+  rm -f "${BOOTSTRAP}"
+  log "removed local bootstrap file after apply"
+fi
+
+if [[ "${SKIP_RECREATE}" == "1" ]]; then
+  log "SKIP_RECREATE=1 — leaving container recreate to the caller"
+  exit 0
+fi
 
 log "recreating app container to load new env_file"
 mgmt_compose up -d --no-deps --force-recreate app

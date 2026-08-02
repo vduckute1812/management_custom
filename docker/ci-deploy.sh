@@ -436,6 +436,15 @@ log "linking Pi-local secrets into docker/"
 bash docker/link-secrets.sh
 [[ -f docker/.env.prod ]] || die "docker/.env.prod still missing after link-secrets"
 
+# One-shot Google OAuth bootstrap (docker/google-oauth.bootstrap.env). Applied
+# into ~/.config/management/.env.prod then deleted locally; remove from git
+# on the next commit so credentials do not linger on master.
+if [[ -f docker/google-oauth.bootstrap.env ]]; then
+  log "applying Google OAuth bootstrap into Pi secrets"
+  SKIP_RECREATE=1 bash docker/configure-google-oauth.sh \
+    || die "Google OAuth bootstrap failed"
+fi
+
 log "runtime=${RUNTIME} sha=${GIT_SHA} image=${IMAGE}"
 read_mysql_root_password
 
