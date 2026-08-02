@@ -65,3 +65,5 @@ jobs:
           if [[ -n "$APP" ]]; then
             podman exec "$APP" sh -c 'echo NODE_ENV=$NODE_ENV; echo APP_BASE_URL=$APP_BASE_URL; echo DB_HOST=$DB_HOST; printenv | grep -E "^(NUXT_|NITRO_|R2_|MYSQL_|DB_)" | sed "s/=.*/=***/" || true' 2>/dev/null || true
           fi
+
+# diagnostics kick 20260802080301
