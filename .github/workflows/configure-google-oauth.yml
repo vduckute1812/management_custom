@@ -1,0 +1,60 @@
+# One-shot / repeatable: write Google OAuth credentials into the Pi-local
+# secrets .env.prod and recreate the app container (no image rebuild).
+#
+# Secrets are passed as workflow_dispatch inputs (not committed). Prefer
+# rotating the Google client secret in Cloud Console if a run log is shared.
+
+name: Configure Google OAuth (Pi)
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: Google OAuth client ID
+        required: true
+        type: string
+      client_secret:
+        description: Google OAuth client secret
+        required: true
+        type: string
+      redirect_uri:
+        description: Authorized redirect URI
+        required: false
+        default: https://dntechx.com/api/auth/google/callback
+        type: string
+
+concurrency:
+  group: configure-google-oauth
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    name: Write secrets + recreate app
+    runs-on: [self-hosted, management]
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Ensure uv
+        run: |
+          set -euo pipefail
+          if ! command -v uv >/dev/null 2>&1; then
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+            echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          fi
+          uv --version
+
+      - name: Configure Google OAuth on Pi
+        env:
+          GOOGLE_CLIENT_ID: ${{ inputs.client_id }}
+          GOOGLE_CLIENT_SECRET: ${{ inputs.client_secret }}
+          GOOGLE_REDIRECT_URI: ${{ inputs.redirect_uri }}
+          MGMT_SECRETS_DIR: ${{ vars.MGMT_SECRETS_DIR }}
+        run: |
+          set -euo pipefail
+          export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
+          chmod +x docker/configure-google-oauth.sh
+          bash docker/configure-google-oauth.sh
