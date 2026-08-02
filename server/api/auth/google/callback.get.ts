@@ -103,6 +103,7 @@ export default defineEventHandler(async (event) => {
     if (status === 409) codeKey = "conflict";
     else if (status === 403) codeKey = "email";
     else if (status === 401) codeKey = "auth";
+    else if (status === 502) codeKey = "google";
     return sendRedirect(event, failRedirect(state.intent, codeKey), 302);
   }
 });

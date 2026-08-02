@@ -105,6 +105,7 @@
     "googleConflict": "该 Google 账号已关联到其他账户，或邮箱不匹配。",
     "googleAuthRequired": "请重新登录后再关联 Google。",
     "googleFailed": "Google 登录失败，请重试。",
+    "googleUpstream": "Google 暂时无法完成登录，请稍后再试。",
     "googleAccountUseGoogle": "此账户使用 Google 登录。请改用“使用 Google 继续”。"
   },
   "settings": {

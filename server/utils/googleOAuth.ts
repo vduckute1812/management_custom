@@ -12,7 +12,8 @@ const STATE_TTL_SECONDS = 10 * 60;
 const OAUTH_STATE_COOKIE = "mgmt_oauth";
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
-const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/userinfo";
+/** Google OIDC userinfo (must include /v3 — bare /userinfo 404s). */
+const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo";
 
 export interface GoogleOAuthConfig {
   clientId: string;
