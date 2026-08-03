@@ -6,6 +6,8 @@ A local-first productivity tool with three surfaces on one install: **Time Manag
 
 > Looking for the engineering side — installation, schema, API, code layout? Head to [`implement/`](./implement/README.md). This document is the **product** description; everything code-shaped lives over there.
 
+> **Proprietary — all rights reserved.** This is not open source. Copyright © 2026 Đức Nguyễn Văn. Nobody may use, copy, run, modify, or distribute any part of this repository without prior written permission from the owner. See [License](#license) and [`LICENSE`](./LICENSE).
+
 ---
 
 ## Table of Contents
@@ -25,6 +27,7 @@ A local-first productivity tool with three surfaces on one install: **Time Manag
 - [Design Decisions Log](#design-decisions-log)
 - [Implementation Documentation](#implementation-documentation)
 - [Contributing](#contributing)
+- [License](#license)
 
 ---
 
@@ -504,11 +507,30 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 
 ## Contributing
 
-This is a personal local tool, but suggestions and improvements are welcome.
+This is a personal, proprietary tool. Contributing requires written permission from the owner first — write to ducbkdn95@gmail.com before cloning, building, or opening a pull request. Suggestions and bug reports are welcome without permission; code is not.
 
-1. Fork the repo (if shared).
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit your changes: `git commit -m "feat: add my feature"`
-4. Push and open a pull request.
+Once you have permission:
+
+1. Create a feature branch: `git checkout -b feature/my-feature`
+2. Commit your changes: `git commit -m "feat: add my feature"`
+3. Push and open a pull request.
 
 Please keep all data handling local — no external API calls or cloud storage without discussion. Every PR is expected to honor the [Design Principles](#design-principles), the [Accessibility](#accessibility) targets, and to spec all four [States & Edge Cases](#states--edge-cases) for any new surface.
+
+By submitting a contribution you assign the owner the right to use and relicense it, as set out in section 7 of [`LICENSE`](./LICENSE).
+
+---
+
+## License
+
+**Proprietary. All rights reserved.** Copyright © 2026 Đức Nguyễn Văn <ducbkdn95@gmail.com>.
+
+This project is **not** open source and carries no permissive license. Without prior written permission from the owner, no one may use, run, host, copy, clone, fork, modify, merge, publish, distribute, sell, sublicense, or use as AI/ML training data any part of this repository. Publishing the code here — for review, backup, or portfolio purposes — is not an offer of a license.
+
+To ask for permission, email **ducbkdn95@gmail.com** describing who you are, what you want to do, and for how long. Permission is personal, limited in scope, and revocable.
+
+Third-party dependencies keep their own licenses; this license only covers the code owned by the project owner.
+
+Full terms, in English and Vietnamese: [`LICENSE`](./LICENSE).
+
+_Tóm tắt tiếng Việt:_ Dự án là tài sản độc quyền, bảo lưu mọi quyền. Không ai được sử dụng, chạy, sao chép, fork, sửa đổi hay phân phối bất kỳ phần nào của mã nguồn này khi chưa có sự cho phép trước bằng văn bản của chủ sở hữu. Xin phép qua email **ducbkdn95@gmail.com**. Điều khoản đầy đủ: [`LICENSE`](./LICENSE).

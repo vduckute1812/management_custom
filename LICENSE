@@ -1,0 +1,344 @@
+PROPRIETARY SOFTWARE LICENSE — ALL RIGHTS RESERVED
+GIẤY PHÉP PHẦN MỀM ĐỘC QUYỀN — BẢO LƯU MỌI QUYỀN
+
+Copyright (c) 2026 Đức Nguyễn Văn <ducbkdn95@gmail.com>.
+All rights reserved. / Bảo lưu mọi quyền.
+
+SPDX-License-Identifier: LicenseRef-Proprietary-AllRightsReserved
+
+This file contains the same terms twice: English first, Vietnamese second.
+Tệp này chứa cùng một bộ điều khoản hai lần: tiếng Anh trước, tiếng Việt sau.
+In case of any discrepancy, the Vietnamese text prevails (see section 13).
+
+================================================================================
+ENGLISH
+================================================================================
+
+1. DEFINITIONS
+
+   "Software" means all content of this repository — source code, configuration,
+   database migrations, scripts, documentation, specifications, design assets,
+   translations, and any part or derivative of them — in any form, whether
+   source or compiled.
+
+   "Licensor" means Đức Nguyễn Văn <ducbkdn95@gmail.com>, the sole owner of the
+   copyright and all other intellectual property rights in the Software.
+
+   "You" means any person or legal entity that obtains, accesses, receives, or
+   otherwise comes into possession of any part of the Software, by any means.
+
+   "Written Permission" means a separate, explicit, signed document or email
+   issued by the Licensor from the address above, naming You and stating the
+   permitted acts. Silence, inaction, public availability of the repository,
+   informal conversation, or the absence of a copyright header in an individual
+   file is never Written Permission.
+
+2. NO LICENSE IS GRANTED
+
+   The Software is proprietary and confidential. It is NOT open source and NOT
+   free software. No right or license of any kind is granted to You by this
+   document, by implication, estoppel, or otherwise.
+
+   Without prior Written Permission, You MUST NOT, in whole or in part:
+
+   a. use, run, execute, deploy, host, or operate the Software, for personal,
+      internal, educational, research, evaluation, or commercial purposes;
+   b. copy, reproduce, download, clone, fork, mirror, or store the Software;
+   c. modify, adapt, translate, refactor, or create derivative works;
+   d. merge or incorporate the Software into any other project or product;
+   e. publish, distribute, transmit, lend, rent, lease, sell, resell,
+      sublicense, or otherwise make the Software available to any third party;
+   f. offer the Software, or any service based on it, to third parties,
+      including as SaaS, hosted, managed, or white-label offerings;
+   g. use the Software as training data, or as input for retrieval, fine-tuning,
+      embedding, or any other machine-learning or AI system;
+   h. reverse engineer, decompile, or disassemble any compiled form, except to
+      the narrow extent such an act cannot lawfully be prohibited;
+   i. remove, hide, or alter any copyright, license, or attribution notice.
+
+   Any act listed above performed without Written Permission is an unauthorized
+   act and an infringement of the Licensor's rights.
+
+3. WHAT IS PERMITTED WITHOUT WRITTEN PERMISSION
+
+   Only the following, and nothing more:
+
+   a. reading this LICENSE file;
+   b. acts that mandatory applicable law grants You and that cannot validly be
+      excluded by contract;
+   c. if and while the repository is hosted publicly on a code-hosting platform,
+      the minimum viewing and platform-internal forking that the platform's own
+      terms of service impose on the Licensor as a condition of that hosting —
+      and nothing beyond that minimum. In particular, such a platform fork gives
+      You no right to run, modify, publish, or otherwise use the Software, and
+      any such fork must be deleted upon request by the Licensor.
+
+   Publication of the Software for review, transparency, backup, portfolio, or
+   collaboration purposes is not an offer of a license and does not place the
+   Software in the public domain.
+
+4. REQUESTING PERMISSION
+
+   Requests must be sent to ducbkdn95@gmail.com and describe who You are, what
+   You want to do, and for how long. The Licensor may grant, refuse, or ignore
+   any request at sole discretion, and may attach any conditions, including
+   fees. Written Permission is personal to You, non-transferable,
+   non-sublicensable, limited to the acts and period it names, and — unless it
+   says otherwise — revocable at any time. Written Permission granted for one
+   purpose or one version is not permission for any other purpose or version.
+
+5. OWNERSHIP
+
+   The Software is licensed, never sold. The Licensor retains all right, title,
+   and interest in and to the Software, including all copyright, trade secret,
+   trademark, and other intellectual property rights, and all copies and
+   derivative works, regardless of who created them.
+
+6. CONFIDENTIALITY
+
+   If You obtain access to any non-public part of the Software, You must treat
+   it as the Licensor's confidential information, protect it with at least
+   reasonable care, disclose it to no one, and use it only as expressly
+   permitted in writing.
+
+7. CONTRIBUTIONS
+
+   By submitting any contribution (code, documentation, translation, design, or
+   other material) to the Software — by pull request, patch, issue, message, or
+   any other channel — You grant the Licensor a perpetual, worldwide,
+   irrevocable, royalty-free, exclusive-to-the-extent-permitted, sublicensable,
+   and transferable right to use, reproduce, modify, publish, distribute, and
+   relicense that contribution under any terms, including these terms. You
+   confirm You are entitled to grant that right and that the contribution does
+   not infringe anyone's rights. Submitting a contribution grants You no
+   license to the Software and no rights beyond section 3.
+
+8. THIRD-PARTY COMPONENTS
+
+   The Software depends on third-party packages that are not covered by this
+   license and remain governed by their own licenses and copyright holders. This
+   license applies exclusively to the material owned by the Licensor. Nothing
+   here restricts Your rights in those third-party components obtained
+   independently from their own sources.
+
+9. TERMINATION
+
+   Any Written Permission terminates automatically and immediately, without
+   notice, if You breach any term of this license, and may otherwise be revoked
+   by the Licensor as described in section 4. Upon termination or upon the
+   Licensor's written request, You must immediately stop all use of the
+   Software, delete every copy in Your possession or control (including forks,
+   clones, backups, build artifacts, and deployments), and confirm the deletion
+   in writing if asked. Sections 5, 6, 7, 10, 11, 12, and 13 survive
+   termination.
+
+10. NO WARRANTY
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+11. LIMITATION OF LIABILITY
+
+    TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE LICENSOR SHALL NOT
+    BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION
+    OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+    WITH THE SOFTWARE OR THE USE OF OR OTHER DEALINGS IN THE SOFTWARE.
+
+12. ENFORCEMENT
+
+    Unauthorized use of the Software causes the Licensor harm that money alone
+    cannot repair. The Licensor is therefore entitled to seek injunctive relief
+    and specific performance in addition to damages, legal costs, and any other
+    remedy available at law, and to pursue the takedown of infringing copies.
+    Failure to enforce any term at any time is not a waiver of that term.
+
+13. GOVERNING LAW, LANGUAGE, AND MISCELLANEOUS
+
+    This license is governed by the laws of the Socialist Republic of Vietnam
+    and by the international copyright treaties to which Vietnam is a party,
+    without regard to conflict-of-laws rules. The courts of Vietnam having
+    jurisdiction over the Licensor's place of residence shall have exclusive
+    jurisdiction.
+
+    The English and Vietnamese texts are intended to have the same meaning. In
+    the event of any discrepancy, the Vietnamese text prevails.
+
+    If any provision is held unenforceable, it shall be limited or removed to
+    the minimum extent necessary and the remaining provisions stay in full
+    force. This license is the entire agreement about the Software and replaces
+    any prior statement or understanding. It may be modified only in writing by
+    the Licensor.
+
+================================================================================
+TIẾNG VIỆT
+================================================================================
+
+1. ĐỊNH NGHĨA
+
+   "Phần Mềm" là toàn bộ nội dung của repository này — mã nguồn, cấu hình, tệp
+   migration cơ sở dữ liệu, script, tài liệu, đặc tả, tài nguyên thiết kế, bản
+   dịch, cùng mọi bộ phận hoặc sản phẩm phái sinh của chúng — dưới bất kỳ hình
+   thức nào, dạng mã nguồn hay đã biên dịch.
+
+   "Chủ Sở Hữu" là Đức Nguyễn Văn <ducbkdn95@gmail.com>, chủ sở hữu duy nhất của
+   quyền tác giả và mọi quyền sở hữu trí tuệ khác đối với Phần Mềm.
+
+   "Bạn" là bất kỳ cá nhân hoặc tổ chức nào có được, truy cập, nhận hoặc bằng
+   cách khác đang nắm giữ bất kỳ phần nào của Phần Mềm, bằng bất kỳ phương thức
+   nào.
+
+   "Cho Phép Bằng Văn Bản" là một văn bản hoặc email riêng biệt, rõ ràng, do Chủ
+   Sở Hữu phát hành từ địa chỉ nêu trên, nêu tên Bạn và nêu rõ những hành vi
+   được phép. Sự im lặng, sự không phản đối, việc repository được công khai, các
+   trao đổi không chính thức, hay việc một tệp cụ thể không có dòng ghi chú bản
+   quyền — đều không phải là Cho Phép Bằng Văn Bản.
+
+2. KHÔNG CẤP BẤT KỲ QUYỀN SỬ DỤNG NÀO
+
+   Phần Mềm là tài sản độc quyền và có tính bảo mật. Đây KHÔNG phải là mã nguồn
+   mở và KHÔNG phải phần mềm tự do. Văn bản này không cấp cho Bạn bất kỳ quyền
+   hay giấy phép nào, dù là mặc nhiên, suy đoán hay theo cách khác.
+
+   Khi chưa có Cho Phép Bằng Văn Bản, Bạn KHÔNG ĐƯỢC, dù toàn bộ hay một phần:
+
+   a. sử dụng, chạy, thực thi, triển khai, vận hành hoặc lưu trữ (hosting) Phần
+      Mềm, cho mục đích cá nhân, nội bộ, học tập, nghiên cứu, đánh giá thử hoặc
+      thương mại;
+   b. sao chép, tái tạo, tải xuống, clone, fork, mirror hoặc lưu trữ Phần Mềm;
+   c. sửa đổi, hiệu chỉnh, dịch, tái cấu trúc hoặc tạo ra sản phẩm phái sinh;
+   d. hợp nhất hoặc đưa Phần Mềm vào bất kỳ dự án, sản phẩm nào khác;
+   e. công bố, phân phối, truyền đưa, cho vay, cho thuê, bán, bán lại, cấp phép
+      lại hoặc bằng cách khác cung cấp Phần Mềm cho bất kỳ bên thứ ba nào;
+   f. cung cấp Phần Mềm hoặc bất kỳ dịch vụ dựa trên Phần Mềm cho bên thứ ba,
+      bao gồm dưới dạng SaaS, dịch vụ hosting, dịch vụ vận hành hoặc sản phẩm
+      gắn nhãn riêng;
+   g. dùng Phần Mềm làm dữ liệu huấn luyện, hoặc làm dữ liệu đầu vào cho việc
+      truy hồi, tinh chỉnh, tạo embedding hay bất kỳ hệ thống học máy / AI nào;
+   h. dịch ngược, phân rã hoặc giải hợp dịch bất kỳ bản đã biên dịch, trừ phạm
+      vi hẹp mà pháp luật không cho phép ngăn cấm;
+   i. xóa, che giấu hoặc thay đổi bất kỳ thông báo về bản quyền, giấy phép hoặc
+      ghi nhận tác giả.
+
+   Mọi hành vi nêu trên được thực hiện khi chưa có Cho Phép Bằng Văn Bản là hành
+   vi không được phép và là hành vi xâm phạm quyền của Chủ Sở Hữu.
+
+3. NHỮNG GÌ ĐƯỢC PHÉP KHI CHƯA CÓ CHO PHÉP BẰNG VĂN BẢN
+
+   Chỉ những việc sau đây, và không gì hơn:
+
+   a. đọc chính tệp LICENSE này;
+   b. những hành vi mà pháp luật bắt buộc dành cho Bạn và không thể bị loại trừ
+      một cách hợp pháp bằng hợp đồng;
+   c. nếu và trong thời gian repository được lưu trữ công khai trên một nền tảng
+      lưu trữ mã nguồn, thì chỉ ở mức tối thiểu về việc xem và fork trong nội bộ
+      nền tảng mà điều khoản dịch vụ của chính nền tảng đó áp đặt lên Chủ Sở Hữu
+      như điều kiện của việc lưu trữ — và không vượt quá mức tối thiểu đó. Đặc
+      biệt, một bản fork như vậy không cho Bạn quyền chạy, sửa đổi, công bố hay
+      sử dụng Phần Mềm theo bất kỳ cách nào khác, và phải được xóa khi Chủ Sở
+      Hữu yêu cầu.
+
+   Việc công bố Phần Mềm nhằm mục đích rà soát, minh bạch, sao lưu, giới thiệu
+   hồ sơ cá nhân hay hợp tác không phải là một đề nghị cấp phép và không đưa
+   Phần Mềm vào phạm vi công cộng.
+
+4. XIN PHÉP
+
+   Đề nghị xin phép phải gửi tới ducbkdn95@gmail.com, nêu rõ Bạn là ai, muốn làm
+   gì và trong thời gian bao lâu. Chủ Sở Hữu có toàn quyền chấp thuận, từ chối
+   hoặc không phản hồi bất kỳ đề nghị nào, và có thể kèm theo mọi điều kiện, bao
+   gồm cả phí. Cho Phép Bằng Văn Bản mang tính cá nhân đối với Bạn, không được
+   chuyển nhượng, không được cấp phép lại, chỉ giới hạn trong các hành vi và
+   thời hạn đã nêu, và — nếu không quy định khác — có thể bị thu hồi bất cứ lúc
+   nào. Cho phép cho một mục đích hoặc một phiên bản không phải là cho phép cho
+   mục đích hoặc phiên bản khác.
+
+5. QUYỀN SỞ HỮU
+
+   Phần Mềm chỉ được cấp phép, không bao giờ được bán. Chủ Sở Hữu giữ toàn bộ
+   quyền, quyền sở hữu và lợi ích đối với Phần Mềm, bao gồm quyền tác giả, bí mật
+   kinh doanh, nhãn hiệu và các quyền sở hữu trí tuệ khác, đối với mọi bản sao và
+   mọi sản phẩm phái sinh, bất kể do ai tạo ra.
+
+6. BẢO MẬT
+
+   Nếu Bạn được tiếp cận bất kỳ phần không công khai nào của Phần Mềm, Bạn phải
+   coi đó là thông tin bảo mật của Chủ Sở Hữu, bảo vệ với mức cẩn trọng hợp lý
+   tối thiểu, không tiết lộ cho bất kỳ ai và chỉ sử dụng trong phạm vi được cho
+   phép rõ ràng bằng văn bản.
+
+7. ĐÓNG GÓP
+
+   Khi gửi bất kỳ đóng góp nào (mã, tài liệu, bản dịch, thiết kế hoặc tài liệu
+   khác) cho Phần Mềm — qua pull request, patch, issue, tin nhắn hay kênh nào
+   khác — Bạn cấp cho Chủ Sở Hữu quyền vĩnh viễn, trên toàn thế giới, không thể
+   thu hồi, miễn phí bản quyền, độc quyền trong phạm vi pháp luật cho phép, được
+   cấp phép lại và được chuyển nhượng, để sử dụng, sao chép, sửa đổi, công bố,
+   phân phối và cấp phép lại đóng góp đó theo bất kỳ điều khoản nào, kể cả các
+   điều khoản này. Bạn xác nhận Bạn có quyền cấp quyền đó và đóng góp không xâm
+   phạm quyền của bất kỳ ai. Việc gửi đóng góp không cấp cho Bạn quyền sử dụng
+   Phần Mềm và không cấp quyền nào vượt quá mục 3.
+
+8. THÀNH PHẦN CỦA BÊN THỨ BA
+
+   Phần Mềm phụ thuộc vào các thư viện của bên thứ ba; các thư viện đó không
+   thuộc phạm vi giấy phép này và vẫn chịu sự điều chỉnh của giấy phép cùng chủ
+   sở hữu quyền tác giả riêng của chúng. Giấy phép này chỉ áp dụng cho phần tài
+   sản thuộc Chủ Sở Hữu. Không nội dung nào ở đây hạn chế quyền của Bạn đối với
+   các thành phần bên thứ ba mà Bạn có được một cách độc lập từ nguồn của chúng.
+
+9. CHẤM DỨT
+
+   Mọi Cho Phép Bằng Văn Bản sẽ tự động chấm dứt ngay lập tức, không cần thông
+   báo, nếu Bạn vi phạm bất kỳ điều khoản nào của giấy phép này, và ngoài ra có
+   thể bị Chủ Sở Hữu thu hồi theo mục 4. Khi chấm dứt hoặc khi Chủ Sở Hữu yêu cầu
+   bằng văn bản, Bạn phải lập tức dừng mọi việc sử dụng Phần Mềm, xóa mọi bản sao
+   thuộc quyền sở hữu hoặc kiểm soát của Bạn (bao gồm fork, clone, bản sao lưu,
+   sản phẩm build và các bản triển khai), và xác nhận việc xóa bằng văn bản nếu
+   được yêu cầu. Các mục 5, 6, 7, 10, 11, 12 và 13 vẫn có hiệu lực sau khi chấm
+   dứt.
+
+10. KHÔNG BẢO ĐẢM
+
+    PHẦN MỀM ĐƯỢC CUNG CẤP "NGUYÊN TRẠNG", KHÔNG KÈM BẤT KỲ BẢO ĐẢM NÀO, DÙ RÕ
+    RÀNG HAY MẶC ĐỊNH, BAO GỒM NHƯNG KHÔNG GIỚI HẠN Ở CÁC BẢO ĐẢM VỀ KHẢ NĂNG
+    THƯƠNG MẠI, TÍNH PHÙ HỢP CHO MỘT MỤC ĐÍCH CỤ THỂ, QUYỀN SỞ HỮU VÀ KHÔNG XÂM
+    PHẠM QUYỀN CỦA BÊN THỨ BA.
+
+11. GIỚI HẠN TRÁCH NHIỆM
+
+    TRONG PHẠM VI TỐI ĐA PHÁP LUẬT CHO PHÉP, CHỦ SỞ HỮU KHÔNG CHỊU TRÁCH NHIỆM
+    ĐỐI VỚI BẤT KỲ KHIẾU KIỆN, THIỆT HẠI HAY TRÁCH NHIỆM NÀO KHÁC, DÙ TRONG QUAN
+    HỆ HỢP ĐỒNG, NGOÀI HỢP ĐỒNG HAY KHÁC, PHÁT SINH TỪ HOẶC LIÊN QUAN ĐẾN PHẦN
+    MỀM HOẶC VIỆC SỬ DỤNG, GIAO DỊCH KHÁC LIÊN QUAN ĐẾN PHẦN MỀM.
+
+12. THỰC THI
+
+    Việc sử dụng Phần Mềm không được phép gây cho Chủ Sở Hữu thiệt hại mà tiền
+    bồi thường không thể khắc phục đầy đủ. Do đó Chủ Sở Hữu có quyền yêu cầu áp
+    dụng biện pháp ngăn chặn và buộc thực hiện đúng nghĩa vụ, bên cạnh yêu cầu
+    bồi thường thiệt hại, chi phí pháp lý và mọi biện pháp khắc phục khác theo
+    pháp luật, cũng như yêu cầu gỡ bỏ các bản sao xâm phạm. Việc không thực thi
+    một điều khoản tại bất kỳ thời điểm nào không đồng nghĩa với việc từ bỏ điều
+    khoản đó.
+
+13. LUẬT ÁP DỤNG, NGÔN NGỮ VÀ ĐIỀU KHOẢN KHÁC
+
+    Giấy phép này được điều chỉnh bởi pháp luật nước Cộng hòa Xã hội Chủ nghĩa
+    Việt Nam và các công ước quốc tế về quyền tác giả mà Việt Nam là thành viên,
+    không áp dụng các quy tắc xung đột pháp luật. Tòa án Việt Nam có thẩm quyền
+    tại nơi cư trú của Chủ Sở Hữu có thẩm quyền giải quyết duy nhất.
+
+    Văn bản tiếng Anh và tiếng Việt được soạn với cùng một nội dung. Trong trường
+    hợp có sự khác biệt, văn bản tiếng Việt được ưu tiên áp dụng.
+
+    Nếu bất kỳ điều khoản nào bị coi là không thể thi hành, điều khoản đó sẽ được
+    giới hạn hoặc loại bỏ ở mức tối thiểu cần thiết và các điều khoản còn lại vẫn
+    giữ nguyên hiệu lực. Giấy phép này là toàn bộ thỏa thuận về Phần Mềm và thay
+    thế mọi tuyên bố hay thỏa thuận trước đó. Giấy phép chỉ có thể được sửa đổi
+    bằng văn bản do Chủ Sở Hữu lập.
+
+================================================================================
+
+Contact / Liên hệ: Đức Nguyễn Văn — ducbkdn95@gmail.com
+Repository: https://github.com/vduckute1812/management_custom

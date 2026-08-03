@@ -2,6 +2,12 @@
 name = "management-ops"
 version = "0.1.0"
 description = "Ops tooling for production deploy (podman-compose via uv)"
+license = { file = "LICENSE" }
+authors = [{ name = "Đức Nguyễn Văn", email = "ducbkdn95@gmail.com" }]
+classifiers = [
+  "License :: Other/Proprietary License",
+  "Private :: Do Not Upload",
+]
 requires-python = ">=3.10"
 dependencies = [
   "podman-compose>=1.2.0",

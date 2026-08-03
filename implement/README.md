@@ -4,6 +4,8 @@ Technical reference for the **Personal Task & Analytics Manager**. The root [`..
 
 If you came here to **use** the app, start at the root README. If you came here to **change** the app, start here.
 
+> **Licensing.** This codebase is proprietary — all rights reserved, copyright © 2026 Đức Nguyễn Văn. Running, copying, or modifying it requires prior written permission from the owner (ducbkdn95@gmail.com). Nothing in these engineering docs grants that permission; see [`../LICENSE`](../LICENSE).
+
 ---
 
 ## Map
