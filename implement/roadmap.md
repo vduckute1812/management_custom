@@ -362,9 +362,15 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Chart.js doughnut (spend by category) + daily expense bars on `/money`
 - [x] `sumByCategory` / `sumDaily` helpers + Vitest; docs (`money-spec`, api, roadmap)
 
+## Phase 21 — Money (Sprint 3: savings goals)
+
+- [x] Migration `0025_money_savings` — goals + contributions; `MoneySavingsGoalStatus` integer enum
+- [x] API under `/api/money/savings/*`; auto-complete Active goals when target reached
+- [x] UI `/money/savings` — progress cards, contribute modal, contribution history; sidebar Ledger/Savings
+- [x] Vitest for savings schemas + `savingsProgress`; docs
+
 ### Later (Money)
 
-- Savings goals + contributions
 - Monthly budgets
 - Export / harden
 

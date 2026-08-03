@@ -39,7 +39,9 @@
     "chat": "Chat",
     "money": "Money",
     "sectionMoney": "Money",
-    "sectionMoneyHint": "Expenses and month totals"
+    "sectionMoneyHint": "Expenses and month totals",
+    "moneyLedger": "Ledger",
+    "moneySavings": "Savings"
   },
   "auth": {
     "signInTitle": "Sign in to continue",
@@ -873,7 +875,14 @@
     "manuscriptPublished": "Manuscript published",
     "failedToLoadMoney": "Failed to load money ledger",
     "moneyTransactionSaved": "Transaction saved",
-    "moneyTransactionDeleted": "Transaction deleted"
+    "moneyTransactionDeleted": "Transaction deleted",
+    "failedToLoadSavings": "Failed to load savings goals",
+    "savingsGoalSaved": "Savings goal saved",
+    "savingsGoalDeleted": "Savings goal deleted",
+    "contributionSaved": "Contribution added",
+    "contributionDeleted": "Contribution deleted",
+    "failedToLoadContributions": "Failed to load contributions",
+    "failedToDeleteContribution": "Could not delete contribution"
   },
   "status": {
     "todo": "To do",
@@ -1002,7 +1011,9 @@
     "manuscriptEditDescription": "Update an existing feed post or manuscript.",
     "chat": "Chat",
     "money": "Money",
-    "moneyDescription": "Track income and expenses in VND."
+    "moneyDescription": "Track income and expenses in VND.",
+    "moneySavings": "Savings",
+    "moneySavingsDescription": "Track savings goals and contributions in VND."
   },
   "categories": {
     "electronics": "Electronics",
@@ -1223,6 +1234,62 @@
     "filterDirectionAria": "Filter by direction",
     "filterCategoryAria": "Filter by category",
     "clearFilter": "Clear",
-    "filterEmpty": "No transactions match these filters."
+    "filterEmpty": "No transactions match these filters.",
+    "savings": {
+      "title": "Savings",
+      "subtitle": "Goals and contributions in VND",
+      "addGoal": "New goal",
+      "loading": "Loading…",
+      "empty": "No savings goals yet. Create one to start putting money aside.",
+      "edit": "Edit",
+      "contributeAction": "Add",
+      "showContributions": "History",
+      "hideContributions": "Hide",
+      "noContributions": "No contributions yet.",
+      "deleteContribution": "Delete",
+      "byDate": "by {date}",
+      "progressAria": "Progress {pct} percent",
+      "status": {
+        "active": "Active",
+        "completed": "Completed",
+        "archived": "Archived"
+      },
+      "modal": {
+        "newTitle": "New savings goal",
+        "editTitle": "Edit savings goal",
+        "close": "Close",
+        "title": "Name",
+        "titlePlaceholder": "e.g. Emergency fund",
+        "titleRequired": "Enter a name.",
+        "target": "Target (₫)",
+        "targetPlaceholder": "e.g. 10000000",
+        "targetRequired": "Enter a valid target amount.",
+        "status": "Status",
+        "targetDate": "Target date (optional)",
+        "note": "Note",
+        "notePlaceholder": "Optional",
+        "save": "Save",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "failedToSave": "Could not save goal",
+        "failedToDelete": "Could not delete goal",
+        "discardTitle": "Discard changes?",
+        "discardBody": "You have unsaved edits.",
+        "keepEditing": "Keep editing",
+        "discard": "Discard",
+        "deleteTitle": "Delete goal?",
+        "deleteBody": "This removes the goal and all its contributions."
+      },
+      "contribute": {
+        "title": "Add contribution",
+        "amount": "Amount (₫)",
+        "amountRequired": "Enter a valid amount.",
+        "date": "Date",
+        "note": "Note",
+        "save": "Add",
+        "failed": "Could not add contribution"
+      }
+    }
   }
 }

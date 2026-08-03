@@ -67,6 +67,28 @@ Client-only polish on the month view (no new tables):
 - Charts (Chart.js, lazy): doughnut spending-by-category + daily expense bars
 - Aggregations: `sumByCategory` / `sumDaily` in `utils/money.ts`
 
+## Sprint 3 (as-built)
+
+Savings goals + contributions (migration `0025_money_savings`):
+
+| Const                    | Values                                  |
+| ------------------------ | --------------------------------------- |
+| `MoneySavingsGoalStatus` | `Active=0`, `Completed=1`, `Archived=2` |
+
+| Table                         | Notes                                                 |
+| ----------------------------- | ----------------------------------------------------- |
+| `money_savings_goals`         | `msg_*`, target BIGINT, optional `target_date`        |
+| `money_savings_contributions` | `msc_*`, deposits only (`amount_minor` ≥ 1 on create) |
+
+| Method     | Path                                         |
+| ---------- | -------------------------------------------- |
+| `GET/POST` | `/api/money/savings/goals`                   |
+| `DELETE`   | `/api/money/savings/goals/:id`               |
+| `GET/POST` | `/api/money/savings/goals/:id/contributions` |
+| `DELETE`   | `/api/money/savings/contributions/:id`       |
+
+UI: `/money/savings` — goal cards with progress bars, contribute modal, history expand. Reaching target while **Active** auto-sets **Completed**.
+
 ## Out of scope (for now)
 
 Multi-currency / FX, shared wallets, bank sync, OCR, investments.

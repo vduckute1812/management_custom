@@ -39,7 +39,9 @@
     "chat": "Chat",
     "money": "Tiền",
     "sectionMoney": "Tiền",
-    "sectionMoneyHint": "Chi tiêu và tổng theo tháng"
+    "sectionMoneyHint": "Chi tiêu và tổng theo tháng",
+    "moneyLedger": "Sổ thu chi",
+    "moneySavings": "Tiết kiệm"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -873,7 +875,14 @@
     "manuscriptPublished": "Đã xuất bản bản thảo",
     "failedToLoadMoney": "Không tải được sổ thu chi",
     "moneyTransactionSaved": "Đã lưu giao dịch",
-    "moneyTransactionDeleted": "Đã xoá giao dịch"
+    "moneyTransactionDeleted": "Đã xoá giao dịch",
+    "failedToLoadSavings": "Không tải được mục tiêu tiết kiệm",
+    "savingsGoalSaved": "Đã lưu mục tiêu",
+    "savingsGoalDeleted": "Đã xoá mục tiêu",
+    "contributionSaved": "Đã thêm đóng góp",
+    "contributionDeleted": "Đã xoá đóng góp",
+    "failedToLoadContributions": "Không tải được lịch sử đóng góp",
+    "failedToDeleteContribution": "Không xoá được đóng góp"
   },
   "status": {
     "todo": "Cần làm",
@@ -1002,7 +1011,9 @@
     "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin.",
     "chat": "Chat",
     "money": "Tiền",
-    "moneyDescription": "Theo dõi thu chi bằng VND."
+    "moneyDescription": "Theo dõi thu chi bằng VND.",
+    "moneySavings": "Tiết kiệm",
+    "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp bằng VND."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -1223,6 +1234,62 @@
     "filterDirectionAria": "Lọc theo chiều",
     "filterCategoryAria": "Lọc theo danh mục",
     "clearFilter": "Xoá lọc",
-    "filterEmpty": "Không có giao dịch khớp bộ lọc."
+    "filterEmpty": "Không có giao dịch khớp bộ lọc.",
+    "savings": {
+      "title": "Tiết kiệm",
+      "subtitle": "Mục tiêu và khoản đóng góp bằng VND",
+      "addGoal": "Mục tiêu mới",
+      "loading": "Đang tải…",
+      "empty": "Chưa có mục tiêu tiết kiệm. Tạo một mục tiêu để bắt đầu.",
+      "edit": "Sửa",
+      "contributeAction": "Thêm",
+      "showContributions": "Lịch sử",
+      "hideContributions": "Ẩn",
+      "noContributions": "Chưa có khoản đóng góp.",
+      "deleteContribution": "Xoá",
+      "byDate": "đến {date}",
+      "progressAria": "Tiến độ {pct} phần trăm",
+      "status": {
+        "active": "Đang chạy",
+        "completed": "Hoàn thành",
+        "archived": "Lưu trữ"
+      },
+      "modal": {
+        "newTitle": "Mục tiêu tiết kiệm mới",
+        "editTitle": "Sửa mục tiêu",
+        "close": "Đóng",
+        "title": "Tên",
+        "titlePlaceholder": "vd. Quỹ dự phòng",
+        "titleRequired": "Nhập tên.",
+        "target": "Mục tiêu (₫)",
+        "targetPlaceholder": "vd. 10000000",
+        "targetRequired": "Nhập số tiền mục tiêu hợp lệ.",
+        "status": "Trạng thái",
+        "targetDate": "Ngày mục tiêu (tuỳ chọn)",
+        "note": "Ghi chú",
+        "notePlaceholder": "Tuỳ chọn",
+        "save": "Lưu",
+        "saving": "Đang lưu…",
+        "cancel": "Huỷ",
+        "delete": "Xoá",
+        "failedToSave": "Không lưu được mục tiêu",
+        "failedToDelete": "Không xoá được mục tiêu",
+        "discardTitle": "Huỷ thay đổi?",
+        "discardBody": "Bạn có chỉnh sửa chưa lưu.",
+        "keepEditing": "Tiếp tục sửa",
+        "discard": "Huỷ bỏ",
+        "deleteTitle": "Xoá mục tiêu?",
+        "deleteBody": "Sẽ xoá mục tiêu và mọi khoản đóng góp."
+      },
+      "contribute": {
+        "title": "Thêm đóng góp",
+        "amount": "Số tiền (₫)",
+        "amountRequired": "Nhập số tiền hợp lệ.",
+        "date": "Ngày",
+        "note": "Ghi chú",
+        "save": "Thêm",
+        "failed": "Không thêm được đóng góp"
+      }
+    }
   }
 }

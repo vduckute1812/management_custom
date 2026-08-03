@@ -40,4 +40,6 @@ export { categoryCreateBodySchema, categoryPatchBodySchema } from "./category";
 export {
   moneyTransactionsQuerySchema,
   moneyTransactionUpsertBodySchema,
+  moneySavingsGoalUpsertBodySchema,
+  moneySavingsContributionCreateBodySchema,
 } from "./money";

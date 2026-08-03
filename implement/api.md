@@ -262,7 +262,22 @@ Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are
 | `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
 | `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
 
-Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal). Nav shortcut `g m`.
+Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal). Nav shortcut `g m`. Savings: `/money/savings`.
+
+---
+
+## Money savings
+
+Per-user savings goals. Spec: [`money-spec.md`](./money-spec.md). Status is an integer enum (`MoneySavingsGoalStatus`). `savedMinor` / `progress` are derived from contributions.
+
+| Method   | Endpoint                                     | Auth     | Description                                                                                         |
+| -------- | -------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/money/savings/goals`                   | Required | `{ goals }` with derived `savedMinor` / `progress`.                                                 |
+| `POST`   | `/api/money/savings/goals`                   | Required | Upsert `{ id?, title, targetMinor, status?, targetDate?, note? }`. Cross-user `id` → `404`.         |
+| `DELETE` | `/api/money/savings/goals/:id`               | Required | Cascades contributions. Ownership `404`.                                                            |
+| `GET`    | `/api/money/savings/goals/:id/contributions` | Required | `{ contributions, goal }`.                                                                          |
+| `POST`   | `/api/money/savings/goals/:id/contributions` | Required | Body `{ occurredOn, amountMinor (≥1), note? }`. Auto-completes Active goals when target is reached. |
+| `DELETE` | `/api/money/savings/contributions/:id`       | Required | Ownership `404`.                                                                                    |
 
 ---
 
