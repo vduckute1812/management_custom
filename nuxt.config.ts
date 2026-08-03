@@ -13,8 +13,9 @@ export default defineNuxtConfig({
       "Da Nang Tech R&D and Networking Portal — feed and time management.",
     defaultLocale: "en",
   },
-  // Only the public hub and feed should be indexed; app/admin surfaces are
-  // gated SPA views with no crawlable value, so keep them out of search.
+  // Only the public hub, feed, and legal pages should be indexed; app/admin
+  // surfaces are gated SPA views with no crawlable value, so keep them out of
+  // search.
   robots: {
     disallow: [
       "/tasks",
@@ -68,6 +69,10 @@ export default defineNuxtConfig({
   routeRules: {
     "/": { ssr: true, swr: 120 },
     "/feed": { ssr: true, swr: 60 },
+    // Legal pages are static text that must be readable (and indexable)
+    // without JavaScript, so they render on the server with a long SWR.
+    "/privacy": { ssr: true, swr: 3600 },
+    "/terms": { ssr: true, swr: 3600 },
     "/**": { ssr: false },
   },
   // After a deploy, hashed /_nuxt/* chunks disappear. SPA clients still on an

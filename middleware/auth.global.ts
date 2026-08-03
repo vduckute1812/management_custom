@@ -1,9 +1,9 @@
 /**
  * Global route guard.
  *
- *   - Public paths (/, /feed, login / signup / verify-email) are always
- *     accessible without a session. Authenticated users hitting /login or
- *     /signup are bounced to "/" (or `?redirect=` if present).
+ *   - Public paths (/, /feed, /privacy, /terms, login / signup / verify-email)
+ *     are always accessible without a session. Authenticated users hitting
+ *     /login or /signup are bounced to "/" (or `?redirect=` if present).
  *   - Protected app sections (tasks, settings, admin, …) require an
  *     authenticated session; unauth users get bounced to /login with a
  *     `redirect` query so we can return them.
@@ -24,6 +24,8 @@ const PUBLIC_PATHS = new Set([
   "/forgot-password",
   "/reset-password",
   "/auth/continue",
+  "/privacy",
+  "/terms",
 ]);
 const AUTH_FORM_PATHS = new Set(["/login", "/signup", "/forgot-password"]);
 

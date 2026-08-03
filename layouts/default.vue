@@ -34,13 +34,16 @@ watch(
       activeSection.value = "tasks";
       return;
     }
-    // Home / profile: leave modules; Settings / Admin keep last sticky section.
+    // Home / profile / legal: leave modules; Settings / Admin keep last sticky
+    // section.
     if (
       path === "/" ||
       path === "/profile" ||
       path.startsWith("/profile/") ||
       path.startsWith("/login") ||
-      path.startsWith("/signup")
+      path.startsWith("/signup") ||
+      path === "/privacy" ||
+      path === "/terms"
     ) {
       activeSection.value = "other";
     }
@@ -51,6 +54,13 @@ watch(
 const isFeedSection = computed(() => activeSection.value === "feed");
 const isTasksSection = computed(() => activeSection.value === "tasks");
 const isHub = computed(() => route.path === "/");
+/**
+ * Marketing-style surfaces get the footer with the legal links. The feed is
+ * excluded on purpose: an infinite-scroll list never reaches its own footer.
+ */
+const showFooter = computed(
+  () => isHub.value || route.path === "/privacy" || route.path === "/terms",
+);
 const showTaskChrome = computed(
   () =>
     isTasksSection.value &&
@@ -310,6 +320,8 @@ useModal(mobileMoreOpen, {
         <slot />
       </main>
     </div>
+
+    <AppFooter v-if="showFooter" />
 
     <!-- Mobile utilities sheet -->
     <Teleport to="body">

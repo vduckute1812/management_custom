@@ -36,7 +36,9 @@
     "themeTitleFixed": "主題：{label}",
     "more": "更多",
     "language": "語言",
-    "chat": "聊天"
+    "chat": "聊天",
+    "privacy": "隱私",
+    "terms": "條款"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -106,7 +108,10 @@
     "googleAuthRequired": "請重新登入後再連結 Google。",
     "googleFailed": "Google 登入失敗，請重試。",
     "googleUpstream": "Google 暫時無法完成登入，請稍後再試。",
-    "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。"
+    "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。",
+    "signupConsent": "建立帳號即表示你同意{terms}與{privacy}。",
+    "termsLink": "服務條款",
+    "privacyLink": "隱私政策"
   },
   "settings": {
     "title": "設定",
@@ -990,7 +995,11 @@
     "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。",
     "manuscriptEdit": "編輯貼文",
     "manuscriptEditDescription": "更新動態中的貼文或手稿。",
-    "chat": "聊天"
+    "chat": "聊天",
+    "privacy": "隱私政策",
+    "privacyDescription": "Da Nang TechX 蒐集哪些資料、由誰處理、保存多久，以及如何申請匯出或刪除。",
+    "terms": "服務條款",
+    "termsDescription": "使用 Da Nang TechX 的規則：使用資格、內容歸屬、可接受使用、內容管理與責任限制。"
   },
   "categories": {
     "electronics": "電子",
@@ -1146,5 +1155,21 @@
     "audioUnsupported": "瀏覽器無法播放此音訊",
     "failedToLoadConversations": "無法載入會話",
     "failedToLoadMessages": "無法載入訊息"
+  },
+  "legal": {
+    "lastUpdated": "最後更新於 {date}",
+    "contents": "本頁目錄",
+    "languageNotice": "本文件以英文與越南文發布。若兩種文本有差異，以越南文版本為準。",
+    "languageFallback": "本文件尚未翻譯為你的介面語言，因此顯示英文文本。",
+    "contactHeading": "還有疑問？",
+    "contactBody": "請寫信至 {email}，營運者會回覆你。",
+    "seePrivacy": "閱讀隱私政策",
+    "seeTerms": "閱讀服務條款",
+    "backHome": "返回首頁"
+  },
+  "footer": {
+    "rights": "保留一切權利。",
+    "contact": "聯絡",
+    "aria": "法律與聯絡連結"
   }
 }

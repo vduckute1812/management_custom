@@ -36,7 +36,9 @@
     "themeTitleFixed": "Giao diện: {label}",
     "more": "Thêm",
     "language": "Ngôn ngữ",
-    "chat": "Chat"
+    "chat": "Chat",
+    "privacy": "Bảo mật",
+    "terms": "Điều khoản"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -106,7 +108,10 @@
     "googleAuthRequired": "Đăng nhập lại để liên kết Google.",
     "googleFailed": "Đăng nhập Google thất bại. Thử lại.",
     "googleUpstream": "Google chưa hoàn tất đăng nhập. Thử lại sau giây lát.",
-    "googleAccountUseGoogle": "Tài khoản này dùng đăng nhập Google. Hãy chọn Tiếp tục với Google."
+    "googleAccountUseGoogle": "Tài khoản này dùng đăng nhập Google. Hãy chọn Tiếp tục với Google.",
+    "signupConsent": "Khi tạo tài khoản, bạn đồng ý với {terms} và {privacy}.",
+    "termsLink": "Điều khoản dịch vụ",
+    "privacyLink": "Chính sách bảo mật"
   },
   "settings": {
     "title": "Cài đặt",
@@ -990,7 +995,11 @@
     "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn.",
     "manuscriptEdit": "Sửa bài viết",
     "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin.",
-    "chat": "Chat"
+    "chat": "Chat",
+    "privacy": "Chính sách bảo mật",
+    "privacyDescription": "Da Nang TechX thu thập những gì, ai xử lý dữ liệu, lưu trong bao lâu, và cách yêu cầu xuất hoặc xoá dữ liệu.",
+    "terms": "Điều khoản dịch vụ",
+    "termsDescription": "Quy tắc sử dụng Da Nang TechX: điều kiện tham gia, quyền với nội dung, sử dụng hợp lệ, kiểm duyệt và trách nhiệm."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -1146,5 +1155,21 @@
     "audioUnsupported": "Trình duyệt không phát được âm thanh này",
     "failedToLoadConversations": "Không tải được hội thoại",
     "failedToLoadMessages": "Không tải được tin nhắn"
+  },
+  "legal": {
+    "lastUpdated": "Cập nhật lần cuối {date}",
+    "contents": "Nội dung trang",
+    "languageNotice": "Văn bản này được công bố bằng tiếng Anh và tiếng Việt. Nếu hai bản có khác biệt, bản tiếng Việt được ưu tiên áp dụng.",
+    "languageFallback": "Văn bản này chưa được dịch sang ngôn ngữ giao diện của bạn, nên bản tiếng Anh được hiển thị.",
+    "contactHeading": "Vẫn còn thắc mắc?",
+    "contactBody": "Hãy viết thư tới {email}, chủ sở hữu sẽ phản hồi.",
+    "seePrivacy": "Đọc Chính sách bảo mật",
+    "seeTerms": "Đọc Điều khoản dịch vụ",
+    "backHome": "Về trang chủ"
+  },
+  "footer": {
+    "rights": "Bảo lưu mọi quyền.",
+    "contact": "Liên hệ",
+    "aria": "Liên kết pháp lý và liên hệ"
   }
 }
