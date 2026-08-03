@@ -17,7 +17,7 @@ import { yearMonthRange } from "../../utils/money";
 interface BudgetRow extends RowDataPacket {
   id: string;
   user_id: string;
-  year_month: string;
+  budget_ym: string;
   scope: number;
   category: number | null;
   amount_minor: number | string;
@@ -30,7 +30,7 @@ function rowToBudget(r: BudgetRow, spentMinor: number): MoneyBudget {
   const scope = toMoneyBudgetScope(r.scope);
   return {
     id: r.id,
-    yearMonth: r.year_month,
+    yearMonth: r.budget_ym,
     scope,
     category:
       scope === MoneyBudgetScope.Category && r.category != null
@@ -59,7 +59,7 @@ export async function listMoneyBudgets(
     pool
       .query<BudgetRow[]>(
         `SELECT * FROM money_budgets
-         WHERE user_id = ? AND year_month = ?
+         WHERE user_id = ? AND budget_ym = ?
          ORDER BY scope ASC, category ASC, id ASC`,
         [userId, yearMonth],
       )
@@ -106,7 +106,7 @@ export async function getMoneyBudgetById(
   );
   const row = rows[0];
   if (!row) return null;
-  const month = await listMoneyBudgets(userId, row.year_month);
+  const month = await listMoneyBudgets(userId, row.budget_ym);
   return month.budgets.find((b) => b.id === id) ?? null;
 }
 
@@ -146,7 +146,7 @@ export async function upsertMoneyBudget(
     if (existing) {
       await pool.query(
         `UPDATE money_budgets
-         SET year_month = ?, scope = ?, category = ?, amount_minor = ?, updated_at = ?
+         SET budget_ym = ?, scope = ?, category = ?, amount_minor = ?, updated_at = ?
          WHERE id = ? AND user_id = ?`,
         [
           input.yearMonth,
@@ -172,7 +172,7 @@ export async function upsertMoneyBudget(
   // Upsert by natural slot when no id — replace existing slot.
   const [existingSlot] = await pool.query<BudgetRow[]>(
     `SELECT * FROM money_budgets
-     WHERE user_id = ? AND year_month = ? AND scope = ?
+     WHERE user_id = ? AND budget_ym = ? AND scope = ?
        AND IFNULL(category, 255) = IFNULL(?, 255)
      LIMIT 1`,
     [userId, input.yearMonth, input.scope, category],
@@ -194,7 +194,7 @@ export async function upsertMoneyBudget(
   try {
     await pool.query(
       `INSERT INTO money_budgets
-        (id, user_id, year_month, scope, category, amount_minor, created_at, updated_at)
+        (id, user_id, budget_ym, scope, category, amount_minor, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
@@ -241,7 +241,7 @@ export async function copyMoneyBudgetsFromMonth(
   if (fromYearMonth === toYearMonth) return 0;
   const pool = getPool();
   const [source] = await pool.query<BudgetRow[]>(
-    `SELECT * FROM money_budgets WHERE user_id = ? AND year_month = ?`,
+    `SELECT * FROM money_budgets WHERE user_id = ? AND budget_ym = ?`,
     [userId, fromYearMonth],
   );
   if (!source.length) return 0;
@@ -252,7 +252,7 @@ export async function copyMoneyBudgetsFromMonth(
     try {
       await pool.query(
         `INSERT INTO money_budgets
-          (id, user_id, year_month, scope, category, amount_minor, created_at, updated_at)
+          (id, user_id, budget_ym, scope, category, amount_minor, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            amount_minor = VALUES(amount_minor),

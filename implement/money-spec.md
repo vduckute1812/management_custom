@@ -97,9 +97,9 @@ Monthly budgets (migration `0026_money_budgets`):
 | ------------------ | ------------------------- |
 | `MoneyBudgetScope` | `Overall=0`, `Category=1` |
 
-| Table           | Notes                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| `money_budgets` | `mbd_*`; unique slot `(user, year_month, scope, category)`; spent derived from ledger Out |
+| Table           | Notes                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| `money_budgets` | `mbd_*`; unique slot `(user, budget_ym, scope, category)`; spent derived from ledger Out |
 
 | Method     | Path                      |
 | ---------- | ------------------------- |
