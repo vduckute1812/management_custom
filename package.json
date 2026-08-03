@@ -1,6 +1,8 @@
 {
   "name": "management",
   "private": true,
+  "license": "UNLICENSED",
+  "author": "Đức Nguyễn Văn <ducbkdn95@gmail.com>",
   "type": "module",
   "packageManager": "npm@12.0.2",
   "engines": {

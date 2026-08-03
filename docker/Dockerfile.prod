@@ -64,6 +64,8 @@ COPY --from=builder --chown=nuxt:nodejs /app/.output /app/.output
 COPY --from=builder --chown=nuxt:nodejs /app/scripts /app/scripts
 COPY --from=builder --chown=nuxt:nodejs /app/server/db /app/server/db
 COPY --chown=nuxt:nodejs docker/entrypoint.prod.sh /app/entrypoint.prod.sh
+# Proprietary terms must travel with every distributed build of the app.
+COPY --chown=nuxt:nodejs LICENSE /app/LICENSE
 
 RUN chmod +x /app/entrypoint.prod.sh
 
