@@ -370,7 +370,12 @@ describe("moneyExport builders", () => {
     const json = buildMoneyTransactionsJson({
       exportedAt: "2026-08-03T00:00:00.000Z",
       yearMonth: "2026-08",
-      totals: { inMinor: 0, outMinor: 50_000, netMinor: -50_000 },
+      totals: {
+        yearMonth: "2026-08",
+        inMinor: 0,
+        outMinor: 50_000,
+        netMinor: -50_000,
+      },
       transactions: [tx],
     });
     const parsed = JSON.parse(json);
@@ -387,8 +392,6 @@ describe("moneyExport builders", () => {
       savedMinor: 2_000_000,
       progress: 0.2,
       status: MoneySavingsGoalStatus.Active,
-      targetDate: null as string | null,
-      note: null as string | null,
       createdAt: "2026-08-01T00:00:00.000Z",
       updatedAt: "2026-08-01T00:00:00.000Z",
     };
