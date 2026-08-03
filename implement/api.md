@@ -281,6 +281,21 @@ Per-user savings goals. Spec: [`money-spec.md`](./money-spec.md). Status is an i
 
 ---
 
+## Money budgets
+
+Per-user monthly limits. Spec: [`money-spec.md`](./money-spec.md). `MoneyBudgetScope`: `Overall=0`, `Category=1`. Spent is derived from ledger `Out` for the month (overall) or category.
+
+| Method   | Endpoint                  | Auth     | Description                                                                                                        |
+| -------- | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/money/budgets`      | Required | Query `yearMonth=YYYY-MM`. Returns `{ yearMonth, budgets, budgetMinor, spentMinor }` with per-row `spentMinor`.    |
+| `POST`   | `/api/money/budgets`      | Required | Upsert `{ id?, yearMonth, scope, category?, amountMinor }`. Same natural slot overwrites. Cross-user `id` → `404`. |
+| `DELETE` | `/api/money/budgets/:id`  | Required | Ownership `404`.                                                                                                   |
+| `POST`   | `/api/money/budgets/copy` | Required | Body `{ fromYearMonth, toYearMonth }` — copy slots (upsert amounts).                                               |
+
+Client: `/money/budgets`.
+
+---
+
 ## Epics (scoped to authenticated user)
 
 | Method   | Endpoint         | Description                                                                                                                                        |
