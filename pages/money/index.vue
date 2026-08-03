@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {
-  MONEY_CATEGORIES,
   MONEY_CATEGORY_COLORS,
   MONEY_CATEGORY_I18N_KEYS,
   MoneyDirection,
@@ -66,6 +65,20 @@ function monthLabel(ym: string) {
   }
 }
 
+function formatTxDate(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  try {
+    return new Intl.DateTimeFormat(moneyLocale.value, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    }).format(new Date(y, m - 1, d));
+  } catch {
+    return iso;
+  }
+}
+
 const filtered = computed(() => {
   return transactions.value.filter((tx) => {
     if (
@@ -81,19 +94,9 @@ const filtered = computed(() => {
   });
 });
 
-const activeFilterCategories = computed(() => {
-  const seen = new Set<MoneyCategory>();
-  for (const tx of transactions.value) {
-    if (
-      filterDirection.value !== "all" &&
-      tx.direction !== filterDirection.value
-    ) {
-      continue;
-    }
-    seen.add(tx.category);
-  }
-  return MONEY_CATEGORIES.filter((c) => seen.has(c));
-});
+const hasFilters = computed(
+  () => filterDirection.value !== "all" || filterCategory.value != null,
+);
 
 async function goMonth(delta: number) {
   filterCategory.value = null;
@@ -125,8 +128,9 @@ function onDeleted() {
   modalOpen.value = false;
 }
 
-function toggleCategoryFilter(cat: MoneyCategory) {
-  filterCategory.value = filterCategory.value === cat ? null : cat;
+function clearFilters() {
+  filterDirection.value = "all";
+  filterCategory.value = null;
 }
 
 function onSelectCategoryFromChart(cat: MoneyCategory) {
@@ -143,15 +147,29 @@ function onExportJson() {
   exportTransactionsJson(yearMonth.value, transactions.value, totals.value);
   pushToast(t("toasts.moneyExported"), { tone: "success" });
 }
+
+const netTone = computed(() => {
+  const n = totals.value?.netMinor ?? 0;
+  if (n > 0) return "in" as const;
+  if (n < 0) return "out" as const;
+  return "neutral" as const;
+});
 </script>
 
 <template>
-  <div class="flex h-screen flex-col">
+  <div
+    class="relative flex h-full min-h-0 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50/70 via-slate-50 to-slate-100"
+  >
     <header
-      class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 md:px-6"
+      class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-4 backdrop-blur-md md:px-6"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600"
+        >
+          {{ $t("nav.sectionMoney") }}
+        </p>
+        <h1 class="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">
           {{ $t("money.title") }}
         </h1>
         <p class="mt-0.5 text-xs text-slate-500">
@@ -166,7 +184,7 @@ function onExportJson() {
         />
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
           @click="openCreate"
         >
           <svg
@@ -184,97 +202,59 @@ function onExportJson() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
+    <div class="relative z-0 flex-1 overflow-y-auto scrollbar-thin">
       <div class="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="rounded-lg px-2 py-1.5 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-              :aria-label="$t('money.prevMonth')"
-              @click="goMonth(-1)"
-            >
-              ←
-            </button>
-            <button
-              type="button"
-              class="min-w-[10rem] rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-              @click="goCurrentMonth"
-            >
-              {{ monthLabel(yearMonth) }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-2 py-1.5 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-              :aria-label="$t('money.nextMonth')"
-              @click="goMonth(1)"
-            >
-              →
-            </button>
-          </div>
+          <MoneyMonthNav
+            :label="monthLabel(yearMonth)"
+            :prev-label="$t('money.prevMonth')"
+            :next-label="$t('money.nextMonth')"
+            @prev="goMonth(-1)"
+            @next="goMonth(1)"
+            @current="goCurrentMonth"
+          />
         </div>
 
         <section
           class="grid grid-cols-1 gap-3 sm:grid-cols-3"
           :aria-label="$t('money.totalsAria')"
         >
-          <div
-            class="rounded-xl bg-emerald-50/80 px-4 py-3 ring-1 ring-emerald-100"
-          >
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80"
-            >
-              {{ $t("money.in") }}
-            </p>
-            <p class="mt-1 text-lg font-semibold tabular-nums text-emerald-800">
-              {{ fmt(totals?.inMinor ?? 0) }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-rose-50/80 px-4 py-3 ring-1 ring-rose-100">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-rose-700/80"
-            >
-              {{ $t("money.out") }}
-            </p>
-            <p class="mt-1 text-lg font-semibold tabular-nums text-rose-800">
-              {{ fmt(totals?.outMinor ?? 0) }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-slate-500"
-            >
-              {{ $t("money.net") }}
-            </p>
-            <p
-              class="mt-1 text-lg font-semibold tabular-nums"
-              :class="
-                (totals?.netMinor ?? 0) >= 0
-                  ? 'text-emerald-800'
-                  : 'text-rose-800'
-              "
-            >
-              {{ fmt(totals?.netMinor ?? 0) }}
-            </p>
-          </div>
+          <MoneyStatCard
+            :label="$t('money.in')"
+            :value="fmt(totals?.inMinor ?? 0)"
+            tone="in"
+          />
+          <MoneyStatCard
+            :label="$t('money.out')"
+            :value="fmt(totals?.outMinor ?? 0)"
+            tone="out"
+          />
+          <MoneyStatCard
+            :label="$t('money.net')"
+            :value="fmt(totals?.netMinor ?? 0)"
+            :tone="netTone"
+          />
         </section>
 
         <MoneyCharts
           :transactions="transactions"
           :year-month="yearMonth"
           :locale-tag="moneyLocale"
+          :active-category="filterCategory"
           @select-category="onSelectCategoryFromChart"
         />
 
-        <div class="space-y-3">
+        <div
+          class="sticky top-0 z-[1] -mx-1 space-y-3 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-md"
+        >
           <div
-            class="flex flex-wrap gap-1.5"
+            class="flex flex-wrap items-center gap-2"
             role="group"
             :aria-label="$t('money.filterDirectionAria')"
           >
             <button
               type="button"
-              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
               :class="
                 filterDirection === 'all'
                   ? 'bg-slate-900 text-white ring-slate-900'
@@ -287,7 +267,7 @@ function onExportJson() {
             </button>
             <button
               type="button"
-              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
               :class="
                 filterDirection === MoneyDirection.Out
                   ? 'bg-rose-600 text-white ring-rose-600'
@@ -300,7 +280,7 @@ function onExportJson() {
             </button>
             <button
               type="button"
-              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
               :class="
                 filterDirection === MoneyDirection.In
                   ? 'bg-emerald-600 text-white ring-emerald-600'
@@ -313,37 +293,28 @@ function onExportJson() {
             </button>
           </div>
 
-          <div
-            v-if="activeFilterCategories.length"
-            class="flex flex-wrap gap-1.5"
-            role="group"
-            :aria-label="$t('money.filterCategoryAria')"
-          >
-            <button
-              v-for="cat in activeFilterCategories"
-              :key="cat"
-              type="button"
-              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 transition"
-              :class="
-                filterCategory === cat
-                  ? 'bg-slate-900 text-white ring-slate-900'
-                  : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
-              "
-              :aria-pressed="filterCategory === cat"
-              @click="toggleCategoryFilter(cat)"
-            >
-              <span
-                class="h-2 w-2 rounded-full"
-                :style="{ backgroundColor: MONEY_CATEGORY_COLORS[cat] }"
-                aria-hidden="true"
+          <div class="flex flex-wrap items-end gap-2">
+            <div class="min-w-[12rem] flex-1">
+              <label
+                class="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500"
+                for="money-filter-category"
+              >
+                {{ $t("money.modal.category") }}
+              </label>
+              <MoneyCategorySelect
+                id="money-filter-category"
+                v-model="filterCategory"
+                mode="all"
+                allow-null
+                size="sm"
+                :aria-label="$t('money.filterCategoryAria')"
               />
-              {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
-            </button>
+            </div>
             <button
-              v-if="filterCategory != null"
+              v-if="hasFilters"
               type="button"
-              class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"
-              @click="filterCategory = null"
+              class="mb-0.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
+              @click="clearFilters"
             >
               {{ $t("money.clearFilter") }}
             </button>
@@ -353,69 +324,84 @@ function onExportJson() {
         <p v-if="error" class="text-sm text-rose-600" role="alert">
           {{ error }}
         </p>
-        <p
+        <div
           v-else-if="isLoading && !transactions.length"
-          class="text-sm text-slate-500"
+          class="space-y-2 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200/80"
+          :aria-busy="true"
+          :aria-label="$t('money.loading')"
         >
-          {{ $t("money.loading") }}
-        </p>
-        <p
+          <div
+            v-for="i in 4"
+            :key="i"
+            class="h-12 animate-pulse rounded-xl bg-slate-100"
+          />
+        </div>
+        <EmptyState
           v-else-if="!transactions.length"
-          class="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-slate-200"
-        >
-          {{ $t("money.empty") }}
-        </p>
-        <p
+          illustration="chart"
+          :title="$t('money.empty')"
+          :description="$t('money.emptyHint')"
+          :primary-label="$t('money.addTransaction')"
+          primary-shortcut="N"
+          @primary="openCreate"
+        />
+        <EmptyState
           v-else-if="!filtered.length"
-          class="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200"
-        >
-          {{ $t("money.filterEmpty") }}
-        </p>
+          illustration="spark"
+          :title="$t('money.filterEmpty')"
+          :primary-label="$t('money.clearFilter')"
+          @primary="clearFilters"
+        />
 
         <ul
           v-else
-          class="divide-y divide-slate-100 rounded-xl ring-1 ring-slate-200"
+          class="overflow-hidden rounded-2xl bg-white/90 shadow-sm ring-1 ring-slate-200/80"
         >
           <li
-            v-for="tx in filtered"
+            v-for="(tx, idx) in filtered"
             :key="tx.id"
-            class="flex cursor-pointer items-center justify-between gap-3 bg-white px-4 py-3 transition hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
-            @click="openEdit(tx)"
+            :class="idx > 0 ? 'border-t border-slate-100' : ''"
           >
-            <div class="flex min-w-0 items-start gap-3">
-              <span
-                class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                :style="{
-                  backgroundColor: MONEY_CATEGORY_COLORS[tx.category],
-                }"
-                aria-hidden="true"
-              />
-              <div class="min-w-0">
-                <p class="truncate text-sm font-medium text-slate-900">
-                  {{ $t(MONEY_CATEGORY_I18N_KEYS[tx.category]) }}
-                  <span v-if="tx.note" class="font-normal text-slate-500">
-                    · {{ tx.note }}
-                  </span>
-                </p>
-                <p class="mt-0.5 text-xs text-slate-400">
-                  {{ tx.occurredOn }}
-                </p>
-              </div>
-            </div>
-            <p
-              class="shrink-0 text-sm font-semibold tabular-nums"
-              :class="
-                tx.direction === MoneyDirection.In
-                  ? 'text-emerald-700'
-                  : 'text-rose-700'
-              "
+            <button
+              type="button"
+              class="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/90 focus-visible:bg-brand-50/50 focus-visible:outline-none"
+              @click="openEdit(tx)"
             >
-              {{
-                tx.direction === MoneyDirection.In
-                  ? `+${fmt(tx.amountMinor)}`
-                  : `−${fmt(tx.amountMinor)}`
-              }}
-            </p>
+              <div class="flex min-w-0 items-start gap-3">
+                <span
+                  class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-2 ring-white"
+                  :style="{
+                    backgroundColor: MONEY_CATEGORY_COLORS[tx.category],
+                  }"
+                  aria-hidden="true"
+                />
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-slate-900">
+                    {{ $t(MONEY_CATEGORY_I18N_KEYS[tx.category]) }}
+                    <span v-if="tx.note" class="font-normal text-slate-500">
+                      · {{ tx.note }}
+                    </span>
+                  </p>
+                  <p class="mt-0.5 text-xs text-slate-400">
+                    {{ formatTxDate(tx.occurredOn) }}
+                  </p>
+                </div>
+              </div>
+              <p
+                class="shrink-0 text-sm font-semibold tabular-nums"
+                :class="
+                  tx.direction === MoneyDirection.In
+                    ? 'text-emerald-700'
+                    : 'text-rose-700'
+                "
+              >
+                {{
+                  tx.direction === MoneyDirection.In
+                    ? `+${fmt(tx.amountMinor)}`
+                    : `−${fmt(tx.amountMinor)}`
+                }}
+              </p>
+            </button>
           </li>
         </ul>
       </div>

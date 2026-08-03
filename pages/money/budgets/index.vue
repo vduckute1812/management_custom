@@ -127,6 +127,12 @@ const remaining = computed(() => {
   return m.budgetMinor - m.spentMinor;
 });
 
+const remainingTone = computed(() => {
+  if (remaining.value > 0) return "in" as const;
+  if (remaining.value < 0) return "out" as const;
+  return "neutral" as const;
+});
+
 function onExportCsv() {
   if (!month.value) return;
   exportBudgetsCsv(month.value);
@@ -141,12 +147,19 @@ function onExportJson() {
 </script>
 
 <template>
-  <div class="flex h-screen flex-col">
+  <div
+    class="relative flex h-full min-h-0 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50/70 via-slate-50 to-slate-100"
+  >
     <header
-      class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 md:px-6"
+      class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-4 backdrop-blur-md md:px-6"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600"
+        >
+          {{ $t("nav.sectionMoney") }}
+        </p>
+        <h1 class="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">
           {{ $t("money.budgets.title") }}
         </h1>
         <p class="mt-0.5 text-xs text-slate-500">
@@ -161,7 +174,7 @@ function onExportJson() {
         />
         <button
           type="button"
-          class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-50"
+          class="rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:bg-white disabled:opacity-50"
           :disabled="copying"
           @click="onCopy"
         >
@@ -169,7 +182,7 @@ function onExportJson() {
         </button>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
           @click="openCreate"
         >
           {{ $t("money.budgets.add") }}
@@ -177,140 +190,120 @@ function onExportJson() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
+    <div class="relative z-0 flex-1 overflow-y-auto scrollbar-thin">
       <div class="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6">
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="rounded-lg px-2 py-1.5 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-            :aria-label="$t('money.prevMonth')"
-            @click="goMonth(-1)"
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            class="min-w-[10rem] rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-            @click="goCurrentMonth"
-          >
-            {{ monthLabel(yearMonth) }}
-          </button>
-          <button
-            type="button"
-            class="rounded-lg px-2 py-1.5 text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
-            :aria-label="$t('money.nextMonth')"
-            @click="goMonth(1)"
-          >
-            →
-          </button>
-        </div>
+        <MoneyMonthNav
+          :label="monthLabel(yearMonth)"
+          :prev-label="$t('money.prevMonth')"
+          :next-label="$t('money.nextMonth')"
+          @prev="goMonth(-1)"
+          @next="goMonth(1)"
+          @current="goCurrentMonth"
+        />
 
         <section
           class="grid grid-cols-1 gap-3 sm:grid-cols-3"
           :aria-label="$t('money.budgets.totalsAria')"
         >
-          <div class="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-slate-500"
-            >
-              {{ $t("money.budgets.budgeted") }}
-            </p>
-            <p class="mt-1 text-lg font-semibold tabular-nums text-slate-900">
-              {{ fmt(month?.budgetMinor ?? 0) }}
-            </p>
-          </div>
-          <div class="rounded-xl bg-rose-50/80 px-4 py-3 ring-1 ring-rose-100">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-rose-700/80"
-            >
-              {{ $t("money.budgets.spent") }}
-            </p>
-            <p class="mt-1 text-lg font-semibold tabular-nums text-rose-800">
-              {{ fmt(month?.spentMinor ?? 0) }}
-            </p>
-          </div>
-          <div
-            class="rounded-xl bg-emerald-50/80 px-4 py-3 ring-1 ring-emerald-100"
-          >
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80"
-            >
-              {{ $t("money.budgets.remaining") }}
-            </p>
-            <p
-              class="mt-1 text-lg font-semibold tabular-nums"
-              :class="remaining >= 0 ? 'text-emerald-800' : 'text-rose-800'"
-            >
-              {{ fmt(remaining) }}
-            </p>
-          </div>
+          <MoneyStatCard
+            :label="$t('money.budgets.budgeted')"
+            :value="fmt(month?.budgetMinor ?? 0)"
+            tone="neutral"
+          />
+          <MoneyStatCard
+            :label="$t('money.budgets.spent')"
+            :value="fmt(month?.spentMinor ?? 0)"
+            tone="out"
+          />
+          <MoneyStatCard
+            :label="$t('money.budgets.remaining')"
+            :value="fmt(remaining)"
+            :tone="remainingTone"
+          />
         </section>
 
         <p v-if="error" class="text-sm text-rose-600" role="alert">
           {{ error }}
         </p>
-        <p
+        <div
           v-else-if="isLoading && !month?.budgets.length"
-          class="text-sm text-slate-500"
+          class="space-y-3"
+          :aria-busy="true"
+          :aria-label="$t('money.budgets.loading')"
         >
-          {{ $t("money.budgets.loading") }}
-        </p>
-        <p
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="h-24 animate-pulse rounded-2xl bg-white/80 ring-1 ring-slate-200/80"
+          />
+        </div>
+        <EmptyState
           v-else-if="!month?.budgets.length"
-          class="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-slate-200"
-        >
-          {{ $t("money.budgets.empty") }}
-        </p>
+          illustration="chart"
+          :title="$t('money.budgets.empty')"
+          :description="$t('money.budgets.emptyHint')"
+          :primary-label="$t('money.budgets.add')"
+          primary-shortcut="N"
+          :secondary-label="$t('money.budgets.copyPrevious')"
+          :secondary-loading="copying"
+          @primary="openCreate"
+          @secondary="onCopy"
+        />
 
         <ul v-else class="space-y-3">
-          <li
-            v-for="budget in month?.budgets"
-            :key="budget.id"
-            class="cursor-pointer rounded-xl bg-white px-4 py-4 ring-1 ring-slate-200 transition hover:bg-slate-50"
-            @click="openEdit(budget)"
-          >
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex min-w-0 items-center gap-2">
-                <span
-                  v-if="
-                    budget.scope === MoneyBudgetScope.Category &&
-                    budget.category != null
-                  "
-                  class="h-2.5 w-2.5 shrink-0 rounded-full"
-                  :style="{
-                    backgroundColor: MONEY_CATEGORY_COLORS[budget.category],
-                  }"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold text-slate-900">
-                    {{ labelFor(budget) }}
-                  </p>
-                  <p class="mt-0.5 text-xs text-slate-500">
-                    {{ fmt(budget.spentMinor) }}
-                    /
-                    {{ fmt(budget.amountMinor) }}
-                  </p>
+          <li v-for="budget in month?.budgets" :key="budget.id">
+            <button
+              type="button"
+              class="w-full rounded-2xl bg-white/90 px-4 py-4 text-left shadow-sm ring-1 ring-slate-200/80 transition hover:bg-white hover:ring-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+              @click="openEdit(budget)"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex min-w-0 items-center gap-2.5">
+                  <span
+                    v-if="
+                      budget.scope === MoneyBudgetScope.Category &&
+                      budget.category != null
+                    "
+                    class="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
+                    :style="{
+                      backgroundColor: MONEY_CATEGORY_COLORS[budget.category],
+                    }"
+                    aria-hidden="true"
+                  />
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-slate-900">
+                      {{ labelFor(budget) }}
+                    </p>
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      <span class="font-medium tabular-nums text-slate-700">{{
+                        fmt(budget.spentMinor)
+                      }}</span>
+                      /
+                      {{ fmt(budget.amountMinor) }}
+                    </p>
+                  </div>
                 </div>
+                <p
+                  class="shrink-0 text-xs font-semibold tabular-nums"
+                  :class="
+                    budget.progress >= 1 ? 'text-rose-700' : 'text-slate-500'
+                  "
+                >
+                  {{ pct(budget) }}%
+                </p>
               </div>
-              <p
-                class="shrink-0 text-xs font-semibold tabular-nums"
-                :class="
-                  budget.progress >= 1 ? 'text-rose-700' : 'text-slate-500'
-                "
-              >
-                {{ pct(budget) }}%
-              </p>
-            </div>
-            <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
               <div
-                class="h-full rounded-full transition-all"
-                :class="barClass(budget)"
-                :style="{
-                  width: `${Math.min(100, Math.round(budget.progress * 100))}%`,
-                }"
-              />
-            </div>
+                class="mt-3.5 h-2.5 overflow-hidden rounded-full bg-slate-100"
+              >
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  :class="barClass(budget)"
+                  :style="{
+                    width: `${Math.min(100, Math.round(budget.progress * 100))}%`,
+                  }"
+                />
+              </div>
+            </button>
           </li>
         </ul>
       </div>

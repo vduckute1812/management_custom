@@ -1191,6 +1191,7 @@
     "net": "净额",
     "loading": "加载中…",
     "empty": "本月暂无记录。添加一笔开始。",
+    "emptyHint": "用越南盾记录收支——本月合计与图表会随之更新。",
     "direction": {
       "out": "支出",
       "in": "收入"
@@ -1240,9 +1241,10 @@
     "chartDailyHint": "本月按日支出",
     "chartEmpty": "暂无支出可绘制",
     "filterAll": "全部",
+    "filterAllCategories": "全部分类",
     "filterDirectionAria": "按方向筛选",
     "filterCategoryAria": "按分类筛选",
-    "clearFilter": "清除",
+    "clearFilter": "清除筛选",
     "filterEmpty": "没有匹配筛选的记录。",
     "export": {
       "label": "导出",
@@ -1255,6 +1257,7 @@
       "addGoal": "新建目标",
       "loading": "加载中…",
       "empty": "还没有储蓄目标。创建一个开始存钱。",
+      "emptyHint": "设定目标、添加存入并跟踪进度。",
       "edit": "编辑",
       "contributeAction": "存入",
       "showContributions": "记录",
@@ -1312,6 +1315,7 @@
       "copyPrevious": "复制上月",
       "loading": "加载中…",
       "empty": "本月暂无预算。添加总额或分类限额。",
+      "emptyHint": "设定总额或分类上限，对照账本支出。",
       "totalsAria": "预算汇总",
       "budgeted": "预算",
       "spent": "已花",

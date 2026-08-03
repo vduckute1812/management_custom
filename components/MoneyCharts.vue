@@ -12,6 +12,7 @@ const props = defineProps<{
   transactions: MoneyTransaction[];
   yearMonth: string;
   localeTag: string;
+  activeCategory?: MoneyTransaction["category"] | null;
 }>();
 
 const emit = defineEmits<{
@@ -34,6 +35,9 @@ const daily = computed(() =>
 );
 const hasOut = computed(() => outSlices.value.length > 0);
 const hasDailyOut = computed(() => daily.value.some((p) => p.outMinor > 0));
+const outTotal = computed(() =>
+  outSlices.value.reduce((sum, s) => sum + s.amountMinor, 0),
+);
 
 function fmt(n: number) {
   return formatMoneyMinor(n, props.localeTag);
@@ -205,7 +209,9 @@ function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
 <template>
   <section class="space-y-4" :aria-label="$t('money.chartsAria')">
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <div
+        class="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/80"
+      >
         <h2 class="text-sm font-semibold text-slate-800">
           {{ $t("money.chartByCategory") }}
         </h2>
@@ -218,28 +224,74 @@ function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
         >
           <div class="relative mx-auto h-36 w-36">
             <canvas ref="categoryCanvas" />
+            <div
+              class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+            >
+              <p
+                class="text-[10px] font-semibold uppercase tracking-wider text-slate-400"
+              >
+                {{ $t("money.out") }}
+              </p>
+              <p
+                class="max-w-[5.5rem] truncate text-center text-xs font-semibold tabular-nums text-slate-800"
+              >
+                {{ fmt(outTotal) }}
+              </p>
+            </div>
           </div>
-          <ul class="space-y-1.5 self-center">
+          <ul class="space-y-1 self-center">
             <li v-for="slice in outSlices" :key="slice.category">
               <button
                 type="button"
-                class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-slate-50"
+                class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
+                :class="
+                  activeCategory === slice.category
+                    ? 'bg-slate-900 text-white'
+                    : 'hover:bg-slate-50'
+                "
+                :aria-pressed="activeCategory === slice.category"
                 @click="pickCategory(slice.category)"
               >
                 <span
-                  class="h-2.5 w-2.5 shrink-0 rounded-full"
+                  class="h-2.5 w-2.5 shrink-0 rounded-full ring-2"
+                  :class="
+                    activeCategory === slice.category
+                      ? 'ring-white/40'
+                      : 'ring-transparent'
+                  "
                   :style="{
                     backgroundColor: MONEY_CATEGORY_COLORS[slice.category],
                   }"
                   aria-hidden="true"
                 />
-                <span class="min-w-0 flex-1 truncate text-slate-700">
+                <span
+                  class="min-w-0 flex-1 truncate"
+                  :class="
+                    activeCategory === slice.category
+                      ? 'text-white'
+                      : 'text-slate-700'
+                  "
+                >
                   {{ $t(MONEY_CATEGORY_I18N_KEYS[slice.category]) }}
                 </span>
-                <span class="tabular-nums text-slate-500">
+                <span
+                  class="tabular-nums"
+                  :class="
+                    activeCategory === slice.category
+                      ? 'text-white/70'
+                      : 'text-slate-500'
+                  "
+                >
                   {{ Math.round(slice.share * 100) }}%
                 </span>
-                <span class="shrink-0 tabular-nums font-medium text-slate-800">
+                <span
+                  class="shrink-0 tabular-nums font-medium"
+                  :class="
+                    activeCategory === slice.category
+                      ? 'text-white'
+                      : 'text-slate-800'
+                  "
+                >
                   {{ fmt(slice.amountMinor) }}
                 </span>
               </button>
@@ -251,7 +303,9 @@ function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
         </p>
       </div>
 
-      <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+      <div
+        class="rounded-2xl bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/80"
+      >
         <h2 class="text-sm font-semibold text-slate-800">
           {{ $t("money.chartDaily") }}
         </h2>

@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import {
-  MONEY_CATEGORIES,
-  MONEY_CATEGORY_COLORS,
-  MONEY_CATEGORY_I18N_KEYS,
   MONEY_EXPENSE_CATEGORIES,
   MoneyBudgetScope,
   type MoneyBudget,
@@ -164,11 +161,20 @@ async function onDelete() {
             </h2>
             <button
               type="button"
-              class="text-slate-400 hover:text-slate-700"
+              class="text-slate-400 transition hover:text-slate-700"
               :aria-label="$t('money.budgets.modal.close')"
               @click="emit('close')"
             >
-              ×
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                class="h-5 w-5"
+              >
+                <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
+              </svg>
             </button>
           </header>
 
@@ -203,31 +209,22 @@ async function onDelete() {
             </div>
 
             <div v-if="form.scope === MoneyBudgetScope.Category">
-              <p class="mb-2 text-xs font-medium text-slate-600">
+              <label
+                class="mb-1 block text-xs font-medium text-slate-600"
+                :for="`${fid}-cat`"
+              >
                 {{ $t("money.budgets.modal.category") }}
-              </p>
-              <div class="flex flex-wrap gap-1.5">
-                <button
-                  v-for="cat in MONEY_CATEGORIES"
-                  :key="cat"
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition"
-                  :class="
-                    form.category === cat
-                      ? 'bg-slate-900 text-white ring-slate-900'
-                      : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
-                  "
-                  :aria-pressed="form.category === cat"
-                  @click="form.category = cat"
-                >
-                  <span
-                    class="h-2 w-2 rounded-full"
-                    :style="{ backgroundColor: MONEY_CATEGORY_COLORS[cat] }"
-                    aria-hidden="true"
-                  />
-                  {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
-                </button>
-              </div>
+              </label>
+              <MoneyCategorySelect
+                :id="`${fid}-cat`"
+                :model-value="form.category"
+                mode="expense"
+                @update:model-value="
+                  (v) => {
+                    if (v != null) form.category = v;
+                  }
+                "
+              />
             </div>
 
             <div>

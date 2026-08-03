@@ -1191,6 +1191,7 @@
     "net": "Ròng",
     "loading": "Đang tải…",
     "empty": "Chưa có giao dịch tháng này. Thêm một giao dịch để bắt đầu.",
+    "emptyHint": "Ghi thu/chi bằng VND — tổng và biểu đồ cập nhật theo tháng.",
     "direction": {
       "out": "Chi",
       "in": "Thu"
@@ -1240,9 +1241,10 @@
     "chartDailyHint": "Chi tiêu từng ngày trong tháng",
     "chartEmpty": "Chưa có chi tiêu để vẽ biểu đồ",
     "filterAll": "Tất cả",
+    "filterAllCategories": "Tất cả danh mục",
     "filterDirectionAria": "Lọc theo chiều",
     "filterCategoryAria": "Lọc theo danh mục",
-    "clearFilter": "Xoá lọc",
+    "clearFilter": "Xoá bộ lọc",
     "filterEmpty": "Không có giao dịch khớp bộ lọc.",
     "export": {
       "label": "Xuất",
@@ -1255,6 +1257,7 @@
       "addGoal": "Mục tiêu mới",
       "loading": "Đang tải…",
       "empty": "Chưa có mục tiêu tiết kiệm. Tạo một mục tiêu để bắt đầu.",
+      "emptyHint": "Đặt mục tiêu, thêm đóng góp và theo dõi tiến độ.",
       "edit": "Sửa",
       "contributeAction": "Thêm",
       "showContributions": "Lịch sử",
@@ -1312,6 +1315,7 @@
       "copyPrevious": "Sao chép tháng trước",
       "loading": "Đang tải…",
       "empty": "Chưa có ngân sách tháng này. Thêm hạn mức tổng hoặc theo danh mục.",
+      "emptyHint": "Giới hạn chi tổng hoặc theo danh mục dựa trên sổ cái.",
       "totalsAria": "Tổng ngân sách",
       "budgeted": "Ngân sách",
       "spent": "Đã chi",

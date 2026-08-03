@@ -1191,6 +1191,7 @@
     "net": "Net",
     "loading": "Loading…",
     "empty": "No transactions this month. Add one to get started.",
+    "emptyHint": "Log income and expenses in VND — totals and charts update for the month.",
     "direction": {
       "out": "Expense",
       "in": "Income"
@@ -1240,9 +1241,10 @@
     "chartDailyHint": "Expenses by day this month",
     "chartEmpty": "No expenses to chart yet",
     "filterAll": "All",
+    "filterAllCategories": "All categories",
     "filterDirectionAria": "Filter by direction",
     "filterCategoryAria": "Filter by category",
-    "clearFilter": "Clear",
+    "clearFilter": "Clear filters",
     "filterEmpty": "No transactions match these filters.",
     "export": {
       "label": "Export",
@@ -1255,6 +1257,7 @@
       "addGoal": "New goal",
       "loading": "Loading…",
       "empty": "No savings goals yet. Create one to start putting money aside.",
+      "emptyHint": "Set a target, add contributions, and watch progress climb.",
       "edit": "Edit",
       "contributeAction": "Add",
       "showContributions": "History",
@@ -1312,6 +1315,7 @@
       "copyPrevious": "Copy previous month",
       "loading": "Loading…",
       "empty": "No budgets this month. Add an overall or category limit.",
+      "emptyHint": "Cap overall spend or set per-category limits against your ledger.",
       "totalsAria": "Budget totals",
       "budgeted": "Budgeted",
       "spent": "Spent",

@@ -144,12 +144,19 @@ function onExportJson() {
 </script>
 
 <template>
-  <div class="flex h-screen flex-col">
+  <div
+    class="relative flex h-full min-h-0 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50/70 via-slate-50 to-slate-100"
+  >
     <header
-      class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-4 md:px-6"
+      class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-4 backdrop-blur-md md:px-6"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">
+        <p
+          class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600"
+        >
+          {{ $t("nav.sectionMoney") }}
+        </p>
+        <h1 class="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">
           {{ $t("money.savings.title") }}
         </h1>
         <p class="mt-0.5 text-xs text-slate-500">
@@ -164,7 +171,7 @@ function onExportJson() {
         />
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+          class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
           @click="openCreate"
         >
           <svg
@@ -182,34 +189,45 @@ function onExportJson() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin">
+    <div class="relative z-0 flex-1 overflow-y-auto scrollbar-thin">
       <div class="mx-auto max-w-3xl space-y-4 px-4 py-6 md:px-6">
         <p v-if="error" class="text-sm text-rose-600" role="alert">
           {{ error }}
         </p>
-        <p
+        <div
           v-else-if="isLoading && !goals.length"
-          class="text-sm text-slate-500"
+          class="space-y-3"
+          :aria-busy="true"
+          :aria-label="$t('money.savings.loading')"
         >
-          {{ $t("money.savings.loading") }}
-        </p>
-        <p
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="h-28 animate-pulse rounded-2xl bg-white/80 ring-1 ring-slate-200/80"
+          />
+        </div>
+        <EmptyState
           v-else-if="!goals.length"
-          class="rounded-xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-500 ring-1 ring-slate-200"
-        >
-          {{ $t("money.savings.empty") }}
-        </p>
+          illustration="spark"
+          :title="$t('money.savings.empty')"
+          :description="$t('money.savings.emptyHint')"
+          :primary-label="$t('money.savings.addGoal')"
+          primary-shortcut="N"
+          @primary="openCreate"
+        />
 
         <article
           v-for="goal in goals"
           :key="goal.id"
-          class="rounded-xl bg-white ring-1 ring-slate-200"
+          class="overflow-hidden rounded-2xl bg-white/90 shadow-sm ring-1 ring-slate-200/80 transition hover:ring-slate-300"
         >
           <div class="px-4 py-4 sm:px-5">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
-                  <h2 class="text-base font-semibold text-slate-900">
+                  <h2
+                    class="text-base font-semibold tracking-tight text-slate-900"
+                  >
                     {{ goal.title }}
                   </h2>
                   <span
@@ -220,7 +238,9 @@ function onExportJson() {
                   </span>
                 </div>
                 <p class="mt-1 text-xs text-slate-500">
-                  {{ fmt(goal.savedMinor) }}
+                  <span class="font-semibold tabular-nums text-slate-700">{{
+                    fmt(goal.savedMinor)
+                  }}</span>
                   /
                   {{ fmt(goal.targetMinor) }}
                   <span v-if="goal.targetDate">
@@ -232,21 +252,21 @@ function onExportJson() {
               <div class="flex flex-wrap gap-1.5">
                 <button
                   type="button"
-                  class="rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+                  class="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-emerald-700"
                   @click="openContribute(goal)"
                 >
                   {{ $t("money.savings.contributeAction") }}
                 </button>
                 <button
                   type="button"
-                  class="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
                   @click="openEdit(goal)"
                 >
                   {{ $t("money.savings.edit") }}
                 </button>
                 <button
                   type="button"
-                  class="rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
+                  class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
                   @click="toggleExpand(goal)"
                 >
                   {{
@@ -258,9 +278,9 @@ function onExportJson() {
               </div>
             </div>
 
-            <div class="mt-3">
+            <div class="mt-4">
               <div
-                class="h-2 overflow-hidden rounded-full bg-slate-100"
+                class="h-2.5 overflow-hidden rounded-full bg-slate-100"
                 role="progressbar"
                 :aria-valuenow="progressPct(goal)"
                 aria-valuemin="0"
@@ -270,7 +290,7 @@ function onExportJson() {
                 "
               >
                 <div
-                  class="h-full rounded-full transition-all"
+                  class="h-full rounded-full transition-all duration-500"
                   :class="
                     goal.status === MoneySavingsGoalStatus.Completed
                       ? 'bg-emerald-500'
@@ -280,7 +300,7 @@ function onExportJson() {
                 />
               </div>
               <p
-                class="mt-1 text-right text-[11px] tabular-nums text-slate-500"
+                class="mt-1.5 text-right text-[11px] font-medium tabular-nums text-slate-500"
               >
                 {{ progressPct(goal) }}%
               </p>
@@ -292,7 +312,7 @@ function onExportJson() {
 
           <div
             v-if="expandedId === goal.id"
-            class="border-t border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5"
+            class="border-t border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-5"
           >
             <p v-if="contribLoading" class="text-xs text-slate-500">
               {{ $t("money.savings.loading") }}
@@ -304,10 +324,10 @@ function onExportJson() {
               <li
                 v-for="c in contributions"
                 :key="c.id"
-                class="flex items-center justify-between gap-3 py-2 text-sm"
+                class="flex items-center justify-between gap-3 py-2.5 text-sm"
               >
                 <div class="min-w-0">
-                  <p class="tabular-nums font-medium text-slate-800">
+                  <p class="tabular-nums font-semibold text-emerald-700">
                     +{{ fmt(c.amountMinor) }}
                   </p>
                   <p class="text-xs text-slate-400">

@@ -1,8 +1,5 @@
 <script setup lang="ts">
 import {
-  MONEY_CATEGORIES,
-  MONEY_CATEGORY_COLORS,
-  MONEY_CATEGORY_I18N_KEYS,
   MoneyCategory,
   MoneyDirection,
   coerceCategoryForDirection,
@@ -320,75 +317,62 @@ watch(discardConfirmOpen, (open) => {
               </button>
             </div>
 
-            <div>
-              <label
-                class="mb-1 block text-xs font-medium text-slate-600"
-                :for="fieldIds.amount"
-              >
-                {{ $t("money.modal.amount") }}
-              </label>
-              <input
-                :id="fieldIds.amount"
-                ref="amountInput"
-                v-model="form.amountText"
-                type="text"
-                inputmode="numeric"
-                autocomplete="off"
-                required
-                :placeholder="$t('money.modal.amountPlaceholder')"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label
+                  class="mb-1 block text-xs font-medium text-slate-600"
+                  :for="fieldIds.amount"
+                >
+                  {{ $t("money.modal.amount") }}
+                </label>
+                <input
+                  :id="fieldIds.amount"
+                  ref="amountInput"
+                  v-model="form.amountText"
+                  type="text"
+                  inputmode="numeric"
+                  autocomplete="off"
+                  required
+                  :placeholder="$t('money.modal.amountPlaceholder')"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+              </div>
+
+              <div>
+                <label
+                  class="mb-1 block text-xs font-medium text-slate-600"
+                  :for="fieldIds.occurredOn"
+                >
+                  {{ $t("money.modal.date") }}
+                </label>
+                <input
+                  :id="fieldIds.occurredOn"
+                  v-model="form.occurredOn"
+                  type="date"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                />
+              </div>
             </div>
 
             <div>
               <label
                 class="mb-1 block text-xs font-medium text-slate-600"
-                :for="fieldIds.occurredOn"
-              >
-                {{ $t("money.modal.date") }}
-              </label>
-              <input
-                :id="fieldIds.occurredOn"
-                v-model="form.occurredOn"
-                type="date"
-                required
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
-            </div>
-
-            <div>
-              <p
-                :id="fieldIds.category"
-                class="mb-2 text-xs font-medium text-slate-600"
+                :for="fieldIds.category"
               >
                 {{ $t("money.modal.category") }}
-              </p>
-              <div
-                class="flex flex-wrap gap-1.5"
-                role="group"
-                :aria-labelledby="fieldIds.category"
-              >
-                <button
-                  v-for="cat in MONEY_CATEGORIES"
-                  :key="cat"
-                  type="button"
-                  class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition"
-                  :class="
-                    form.category === cat
-                      ? 'bg-slate-900 text-white ring-slate-900'
-                      : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
-                  "
-                  :aria-pressed="form.category === cat"
-                  @click="form.category = cat"
-                >
-                  <span
-                    class="h-2 w-2 rounded-full"
-                    :style="{ backgroundColor: MONEY_CATEGORY_COLORS[cat] }"
-                    aria-hidden="true"
-                  />
-                  {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
-                </button>
-              </div>
+              </label>
+              <MoneyCategorySelect
+                :id="fieldIds.category"
+                :model-value="form.category"
+                mode="direction"
+                :direction="form.direction"
+                @update:model-value="
+                  (v) => {
+                    if (v != null) form.category = v;
+                  }
+                "
+              />
             </div>
 
             <div>
