@@ -252,6 +252,20 @@ Message `kind` is the same integer-enum convention as the rest of the API (`Chat
 
 ---
 
+## Money (expense ledger)
+
+Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are integer VND đồng (`amountMinor` ≥ 0); `direction` / `category` are integer enums (`MoneyDirection`, `MoneyCategory` in `types/money.ts`).
+
+| Method   | Endpoint                      | Auth     | Description                                                                                                                                      |
+| -------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/money/transactions`     | Required | Query `yearMonth=YYYY-MM` (default: caller's local calendar month). Returns `{ transactions, totals }` with `inMinor` / `outMinor` / `netMinor`. |
+| `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
+| `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
+
+Client page: `/money` (month navigator + list + modal). Nav shortcut `g m`.
+
+---
+
 ## Epics (scoped to authenticated user)
 
 | Method   | Endpoint         | Description                                                                                                                                        |

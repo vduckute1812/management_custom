@@ -171,6 +171,18 @@ watch(
           </span>
         </NuxtLink>
         <NuxtLink
+          v-if="auth.isAuthenticatedUi.value"
+          to="/money"
+          class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          :class="
+            isMainActive('/money')
+              ? 'bg-brand-50 text-brand-700'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          "
+        >
+          {{ $t("nav.money") }}
+        </NuxtLink>
+        <NuxtLink
           to="/tasks"
           class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
           :class="

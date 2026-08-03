@@ -1,6 +1,13 @@
 <script setup lang="ts">
 export type AppIconName =
-  "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "user";
+  | "calendar"
+  | "layers"
+  | "chart"
+  | "cog"
+  | "shield"
+  | "feed"
+  | "user"
+  | "wallet";
 
 const props = withDefaults(
   defineProps<{
@@ -62,6 +69,11 @@ const props = withDefaults(
         stroke-linecap="round"
         stroke-linejoin="round"
       />
+    </template>
+    <template v-else-if="name === 'wallet'">
+      <rect x="2" y="6" width="20" height="14" rx="2" stroke-linejoin="round" />
+      <path d="M2 10h20" stroke-linecap="round" />
+      <circle cx="16" cy="14" r="1.5" fill="currentColor" stroke="none" />
     </template>
   </svg>
 </template>

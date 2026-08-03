@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities` → `0024_money_transactions`.
 
 ## Migration system
 
@@ -83,6 +83,8 @@ MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 | `posts.format`                                                                             | `TINYINT UNSIGNED`      | `Update=0, Manuscript=1` (`PostFormat` in `types/post.ts`)                              |
 | `uploads.kind` / `post_attachments.kind`                                                   | `TINYINT UNSIGNED`      | `Image=0, Document=1, Audio=2` (`UploadKind` in `types/post.ts`)                        |
 | `jobs.status`                                                                              | `TINYINT UNSIGNED`      | `Pending=0, Processing=1, Completed=2, Dead=3` (`JobStatus` in `types/job.ts`)          |
+| `money_transactions.direction`                                                             | `TINYINT UNSIGNED`      | `Out=0, In=1` (`MoneyDirection` in `types/money.ts`)                                    |
+| `money_transactions.category`                                                              | `TINYINT UNSIGNED`      | `Food=0` … `Other=10` (`MoneyCategory` in `types/money.ts`)                             |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -141,6 +143,26 @@ CREATE TABLE auth_identities (
   CONSTRAINT fk_auth_identities_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   INDEX idx_auth_identities_user (user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Money ledger (migration 0024). Amounts are VND đồng (BIGINT ≥ 0).
+-- MoneyDirection: Out=0 In=1. MoneyCategory: Food=0 … Other=10.
+CREATE TABLE money_transactions (
+  id            VARCHAR(64)  NOT NULL,
+  user_id       VARCHAR(64)  NOT NULL,
+  occurred_on   DATE         NOT NULL,
+  amount_minor  BIGINT       NOT NULL,
+  direction     TINYINT UNSIGNED NOT NULL,
+  category      TINYINT UNSIGNED NOT NULL,
+  note          VARCHAR(500) NULL,
+  created_at    DATETIME(3)  NOT NULL,
+  updated_at    DATETIME(3)  NOT NULL,
+  PRIMARY KEY (id),
+  CONSTRAINT fk_money_tx_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT chk_money_tx_amount CHECK (amount_minor >= 0),
+  INDEX idx_money_tx_user_occurred (user_id, occurred_on),
+  INDEX idx_money_tx_user_category (user_id, category)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Refresh tokens ------------------------------------------------------
@@ -418,6 +440,18 @@ Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.
 Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Migration `0017` adds message reactions as `TINYINT`. Migration `0018` converts legacy post/story `ENUM` reaction strings to the same `TINYINT` `ReactionType` constants. Migration `0019` converts post visibility/format and upload/attachment kind to `TINYINT` consts. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
 Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
+
+---
+
+## Money (migration 0024)
+
+Per-user expense ledger. Spec: [`money-spec.md`](./money-spec.md).
+
+| Table                | Purpose                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `money_transactions` | Ledger rows: `occurred_on` (DATE), `amount_minor` (BIGINT ≥ 0), `direction` (`Out=0`/`In=1`), `category` (`Food=0`…`Other=10`), optional `note` |
+
+Wire DTOs: `~/types/money.ts`. Domain SQL: `server/db/money.ts`. Deleting a user cascades their transactions.
 
 ---
 

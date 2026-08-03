@@ -36,7 +36,10 @@
     "themeTitleFixed": "Theme: {label}",
     "more": "More",
     "language": "Language",
-    "chat": "Chat"
+    "chat": "Chat",
+    "money": "Money",
+    "sectionMoney": "Money",
+    "sectionMoneyHint": "Expenses and month totals"
   },
   "auth": {
     "signInTitle": "Sign in to continue",
@@ -867,7 +870,10 @@
     "couldNotReschedule": "Couldn't reschedule",
     "rescheduledCount": "Rescheduled {count} task to today | Rescheduled {count} tasks to today",
     "couldNotRescheduleAny": "Couldn't reschedule any tasks",
-    "manuscriptPublished": "Manuscript published"
+    "manuscriptPublished": "Manuscript published",
+    "failedToLoadMoney": "Failed to load money ledger",
+    "moneyTransactionSaved": "Transaction saved",
+    "moneyTransactionDeleted": "Transaction deleted"
   },
   "status": {
     "todo": "To do",
@@ -906,7 +912,9 @@
     "taskSubtitle": "Task",
     "taskSubtitleWithEpic": "Task · {epic}",
     "goChat": "Go to Chat",
-    "goChatSub": "Direct messages"
+    "goChatSub": "Direct messages",
+    "goMoney": "Go to Money",
+    "goMoneySub": "Expenses and month totals"
   },
   "shortcuts": {
     "title": "Keyboard shortcuts",
@@ -942,7 +950,9 @@
     "dragMoveDaily": "Move a block in Daily (snaps to 15 min)",
     "dragEdgeResize": "Resize a block from top or bottom",
     "dragUpNext": "Drop onto a Daily hour to schedule",
-    "dragWeekly": "Move a block across days in Weekly"
+    "dragWeekly": "Move a block across days in Weekly",
+    "goChat": "Go to Chat",
+    "goMoney": "Go to Money"
   },
   "empty": {
     "feedNothingYet": "Nothing here yet",
@@ -990,7 +1000,9 @@
     "manuscriptWriteDescription": "Compose a long-form manuscript for essays and thesis chapters.",
     "manuscriptEdit": "Edit post",
     "manuscriptEditDescription": "Update an existing feed post or manuscript.",
-    "chat": "Chat"
+    "chat": "Chat",
+    "money": "Money",
+    "moneyDescription": "Track income and expenses in VND."
   },
   "categories": {
     "electronics": "Electronics",
@@ -1146,5 +1158,60 @@
     "audioUnsupported": "Your browser cannot play this audio",
     "failedToLoadConversations": "Failed to load conversations",
     "failedToLoadMessages": "Failed to load messages"
+  },
+  "money": {
+    "title": "Money",
+    "subtitle": "Track income and expenses in VND",
+    "addTransaction": "Add transaction",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "totalsAria": "Month totals",
+    "in": "In",
+    "out": "Out",
+    "net": "Net",
+    "loading": "Loading…",
+    "empty": "No transactions this month. Add one to get started.",
+    "direction": {
+      "out": "Expense",
+      "in": "Income"
+    },
+    "categories": {
+      "food": "Food",
+      "transport": "Transport",
+      "housing": "Housing",
+      "utilities": "Utilities",
+      "health": "Health",
+      "entertainment": "Entertainment",
+      "shopping": "Shopping",
+      "education": "Education",
+      "income": "Income",
+      "transfer": "Transfer",
+      "other": "Other"
+    },
+    "modal": {
+      "newTitle": "New transaction",
+      "editTitle": "Edit transaction",
+      "close": "Close",
+      "amount": "Amount (₫)",
+      "amountPlaceholder": "e.g. 150000",
+      "amountRequired": "Enter a valid amount.",
+      "date": "Date",
+      "dateRequired": "Pick a date.",
+      "category": "Category",
+      "note": "Note",
+      "notePlaceholder": "Optional",
+      "save": "Save",
+      "saving": "Saving…",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "failedToSave": "Could not save transaction",
+      "failedToDelete": "Could not delete transaction",
+      "discardTitle": "Discard changes?",
+      "discardBody": "You have unsaved edits.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard",
+      "deleteTitle": "Delete transaction?",
+      "deleteBody": "This cannot be undone."
+    }
   }
 }

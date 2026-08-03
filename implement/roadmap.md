@@ -345,6 +345,23 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Docker Alpine: global `npm@12.0.2` install (Corepack unreliable on Alpine) + `HUSKY=0` in image builds
 - [x] Deploy prune: unused SHA tags / dangling images / stopped containers before build, on failure, and after healthy deploy (keeps `:latest` / `:previous` / new SHA; never volumes)
 
+## Phase 21 — Money (expense ledger, Sprint 0–1)
+
+Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
+
+- [x] Spec + nav (`/money`, header, sidebar section, `g m`, command palette)
+- [x] Migration `0024_money_transactions` — BIGINT `amount_minor`, integer `direction` / `category`
+- [x] DB / Zod / service / API under `/api/money/transactions`
+- [x] UI: month list + totals + create/edit/delete modal; i18n (`en` / `vi` / `zh-CN` / `zh-TW`)
+- [x] Vitest for money schemas + amount/yearMonth helpers; docs (api / database / roadmap / README)
+
+### Later (Money)
+
+- Dashboard charts + category UX polish
+- Savings goals + contributions
+- Monthly budgets
+- Export / harden
+
 ### Later
 
 - Lightweight tasks list API (blocks on demand)

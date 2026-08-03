@@ -36,7 +36,10 @@
     "themeTitleFixed": "主題：{label}",
     "more": "更多",
     "language": "語言",
-    "chat": "聊天"
+    "chat": "聊天",
+    "money": "記帳",
+    "sectionMoney": "記帳",
+    "sectionMoneyHint": "收支與月度彙總"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -867,7 +870,10 @@
     "couldNotReschedule": "無法改期",
     "rescheduledCount": "已將 {count} 個任務改期到今天 | 已將 {count} 個任務改期到今天",
     "couldNotRescheduleAny": "無法改期任何任務",
-    "manuscriptPublished": "手稿已發佈"
+    "manuscriptPublished": "手稿已發佈",
+    "failedToLoadMoney": "無法載入帳本",
+    "moneyTransactionSaved": "紀錄已儲存",
+    "moneyTransactionDeleted": "紀錄已刪除"
   },
   "status": {
     "todo": "待辦",
@@ -906,7 +912,9 @@
     "taskSubtitle": "任務",
     "taskSubtitleWithEpic": "任務 · {epic}",
     "goChat": "前往聊天",
-    "goChatSub": "私訊"
+    "goChatSub": "私訊",
+    "goMoney": "前往記帳",
+    "goMoneySub": "收支與月度彙總"
   },
   "shortcuts": {
     "title": "鍵盤快捷鍵",
@@ -942,7 +950,9 @@
     "dragMoveDaily": "在日檢視中移動時段（吸附 15 分鐘）",
     "dragEdgeResize": "從頂部或底部調整時段大小",
     "dragUpNext": "拖到日檢視小時上以排程",
-    "dragWeekly": "在週檢視中跨日移動時段"
+    "dragWeekly": "在週檢視中跨日移動時段",
+    "goChat": "前往聊天",
+    "goMoney": "前往記帳"
   },
   "empty": {
     "feedNothingYet": "這裡還沒有內容",
@@ -990,7 +1000,9 @@
     "manuscriptWriteDescription": "撰寫長文手稿，適合論文與研究筆記。",
     "manuscriptEdit": "編輯貼文",
     "manuscriptEditDescription": "更新動態中的貼文或手稿。",
-    "chat": "聊天"
+    "chat": "聊天",
+    "money": "記帳",
+    "moneyDescription": "以越南盾追蹤收入與支出。"
   },
   "categories": {
     "electronics": "電子",
@@ -1146,5 +1158,60 @@
     "audioUnsupported": "瀏覽器無法播放此音訊",
     "failedToLoadConversations": "無法載入會話",
     "failedToLoadMessages": "無法載入訊息"
+  },
+  "money": {
+    "title": "記帳",
+    "subtitle": "以越南盾追蹤收入與支出",
+    "addTransaction": "新增紀錄",
+    "prevMonth": "上個月",
+    "nextMonth": "下個月",
+    "totalsAria": "本月彙總",
+    "in": "收入",
+    "out": "支出",
+    "net": "淨額",
+    "loading": "載入中…",
+    "empty": "本月尚無紀錄。新增一筆開始。",
+    "direction": {
+      "out": "支出",
+      "in": "收入"
+    },
+    "categories": {
+      "food": "餐飲",
+      "transport": "交通",
+      "housing": "住房",
+      "utilities": "水電",
+      "health": "健康",
+      "entertainment": "娛樂",
+      "shopping": "購物",
+      "education": "教育",
+      "income": "收入",
+      "transfer": "轉帳",
+      "other": "其他"
+    },
+    "modal": {
+      "newTitle": "新紀錄",
+      "editTitle": "編輯紀錄",
+      "close": "關閉",
+      "amount": "金額（₫）",
+      "amountPlaceholder": "例如 150000",
+      "amountRequired": "請輸入有效金額。",
+      "date": "日期",
+      "dateRequired": "請選擇日期。",
+      "category": "分類",
+      "note": "備註",
+      "notePlaceholder": "選填",
+      "save": "儲存",
+      "saving": "儲存中…",
+      "cancel": "取消",
+      "delete": "刪除",
+      "failedToSave": "無法儲存紀錄",
+      "failedToDelete": "無法刪除紀錄",
+      "discardTitle": "放棄變更？",
+      "discardBody": "你有未儲存的編輯。",
+      "keepEditing": "繼續編輯",
+      "discard": "放棄",
+      "deleteTitle": "刪除紀錄？",
+      "deleteBody": "此操作無法復原。"
+    }
   }
 }
