@@ -1165,7 +1165,8 @@
     "contactBody": "Hãy viết thư tới {email}, chủ sở hữu sẽ phản hồi.",
     "seePrivacy": "Đọc Chính sách bảo mật",
     "seeTerms": "Đọc Điều khoản dịch vụ",
-    "backHome": "Về trang chủ"
+    "backHome": "Về trang chủ",
+    "readIn": "Đọc văn bản này bằng"
   },
   "footer": {
     "rights": "Bảo lưu mọi quyền.",

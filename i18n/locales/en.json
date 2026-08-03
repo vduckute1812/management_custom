@@ -1165,7 +1165,8 @@
     "contactBody": "Write to {email} and the operator will answer.",
     "seePrivacy": "Read the Privacy Policy",
     "seeTerms": "Read the Terms of Service",
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "readIn": "Read this document in"
   },
   "footer": {
     "rights": "All rights reserved.",

@@ -1165,7 +1165,8 @@
     "contactBody": "请写信至 {email}，运营者会回复你。",
     "seePrivacy": "阅读隐私政策",
     "seeTerms": "阅读服务条款",
-    "backHome": "返回首页"
+    "backHome": "返回首页",
+    "readIn": "阅读本文件的语言"
   },
   "footer": {
     "rights": "保留所有权利。",

@@ -43,6 +43,18 @@ const CONTACT_EMAIL = "ducbkdn95@gmail.com";
         {{ $t("legal.lastUpdated", { date: document.effectiveDate }) }}
       </p>
 
+      <!--
+        The header account menu (and with it the language switcher) only exists
+        for signed-in users, so without this control a visitor could never
+        reach the Vietnamese text — the version that prevails.
+      -->
+      <div class="mt-5 flex flex-wrap items-center gap-2">
+        <label for="legal-language" class="text-xs text-slate-500">
+          {{ $t("legal.readIn") }}
+        </label>
+        <LanguageSwitcher id="legal-language" variant="select" />
+      </div>
+
       <p
         v-if="isFallbackLanguage"
         class="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800"

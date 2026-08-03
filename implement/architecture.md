@@ -304,7 +304,7 @@ The privacy policy and terms of service are **content as data**, not markup: `ut
 | `pages/privacy.vue` / `terms.vue`  | Thin pages: `useSeoMeta` + the view component                                                                   |
 | `components/AppFooter.vue`         | Footer with the legal links; rendered by `layouts/default.vue` on `/`, `/privacy`, `/terms` only                |
 
-The text is authored in **English and Vietnamese**; `zh-CN` / `zh-TW` read the English document and the page says so (`legal.languageFallback`). Chrome strings live in the locale JSONs under `legal.*` / `footer.*`; the document bodies deliberately do **not**, so the four locale files stay chrome-sized. `tests/legal.test.ts` enforces that both languages keep the same section ids, dates, and non-empty blocks.
+The text is authored in **English and Vietnamese**; `zh-CN` / `zh-TW` read the English document and the page says so (`legal.languageFallback`). Each legal page carries its own `LanguageSwitcher`: the header account menu — the only other place it lives — renders for signed-in users only, so without it a visitor could never reach the Vietnamese text, which is the version that prevails. Chrome strings live in the locale JSONs under `legal.*` / `footer.*`; the document bodies deliberately do **not**, so the four locale files stay chrome-sized. `tests/legal.test.ts` enforces that both languages keep the same section ids, dates, and non-empty blocks.
 
 Signup shows a consent line (`auth.signupConsent`) linking both documents. There is no consent checkbox: creating the account is the acceptance.
 
