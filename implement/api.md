@@ -262,7 +262,7 @@ Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are
 | `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
 | `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
 
-Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal). Nav shortcut `g m`. Savings: `/money/savings`.
+Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal + CSV/JSON export). Nav shortcut `g m`. Savings: `/money/savings`.
 
 ---
 
@@ -279,6 +279,8 @@ Per-user savings goals. Spec: [`money-spec.md`](./money-spec.md). Status is an i
 | `POST`   | `/api/money/savings/goals/:id/contributions` | Required | Body `{ occurredOn, amountMinor (≥1), note? }`. Auto-completes Active goals when target is reached. |
 | `DELETE` | `/api/money/savings/contributions/:id`       | Required | Ownership `404`.                                                                                    |
 
+Client: `/money/savings` (goal cards + CSV/JSON export of loaded goals).
+
 ---
 
 ## Money budgets
@@ -292,7 +294,7 @@ Per-user monthly limits. Spec: [`money-spec.md`](./money-spec.md). `MoneyBudgetS
 | `DELETE` | `/api/money/budgets/:id`  | Required | Ownership `404`.                                                                                                   |
 | `POST`   | `/api/money/budgets/copy` | Required | Body `{ fromYearMonth, toYearMonth }` — copy slots (upsert amounts).                                               |
 
-Client: `/money/budgets`.
+Client: `/money/budgets` (month navigator + CSV/JSON export).
 
 ---
 

@@ -20,6 +20,7 @@ const {
   shiftMonth,
 } = useMoney();
 const { pushToast } = useToasts();
+const { exportTransactionsCsv, exportTransactionsJson } = useMoneyExport();
 
 const modalOpen = ref(false);
 const editing = ref<MoneyTransaction | null>(null);
@@ -132,6 +133,16 @@ function onSelectCategoryFromChart(cat: MoneyCategory) {
   filterDirection.value = MoneyDirection.Out;
   filterCategory.value = cat;
 }
+
+function onExportCsv() {
+  exportTransactionsCsv(yearMonth.value, transactions.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
+
+function onExportJson() {
+  exportTransactionsJson(yearMonth.value, transactions.value, totals.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
 </script>
 
 <template>
@@ -147,23 +158,30 @@ function onSelectCategoryFromChart(cat: MoneyCategory) {
           {{ $t("money.subtitle") }}
         </p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
-        @click="openCreate"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="h-3.5 w-3.5"
+      <div class="flex flex-wrap items-center gap-2">
+        <MoneyExportMenu
+          :disabled="isLoading || transactions.length === 0"
+          @csv="onExportCsv"
+          @json="onExportJson"
+        />
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+          @click="openCreate"
         >
-          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-        </svg>
-        {{ $t("money.addTransaction") }}
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="h-3.5 w-3.5"
+          >
+            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+          </svg>
+          {{ $t("money.addTransaction") }}
+        </button>
+      </div>
     </header>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin">

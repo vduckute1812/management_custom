@@ -893,7 +893,8 @@
     "budgetSaved": "Budget saved",
     "budgetDeleted": "Budget deleted",
     "budgetsCopied": "Copied {count} budgets",
-    "failedToCopyBudgets": "Could not copy budgets"
+    "failedToCopyBudgets": "Could not copy budgets",
+    "moneyExported": "Export downloaded"
   },
   "status": {
     "todo": "To do",
@@ -1252,6 +1253,11 @@
     "filterCategoryAria": "Filter by category",
     "clearFilter": "Clear",
     "filterEmpty": "No transactions match these filters.",
+    "export": {
+      "label": "Export",
+      "csv": "CSV",
+      "json": "JSON"
+    },
     "savings": {
       "title": "Savings",
       "subtitle": "Goals and contributions in VND",

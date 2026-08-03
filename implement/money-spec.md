@@ -97,9 +97,9 @@ Monthly budgets (migration `0026_money_budgets`):
 | ------------------ | ------------------------- |
 | `MoneyBudgetScope` | `Overall=0`, `Category=1` |
 
-| Table           | Notes                                                                                     |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| `money_budgets` | `mbd_*`; unique slot `(user, year_month, scope, category)`; spent derived from ledger Out |
+| Table           | Notes                                                                                    |
+| --------------- | ---------------------------------------------------------------------------------------- |
+| `money_budgets` | `mbd_*`; unique slot `(user, budget_ym, scope, category)`; spent derived from ledger Out |
 
 | Method     | Path                      |
 | ---------- | ------------------------- |
@@ -108,6 +108,15 @@ Monthly budgets (migration `0026_money_budgets`):
 | `POST`     | `/api/money/budgets/copy` |
 
 UI: `/money/budgets` — month navigator, overall/category limits vs spent, copy previous month.
+
+## Sprint 5 (as-built)
+
+Harden — client export + tests (no new tables/API):
+
+- Pure builders in `utils/moneyExport.ts` (CSV escaping, integer enums + human labels)
+- `useMoneyExport` + `MoneyExportMenu` on Ledger / Savings / Budgets (current view data)
+- Vitest coverage for export builders alongside schemas/helpers in `tests/money.test.ts`
+- i18n: `money.export.*`, `toasts.moneyExported` (en / vi / zh-CN / zh-TW)
 
 ## Out of scope (for now)
 

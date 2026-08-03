@@ -466,9 +466,9 @@ Saved amount is `SUM(contributions)` (derived on read). Domain SQL: `server/db/m
 
 ## Money budgets (migration 0026)
 
-| Table           | Purpose                                                                                                                                    |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `money_budgets` | Monthly limits: `year_month`, `scope` (`Overall=0` / `Category=1`), optional `category`, `amount_minor`; spent derived from ledger on read |
+| Table           | Purpose                                                                                                                                             |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `money_budgets` | Monthly limits: `budget_ym` (YYYY-MM), `scope` (`Overall=0` / `Category=1`), optional `category`, `amount_minor`; spent derived from ledger on read |
 
 Domain SQL: `server/db/moneyBudgets.ts`.
 

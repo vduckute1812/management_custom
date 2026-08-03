@@ -27,6 +27,16 @@ import {
   toYearMonth,
   yearMonthRange,
 } from "../utils/money";
+import {
+  buildMoneyBudgetsCsv,
+  buildMoneyBudgetsJson,
+  buildMoneySavingsCsv,
+  buildMoneySavingsJson,
+  buildMoneyTransactionsCsv,
+  buildMoneyTransactionsJson,
+  csvField,
+  csvRow,
+} from "../utils/moneyExport";
 
 describe("moneyTransactionsQuerySchema", () => {
   it("accepts empty query", () => {
@@ -324,5 +334,109 @@ describe("budgetProgress", () => {
   it("mirrors savingsProgress semantics", () => {
     expect(budgetProgress(0, 100)).toBe(0);
     expect(budgetProgress(120, 100)).toBe(1.2);
+  });
+});
+
+describe("moneyExport builders", () => {
+  const tx: MoneyTransaction = {
+    id: "mtx_1",
+    occurredOn: "2026-08-01",
+    amountMinor: 50_000,
+    direction: MoneyDirection.Out,
+    category: MoneyCategory.Food,
+    note: 'Lunch, "pho"',
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+  };
+
+  it("escapes CSV fields with quotes and commas", () => {
+    expect(csvField('a,"b"')).toBe('"a,""b"""');
+    expect(csvField(null)).toBe("");
+    expect(csvRow([1, "x,y"])).toBe('1,"x,y"');
+  });
+
+  it("builds transactions CSV with integer enums + labels", () => {
+    const csv = buildMoneyTransactionsCsv([tx], {
+      direction: () => "Expense",
+      category: () => "Food",
+    });
+    expect(csv).toContain("occurred_on");
+    expect(csv).toContain("mtx_1");
+    expect(csv).toContain(",0,Expense,0,Food,");
+    expect(csv).toContain('"Lunch, ""pho"""');
+  });
+
+  it("builds transactions JSON payload", () => {
+    const json = buildMoneyTransactionsJson({
+      exportedAt: "2026-08-03T00:00:00.000Z",
+      yearMonth: "2026-08",
+      totals: {
+        yearMonth: "2026-08",
+        inMinor: 0,
+        outMinor: 50_000,
+        netMinor: -50_000,
+      },
+      transactions: [tx],
+    });
+    const parsed = JSON.parse(json);
+    expect(parsed.yearMonth).toBe("2026-08");
+    expect(parsed.transactions).toHaveLength(1);
+    expect(parsed.totals.outMinor).toBe(50_000);
+  });
+
+  it("builds savings CSV/JSON", () => {
+    const goal = {
+      id: "msg_1",
+      title: "Emergency",
+      targetMinor: 10_000_000,
+      savedMinor: 2_000_000,
+      progress: 0.2,
+      status: MoneySavingsGoalStatus.Active,
+      createdAt: "2026-08-01T00:00:00.000Z",
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    };
+    const csv = buildMoneySavingsCsv([goal], () => "Active");
+    expect(csv).toContain("msg_1");
+    expect(csv).toContain(",0,Active,");
+    const parsed = JSON.parse(
+      buildMoneySavingsJson({
+        exportedAt: "2026-08-03T00:00:00.000Z",
+        goals: [goal],
+      }),
+    );
+    expect(parsed.goals[0].savedMinor).toBe(2_000_000);
+  });
+
+  it("builds budgets CSV/JSON", () => {
+    const month = {
+      yearMonth: "2026-08",
+      budgetMinor: 5_000_000,
+      spentMinor: 1_000_000,
+      budgets: [
+        {
+          id: "mbd_1",
+          yearMonth: "2026-08",
+          scope: MoneyBudgetScope.Overall,
+          amountMinor: 5_000_000,
+          spentMinor: 1_000_000,
+          progress: 0.2,
+          createdAt: "2026-08-01T00:00:00.000Z",
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        },
+      ],
+    };
+    const csv = buildMoneyBudgetsCsv(month, {
+      scope: () => "Overall",
+      category: () => "Food",
+    });
+    expect(csv).toContain("mbd_1");
+    expect(csv).toContain(",0,Overall,");
+    const parsed = JSON.parse(
+      buildMoneyBudgetsJson({
+        exportedAt: "2026-08-03T00:00:00.000Z",
+        month,
+      }),
+    );
+    expect(parsed.month.budgets).toHaveLength(1);
   });
 });
