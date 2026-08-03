@@ -888,7 +888,8 @@
     "budgetSaved": "預算已儲存",
     "budgetDeleted": "預算已刪除",
     "budgetsCopied": "已複製 {count} 項預算",
-    "failedToCopyBudgets": "無法複製預算"
+    "failedToCopyBudgets": "無法複製預算",
+    "moneyExported": "已下載匯出檔案"
   },
   "status": {
     "todo": "待辦",
@@ -1243,6 +1244,11 @@
     "filterCategoryAria": "依分類篩選",
     "clearFilter": "清除",
     "filterEmpty": "沒有符合篩選的紀錄。",
+    "export": {
+      "label": "匯出",
+      "csv": "CSV",
+      "json": "JSON"
+    },
     "savings": {
       "title": "儲蓄",
       "subtitle": "目標與存入（越南盾）",

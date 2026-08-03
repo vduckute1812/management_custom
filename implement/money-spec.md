@@ -109,6 +109,15 @@ Monthly budgets (migration `0026_money_budgets`):
 
 UI: `/money/budgets` — month navigator, overall/category limits vs spent, copy previous month.
 
+## Sprint 5 (as-built)
+
+Harden — client export + tests (no new tables/API):
+
+- Pure builders in `utils/moneyExport.ts` (CSV escaping, integer enums + human labels)
+- `useMoneyExport` + `MoneyExportMenu` on Ledger / Savings / Budgets (current view data)
+- Vitest coverage for export builders alongside schemas/helpers in `tests/money.test.ts`
+- i18n: `money.export.*`, `toasts.moneyExported` (en / vi / zh-CN / zh-TW)
+
 ## Out of scope (for now)
 
 Multi-currency / FX, shared wallets, bank sync, OCR, investments.

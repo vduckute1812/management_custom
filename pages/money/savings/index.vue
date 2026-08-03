@@ -17,6 +17,7 @@ const {
   deleteContribution,
 } = useMoneySavings();
 const { pushToast } = useToasts();
+const { exportSavingsCsv, exportSavingsJson } = useMoneyExport();
 
 const goalModalOpen = ref(false);
 const contributeOpen = ref(false);
@@ -130,6 +131,16 @@ const statusTone: Record<MoneySavingsGoalStatus, string> = {
   [MoneySavingsGoalStatus.Archived]:
     "bg-slate-100 text-slate-600 ring-slate-200",
 };
+
+function onExportCsv() {
+  exportSavingsCsv(goals.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
+
+function onExportJson() {
+  exportSavingsJson(goals.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
 </script>
 
 <template>
@@ -145,23 +156,30 @@ const statusTone: Record<MoneySavingsGoalStatus, string> = {
           {{ $t("money.savings.subtitle") }}
         </p>
       </div>
-      <button
-        type="button"
-        class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
-        @click="openCreate"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="h-3.5 w-3.5"
+      <div class="flex flex-wrap items-center gap-2">
+        <MoneyExportMenu
+          :disabled="isLoading || goals.length === 0"
+          @csv="onExportCsv"
+          @json="onExportJson"
+        />
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+          @click="openCreate"
         >
-          <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-        </svg>
-        {{ $t("money.savings.addGoal") }}
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            class="h-3.5 w-3.5"
+          >
+            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+          </svg>
+          {{ $t("money.savings.addGoal") }}
+        </button>
+      </div>
     </header>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin">

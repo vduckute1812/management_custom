@@ -376,9 +376,10 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] UI `/money/budgets` — progress vs spent, copy previous month; sidebar entry
 - [x] Vitest for budget schemas + `budgetProgress`; docs
 
-### Later (Money)
+## Phase 21 — Money (Sprint 5: harden)
 
-- Export / harden
+- [x] Client CSV/JSON export for ledger, savings goals, and budgets (`utils/moneyExport`, `useMoneyExport`, `MoneyExportMenu`)
+- [x] Vitest for export builders; i18n export labels; docs polish (`money-spec` Sprint 5 as-built)
 
 ### Later
 

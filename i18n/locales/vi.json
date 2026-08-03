@@ -888,7 +888,8 @@
     "budgetSaved": "Đã lưu ngân sách",
     "budgetDeleted": "Đã xoá ngân sách",
     "budgetsCopied": "Đã sao chép {count} ngân sách",
-    "failedToCopyBudgets": "Không sao chép được ngân sách"
+    "failedToCopyBudgets": "Không sao chép được ngân sách",
+    "moneyExported": "Đã tải file xuất"
   },
   "status": {
     "todo": "Cần làm",
@@ -1243,6 +1244,11 @@
     "filterCategoryAria": "Lọc theo danh mục",
     "clearFilter": "Xoá lọc",
     "filterEmpty": "Không có giao dịch khớp bộ lọc.",
+    "export": {
+      "label": "Xuất",
+      "csv": "CSV",
+      "json": "JSON"
+    },
     "savings": {
       "title": "Tiết kiệm",
       "subtitle": "Mục tiêu và khoản đóng góp bằng VND",

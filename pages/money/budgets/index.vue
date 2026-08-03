@@ -18,6 +18,7 @@ const {
   copyFromPrevious,
 } = useMoneyBudgets();
 const { pushToast } = useToasts();
+const { exportBudgetsCsv, exportBudgetsJson } = useMoneyExport();
 
 const modalOpen = ref(false);
 const editing = ref<MoneyBudget | null>(null);
@@ -125,6 +126,18 @@ const remaining = computed(() => {
   if (!m) return 0;
   return m.budgetMinor - m.spentMinor;
 });
+
+function onExportCsv() {
+  if (!month.value) return;
+  exportBudgetsCsv(month.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
+
+function onExportJson() {
+  if (!month.value) return;
+  exportBudgetsJson(month.value);
+  pushToast(t("toasts.moneyExported"), { tone: "success" });
+}
 </script>
 
 <template>
@@ -141,6 +154,11 @@ const remaining = computed(() => {
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <MoneyExportMenu
+          :disabled="isLoading || !month || month.budgets.length === 0"
+          @csv="onExportCsv"
+          @json="onExportJson"
+        />
         <button
           type="button"
           class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 disabled:opacity-50"
