@@ -279,6 +279,8 @@ Per-user savings goals. Spec: [`money-spec.md`](./money-spec.md). Status is an i
 | `POST`   | `/api/money/savings/goals/:id/contributions` | Required | Body `{ occurredOn, amountMinor (≥1), note? }`. Auto-completes Active goals when target is reached. |
 | `DELETE` | `/api/money/savings/contributions/:id`       | Required | Ownership `404`.                                                                                    |
 
+Client: `/money/savings` (goal cards + CSV/JSON export of loaded goals).
+
 ---
 
 ## Money budgets
