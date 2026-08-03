@@ -89,6 +89,26 @@ Savings goals + contributions (migration `0025_money_savings`):
 
 UI: `/money/savings` — goal cards with progress bars, contribute modal, history expand. Reaching target while **Active** auto-sets **Completed**.
 
+## Sprint 4 (as-built)
+
+Monthly budgets (migration `0026_money_budgets`):
+
+| Const              | Values                    |
+| ------------------ | ------------------------- |
+| `MoneyBudgetScope` | `Overall=0`, `Category=1` |
+
+| Table           | Notes                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------- |
+| `money_budgets` | `mbd_*`; unique slot `(user, year_month, scope, category)`; spent derived from ledger Out |
+
+| Method     | Path                      |
+| ---------- | ------------------------- |
+| `GET/POST` | `/api/money/budgets`      |
+| `DELETE`   | `/api/money/budgets/:id`  |
+| `POST`     | `/api/money/budgets/copy` |
+
+UI: `/money/budgets` — month navigator, overall/category limits vs spent, copy previous month.
+
 ## Out of scope (for now)
 
 Multi-currency / FX, shared wallets, bank sync, OCR, investments.

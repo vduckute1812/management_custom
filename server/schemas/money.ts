@@ -1,8 +1,11 @@
 import { z } from "zod";
 import {
+  MONEY_BUDGET_SCOPES,
   MONEY_CATEGORIES,
   MONEY_DIRECTIONS,
   MONEY_SAVINGS_GOAL_STATUSES,
+  MoneyBudgetScope,
+  type MoneyBudgetScope as MoneyBudgetScopeT,
   type MoneyCategory,
   type MoneyDirection,
   type MoneySavingsGoalStatus,
@@ -78,4 +81,51 @@ export const moneySavingsContributionCreateBodySchema = z.object({
     .min(1)
     .max(Number.MAX_SAFE_INTEGER),
   note: z.string().trim().max(500).nullable().optional(),
+});
+
+const budgetScopeSchema = z
+  .number()
+  .int()
+  .refine(
+    (v): v is MoneyBudgetScopeT =>
+      (MONEY_BUDGET_SCOPES as readonly number[]).includes(v),
+    { message: "Invalid budget scope" },
+  );
+
+export const moneyBudgetsQuerySchema = z.object({
+  yearMonth: yearMonthSchema.optional(),
+});
+
+export const moneyBudgetUpsertBodySchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    yearMonth: yearMonthSchema,
+    scope: budgetScopeSchema,
+    category: categorySchema.nullable().optional(),
+    amountMinor: z
+      .number()
+      .int("Amount must be a whole number of đồng")
+      .min(0)
+      .max(Number.MAX_SAFE_INTEGER),
+  })
+  .superRefine((body, ctx) => {
+    if (body.scope === MoneyBudgetScope.Overall && body.category != null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Overall budget must not set category",
+        path: ["category"],
+      });
+    }
+    if (body.scope === MoneyBudgetScope.Category && body.category == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Category budget requires category",
+        path: ["category"],
+      });
+    }
+  });
+
+export const moneyBudgetsCopyBodySchema = z.object({
+  fromYearMonth: yearMonthSchema,
+  toYearMonth: yearMonthSchema,
 });

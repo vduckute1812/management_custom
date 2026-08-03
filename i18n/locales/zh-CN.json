@@ -41,7 +41,8 @@
     "sectionMoney": "记账",
     "sectionMoneyHint": "收支与月度汇总",
     "moneyLedger": "账本",
-    "moneySavings": "储蓄"
+    "moneySavings": "储蓄",
+    "moneyBudgets": "预算"
   },
   "auth": {
     "signInTitle": "登录以继续",
@@ -882,7 +883,12 @@
     "contributionSaved": "已存入",
     "contributionDeleted": "存入记录已删除",
     "failedToLoadContributions": "无法加载存入记录",
-    "failedToDeleteContribution": "无法删除存入记录"
+    "failedToDeleteContribution": "无法删除存入记录",
+    "failedToLoadBudgets": "无法加载预算",
+    "budgetSaved": "预算已保存",
+    "budgetDeleted": "预算已删除",
+    "budgetsCopied": "已复制 {count} 项预算",
+    "failedToCopyBudgets": "无法复制预算"
   },
   "status": {
     "todo": "待办",
@@ -1013,7 +1019,9 @@
     "money": "记账",
     "moneyDescription": "用越南盾记录收入与支出。",
     "moneySavings": "储蓄",
-    "moneySavingsDescription": "用越南盾跟踪储蓄目标与存入。"
+    "moneySavingsDescription": "用越南盾跟踪储蓄目标与存入。",
+    "moneyBudgets": "预算",
+    "moneyBudgetsDescription": "越南盾月度支出预算。"
   },
   "categories": {
     "electronics": "电子",
@@ -1289,6 +1297,39 @@
         "note": "备注",
         "save": "添加",
         "failed": "无法添加存入"
+      }
+    },
+    "budgets": {
+      "title": "预算",
+      "subtitle": "月度限额对比账本支出",
+      "add": "添加预算",
+      "copyPrevious": "复制上月",
+      "loading": "加载中…",
+      "empty": "本月暂无预算。添加总额或分类限额。",
+      "totalsAria": "预算汇总",
+      "budgeted": "预算",
+      "spent": "已花",
+      "remaining": "剩余",
+      "scope": {
+        "overall": "总额",
+        "category": "分类"
+      },
+      "modal": {
+        "newTitle": "新建预算",
+        "editTitle": "编辑预算",
+        "close": "关闭",
+        "category": "分类",
+        "amount": "限额（₫）",
+        "amountPlaceholder": "例如 5000000",
+        "amountRequired": "请输入有效金额。",
+        "save": "保存",
+        "saving": "保存中…",
+        "cancel": "取消",
+        "delete": "删除",
+        "failedToSave": "无法保存预算",
+        "failedToDelete": "无法删除预算",
+        "deleteTitle": "删除预算？",
+        "deleteBody": "将移除本月该限额。"
       }
     }
   }

@@ -102,10 +102,11 @@ const navItems = computed<NavItem[]>(() => {
     const moneyNav: NavItem[] = [
       { to: "/money", labelKey: "nav.moneyLedger", icon: "wallet" },
       { to: "/money/savings", labelKey: "nav.moneySavings", icon: "goal" },
+      { to: "/money/budgets", labelKey: "nav.moneyBudgets", icon: "chart" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdminUi.value) {
-      moneyNav.splice(2, 0, {
+      moneyNav.splice(3, 0, {
         to: "/admin",
         labelKey: "nav.admin",
         icon: "shield",

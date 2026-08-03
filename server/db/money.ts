@@ -106,6 +106,29 @@ export async function sumMoneyMonth(
   return { inMinor, outMinor, netMinor: inMinor - outMinor };
 }
 
+/** Expense (Out) totals keyed by category for a date range. */
+export async function sumMoneyOutByCategory(
+  userId: string,
+  range: { start: string; end: string },
+): Promise<Map<number, number>> {
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT category, COALESCE(SUM(amount_minor), 0) AS out_minor
+     FROM money_transactions
+     WHERE user_id = ?
+       AND direction = ?
+       AND occurred_on >= ?
+       AND occurred_on <= ?
+     GROUP BY category`,
+    [userId, MoneyDirection.Out, range.start, range.end],
+  );
+  const map = new Map<number, number>();
+  for (const row of rows) {
+    map.set(Number(row.category), Number(row.out_minor));
+  }
+  return map;
+}
+
 export interface UpsertMoneyTransactionInput {
   id?: string;
   occurredOn: string;
