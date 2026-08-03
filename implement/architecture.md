@@ -97,6 +97,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 | Admin           | `/admin`                                                                    | Admin / superadmin                                                              |
 | Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                              |
 | Chat            | `/chat`                                                                     | Authenticated                                                                   |
+| Legal           | `/privacy`, `/terms`                                                        | Public, SSR'd and indexable                                                     |
 
 Global guard: `middleware/auth.global.ts`.
 
@@ -228,9 +229,11 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── chat/index.vue               # Direct messages (auth required)
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
+│   ├── privacy.vue, terms.vue          # Public legal pages (SSR'd, indexable)
 │   └── login.vue, signup.vue, verify-email.vue, forgot-password, reset-password
 ├── components/                      # Flat SFC set (calendars, feed, shell, …)
-│   ├── AppHeader.vue, LanguageSwitcher.vue, CommandPalette.vue, UserAvatar.vue, …
+│   ├── AppHeader.vue, AppFooter.vue, LanguageSwitcher.vue, CommandPalette.vue, …
+│   ├── LegalDocumentView.vue        # Renders a privacy / terms document
 │   ├── PostComposer.vue, PostCard.vue, PostCommentsPanel.vue, StoryTray.vue, …
 │   ├── ChatConversationList.vue, ChatMessageThread.vue, ChatComposer.vue
 │   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
@@ -243,6 +246,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── useChat.ts                   # DM list / thread / module-scoped SSE singleton / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
+│   ├── useLegalDocument.ts          # Privacy / terms text for the active locale
 ├── middleware/auth.global.ts
 ├── layouts/default.vue
 ├── plugins/
@@ -252,8 +256,9 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── chat-inbox.client.ts         # Unread badge / toast via SSE inbox stream
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
-├── types/                           # task.ts, post.ts, story.ts, chat.ts, reaction.ts, locale.ts
+├── types/                           # task.ts, post.ts, story.ts, chat.ts, reaction.ts, locale.ts, legal.ts
 ├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, …
+│   └── legal/                       # privacy.ts + terms.ts document text (en/vi) + registry
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts
 ├── .env.example
@@ -275,15 +280,33 @@ Configured in `nuxt.config.ts` for production identity **Da Nang TechX** / `http
 | Surface              | Behavior                                                                                                                                                               |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/robots.txt`        | Allows crawl of public surfaces; `Disallow` for private app/auth routes including `/chat`, `/feed/write`, `/feed/edit`                                                 |
-| `/sitemap.xml`       | Indexes `/` and `/feed` only (private app routes excluded, including `/chat`)                                                                                          |
+| `/sitemap.xml`       | Indexes `/`, `/feed`, `/privacy`, and `/terms` only (private app routes excluded, including `/chat`)                                                                   |
 | `/llms.txt`          | Static Markdown at `public/llms.txt` — H1 + summary + absolute links for AI/agent crawlers                                                                             |
 | Open Graph / Twitter | Text meta via `nuxt-seo-utils`; **dynamic OG image generation is disabled** (`ogImage.enabled: false`) — native `@takumi-rs/core` is not viable on the ARM deploy host |
 | Page titles          | Still set per-page with `useSeoMeta` + `t('seo.*')` (see [`i18n.md`](./i18n.md#seo-titles))                                                                            |
-| HTML for crawlers    | `/` and `/feed` use **selective SSR** (`routeRules` + short SWR) so the first response includes real copy and public posts — not an empty SPA shell                    |
+| HTML for crawlers    | `/`, `/feed`, `/privacy`, and `/terms` use **selective SSR** (`routeRules` + SWR) so the first response includes real copy — not an empty SPA shell                    |
 
 Auth remains cookie/Bearer-based on the client, so SSR always paints the **guest** chrome; `isAuthenticatedUi` reveals the signed-in header/composer after mount to avoid hydration mismatches. App routes (`/tasks`, `/admin`, …) stay `ssr: false`.
 
-After deploy, verify `/`, `/feed`, `/robots.txt`, `/sitemap.xml`, and `/llms.txt` on the live host and submit the sitemap in Google Search Console.
+After deploy, verify `/`, `/feed`, `/privacy`, `/terms`, `/robots.txt`, `/sitemap.xml`, and `/llms.txt` on the live host and submit the sitemap in Google Search Console.
+
+---
+
+## Legal pages (`/privacy`, `/terms`)
+
+The privacy policy and terms of service are **content as data**, not markup: `utils/legal/privacy.ts` and `utils/legal/terms.ts` export a `LegalDocumentSet` (`types/legal.ts`) with a title, summary, ISO effective date, intro paragraphs, and ordered sections carrying a stable anchor `id`. `LegalDocId` is an integer const (`Privacy = 0`, `Terms = 1`) per the repo's integer-enum rule.
+
+| Piece                              | Role                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `utils/legal/index.ts`             | Registry (`LEGAL_DOCUMENTS`, `LEGAL_DOC_PATHS`), `authoredLegalLocale`, `legalDocument` — all pure, so testable |
+| `composables/useLegalDocument.ts`  | Reactive wrapper: resolves the document for the active UI locale, flags the English fallback                    |
+| `components/LegalDocumentView.vue` | Renders any document: header, effective date, language notice, table of contents, sections, contact block       |
+| `pages/privacy.vue` / `terms.vue`  | Thin pages: `useSeoMeta` + the view component                                                                   |
+| `components/AppFooter.vue`         | Footer with the legal links; rendered by `layouts/default.vue` on `/`, `/privacy`, `/terms` only                |
+
+The text is authored in **English and Vietnamese**; `zh-CN` / `zh-TW` read the English document and the page says so (`legal.languageFallback`). Chrome strings live in the locale JSONs under `legal.*` / `footer.*`; the document bodies deliberately do **not**, so the four locale files stay chrome-sized. `tests/legal.test.ts` enforces that both languages keep the same section ids, dates, and non-empty blocks.
+
+Signup shows a consent line (`auth.signupConsent`) linking both documents. There is no consent checkbox: creating the account is the acceptance.
 
 ---
 
