@@ -345,7 +345,18 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Docker Alpine: global `npm@12.0.2` install (Corepack unreliable on Alpine) + `HUSKY=0` in image builds
 - [x] Deploy prune: unused SHA tags / dangling images / stopped containers before build, on failure, and after healthy deploy (keeps `:latest` / `:previous` / new SHA; never volumes)
 
+## Phase 21 — Public legal pages (privacy + terms)
+
+- [x] `types/legal.ts` + `utils/legal/{privacy,terms}.ts` — documents as data (integer `LegalDocId`), authored in `en` + `vi`
+- [x] `composables/useLegalDocument.ts` + `components/LegalDocumentView.vue` — one renderer, TOC, anchors, English fallback notice for `zh-*`
+- [x] `pages/privacy.vue` / `pages/terms.vue` — public, SSR'd (`swr: 3600`), in the sitemap, listed in `llms.txt`
+- [x] Per-page `LanguageSwitcher` (the header one is signed-in only, and the Vietnamese text prevails)
+- [x] `components/AppFooter.vue` on hub + legal pages; signup consent line (`auth.signupConsent`)
+- [x] `legal.*` / `footer.*` chrome strings in all four locales; `tests/legal.test.ts` guards cross-language structure
+- [x] Content matches the install: cookie TTLs, retention windows, processors, admin reach, and the gaps (no self-service account deletion, no chat message deletion)
+
 ### Later
 
+- Self-service account deletion + chat message deletion (both are named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts
