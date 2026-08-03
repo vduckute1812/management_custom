@@ -340,7 +340,7 @@ useModal(mobileMoreOpen, {
 
       <main
         id="main-content"
-        class="flex-1 min-w-0 flex flex-col"
+        class="flex min-h-0 min-w-0 flex-1 flex-col"
         :class="showModuleSidebar ? 'pb-20 md:pb-0' : ''"
         tabindex="-1"
       >
