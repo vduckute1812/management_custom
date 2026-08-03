@@ -36,7 +36,10 @@
     "themeTitleFixed": "主题：{label}",
     "more": "更多",
     "language": "语言",
-    "chat": "聊天"
+    "chat": "聊天",
+    "money": "记账",
+    "sectionMoney": "记账",
+    "sectionMoneyHint": "收支与月度汇总"
   },
   "auth": {
     "signInTitle": "登录以继续",
@@ -867,7 +870,10 @@
     "couldNotReschedule": "无法改期",
     "rescheduledCount": "已将 {count} 个任务改期到今天 | 已将 {count} 个任务改期到今天",
     "couldNotRescheduleAny": "无法改期任何任务",
-    "manuscriptPublished": "手稿已发布"
+    "manuscriptPublished": "手稿已发布",
+    "failedToLoadMoney": "无法加载账本",
+    "moneyTransactionSaved": "记录已保存",
+    "moneyTransactionDeleted": "记录已删除"
   },
   "status": {
     "todo": "待办",
@@ -906,7 +912,9 @@
     "taskSubtitle": "任务",
     "taskSubtitleWithEpic": "任务 · {epic}",
     "goChat": "前往聊天",
-    "goChatSub": "私信"
+    "goChatSub": "私信",
+    "goMoney": "前往记账",
+    "goMoneySub": "收支与月度汇总"
   },
   "shortcuts": {
     "title": "键盘快捷键",
@@ -942,7 +950,9 @@
     "dragMoveDaily": "在日视图中移动时间块（吸附 15 分钟）",
     "dragEdgeResize": "从顶部或底部调整时间块大小",
     "dragUpNext": "拖到日视图小时上以排期",
-    "dragWeekly": "在周视图中跨日移动时间块"
+    "dragWeekly": "在周视图中跨日移动时间块",
+    "goChat": "前往聊天",
+    "goMoney": "前往记账"
   },
   "empty": {
     "feedNothingYet": "这里还没有内容",
@@ -990,7 +1000,9 @@
     "manuscriptWriteDescription": "撰写长文手稿，适合论文与研究笔记。",
     "manuscriptEdit": "编辑帖子",
     "manuscriptEditDescription": "更新动态中的帖子或手稿。",
-    "chat": "聊天"
+    "chat": "聊天",
+    "money": "记账",
+    "moneyDescription": "用越南盾记录收入与支出。"
   },
   "categories": {
     "electronics": "电子",
@@ -1146,5 +1158,60 @@
     "audioUnsupported": "浏览器无法播放此音频",
     "failedToLoadConversations": "无法加载会话",
     "failedToLoadMessages": "无法加载消息"
+  },
+  "money": {
+    "title": "记账",
+    "subtitle": "用越南盾记录收入与支出",
+    "addTransaction": "添加记录",
+    "prevMonth": "上个月",
+    "nextMonth": "下个月",
+    "totalsAria": "本月汇总",
+    "in": "收入",
+    "out": "支出",
+    "net": "净额",
+    "loading": "加载中…",
+    "empty": "本月暂无记录。添加一笔开始。",
+    "direction": {
+      "out": "支出",
+      "in": "收入"
+    },
+    "categories": {
+      "food": "餐饮",
+      "transport": "交通",
+      "housing": "住房",
+      "utilities": "水电",
+      "health": "健康",
+      "entertainment": "娱乐",
+      "shopping": "购物",
+      "education": "教育",
+      "income": "收入",
+      "transfer": "转账",
+      "other": "其他"
+    },
+    "modal": {
+      "newTitle": "新记录",
+      "editTitle": "编辑记录",
+      "close": "关闭",
+      "amount": "金额（₫）",
+      "amountPlaceholder": "例如 150000",
+      "amountRequired": "请输入有效金额。",
+      "date": "日期",
+      "dateRequired": "请选择日期。",
+      "category": "分类",
+      "note": "备注",
+      "notePlaceholder": "可选",
+      "save": "保存",
+      "saving": "保存中…",
+      "cancel": "取消",
+      "delete": "删除",
+      "failedToSave": "无法保存记录",
+      "failedToDelete": "无法删除记录",
+      "discardTitle": "放弃更改？",
+      "discardBody": "你有未保存的编辑。",
+      "keepEditing": "继续编辑",
+      "discard": "放弃",
+      "deleteTitle": "删除记录？",
+      "deleteBody": "此操作无法撤销。"
+    }
   }
 }

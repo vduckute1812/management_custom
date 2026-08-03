@@ -5,9 +5,16 @@ const { paletteOpen, helpOpen } = useUiOverlays();
 const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
 
-type AppSection = "tasks" | "feed" | "other";
+type AppSection = "tasks" | "feed" | "money" | "other";
 type NavIcon =
-  "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "user";
+  | "calendar"
+  | "layers"
+  | "chart"
+  | "cog"
+  | "shield"
+  | "feed"
+  | "user"
+  | "wallet";
 
 interface NavItem {
   to: string;
@@ -23,6 +30,10 @@ watch(
   (path) => {
     if (path === "/feed" || path.startsWith("/feed/")) {
       activeSection.value = "feed";
+      return;
+    }
+    if (path === "/money" || path.startsWith("/money/")) {
+      activeSection.value = "money";
       return;
     }
     if (
@@ -50,6 +61,7 @@ watch(
 
 const isFeedSection = computed(() => activeSection.value === "feed");
 const isTasksSection = computed(() => activeSection.value === "tasks");
+const isMoneySection = computed(() => activeSection.value === "money");
 const isHub = computed(() => route.path === "/");
 const showTaskChrome = computed(
   () =>
@@ -66,7 +78,7 @@ const showModuleSidebar = computed(() => {
   ) {
     return false;
   }
-  return isFeedSection.value || isTasksSection.value;
+  return isFeedSection.value || isTasksSection.value || isMoneySection.value;
 });
 
 const navItems = computed<NavItem[]>(() => {
@@ -83,6 +95,21 @@ const navItems = computed<NavItem[]>(() => {
       });
     }
     return feedNav;
+  }
+
+  if (isMoneySection.value) {
+    const moneyNav: NavItem[] = [
+      { to: "/money", labelKey: "nav.money", icon: "wallet" },
+      { to: "/settings", labelKey: "nav.settings", icon: "cog" },
+    ];
+    if (auth.isAdminUi.value) {
+      moneyNav.splice(1, 0, {
+        to: "/admin",
+        labelKey: "nav.admin",
+        icon: "shield",
+      });
+    }
+    return moneyNav;
   }
 
   if (isTasksSection.value) {
@@ -107,6 +134,7 @@ const navItems = computed<NavItem[]>(() => {
 
 const sectionLabel = computed(() => {
   if (isFeedSection.value) return t("nav.sectionFeed");
+  if (isMoneySection.value) return t("nav.sectionMoney");
   if (isTasksSection.value) return t("nav.sectionTime");
   return t("nav.sectionDefault");
 });
@@ -175,7 +203,9 @@ useModal(mobileMoreOpen, {
             {{
               isFeedSection
                 ? $t("nav.sectionFeedHint")
-                : $t("nav.sectionTasksHint")
+                : isMoneySection
+                  ? $t("nav.sectionMoneyHint")
+                  : $t("nav.sectionTasksHint")
             }}
           </p>
         </div>

@@ -110,6 +110,17 @@ const allItems = computed<PaletteItem[]>(() => {
       },
     },
     {
+      id: "view:money",
+      kind: "view",
+      title: t("commandPalette.goMoney"),
+      subtitle: t("commandPalette.goMoneySub"),
+      icon: "bolt",
+      shortcut: "g m",
+      run: () => {
+        router.push("/money");
+      },
+    },
+    {
       id: "view:profile",
       kind: "view",
       title: t("commandPalette.goProfile"),

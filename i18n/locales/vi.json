@@ -36,7 +36,10 @@
     "themeTitleFixed": "Giao diện: {label}",
     "more": "Thêm",
     "language": "Ngôn ngữ",
-    "chat": "Chat"
+    "chat": "Chat",
+    "money": "Tiền",
+    "sectionMoney": "Tiền",
+    "sectionMoneyHint": "Chi tiêu và tổng theo tháng"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -867,7 +870,10 @@
     "couldNotReschedule": "Không đổi lịch được",
     "rescheduledCount": "Đã đổi lịch {count} công việc sang hôm nay | Đã đổi lịch {count} công việc sang hôm nay",
     "couldNotRescheduleAny": "Không đổi lịch được công việc nào",
-    "manuscriptPublished": "Đã xuất bản bản thảo"
+    "manuscriptPublished": "Đã xuất bản bản thảo",
+    "failedToLoadMoney": "Không tải được sổ thu chi",
+    "moneyTransactionSaved": "Đã lưu giao dịch",
+    "moneyTransactionDeleted": "Đã xoá giao dịch"
   },
   "status": {
     "todo": "Cần làm",
@@ -906,7 +912,9 @@
     "taskSubtitle": "Công việc",
     "taskSubtitleWithEpic": "Công việc · {epic}",
     "goChat": "Đến Chat",
-    "goChatSub": "Tin nhắn trực tiếp"
+    "goChatSub": "Tin nhắn trực tiếp",
+    "goMoney": "Đến Tiền",
+    "goMoneySub": "Chi tiêu và tổng theo tháng"
   },
   "shortcuts": {
     "title": "Phím tắt",
@@ -942,7 +950,9 @@
     "dragMoveDaily": "Di chuyển khối trong Ngày (bám 15 phút)",
     "dragEdgeResize": "Đổi kích thước khối từ trên hoặc dưới",
     "dragUpNext": "Thả vào giờ trong Ngày để lên lịch",
-    "dragWeekly": "Di chuyển khối qua các ngày trong Tuần"
+    "dragWeekly": "Di chuyển khối qua các ngày trong Tuần",
+    "goChat": "Đến Chat",
+    "goMoney": "Đến Tiền"
   },
   "empty": {
     "feedNothingYet": "Chưa có gì ở đây",
@@ -990,7 +1000,9 @@
     "manuscriptWriteDescription": "Soạn bản thảo dài cho bài luận và chương luận văn.",
     "manuscriptEdit": "Sửa bài viết",
     "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin.",
-    "chat": "Chat"
+    "chat": "Chat",
+    "money": "Tiền",
+    "moneyDescription": "Theo dõi thu chi bằng VND."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -1146,5 +1158,60 @@
     "audioUnsupported": "Trình duyệt không phát được âm thanh này",
     "failedToLoadConversations": "Không tải được hội thoại",
     "failedToLoadMessages": "Không tải được tin nhắn"
+  },
+  "money": {
+    "title": "Tiền",
+    "subtitle": "Theo dõi thu chi bằng VND",
+    "addTransaction": "Thêm giao dịch",
+    "prevMonth": "Tháng trước",
+    "nextMonth": "Tháng sau",
+    "totalsAria": "Tổng tháng",
+    "in": "Thu",
+    "out": "Chi",
+    "net": "Ròng",
+    "loading": "Đang tải…",
+    "empty": "Chưa có giao dịch tháng này. Thêm một giao dịch để bắt đầu.",
+    "direction": {
+      "out": "Chi",
+      "in": "Thu"
+    },
+    "categories": {
+      "food": "Ăn uống",
+      "transport": "Di chuyển",
+      "housing": "Nhà ở",
+      "utilities": "Tiện ích",
+      "health": "Sức khỏe",
+      "entertainment": "Giải trí",
+      "shopping": "Mua sắm",
+      "education": "Học tập",
+      "income": "Thu nhập",
+      "transfer": "Chuyển khoản",
+      "other": "Khác"
+    },
+    "modal": {
+      "newTitle": "Giao dịch mới",
+      "editTitle": "Sửa giao dịch",
+      "close": "Đóng",
+      "amount": "Số tiền (₫)",
+      "amountPlaceholder": "vd. 150000",
+      "amountRequired": "Nhập số tiền hợp lệ.",
+      "date": "Ngày",
+      "dateRequired": "Chọn ngày.",
+      "category": "Danh mục",
+      "note": "Ghi chú",
+      "notePlaceholder": "Tuỳ chọn",
+      "save": "Lưu",
+      "saving": "Đang lưu…",
+      "cancel": "Huỷ",
+      "delete": "Xoá",
+      "failedToSave": "Không lưu được giao dịch",
+      "failedToDelete": "Không xoá được giao dịch",
+      "discardTitle": "Huỷ thay đổi?",
+      "discardBody": "Bạn có chỉnh sửa chưa lưu.",
+      "keepEditing": "Tiếp tục sửa",
+      "discard": "Huỷ bỏ",
+      "deleteTitle": "Xoá giao dịch?",
+      "deleteBody": "Không thể hoàn tác."
+    }
   }
 }

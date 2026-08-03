@@ -109,6 +109,12 @@ export const useShortcuts = () => {
         router.push("/chat");
         return;
       }
+      if (key === "m") {
+        e.preventDefault();
+        consumeG();
+        router.push("/money");
+        return;
+      }
       // Any other key cancels the pending sequence.
       consumeG();
     }
@@ -125,6 +131,7 @@ export const useShortcuts = () => {
     if (e.key.toLowerCase() === "n") {
       const path = router.currentRoute.value.path;
       const onHomeOrFeed = path === "/" || path.startsWith("/feed");
+      const onMoney = path === "/money" || path.startsWith("/money/");
       if (e.shiftKey) {
         e.preventDefault();
         overlays.requestCreateTask();
@@ -133,7 +140,7 @@ export const useShortcuts = () => {
         }
         return;
       }
-      if (onHomeOrFeed) return;
+      if (onHomeOrFeed || onMoney) return;
       e.preventDefault();
       overlays.quickCaptureOpen.value = true;
       return;
