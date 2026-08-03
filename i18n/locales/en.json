@@ -41,7 +41,8 @@
     "sectionMoney": "Money",
     "sectionMoneyHint": "Expenses and month totals",
     "moneyLedger": "Ledger",
-    "moneySavings": "Savings"
+    "moneySavings": "Savings",
+    "moneyBudgets": "Budgets"
   },
   "auth": {
     "signInTitle": "Sign in to continue",
@@ -882,7 +883,12 @@
     "contributionSaved": "Contribution added",
     "contributionDeleted": "Contribution deleted",
     "failedToLoadContributions": "Failed to load contributions",
-    "failedToDeleteContribution": "Could not delete contribution"
+    "failedToDeleteContribution": "Could not delete contribution",
+    "failedToLoadBudgets": "Failed to load budgets",
+    "budgetSaved": "Budget saved",
+    "budgetDeleted": "Budget deleted",
+    "budgetsCopied": "Copied {count} budgets",
+    "failedToCopyBudgets": "Could not copy budgets"
   },
   "status": {
     "todo": "To do",
@@ -1013,7 +1019,9 @@
     "money": "Money",
     "moneyDescription": "Track income and expenses in VND.",
     "moneySavings": "Savings",
-    "moneySavingsDescription": "Track savings goals and contributions in VND."
+    "moneySavingsDescription": "Track savings goals and contributions in VND.",
+    "moneyBudgets": "Budgets",
+    "moneyBudgetsDescription": "Monthly spending budgets in VND."
   },
   "categories": {
     "electronics": "Electronics",
@@ -1289,6 +1297,39 @@
         "note": "Note",
         "save": "Add",
         "failed": "Could not add contribution"
+      }
+    },
+    "budgets": {
+      "title": "Budgets",
+      "subtitle": "Monthly spending limits vs your ledger",
+      "add": "Add budget",
+      "copyPrevious": "Copy previous month",
+      "loading": "Loading…",
+      "empty": "No budgets this month. Add an overall or category limit.",
+      "totalsAria": "Budget totals",
+      "budgeted": "Budgeted",
+      "spent": "Spent",
+      "remaining": "Remaining",
+      "scope": {
+        "overall": "Overall",
+        "category": "Category"
+      },
+      "modal": {
+        "newTitle": "New budget",
+        "editTitle": "Edit budget",
+        "close": "Close",
+        "category": "Category",
+        "amount": "Limit (₫)",
+        "amountPlaceholder": "e.g. 5000000",
+        "amountRequired": "Enter a valid amount.",
+        "save": "Save",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "failedToSave": "Could not save budget",
+        "failedToDelete": "Could not delete budget",
+        "deleteTitle": "Delete budget?",
+        "deleteBody": "This removes the limit for this month."
       }
     }
   }

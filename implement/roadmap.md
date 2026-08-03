@@ -369,9 +369,15 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] UI `/money/savings` — progress cards, contribute modal, contribution history; sidebar Ledger/Savings
 - [x] Vitest for savings schemas + `savingsProgress`; docs
 
+## Phase 21 — Money (Sprint 4: monthly budgets)
+
+- [x] Migration `0026_money_budgets` — overall / category scopes; unique month slots
+- [x] API `GET/POST/DELETE /api/money/budgets` + `POST …/copy`; spent from ledger Out
+- [x] UI `/money/budgets` — progress vs spent, copy previous month; sidebar entry
+- [x] Vitest for budget schemas + `budgetProgress`; docs
+
 ### Later (Money)
 
-- Monthly budgets
 - Export / harden
 
 ### Later

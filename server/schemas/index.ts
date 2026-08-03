@@ -42,4 +42,7 @@ export {
   moneyTransactionUpsertBodySchema,
   moneySavingsGoalUpsertBodySchema,
   moneySavingsContributionCreateBodySchema,
+  moneyBudgetsQuerySchema,
+  moneyBudgetUpsertBodySchema,
+  moneyBudgetsCopyBodySchema,
 } from "./money";

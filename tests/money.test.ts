@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  MoneyBudgetScope,
   MoneyCategory,
   MoneyDirection,
   MoneySavingsGoalStatus,
+  budgetProgress,
   coerceCategoryForDirection,
   defaultCategoryForDirection,
   savingsProgress,
   type MoneyTransaction,
 } from "../types/money";
 import {
+  moneyBudgetUpsertBodySchema,
+  moneyBudgetsQuerySchema,
   moneySavingsContributionCreateBodySchema,
   moneySavingsGoalUpsertBodySchema,
   moneyTransactionUpsertBodySchema,
@@ -268,5 +272,57 @@ describe("savingsProgress", () => {
     expect(savingsProgress(0, 100)).toBe(0);
     expect(savingsProgress(50, 0)).toBe(0);
     expect(savingsProgress(50, 100)).toBe(0.5);
+  });
+});
+
+describe("money budget schemas", () => {
+  it("accepts overall and category budgets", () => {
+    expect(
+      moneyBudgetUpsertBodySchema.safeParse({
+        yearMonth: "2026-08",
+        scope: MoneyBudgetScope.Overall,
+        amountMinor: 20_000_000,
+      }).success,
+    ).toBe(true);
+    expect(
+      moneyBudgetUpsertBodySchema.safeParse({
+        yearMonth: "2026-08",
+        scope: MoneyBudgetScope.Category,
+        category: MoneyCategory.Food,
+        amountMinor: 3_000_000,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects mismatched scope/category", () => {
+    expect(
+      moneyBudgetUpsertBodySchema.safeParse({
+        yearMonth: "2026-08",
+        scope: MoneyBudgetScope.Overall,
+        category: MoneyCategory.Food,
+        amountMinor: 1,
+      }).success,
+    ).toBe(false);
+    expect(
+      moneyBudgetUpsertBodySchema.safeParse({
+        yearMonth: "2026-08",
+        scope: MoneyBudgetScope.Category,
+        amountMinor: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("accepts optional yearMonth query", () => {
+    expect(moneyBudgetsQuerySchema.safeParse({}).success).toBe(true);
+    expect(
+      moneyBudgetsQuerySchema.safeParse({ yearMonth: "2026-08" }).success,
+    ).toBe(true);
+  });
+});
+
+describe("budgetProgress", () => {
+  it("mirrors savingsProgress semantics", () => {
+    expect(budgetProgress(0, 100)).toBe(0);
+    expect(budgetProgress(120, 100)).toBe(1.2);
   });
 });

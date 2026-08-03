@@ -41,7 +41,8 @@
     "sectionMoney": "Tiền",
     "sectionMoneyHint": "Chi tiêu và tổng theo tháng",
     "moneyLedger": "Sổ thu chi",
-    "moneySavings": "Tiết kiệm"
+    "moneySavings": "Tiết kiệm",
+    "moneyBudgets": "Ngân sách"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -882,7 +883,12 @@
     "contributionSaved": "Đã thêm đóng góp",
     "contributionDeleted": "Đã xoá đóng góp",
     "failedToLoadContributions": "Không tải được lịch sử đóng góp",
-    "failedToDeleteContribution": "Không xoá được đóng góp"
+    "failedToDeleteContribution": "Không xoá được đóng góp",
+    "failedToLoadBudgets": "Không tải được ngân sách",
+    "budgetSaved": "Đã lưu ngân sách",
+    "budgetDeleted": "Đã xoá ngân sách",
+    "budgetsCopied": "Đã sao chép {count} ngân sách",
+    "failedToCopyBudgets": "Không sao chép được ngân sách"
   },
   "status": {
     "todo": "Cần làm",
@@ -1013,7 +1019,9 @@
     "money": "Tiền",
     "moneyDescription": "Theo dõi thu chi bằng VND.",
     "moneySavings": "Tiết kiệm",
-    "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp bằng VND."
+    "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp bằng VND.",
+    "moneyBudgets": "Ngân sách",
+    "moneyBudgetsDescription": "Ngân sách chi tiêu tháng bằng VND."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -1289,6 +1297,39 @@
         "note": "Ghi chú",
         "save": "Thêm",
         "failed": "Không thêm được đóng góp"
+      }
+    },
+    "budgets": {
+      "title": "Ngân sách",
+      "subtitle": "Hạn mức tháng so với sổ thu chi",
+      "add": "Thêm ngân sách",
+      "copyPrevious": "Sao chép tháng trước",
+      "loading": "Đang tải…",
+      "empty": "Chưa có ngân sách tháng này. Thêm hạn mức tổng hoặc theo danh mục.",
+      "totalsAria": "Tổng ngân sách",
+      "budgeted": "Ngân sách",
+      "spent": "Đã chi",
+      "remaining": "Còn lại",
+      "scope": {
+        "overall": "Tổng",
+        "category": "Danh mục"
+      },
+      "modal": {
+        "newTitle": "Ngân sách mới",
+        "editTitle": "Sửa ngân sách",
+        "close": "Đóng",
+        "category": "Danh mục",
+        "amount": "Hạn mức (₫)",
+        "amountPlaceholder": "vd. 5000000",
+        "amountRequired": "Nhập số tiền hợp lệ.",
+        "save": "Lưu",
+        "saving": "Đang lưu…",
+        "cancel": "Huỷ",
+        "delete": "Xoá",
+        "failedToSave": "Không lưu được ngân sách",
+        "failedToDelete": "Không xoá được ngân sách",
+        "deleteTitle": "Xoá ngân sách?",
+        "deleteBody": "Sẽ gỡ hạn mức tháng này."
       }
     }
   }
