@@ -1,15 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  MoneyCategory,
+  MoneyDirection,
+  MoneySavingsGoalStatus,
+  coerceCategoryForDirection,
+  defaultCategoryForDirection,
+  savingsProgress,
+  type MoneyTransaction,
+} from "../types/money";
+import {
+  moneySavingsContributionCreateBodySchema,
+  moneySavingsGoalUpsertBodySchema,
   moneyTransactionUpsertBodySchema,
   moneyTransactionsQuerySchema,
 } from "../server/schemas";
-import {
-  MoneyCategory,
-  MoneyDirection,
-  coerceCategoryForDirection,
-  defaultCategoryForDirection,
-  type MoneyTransaction,
-} from "../types/money";
 import {
   formatMoneyMinorPlain,
   isYearMonth,
@@ -213,5 +217,56 @@ describe("category direction helpers", () => {
     expect(
       coerceCategoryForDirection(MoneyCategory.Transfer, MoneyDirection.In),
     ).toBe(MoneyCategory.Transfer);
+  });
+});
+
+describe("money savings schemas", () => {
+  it("accepts a goal upsert", () => {
+    expect(
+      moneySavingsGoalUpsertBodySchema.safeParse({
+        title: "Emergency",
+        targetMinor: 10_000_000,
+        status: MoneySavingsGoalStatus.Active,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects string status and empty title", () => {
+    expect(
+      moneySavingsGoalUpsertBodySchema.safeParse({
+        title: "x",
+        targetMinor: 1,
+        status: "active",
+      }).success,
+    ).toBe(false);
+    expect(
+      moneySavingsGoalUpsertBodySchema.safeParse({
+        title: "  ",
+        targetMinor: 1,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("requires contribution amount >= 1", () => {
+    expect(
+      moneySavingsContributionCreateBodySchema.safeParse({
+        occurredOn: "2026-08-03",
+        amountMinor: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      moneySavingsContributionCreateBodySchema.safeParse({
+        occurredOn: "2026-08-03",
+        amountMinor: 50_000,
+      }).success,
+    ).toBe(true);
+  });
+});
+
+describe("savingsProgress", () => {
+  it("returns 0 for empty targets and ratios otherwise", () => {
+    expect(savingsProgress(0, 100)).toBe(0);
+    expect(savingsProgress(50, 0)).toBe(0);
+    expect(savingsProgress(50, 100)).toBe(0.5);
   });
 });

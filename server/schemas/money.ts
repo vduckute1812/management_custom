@@ -2,10 +2,12 @@ import { z } from "zod";
 import {
   MONEY_CATEGORIES,
   MONEY_DIRECTIONS,
+  MONEY_SAVINGS_GOAL_STATUSES,
   type MoneyCategory,
   type MoneyDirection,
+  type MoneySavingsGoalStatus,
 } from "~/types/money";
-import { dateOnly } from "./common";
+import { dateOnly, optionalDate } from "./common";
 
 const directionSchema = z
   .number()
@@ -43,5 +45,37 @@ export const moneyTransactionUpsertBodySchema = z.object({
     .max(Number.MAX_SAFE_INTEGER),
   direction: directionSchema,
   category: categorySchema,
+  note: z.string().trim().max(500).nullable().optional(),
+});
+
+const savingsStatusSchema = z
+  .number()
+  .int()
+  .refine(
+    (v): v is MoneySavingsGoalStatus =>
+      (MONEY_SAVINGS_GOAL_STATUSES as readonly number[]).includes(v),
+    { message: "Invalid savings goal status" },
+  );
+
+export const moneySavingsGoalUpsertBodySchema = z.object({
+  id: z.string().min(1).optional(),
+  title: z.string().trim().min(1).max(120),
+  targetMinor: z
+    .number()
+    .int("Target must be a whole number of đồng")
+    .min(0)
+    .max(Number.MAX_SAFE_INTEGER),
+  status: savingsStatusSchema.optional(),
+  targetDate: optionalDate,
+  note: z.string().trim().max(500).nullable().optional(),
+});
+
+export const moneySavingsContributionCreateBodySchema = z.object({
+  occurredOn: dateOnly,
+  amountMinor: z
+    .number()
+    .int("Amount must be a whole number of đồng")
+    .min(1)
+    .max(Number.MAX_SAFE_INTEGER),
   note: z.string().trim().max(500).nullable().optional(),
 });

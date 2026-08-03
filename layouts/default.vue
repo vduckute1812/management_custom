@@ -14,7 +14,8 @@ type NavIcon =
   | "shield"
   | "feed"
   | "user"
-  | "wallet";
+  | "wallet"
+  | "goal";
 
 interface NavItem {
   to: string;
@@ -99,11 +100,12 @@ const navItems = computed<NavItem[]>(() => {
 
   if (isMoneySection.value) {
     const moneyNav: NavItem[] = [
-      { to: "/money", labelKey: "nav.money", icon: "wallet" },
+      { to: "/money", labelKey: "nav.moneyLedger", icon: "wallet" },
+      { to: "/money/savings", labelKey: "nav.moneySavings", icon: "goal" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdminUi.value) {
-      moneyNav.splice(1, 0, {
+      moneyNav.splice(2, 0, {
         to: "/admin",
         labelKey: "nav.admin",
         icon: "shield",
@@ -142,6 +144,10 @@ const sectionLabel = computed(() => {
 function isActive(to: string) {
   if (to === "/tasks") {
     return route.path === "/tasks" || route.path.startsWith("/tasks/");
+  }
+  // Ledger lives at /money; /money/savings is a sibling module page.
+  if (to === "/money") {
+    return route.path === "/money";
   }
   return route.path === to || route.path.startsWith(`${to}/`);
 }

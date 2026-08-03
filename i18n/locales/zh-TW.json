@@ -39,7 +39,9 @@
     "chat": "聊天",
     "money": "記帳",
     "sectionMoney": "記帳",
-    "sectionMoneyHint": "收支與月度彙總"
+    "sectionMoneyHint": "收支與月度彙總",
+    "moneyLedger": "帳本",
+    "moneySavings": "儲蓄"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -873,7 +875,14 @@
     "manuscriptPublished": "手稿已發佈",
     "failedToLoadMoney": "無法載入帳本",
     "moneyTransactionSaved": "紀錄已儲存",
-    "moneyTransactionDeleted": "紀錄已刪除"
+    "moneyTransactionDeleted": "紀錄已刪除",
+    "failedToLoadSavings": "無法載入儲蓄目標",
+    "savingsGoalSaved": "儲蓄目標已儲存",
+    "savingsGoalDeleted": "儲蓄目標已刪除",
+    "contributionSaved": "已存入",
+    "contributionDeleted": "存入紀錄已刪除",
+    "failedToLoadContributions": "無法載入存入紀錄",
+    "failedToDeleteContribution": "無法刪除存入紀錄"
   },
   "status": {
     "todo": "待辦",
@@ -1002,7 +1011,9 @@
     "manuscriptEditDescription": "更新動態中的貼文或手稿。",
     "chat": "聊天",
     "money": "記帳",
-    "moneyDescription": "以越南盾追蹤收入與支出。"
+    "moneyDescription": "以越南盾追蹤收入與支出。",
+    "moneySavings": "儲蓄",
+    "moneySavingsDescription": "以越南盾追蹤儲蓄目標與存入。"
   },
   "categories": {
     "electronics": "電子",
@@ -1223,6 +1234,62 @@
     "filterDirectionAria": "依方向篩選",
     "filterCategoryAria": "依分類篩選",
     "clearFilter": "清除",
-    "filterEmpty": "沒有符合篩選的紀錄。"
+    "filterEmpty": "沒有符合篩選的紀錄。",
+    "savings": {
+      "title": "儲蓄",
+      "subtitle": "目標與存入（越南盾）",
+      "addGoal": "新建目標",
+      "loading": "載入中…",
+      "empty": "尚無儲蓄目標。建立一個開始存錢。",
+      "edit": "編輯",
+      "contributeAction": "存入",
+      "showContributions": "紀錄",
+      "hideContributions": "收起",
+      "noContributions": "尚無存入紀錄。",
+      "deleteContribution": "刪除",
+      "byDate": "目標日 {date}",
+      "progressAria": "進度 {pct} 百分之",
+      "status": {
+        "active": "進行中",
+        "completed": "已完成",
+        "archived": "已封存"
+      },
+      "modal": {
+        "newTitle": "新建儲蓄目標",
+        "editTitle": "編輯儲蓄目標",
+        "close": "關閉",
+        "title": "名稱",
+        "titlePlaceholder": "例如 應急金",
+        "titleRequired": "請輸入名稱。",
+        "target": "目標金額（₫）",
+        "targetPlaceholder": "例如 10000000",
+        "targetRequired": "請輸入有效目標金額。",
+        "status": "狀態",
+        "targetDate": "目標日期（選填）",
+        "note": "備註",
+        "notePlaceholder": "選填",
+        "save": "儲存",
+        "saving": "儲存中…",
+        "cancel": "取消",
+        "delete": "刪除",
+        "failedToSave": "無法儲存目標",
+        "failedToDelete": "無法刪除目標",
+        "discardTitle": "放棄變更？",
+        "discardBody": "你有未儲存的編輯。",
+        "keepEditing": "繼續編輯",
+        "discard": "放棄",
+        "deleteTitle": "刪除目標？",
+        "deleteBody": "將刪除該目標及其全部存入紀錄。"
+      },
+      "contribute": {
+        "title": "存入",
+        "amount": "金額（₫）",
+        "amountRequired": "請輸入有效金額。",
+        "date": "日期",
+        "note": "備註",
+        "save": "新增",
+        "failed": "無法新增存入"
+      }
+    }
   }
 }
