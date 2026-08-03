@@ -262,7 +262,7 @@ Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are
 | `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
 | `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
 
-Client page: `/money` (month navigator + list + modal). Nav shortcut `g m`.
+Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal). Nav shortcut `g m`.
 
 ---
 

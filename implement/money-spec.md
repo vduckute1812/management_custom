@@ -57,6 +57,16 @@ Cross-user ids → **404** (not 403).
 | 4      | Monthly budgets                                |
 | 5      | Harden (tests, export, docs polish)            |
 
+## Sprint 2 (as-built)
+
+Client-only polish on the month view (no new tables):
+
+- Category color swatches + chip picker in the transaction modal
+- Direction ↔ category coercion (`Income` vs expense defaults)
+- Filters: All / Expense / Income + category chips (chart row click filters)
+- Charts (Chart.js, lazy): doughnut spending-by-category + daily expense bars
+- Aggregations: `sumByCategory` / `sumDaily` in `utils/money.ts`
+
 ## Out of scope (for now)
 
 Multi-currency / FX, shared wallets, bank sync, OCR, investments.

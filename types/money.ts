@@ -64,6 +64,56 @@ export const MONEY_CATEGORY_I18N_KEYS: Record<MoneyCategory, string> = {
   [MoneyCategory.Other]: "money.categories.other",
 };
 
+/** Presentational swatches for chips / charts (not stored). */
+export const MONEY_CATEGORY_COLORS: Record<MoneyCategory, string> = {
+  [MoneyCategory.Food]: "#f97316",
+  [MoneyCategory.Transport]: "#0ea5e9",
+  [MoneyCategory.Housing]: "#64748b",
+  [MoneyCategory.Utilities]: "#eab308",
+  [MoneyCategory.Health]: "#ef4444",
+  [MoneyCategory.Entertainment]: "#db2777",
+  [MoneyCategory.Shopping]: "#14b8a6",
+  [MoneyCategory.Education]: "#3b82f6",
+  [MoneyCategory.Income]: "#10b981",
+  [MoneyCategory.Transfer]: "#06b6d4",
+  [MoneyCategory.Other]: "#94a3b8",
+};
+
+/** Typical expense categories (excludes Income). */
+export const MONEY_EXPENSE_CATEGORIES = MONEY_CATEGORIES.filter(
+  (c) => c !== MoneyCategory.Income,
+) as readonly MoneyCategory[];
+
+export function defaultCategoryForDirection(
+  direction: MoneyDirection,
+): MoneyCategory {
+  return direction === MoneyDirection.In
+    ? MoneyCategory.Income
+    : MoneyCategory.Food;
+}
+
+/**
+ * When the user flips In/Out, nudge an obviously mismatched category
+ * (Income ↔ expense) without fighting Transfer/Other.
+ */
+export function coerceCategoryForDirection(
+  category: MoneyCategory,
+  direction: MoneyDirection,
+): MoneyCategory {
+  if (
+    direction === MoneyDirection.In &&
+    category !== MoneyCategory.Income &&
+    category !== MoneyCategory.Transfer &&
+    category !== MoneyCategory.Other
+  ) {
+    return MoneyCategory.Income;
+  }
+  if (direction === MoneyDirection.Out && category === MoneyCategory.Income) {
+    return MoneyCategory.Food;
+  }
+  return category;
+}
+
 /** Install currency for v1 — VND has no fractional subunit in practice. */
 export const MONEY_CURRENCY = "VND" as const;
 

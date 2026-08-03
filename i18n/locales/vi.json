@@ -1212,6 +1212,17 @@
       "discard": "Huỷ bỏ",
       "deleteTitle": "Xoá giao dịch?",
       "deleteBody": "Không thể hoàn tác."
-    }
+    },
+    "chartsAria": "Biểu đồ tháng",
+    "chartByCategory": "Chi tiêu theo danh mục",
+    "chartByCategoryHint": "Chi tháng này — chạm một dòng để lọc",
+    "chartDaily": "Chi theo ngày",
+    "chartDailyHint": "Chi tiêu từng ngày trong tháng",
+    "chartEmpty": "Chưa có chi tiêu để vẽ biểu đồ",
+    "filterAll": "Tất cả",
+    "filterDirectionAria": "Lọc theo chiều",
+    "filterCategoryAria": "Lọc theo danh mục",
+    "clearFilter": "Xoá lọc",
+    "filterEmpty": "Không có giao dịch khớp bộ lọc."
   }
 }
