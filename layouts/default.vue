@@ -5,9 +5,17 @@ const { paletteOpen, helpOpen } = useUiOverlays();
 const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
 
-type AppSection = "tasks" | "feed" | "other";
+type AppSection = "tasks" | "feed" | "money" | "other";
 type NavIcon =
-  "calendar" | "layers" | "chart" | "cog" | "shield" | "feed" | "user";
+  | "calendar"
+  | "layers"
+  | "chart"
+  | "cog"
+  | "shield"
+  | "feed"
+  | "user"
+  | "wallet"
+  | "goal";
 
 interface NavItem {
   to: string;
@@ -23,6 +31,10 @@ watch(
   (path) => {
     if (path === "/feed" || path.startsWith("/feed/")) {
       activeSection.value = "feed";
+      return;
+    }
+    if (path === "/money" || path.startsWith("/money/")) {
+      activeSection.value = "money";
       return;
     }
     if (
@@ -53,6 +65,7 @@ watch(
 
 const isFeedSection = computed(() => activeSection.value === "feed");
 const isTasksSection = computed(() => activeSection.value === "tasks");
+const isMoneySection = computed(() => activeSection.value === "money");
 const isHub = computed(() => route.path === "/");
 /**
  * Marketing-style surfaces get the footer with the legal links. The feed is
@@ -76,7 +89,7 @@ const showModuleSidebar = computed(() => {
   ) {
     return false;
   }
-  return isFeedSection.value || isTasksSection.value;
+  return isFeedSection.value || isTasksSection.value || isMoneySection.value;
 });
 
 const navItems = computed<NavItem[]>(() => {
@@ -93,6 +106,23 @@ const navItems = computed<NavItem[]>(() => {
       });
     }
     return feedNav;
+  }
+
+  if (isMoneySection.value) {
+    const moneyNav: NavItem[] = [
+      { to: "/money", labelKey: "nav.moneyLedger", icon: "wallet" },
+      { to: "/money/savings", labelKey: "nav.moneySavings", icon: "goal" },
+      { to: "/money/budgets", labelKey: "nav.moneyBudgets", icon: "chart" },
+      { to: "/settings", labelKey: "nav.settings", icon: "cog" },
+    ];
+    if (auth.isAdminUi.value) {
+      moneyNav.splice(3, 0, {
+        to: "/admin",
+        labelKey: "nav.admin",
+        icon: "shield",
+      });
+    }
+    return moneyNav;
   }
 
   if (isTasksSection.value) {
@@ -117,6 +147,7 @@ const navItems = computed<NavItem[]>(() => {
 
 const sectionLabel = computed(() => {
   if (isFeedSection.value) return t("nav.sectionFeed");
+  if (isMoneySection.value) return t("nav.sectionMoney");
   if (isTasksSection.value) return t("nav.sectionTime");
   return t("nav.sectionDefault");
 });
@@ -124,6 +155,10 @@ const sectionLabel = computed(() => {
 function isActive(to: string) {
   if (to === "/tasks") {
     return route.path === "/tasks" || route.path.startsWith("/tasks/");
+  }
+  // Ledger lives at /money; /money/savings is a sibling module page.
+  if (to === "/money") {
+    return route.path === "/money";
   }
   return route.path === to || route.path.startsWith(`${to}/`);
 }
@@ -185,7 +220,9 @@ useModal(mobileMoreOpen, {
             {{
               isFeedSection
                 ? $t("nav.sectionFeedHint")
-                : $t("nav.sectionTasksHint")
+                : isMoneySection
+                  ? $t("nav.sectionMoneyHint")
+                  : $t("nav.sectionTasksHint")
             }}
           </p>
         </div>

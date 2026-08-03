@@ -40,6 +40,8 @@ const sections = computed<Section[]>(() => [
       { keys: ["g", "e"], label: t("shortcuts.goEpics") },
       { keys: ["g", "a"], label: t("shortcuts.goAnalytics") },
       { keys: ["g", "f"], label: t("shortcuts.goFeed") },
+      { keys: ["g", "c"], label: t("shortcuts.goChat") },
+      { keys: ["g", "m"], label: t("shortcuts.goMoney") },
     ],
   },
   {

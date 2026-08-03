@@ -32,6 +32,9 @@
  *   - stories.ts               — 24h ephemeral stories
  *   - jobs.ts                  — Durable background job queue (email, cache bust)
  *   - chat.ts                  — Direct messages (conversations / messages / reads)
+ *   - money.ts                 — Per-user expense ledger (money_transactions)
+ *   - moneySavings.ts          — Savings goals + contributions
+ *   - moneyBudgets.ts          — Monthly budgets (overall / per-category)
  *
  * NOTE: there is no longer an `ensureBootstrap()`. Schema is managed
  * by `npm run migrate`; the server refuses to start if any migration
@@ -58,6 +61,9 @@ export * from "../db/uploads";
 export * from "../db/stories";
 export * from "../db/jobs";
 export * from "../db/chat";
+export * from "../db/money";
+export * from "../db/moneySavings";
+export * from "../db/moneyBudgets";
 // Only the two read-side helpers are exposed through the runtime barrel.
 // `runMigrations` / `resetSchema` / `discoverMigrations` are CLI-only and
 // are imported directly from `~/server/db/migrator` by `scripts/migrate.ts`.

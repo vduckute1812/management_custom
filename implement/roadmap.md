@@ -345,7 +345,42 @@ Audit-driven pass after Feed / Chat / rate-limit growth outpaced the agent rule.
 - [x] Docker Alpine: global `npm@12.0.2` install (Corepack unreliable on Alpine) + `HUSKY=0` in image builds
 - [x] Deploy prune: unused SHA tags / dangling images / stopped containers before build, on failure, and after healthy deploy (keeps `:latest` / `:previous` / new SHA; never volumes)
 
-## Phase 21 — Public legal pages (privacy + terms)
+## Phase 21 — Money (expense ledger, Sprint 0–1)
+
+Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
+
+- [x] Spec + nav (`/money`, header, sidebar section, `g m`, command palette)
+- [x] Migration `0024_money_transactions` — BIGINT `amount_minor`, integer `direction` / `category`
+- [x] DB / Zod / service / API under `/api/money/transactions`
+- [x] UI: month list + totals + create/edit/delete modal; i18n (`en` / `vi` / `zh-CN` / `zh-TW`)
+- [x] Vitest for money schemas + amount/yearMonth helpers; docs (api / database / roadmap / README)
+
+## Phase 21 — Money (Sprint 2: charts + category UX)
+
+- [x] Category color swatches; chip picker in modal; direction↔category coercion
+- [x] Month filters (direction + category); chart legend click filters the list
+- [x] Chart.js doughnut (spend by category) + daily expense bars on `/money`
+- [x] `sumByCategory` / `sumDaily` helpers + Vitest; docs (`money-spec`, api, roadmap)
+
+## Phase 21 — Money (Sprint 3: savings goals)
+
+- [x] Migration `0025_money_savings` — goals + contributions; `MoneySavingsGoalStatus` integer enum
+- [x] API under `/api/money/savings/*`; auto-complete Active goals when target reached
+- [x] UI `/money/savings` — progress cards, contribute modal, contribution history; sidebar Ledger/Savings
+- [x] Vitest for savings schemas + `savingsProgress`; docs
+
+## Phase 21 — Money (Sprint 4: monthly budgets)
+
+- [x] Migration `0026_money_budgets` — overall / category scopes; unique month slots
+- [x] API `GET/POST/DELETE /api/money/budgets` + `POST …/copy`; spent from ledger Out
+- [x] UI `/money/budgets` — progress vs spent, copy previous month; sidebar entry
+- [x] Vitest for budget schemas + `budgetProgress`; docs
+
+### Later (Money)
+
+- Export / harden
+
+## Phase 22 — Public legal pages (privacy + terms)
 
 - [x] `types/legal.ts` + `utils/legal/{privacy,terms}.ts` — documents as data (integer `LegalDocId`), authored in `en` + `vi`
 - [x] `composables/useLegalDocument.ts` + `components/LegalDocumentView.vue` — one renderer, TOC, anchors, English fallback notice for `zh-*`

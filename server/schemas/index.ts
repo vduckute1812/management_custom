@@ -36,3 +36,13 @@ export {
 export { storyCreateBodySchema } from "./story";
 
 export { categoryCreateBodySchema, categoryPatchBodySchema } from "./category";
+
+export {
+  moneyTransactionsQuerySchema,
+  moneyTransactionUpsertBodySchema,
+  moneySavingsGoalUpsertBodySchema,
+  moneySavingsContributionCreateBodySchema,
+  moneyBudgetsQuerySchema,
+  moneyBudgetUpsertBodySchema,
+  moneyBudgetsCopyBodySchema,
+} from "./money";

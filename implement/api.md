@@ -252,6 +252,50 @@ Message `kind` is the same integer-enum convention as the rest of the API (`Chat
 
 ---
 
+## Money (expense ledger)
+
+Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are integer VND đồng (`amountMinor` ≥ 0); `direction` / `category` are integer enums (`MoneyDirection`, `MoneyCategory` in `types/money.ts`).
+
+| Method   | Endpoint                      | Auth     | Description                                                                                                                                      |
+| -------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/money/transactions`     | Required | Query `yearMonth=YYYY-MM` (default: caller's local calendar month). Returns `{ transactions, totals }` with `inMinor` / `outMinor` / `netMinor`. |
+| `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
+| `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
+
+Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal). Nav shortcut `g m`. Savings: `/money/savings`.
+
+---
+
+## Money savings
+
+Per-user savings goals. Spec: [`money-spec.md`](./money-spec.md). Status is an integer enum (`MoneySavingsGoalStatus`). `savedMinor` / `progress` are derived from contributions.
+
+| Method   | Endpoint                                     | Auth     | Description                                                                                         |
+| -------- | -------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/money/savings/goals`                   | Required | `{ goals }` with derived `savedMinor` / `progress`.                                                 |
+| `POST`   | `/api/money/savings/goals`                   | Required | Upsert `{ id?, title, targetMinor, status?, targetDate?, note? }`. Cross-user `id` → `404`.         |
+| `DELETE` | `/api/money/savings/goals/:id`               | Required | Cascades contributions. Ownership `404`.                                                            |
+| `GET`    | `/api/money/savings/goals/:id/contributions` | Required | `{ contributions, goal }`.                                                                          |
+| `POST`   | `/api/money/savings/goals/:id/contributions` | Required | Body `{ occurredOn, amountMinor (≥1), note? }`. Auto-completes Active goals when target is reached. |
+| `DELETE` | `/api/money/savings/contributions/:id`       | Required | Ownership `404`.                                                                                    |
+
+---
+
+## Money budgets
+
+Per-user monthly limits. Spec: [`money-spec.md`](./money-spec.md). `MoneyBudgetScope`: `Overall=0`, `Category=1`. Spent is derived from ledger `Out` for the month (overall) or category.
+
+| Method   | Endpoint                  | Auth     | Description                                                                                                        |
+| -------- | ------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/money/budgets`      | Required | Query `yearMonth=YYYY-MM`. Returns `{ yearMonth, budgets, budgetMinor, spentMinor }` with per-row `spentMinor`.    |
+| `POST`   | `/api/money/budgets`      | Required | Upsert `{ id?, yearMonth, scope, category?, amountMinor }`. Same natural slot overwrites. Cross-user `id` → `404`. |
+| `DELETE` | `/api/money/budgets/:id`  | Required | Ownership `404`.                                                                                                   |
+| `POST`   | `/api/money/budgets/copy` | Required | Body `{ fromYearMonth, toYearMonth }` — copy slots (upsert amounts).                                               |
+
+Client: `/money/budgets`.
+
+---
+
 ## Epics (scoped to authenticated user)
 
 | Method   | Endpoint         | Description                                                                                                                                        |
