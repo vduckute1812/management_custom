@@ -6,10 +6,15 @@ import {
   type MoneyCategory,
   type MoneyDirection as MoneyDirectionT,
   type MoneyTransaction,
+  type MoneyUserCategory,
 } from "../../types/money";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
+import {
+  mapMoneyUserCategoriesById,
+  rowToUserCategory,
+} from "./moneyUserCategories";
 
 interface MoneyTxRow extends RowDataPacket {
   id: string;
@@ -17,15 +22,24 @@ interface MoneyTxRow extends RowDataPacket {
   occurred_on: string | Date;
   amount_minor: number | string;
   direction: number;
-  category: number;
+  category: number | null;
+  user_category_id: string | null;
   note: string | null;
   created_at: string;
   updated_at: string;
+  uc_id?: string | null;
+  uc_name?: string | null;
+  uc_emoji?: string | null;
+  uc_color?: string | null;
+  uc_direction?: number | null;
+  uc_sort_order?: number | string | null;
+  uc_archived_at?: string | null;
+  uc_created_at?: string | null;
+  uc_updated_at?: string | null;
 }
 
 function dateOnlyFromDb(value: string | Date): string {
   if (value instanceof Date) {
-    // Pool uses dateStrings; Date fallback treats the instant as UTC calendar day.
     const y = value.getUTCFullYear();
     const m = String(value.getUTCMonth() + 1).padStart(2, "0");
     const day = String(value.getUTCDate()).padStart(2, "0");
@@ -34,18 +48,53 @@ function dateOnlyFromDb(value: string | Date): string {
   return String(value).slice(0, 10);
 }
 
+function joinedUserCategory(r: MoneyTxRow): MoneyUserCategory | undefined {
+  if (!r.user_category_id || !r.uc_id) return undefined;
+  return rowToUserCategory({
+    id: r.uc_id,
+    user_id: r.user_id,
+    name: r.uc_name ?? "",
+    emoji: r.uc_emoji ?? "📌",
+    color: r.uc_color ?? "#94a3b8",
+    direction: Number(r.uc_direction ?? 0),
+    sort_order: r.uc_sort_order ?? 0,
+    archived_at: r.uc_archived_at ?? null,
+    created_at: r.uc_created_at ?? r.created_at,
+    updated_at: r.uc_updated_at ?? r.updated_at,
+  } as Parameters<typeof rowToUserCategory>[0]);
+}
+
 function rowToTransaction(r: MoneyTxRow): MoneyTransaction {
+  const userCategory = joinedUserCategory(r);
   return {
     id: r.id,
     occurredOn: dateOnlyFromDb(r.occurred_on),
     amountMinor: Number(r.amount_minor),
     direction: toMoneyDirection(r.direction),
-    category: toMoneyCategory(r.category),
+    category: r.category != null ? toMoneyCategory(r.category) : null,
+    userCategoryId: r.user_category_id ?? undefined,
+    userCategory,
     note: r.note ?? undefined,
     createdAt: dbToISO(r.created_at),
     updatedAt: dbToISO(r.updated_at),
   };
 }
+
+const TX_SELECT = `
+  SELECT t.*,
+    uc.id AS uc_id,
+    uc.name AS uc_name,
+    uc.emoji AS uc_emoji,
+    uc.color AS uc_color,
+    uc.direction AS uc_direction,
+    uc.sort_order AS uc_sort_order,
+    uc.archived_at AS uc_archived_at,
+    uc.created_at AS uc_created_at,
+    uc.updated_at AS uc_updated_at
+  FROM money_transactions t
+  LEFT JOIN money_user_categories uc
+    ON uc.id = t.user_category_id AND uc.user_id = t.user_id
+`;
 
 export async function listMoneyTransactions(
   userId: string,
@@ -53,11 +102,11 @@ export async function listMoneyTransactions(
 ): Promise<MoneyTransaction[]> {
   const pool = getPool();
   const [rows] = await pool.query<MoneyTxRow[]>(
-    `SELECT * FROM money_transactions
-     WHERE user_id = ?
-       AND occurred_on >= ?
-       AND occurred_on <= ?
-     ORDER BY occurred_on DESC, created_at DESC, id DESC`,
+    `${TX_SELECT}
+     WHERE t.user_id = ?
+       AND t.occurred_on >= ?
+       AND t.occurred_on <= ?
+     ORDER BY t.occurred_on DESC, t.created_at DESC, t.id DESC`,
     [userId, range.start, range.end],
   );
   return rows.map(rowToTransaction);
@@ -69,14 +118,15 @@ export async function getMoneyTransactionById(
 ): Promise<MoneyTransaction | null> {
   const pool = getPool();
   const [rows] = await pool.query<MoneyTxRow[]>(
-    `SELECT * FROM money_transactions WHERE user_id = ? AND id = ? LIMIT 1`,
+    `${TX_SELECT}
+     WHERE t.user_id = ? AND t.id = ?
+     LIMIT 1`,
     [userId, id],
   );
   const row = rows[0];
   return row ? rowToTransaction(row) : null;
 }
 
-/** True if any row owns this id (any user) — used to 404 cross-user upserts. */
 export async function moneyTransactionIdExists(id: string): Promise<boolean> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -106,25 +156,33 @@ export async function sumMoneyMonth(
   return { inMinor, outMinor, netMinor: inMinor - outMinor };
 }
 
-/** Expense (Out) totals keyed by category for a date range. */
+export type MoneyOutCategoryKey =
+  | { kind: "builtin"; category: number }
+  | { kind: "custom"; userCategoryId: string };
+
+/** Expense (Out) totals keyed by builtin or custom category. */
 export async function sumMoneyOutByCategory(
   userId: string,
   range: { start: string; end: string },
-): Promise<Map<number, number>> {
+): Promise<Map<string, number>> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT category, COALESCE(SUM(amount_minor), 0) AS out_minor
+    `SELECT category, user_category_id,
+            COALESCE(SUM(amount_minor), 0) AS out_minor
      FROM money_transactions
      WHERE user_id = ?
        AND direction = ?
        AND occurred_on >= ?
        AND occurred_on <= ?
-     GROUP BY category`,
+     GROUP BY category, user_category_id`,
     [userId, MoneyDirection.Out, range.start, range.end],
   );
-  const map = new Map<number, number>();
+  const map = new Map<string, number>();
   for (const row of rows) {
-    map.set(Number(row.category), Number(row.out_minor));
+    const key = row.user_category_id
+      ? `u:${row.user_category_id}`
+      : `b:${Number(row.category)}`;
+    map.set(key, Number(row.out_minor));
   }
   return map;
 }
@@ -134,8 +192,24 @@ export interface UpsertMoneyTransactionInput {
   occurredOn: string;
   amountMinor: number;
   direction: MoneyDirectionT;
-  category: MoneyCategory;
+  category?: MoneyCategory | null;
+  userCategoryId?: string | null;
   note?: string | null;
+}
+
+function resolveCategoryColumns(input: UpsertMoneyTransactionInput): {
+  category: number | null;
+  userCategoryId: string | null;
+} {
+  if (input.userCategoryId) {
+    return { category: null, userCategoryId: input.userCategoryId };
+  }
+  if (input.category != null) {
+    return { category: input.category, userCategoryId: null };
+  }
+  const err = new Error("CATEGORY_REQUIRED");
+  (err as { code?: string }).code = "CATEGORY_REQUIRED";
+  throw err;
 }
 
 export async function upsertMoneyTransaction(
@@ -145,6 +219,17 @@ export async function upsertMoneyTransaction(
   const pool = getPool();
   const now = nowISO();
   const note = input.note?.trim() || null;
+  const cols = resolveCategoryColumns(input);
+
+  if (cols.userCategoryId) {
+    const { getMoneyUserCategoryById } = await import("./moneyUserCategories");
+    const custom = await getMoneyUserCategoryById(userId, cols.userCategoryId);
+    if (!custom || custom.archivedAt) {
+      const err = new Error("USER_CATEGORY_NOT_FOUND");
+      (err as { code?: string }).code = "USER_CATEGORY_NOT_FOUND";
+      throw err;
+    }
+  }
 
   if (input.id) {
     const existing = await getMoneyTransactionById(userId, input.id);
@@ -152,13 +237,14 @@ export async function upsertMoneyTransaction(
       await pool.query(
         `UPDATE money_transactions
          SET occurred_on = ?, amount_minor = ?, direction = ?, category = ?,
-             note = ?, updated_at = ?
+             user_category_id = ?, note = ?, updated_at = ?
          WHERE id = ? AND user_id = ?`,
         [
           input.occurredOn,
           input.amountMinor,
           input.direction,
-          input.category,
+          cols.category,
+          cols.userCategoryId,
           note,
           isoToDB(now),
           input.id,
@@ -179,15 +265,16 @@ export async function upsertMoneyTransaction(
   const id = generateId("mtx");
   await pool.query(
     `INSERT INTO money_transactions
-      (id, user_id, occurred_on, amount_minor, direction, category, note, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, user_id, occurred_on, amount_minor, direction, category, user_category_id, note, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
       input.occurredOn,
       input.amountMinor,
       input.direction,
-      input.category,
+      cols.category,
+      cols.userCategoryId,
       note,
       isoToDB(now),
       isoToDB(now),
@@ -208,4 +295,15 @@ export async function deleteMoneyTransaction(
     [id, userId],
   );
   return (result.affectedRows ?? 0) > 0;
+}
+
+/** Attach user categories for a list of ids (helper for budgets). */
+export async function loadUserCategoriesForIds(
+  userId: string,
+  ids: Array<string | null | undefined>,
+): Promise<Map<string, MoneyUserCategory>> {
+  return mapMoneyUserCategoriesById(
+    userId,
+    ids.filter((id): id is string => Boolean(id)),
+  );
 }

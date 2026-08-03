@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   MONEY_CATEGORY_COLORS,
+  MONEY_CATEGORY_EMOJI,
   MONEY_CATEGORY_I18N_KEYS,
   MoneyBudgetScope,
   type MoneyBudget,
@@ -77,10 +78,19 @@ function labelFor(budget: MoneyBudget) {
   if (budget.scope === MoneyBudgetScope.Overall) {
     return t("money.budgets.scope.overall");
   }
+  if (budget.userCategory) {
+    return `${budget.userCategory.emoji} ${budget.userCategory.name}`;
+  }
   if (budget.category != null) {
-    return t(MONEY_CATEGORY_I18N_KEYS[budget.category]);
+    return `${MONEY_CATEGORY_EMOJI[budget.category]} ${t(MONEY_CATEGORY_I18N_KEYS[budget.category])}`;
   }
   return t("money.budgets.scope.category");
+}
+
+function colorFor(budget: MoneyBudget) {
+  if (budget.userCategory) return budget.userCategory.color;
+  if (budget.category != null) return MONEY_CATEGORY_COLORS[budget.category];
+  return "#94a3b8";
 }
 
 async function goMonth(delta: number) {
@@ -260,14 +270,9 @@ function onExportJson() {
               <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2.5">
                   <span
-                    v-if="
-                      budget.scope === MoneyBudgetScope.Category &&
-                      budget.category != null
-                    "
+                    v-if="budget.scope === MoneyBudgetScope.Category"
                     class="h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white"
-                    :style="{
-                      backgroundColor: MONEY_CATEGORY_COLORS[budget.category],
-                    }"
+                    :style="{ backgroundColor: colorFor(budget) }"
                     aria-hidden="true"
                   />
                   <div class="min-w-0">

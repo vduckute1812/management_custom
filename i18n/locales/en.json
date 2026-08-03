@@ -889,7 +889,8 @@
     "budgetDeleted": "Budget deleted",
     "budgetsCopied": "Copied {count} budgets",
     "failedToCopyBudgets": "Could not copy budgets",
-    "moneyExported": "Export downloaded"
+    "moneyExported": "Export downloaded",
+    "failedToLoadMoneyCategories": "Failed to load categories"
   },
   "status": {
     "todo": "To do",
@@ -1246,6 +1247,17 @@
     "filterCategoryAria": "Filter by category",
     "clearFilter": "Clear filters",
     "filterEmpty": "No transactions match these filters.",
+    "categoriesAdd": {
+      "action": "Add category",
+      "title": "New category",
+      "namePlaceholder": "e.g. Gas",
+      "nameRequired": "Enter a name.",
+      "emoji": "Emoji",
+      "color": "Color",
+      "save": "Save",
+      "saving": "Saving…",
+      "failed": "Could not save category"
+    },
     "export": {
       "label": "Export",
       "csv": "CSV",

@@ -70,6 +70,11 @@ const KNOWN_TABLES_DROP_ORDER = [
   "time_blocks",
   "tasks",
   "epics",
+  "money_savings_contributions",
+  "money_savings_goals",
+  "money_transactions",
+  "money_budgets",
+  "money_user_categories",
   "users",
   "schema_migrations",
 ];

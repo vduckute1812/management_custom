@@ -889,7 +889,8 @@
     "budgetDeleted": "Đã xoá ngân sách",
     "budgetsCopied": "Đã sao chép {count} ngân sách",
     "failedToCopyBudgets": "Không sao chép được ngân sách",
-    "moneyExported": "Đã tải file xuất"
+    "moneyExported": "Đã tải file xuất",
+    "failedToLoadMoneyCategories": "Không tải được danh mục"
   },
   "status": {
     "todo": "Cần làm",
@@ -1246,6 +1247,17 @@
     "filterCategoryAria": "Lọc theo danh mục",
     "clearFilter": "Xoá bộ lọc",
     "filterEmpty": "Không có giao dịch khớp bộ lọc.",
+    "categoriesAdd": {
+      "action": "Thêm danh mục",
+      "title": "Danh mục mới",
+      "namePlaceholder": "vd. Xăng",
+      "nameRequired": "Nhập tên.",
+      "emoji": "Emoji",
+      "color": "Màu",
+      "save": "Lưu",
+      "saving": "Đang lưu…",
+      "failed": "Không lưu được danh mục"
+    },
     "export": {
       "label": "Xuất",
       "csv": "CSV",

@@ -45,4 +45,5 @@ export {
   moneyBudgetsQuerySchema,
   moneyBudgetUpsertBodySchema,
   moneyBudgetsCopyBodySchema,
+  moneyUserCategoryUpsertBodySchema,
 } from "./money";

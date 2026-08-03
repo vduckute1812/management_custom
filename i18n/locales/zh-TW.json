@@ -889,7 +889,8 @@
     "budgetDeleted": "預算已刪除",
     "budgetsCopied": "已複製 {count} 項預算",
     "failedToCopyBudgets": "無法複製預算",
-    "moneyExported": "已下載匯出檔案"
+    "moneyExported": "已下載匯出檔案",
+    "failedToLoadMoneyCategories": "無法載入分類"
   },
   "status": {
     "todo": "待辦",
@@ -1246,6 +1247,17 @@
     "filterCategoryAria": "依分類篩選",
     "clearFilter": "清除篩選",
     "filterEmpty": "沒有符合篩選的紀錄。",
+    "categoriesAdd": {
+      "action": "新增分類",
+      "title": "新分類",
+      "namePlaceholder": "例如：加油",
+      "nameRequired": "請輸入名稱。",
+      "emoji": "表情",
+      "color": "顏色",
+      "save": "儲存",
+      "saving": "儲存中…",
+      "failed": "無法儲存分類"
+    },
     "export": {
       "label": "匯出",
       "csv": "CSV",

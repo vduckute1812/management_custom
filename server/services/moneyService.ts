@@ -49,11 +49,19 @@ export async function upsertMoneyTransactionForUser(
       amountMinor: body.amountMinor,
       direction: body.direction,
       category: body.category,
+      userCategoryId: body.userCategoryId,
       note: body.note,
     });
   } catch (err: unknown) {
-    if ((err as { code?: string }).code === "NOT_FOUND") {
+    const code = (err as { code?: string }).code;
+    if (code === "NOT_FOUND") {
       throw new DomainError(404, "Transaction not found");
+    }
+    if (code === "CATEGORY_REQUIRED") {
+      throw new DomainError(400, "Provide category or userCategoryId");
+    }
+    if (code === "USER_CATEGORY_NOT_FOUND") {
+      throw new DomainError(404, "Category not found");
     }
     throw err;
   }

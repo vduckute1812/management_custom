@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { Chart as ChartType, ChartConfiguration } from "chart.js";
 import {
-  MONEY_CATEGORY_COLORS,
-  MONEY_CATEGORY_I18N_KEYS,
   MoneyDirection,
+  moneyCategoryKey,
+  type MoneyCategoryPick,
   type MoneyTransaction,
 } from "~/types/money";
 import { formatMoneyMinor, sumByCategory, sumDaily } from "~/utils/money";
@@ -12,11 +12,11 @@ const props = defineProps<{
   transactions: MoneyTransaction[];
   yearMonth: string;
   localeTag: string;
-  activeCategory?: MoneyTransaction["category"] | null;
+  activePick?: MoneyCategoryPick | null;
 }>();
 
 const emit = defineEmits<{
-  (e: "select-category", category: MoneyTransaction["category"]): void;
+  (e: "select-category", pick: MoneyCategoryPick): void;
 }>();
 
 const { t } = useI18n();
@@ -28,7 +28,7 @@ let dailyInst: ChartType | null = null;
 let ChartCtor: typeof ChartType | null = null;
 
 const outSlices = computed(() =>
-  sumByCategory(props.transactions, MoneyDirection.Out),
+  sumByCategory(props.transactions, MoneyDirection.Out, t),
 );
 const daily = computed(() =>
   sumDaily(props.transactions, props.yearMonth, { fillAll: true }),
@@ -37,6 +37,10 @@ const hasOut = computed(() => outSlices.value.length > 0);
 const hasDailyOut = computed(() => daily.value.some((p) => p.outMinor > 0));
 const outTotal = computed(() =>
   outSlices.value.reduce((sum, s) => sum + s.amountMinor, 0),
+);
+
+const activeKey = computed(() =>
+  props.activePick ? moneyCategoryKey(props.activePick) : null,
 );
 
 function fmt(n: number) {
@@ -79,11 +83,11 @@ async function renderCategory() {
   const cfg: ChartConfiguration<"doughnut"> = {
     type: "doughnut",
     data: {
-      labels: slices.map((s) => t(MONEY_CATEGORY_I18N_KEYS[s.category])),
+      labels: slices.map((s) => `${s.emoji} ${s.label}`),
       datasets: [
         {
           data: slices.map((s) => s.amountMinor),
-          backgroundColor: slices.map((s) => MONEY_CATEGORY_COLORS[s.category]),
+          backgroundColor: slices.map((s) => s.color),
           borderWidth: 0,
         },
       ],
@@ -124,10 +128,10 @@ async function renderDaily() {
       labels: points.map((p) => p.day.slice(8)),
       datasets: [
         {
-          label: t("money.out"),
           data: points.map((p) => p.outMinor),
-          backgroundColor: "rgba(244, 63, 94, 0.65)",
+          backgroundColor: "#f43f5e",
           borderRadius: 4,
+          maxBarThickness: 18,
         },
       ],
     },
@@ -138,10 +142,6 @@ async function renderDaily() {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            title(items) {
-              const i = items[0]?.dataIndex ?? 0;
-              return points[i]?.day ?? "";
-            },
             label(ctx) {
               return ` ${fmt(Number(ctx.raw ?? 0))}`;
             },
@@ -150,26 +150,24 @@ async function renderDaily() {
       },
       scales: {
         x: {
-          grid: { display: false },
           ticks: {
             color: muted,
             maxRotation: 0,
             autoSkip: true,
             maxTicksLimit: 10,
           },
+          grid: { display: false },
+          border: { color: border },
         },
         y: {
-          beginAtZero: true,
-          grid: { color: border },
           ticks: {
             color: muted,
             callback(value) {
-              const n = Number(value);
-              if (n >= 1_000_000) return `${Math.round(n / 1_000_000)}M`;
-              if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
-              return String(n);
+              return fmt(Number(value));
             },
           },
+          grid: { color: border },
+          border: { display: false },
         },
       },
     },
@@ -201,8 +199,8 @@ onBeforeUnmount(() => {
   dailyInst = null;
 });
 
-function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
-  emit("select-category", category);
+function pickCategory(pick: MoneyCategoryPick) {
+  emit("select-category", pick);
 }
 </script>
 
@@ -240,46 +238,43 @@ function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
             </div>
           </div>
           <ul class="space-y-1 self-center">
-            <li v-for="slice in outSlices" :key="slice.category">
+            <li v-for="slice in outSlices" :key="slice.key">
               <button
                 type="button"
                 class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
                 :class="
-                  activeCategory === slice.category
+                  activeKey === slice.key
                     ? 'bg-slate-900 text-white'
                     : 'hover:bg-slate-50'
                 "
-                :aria-pressed="activeCategory === slice.category"
-                @click="pickCategory(slice.category)"
+                :aria-pressed="activeKey === slice.key"
+                @click="pickCategory(slice.pick)"
               >
+                <span class="text-sm leading-none" aria-hidden="true">{{
+                  slice.emoji
+                }}</span>
                 <span
                   class="h-2.5 w-2.5 shrink-0 rounded-full ring-2"
                   :class="
-                    activeCategory === slice.category
+                    activeKey === slice.key
                       ? 'ring-white/40'
                       : 'ring-transparent'
                   "
-                  :style="{
-                    backgroundColor: MONEY_CATEGORY_COLORS[slice.category],
-                  }"
+                  :style="{ backgroundColor: slice.color }"
                   aria-hidden="true"
                 />
                 <span
                   class="min-w-0 flex-1 truncate"
                   :class="
-                    activeCategory === slice.category
-                      ? 'text-white'
-                      : 'text-slate-700'
+                    activeKey === slice.key ? 'text-white' : 'text-slate-700'
                   "
                 >
-                  {{ $t(MONEY_CATEGORY_I18N_KEYS[slice.category]) }}
+                  {{ slice.label }}
                 </span>
                 <span
                   class="tabular-nums"
                   :class="
-                    activeCategory === slice.category
-                      ? 'text-white/70'
-                      : 'text-slate-500'
+                    activeKey === slice.key ? 'text-white/70' : 'text-slate-500'
                   "
                 >
                   {{ Math.round(slice.share * 100) }}%
@@ -287,9 +282,7 @@ function pickCategory(category: (typeof outSlices.value)[number]["category"]) {
                 <span
                   class="shrink-0 tabular-nums font-medium"
                   :class="
-                    activeCategory === slice.category
-                      ? 'text-white'
-                      : 'text-slate-800'
+                    activeKey === slice.key ? 'text-white' : 'text-slate-800'
                   "
                 >
                   {{ fmt(slice.amountMinor) }}

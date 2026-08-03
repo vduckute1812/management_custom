@@ -79,10 +79,122 @@ export const MONEY_CATEGORY_COLORS: Record<MoneyCategory, string> = {
   [MoneyCategory.Other]: "#94a3b8",
 };
 
+/** Built-in category emoji (UI only). */
+export const MONEY_CATEGORY_EMOJI: Record<MoneyCategory, string> = {
+  [MoneyCategory.Food]: "🍜",
+  [MoneyCategory.Transport]: "⛽",
+  [MoneyCategory.Housing]: "🏠",
+  [MoneyCategory.Utilities]: "💡",
+  [MoneyCategory.Health]: "💊",
+  [MoneyCategory.Entertainment]: "🎬",
+  [MoneyCategory.Shopping]: "🛍️",
+  [MoneyCategory.Education]: "📚",
+  [MoneyCategory.Income]: "💰",
+  [MoneyCategory.Transfer]: "🔄",
+  [MoneyCategory.Other]: "📦",
+};
+
 /** Typical expense categories (excludes Income). */
 export const MONEY_EXPENSE_CATEGORIES = MONEY_CATEGORIES.filter(
   (c) => c !== MoneyCategory.Income,
 ) as readonly MoneyCategory[];
+
+/** Default palette for new user categories. */
+export const MONEY_USER_CATEGORY_COLORS = [
+  "#f97316",
+  "#0ea5e9",
+  "#64748b",
+  "#eab308",
+  "#ef4444",
+  "#db2777",
+  "#14b8a6",
+  "#3b82f6",
+  "#10b981",
+  "#06b6d4",
+  "#8b5cf6",
+  "#94a3b8",
+] as const;
+
+export const MONEY_USER_CATEGORY_EMOJI_SUGGESTIONS = [
+  "⛽",
+  "🚗",
+  "🍜",
+  "☕",
+  "🏠",
+  "💡",
+  "💊",
+  "🎬",
+  "🛍️",
+  "📚",
+  "💰",
+  "✈️",
+  "🏋️",
+  "🐕",
+  "🎁",
+  "📱",
+  "🧾",
+  "📌",
+] as const;
+
+export interface MoneyUserCategory {
+  id: string;
+  name: string;
+  emoji: string;
+  color: string;
+  direction: MoneyDirection;
+  sortOrder: number;
+  archivedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Opaque category pick used by UI dropdowns / filters.
+ * Built-ins stay integer enums; customs reference `money_user_categories.id`.
+ */
+export type MoneyCategoryPick =
+  | { kind: "builtin"; category: MoneyCategory }
+  | { kind: "custom"; userCategoryId: string };
+
+export function moneyCategoryKey(pick: MoneyCategoryPick): string {
+  return pick.kind === "builtin"
+    ? `b:${pick.category}`
+    : `u:${pick.userCategoryId}`;
+}
+
+export function parseMoneyCategoryKey(
+  key: string | null | undefined,
+): MoneyCategoryPick | null {
+  if (!key) return null;
+  if (key.startsWith("b:")) {
+    const n = Number(key.slice(2));
+    if (
+      typeof n === "number" &&
+      Number.isInteger(n) &&
+      (MONEY_CATEGORIES as readonly number[]).includes(n)
+    ) {
+      return { kind: "builtin", category: n as MoneyCategory };
+    }
+    return null;
+  }
+  if (key.startsWith("u:") && key.length > 2) {
+    return { kind: "custom", userCategoryId: key.slice(2) };
+  }
+  return null;
+}
+
+export function moneyCategoryPickFromTx(tx: {
+  category: MoneyCategory | null;
+  userCategoryId?: string | null;
+}): MoneyCategoryPick | null {
+  if (tx.userCategoryId) {
+    return { kind: "custom", userCategoryId: tx.userCategoryId };
+  }
+  if (tx.category != null) {
+    return { kind: "builtin", category: tx.category };
+  }
+  return null;
+}
 
 export function defaultCategoryForDirection(
   direction: MoneyDirection,
@@ -92,9 +204,19 @@ export function defaultCategoryForDirection(
     : MoneyCategory.Food;
 }
 
+export function defaultCategoryPickForDirection(
+  direction: MoneyDirection,
+): MoneyCategoryPick {
+  return {
+    kind: "builtin",
+    category: defaultCategoryForDirection(direction),
+  };
+}
+
 /**
  * When the user flips In/Out, nudge an obviously mismatched category
  * (Income ↔ expense) without fighting Transfer/Other.
+ * Custom picks are left alone (filtered by dropdown mode).
  */
 export function coerceCategoryForDirection(
   category: MoneyCategory,
@@ -114,6 +236,17 @@ export function coerceCategoryForDirection(
   return category;
 }
 
+export function coerceCategoryPickForDirection(
+  pick: MoneyCategoryPick,
+  direction: MoneyDirection,
+): MoneyCategoryPick {
+  if (pick.kind === "custom") return pick;
+  return {
+    kind: "builtin",
+    category: coerceCategoryForDirection(pick.category, direction),
+  };
+}
+
 /** Install currency for v1 — VND has no fractional subunit in practice. */
 export const MONEY_CURRENCY = "VND" as const;
 
@@ -124,7 +257,12 @@ export interface MoneyTransaction {
   /** Always ≥ 0 (minor units). */
   amountMinor: number;
   direction: MoneyDirection;
-  category: MoneyCategory;
+  /** Built-in category when not using a custom row. */
+  category: MoneyCategory | null;
+  /** Custom category id when not using a built-in. */
+  userCategoryId?: string;
+  /** Joined custom category (when userCategoryId is set). */
+  userCategory?: MoneyUserCategory;
   note?: string;
   createdAt: string;
   updatedAt: string;
@@ -230,8 +368,11 @@ export interface MoneyBudget {
   id: string;
   yearMonth: string;
   scope: MoneyBudgetScope;
-  /** Present when scope=Category. */
+  /** Present when scope=Category and using a built-in. */
   category?: MoneyCategory;
+  /** Present when scope=Category and using a custom category. */
+  userCategoryId?: string;
+  userCategory?: MoneyUserCategory;
   amountMinor: number;
   /** Outflow spent against this budget (derived from ledger). */
   spentMinor: number;

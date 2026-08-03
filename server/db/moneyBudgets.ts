@@ -12,6 +12,10 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 import { sumMoneyMonth, sumMoneyOutByCategory } from "./money";
+import {
+  getMoneyUserCategoryById,
+  mapMoneyUserCategoriesById,
+} from "./moneyUserCategories";
 import { yearMonthRange } from "../../utils/money";
 
 interface BudgetRow extends RowDataPacket {
@@ -20,28 +24,56 @@ interface BudgetRow extends RowDataPacket {
   budget_ym: string;
   scope: number;
   category: number | null;
+  user_category_id: string | null;
   amount_minor: number | string;
   created_at: string;
   updated_at: string;
 }
 
-function rowToBudget(r: BudgetRow, spentMinor: number): MoneyBudget {
+function rowToBudget(
+  r: BudgetRow,
+  spentMinor: number,
+  userCategories: Map<string, NonNullable<MoneyBudget["userCategory"]>>,
+): MoneyBudget {
   const amountMinor = Number(r.amount_minor);
   const scope = toMoneyBudgetScope(r.scope);
+  const userCategoryId = r.user_category_id ?? undefined;
   return {
     id: r.id,
     yearMonth: r.budget_ym,
     scope,
     category:
-      scope === MoneyBudgetScope.Category && r.category != null
+      scope === MoneyBudgetScope.Category &&
+      r.category != null &&
+      !userCategoryId
         ? toMoneyCategory(r.category)
         : undefined,
+    userCategoryId,
+    userCategory: userCategoryId
+      ? userCategories.get(userCategoryId)
+      : undefined,
     amountMinor,
     spentMinor,
     progress: budgetProgress(spentMinor, amountMinor),
     createdAt: dbToISO(r.created_at),
     updatedAt: dbToISO(r.updated_at),
   };
+}
+
+function spentForBudget(
+  r: BudgetRow,
+  byCategory: Map<string, number>,
+  monthOut: number,
+): number {
+  const scope = toMoneyBudgetScope(r.scope);
+  if (scope === MoneyBudgetScope.Overall) return monthOut;
+  if (r.user_category_id) {
+    return byCategory.get(`u:${r.user_category_id}`) ?? 0;
+  }
+  if (r.category != null) {
+    return byCategory.get(`b:${Number(r.category)}`) ?? 0;
+  }
+  return 0;
 }
 
 export async function listMoneyBudgets(
@@ -60,7 +92,7 @@ export async function listMoneyBudgets(
       .query<BudgetRow[]>(
         `SELECT * FROM money_budgets
          WHERE user_id = ? AND budget_ym = ?
-         ORDER BY scope ASC, category ASC, id ASC`,
+         ORDER BY scope ASC, category ASC, user_category_id ASC, id ASC`,
         [userId, yearMonth],
       )
       .then(([r]) => r),
@@ -68,16 +100,20 @@ export async function listMoneyBudgets(
     sumMoneyMonth(userId, range),
   ]);
 
-  const budgets = rows.map((r) => {
-    const scope = toMoneyBudgetScope(r.scope);
-    let spent = 0;
-    if (scope === MoneyBudgetScope.Overall) {
-      spent = monthSums.outMinor;
-    } else if (r.category != null) {
-      spent = byCategory.get(Number(r.category)) ?? 0;
-    }
-    return rowToBudget(r, spent);
-  });
+  const userCategories = await mapMoneyUserCategoriesById(
+    userId,
+    rows
+      .map((r) => r.user_category_id)
+      .filter((id): id is string => Boolean(id)),
+  );
+
+  const budgets = rows.map((r) =>
+    rowToBudget(
+      r,
+      spentForBudget(r, byCategory, monthSums.outMinor),
+      userCategories,
+    ),
+  );
 
   const overall = budgets.find((b) => b.scope === MoneyBudgetScope.Overall);
   const categoryBudgets = budgets.filter(
@@ -124,7 +160,26 @@ export interface UpsertMoneyBudgetInput {
   yearMonth: string;
   scope: MoneyBudgetScopeT;
   category?: MoneyCategory | null;
+  userCategoryId?: string | null;
   amountMinor: number;
+}
+
+function resolveBudgetCategory(input: UpsertMoneyBudgetInput): {
+  category: number | null;
+  userCategoryId: string | null;
+} {
+  if (input.scope === MoneyBudgetScope.Overall) {
+    return { category: null, userCategoryId: null };
+  }
+  if (input.userCategoryId) {
+    return { category: null, userCategoryId: input.userCategoryId };
+  }
+  if (input.category != null) {
+    return { category: input.category, userCategoryId: null };
+  }
+  const err = new Error("CATEGORY_REQUIRED");
+  (err as { code?: string }).code = "CATEGORY_REQUIRED";
+  throw err;
 }
 
 export async function upsertMoneyBudget(
@@ -133,12 +188,15 @@ export async function upsertMoneyBudget(
 ): Promise<{ budget: MoneyBudget; created: boolean }> {
   const pool = getPool();
   const now = nowISO();
-  const category =
-    input.scope === MoneyBudgetScope.Overall ? null : (input.category ?? null);
-  if (input.scope === MoneyBudgetScope.Category && category == null) {
-    const err = new Error("CATEGORY_REQUIRED");
-    (err as { code?: string }).code = "CATEGORY_REQUIRED";
-    throw err;
+  const cols = resolveBudgetCategory(input);
+
+  if (cols.userCategoryId) {
+    const custom = await getMoneyUserCategoryById(userId, cols.userCategoryId);
+    if (!custom || custom.archivedAt) {
+      const err = new Error("USER_CATEGORY_NOT_FOUND");
+      (err as { code?: string }).code = "USER_CATEGORY_NOT_FOUND";
+      throw err;
+    }
   }
 
   if (input.id) {
@@ -146,12 +204,14 @@ export async function upsertMoneyBudget(
     if (existing) {
       await pool.query(
         `UPDATE money_budgets
-         SET budget_ym = ?, scope = ?, category = ?, amount_minor = ?, updated_at = ?
+         SET budget_ym = ?, scope = ?, category = ?, user_category_id = ?,
+             amount_minor = ?, updated_at = ?
          WHERE id = ? AND user_id = ?`,
         [
           input.yearMonth,
           input.scope,
-          category,
+          cols.category,
+          cols.userCategoryId,
           input.amountMinor,
           isoToDB(now),
           input.id,
@@ -169,13 +229,23 @@ export async function upsertMoneyBudget(
     }
   }
 
-  // Upsert by natural slot when no id — replace existing slot.
   const [existingSlot] = await pool.query<BudgetRow[]>(
     `SELECT * FROM money_budgets
      WHERE user_id = ? AND budget_ym = ? AND scope = ?
-       AND IFNULL(category, 255) = IFNULL(?, 255)
+       AND (
+         (? IS NOT NULL AND user_category_id = ?)
+         OR (? IS NULL AND category <=> ? AND user_category_id IS NULL)
+       )
      LIMIT 1`,
-    [userId, input.yearMonth, input.scope, category],
+    [
+      userId,
+      input.yearMonth,
+      input.scope,
+      cols.userCategoryId,
+      cols.userCategoryId,
+      cols.userCategoryId,
+      cols.category,
+    ],
   );
   const slot = existingSlot[0];
   if (slot) {
@@ -194,14 +264,15 @@ export async function upsertMoneyBudget(
   try {
     await pool.query(
       `INSERT INTO money_budgets
-        (id, user_id, budget_ym, scope, category, amount_minor, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, user_id, budget_ym, scope, category, user_category_id, amount_minor, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
         input.yearMonth,
         input.scope,
-        category,
+        cols.category,
+        cols.userCategoryId,
         input.amountMinor,
         isoToDB(now),
         isoToDB(now),
@@ -245,32 +316,19 @@ export async function copyMoneyBudgetsFromMonth(
     [userId, fromYearMonth],
   );
   if (!source.length) return 0;
-  const now = isoToDB(nowISO());
   let copied = 0;
   for (const row of source) {
-    const id = generateId("mbd");
     try {
-      await pool.query(
-        `INSERT INTO money_budgets
-          (id, user_id, budget_ym, scope, category, amount_minor, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           amount_minor = VALUES(amount_minor),
-           updated_at = VALUES(updated_at)`,
-        [
-          id,
-          userId,
-          toYearMonth,
-          row.scope,
-          row.category,
-          row.amount_minor,
-          now,
-          now,
-        ],
-      );
+      await upsertMoneyBudget(userId, {
+        yearMonth: toYearMonth,
+        scope: toMoneyBudgetScope(row.scope),
+        category: row.category != null ? toMoneyCategory(row.category) : null,
+        userCategoryId: row.user_category_id,
+        amountMinor: Number(row.amount_minor),
+      });
       copied += 1;
     } catch {
-      // Skip unusable rows; ON DUPLICATE handles unique slot races.
+      // Skip unusable rows.
     }
   }
   return copied;

@@ -30,6 +30,8 @@ const categorySchema = z
     { message: "Invalid category" },
   );
 
+const userCategoryIdSchema = z.string().min(1).max(64);
+
 const yearMonthSchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, "yearMonth must be YYYY-MM");
@@ -38,18 +40,31 @@ export const moneyTransactionsQuerySchema = z.object({
   yearMonth: yearMonthSchema.optional(),
 });
 
-export const moneyTransactionUpsertBodySchema = z.object({
-  id: z.string().min(1).optional(),
-  occurredOn: dateOnly,
-  amountMinor: z
-    .number()
-    .int("Amount must be a whole number of đồng")
-    .min(0)
-    .max(Number.MAX_SAFE_INTEGER),
-  direction: directionSchema,
-  category: categorySchema,
-  note: z.string().trim().max(500).nullable().optional(),
-});
+export const moneyTransactionUpsertBodySchema = z
+  .object({
+    id: z.string().min(1).optional(),
+    occurredOn: dateOnly,
+    amountMinor: z
+      .number()
+      .int("Amount must be a whole number of đồng")
+      .min(0)
+      .max(Number.MAX_SAFE_INTEGER),
+    direction: directionSchema,
+    category: categorySchema.nullable().optional(),
+    userCategoryId: userCategoryIdSchema.nullable().optional(),
+    note: z.string().trim().max(500).nullable().optional(),
+  })
+  .superRefine((body, ctx) => {
+    const hasBuiltin = body.category != null;
+    const hasCustom = Boolean(body.userCategoryId);
+    if (hasBuiltin === hasCustom) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Provide exactly one of category or userCategoryId",
+        path: hasBuiltin ? ["userCategoryId"] : ["category"],
+      });
+    }
+  });
 
 const savingsStatusSchema = z
   .number()
@@ -102,6 +117,7 @@ export const moneyBudgetUpsertBodySchema = z
     yearMonth: yearMonthSchema,
     scope: budgetScopeSchema,
     category: categorySchema.nullable().optional(),
+    userCategoryId: userCategoryIdSchema.nullable().optional(),
     amountMinor: z
       .number()
       .int("Amount must be a whole number of đồng")
@@ -109,18 +125,24 @@ export const moneyBudgetUpsertBodySchema = z
       .max(Number.MAX_SAFE_INTEGER),
   })
   .superRefine((body, ctx) => {
-    if (body.scope === MoneyBudgetScope.Overall && body.category != null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Overall budget must not set category",
-        path: ["category"],
-      });
+    const hasBuiltin = body.category != null;
+    const hasCustom = Boolean(body.userCategoryId);
+    if (body.scope === MoneyBudgetScope.Overall) {
+      if (hasBuiltin || hasCustom) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Overall budget must not set category",
+          path: ["category"],
+        });
+      }
+      return;
     }
-    if (body.scope === MoneyBudgetScope.Category && body.category == null) {
+    if (hasBuiltin === hasCustom) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: "Category budget requires category",
-        path: ["category"],
+        message:
+          "Category budget requires exactly one of category or userCategoryId",
+        path: hasBuiltin ? ["userCategoryId"] : ["category"],
       });
     }
   });
@@ -128,4 +150,15 @@ export const moneyBudgetUpsertBodySchema = z
 export const moneyBudgetsCopyBodySchema = z.object({
   fromYearMonth: yearMonthSchema,
   toYearMonth: yearMonthSchema,
+});
+
+export const moneyUserCategoryUpsertBodySchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().trim().min(1).max(120),
+  emoji: z.string().trim().min(1).max(32),
+  color: z
+    .string()
+    .trim()
+    .regex(/^#[0-9A-Fa-f]{6}$/, "color must be #RRGGBB"),
+  direction: directionSchema,
 });

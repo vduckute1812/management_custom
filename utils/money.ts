@@ -4,9 +4,15 @@
  */
 
 import {
+  MONEY_CATEGORY_COLORS,
+  MONEY_CATEGORY_EMOJI,
+  MONEY_CATEGORY_I18N_KEYS,
   MONEY_CURRENCY,
   MoneyDirection,
+  moneyCategoryKey,
+  moneyCategoryPickFromTx,
   type MoneyCategory,
+  type MoneyCategoryPick,
   type MoneyTransaction,
 } from "~/types/money";
 
@@ -74,28 +80,100 @@ export function yearMonthRange(yearMonth: string): {
 }
 
 export interface MoneyCategorySlice {
-  category: MoneyCategory;
+  key: string;
+  pick: MoneyCategoryPick;
+  /** Built-in only; null for custom. */
+  category: MoneyCategory | null;
+  userCategoryId?: string;
+  label: string;
+  emoji: string;
+  color: string;
   amountMinor: number;
   /** Share of the parent total, 0–1. */
   share: number;
 }
 
-/** Sum amounts for one direction, grouped by category (desc). */
+export function resolveMoneyCategoryMeta(
+  tx: Pick<MoneyTransaction, "category" | "userCategoryId" | "userCategory">,
+  t: (key: string) => string,
+): {
+  pick: MoneyCategoryPick;
+  key: string;
+  label: string;
+  emoji: string;
+  color: string;
+} | null {
+  const pick = moneyCategoryPickFromTx(tx);
+  if (!pick) return null;
+  if (pick.kind === "custom") {
+    const custom = tx.userCategory;
+    return {
+      pick,
+      key: moneyCategoryKey(pick),
+      label: custom?.name ?? t("money.categories.other"),
+      emoji: custom?.emoji ?? "📌",
+      color: custom?.color ?? "#94a3b8",
+    };
+  }
+  return {
+    pick,
+    key: moneyCategoryKey(pick),
+    label: t(MONEY_CATEGORY_I18N_KEYS[pick.category]),
+    emoji: MONEY_CATEGORY_EMOJI[pick.category],
+    color: MONEY_CATEGORY_COLORS[pick.category],
+  };
+}
+
+/** Sum amounts for one direction, grouped by builtin/custom category (desc). */
 export function sumByCategory(
   transactions: MoneyTransaction[],
   direction: MoneyDirection,
+  t: (key: string) => string,
 ): MoneyCategorySlice[] {
-  const map = new Map<MoneyCategory, number>();
+  const map = new Map<
+    string,
+    {
+      pick: MoneyCategoryPick;
+      category: MoneyCategory | null;
+      userCategoryId?: string;
+      label: string;
+      emoji: string;
+      color: string;
+      amountMinor: number;
+    }
+  >();
   for (const tx of transactions) {
     if (tx.direction !== direction) continue;
-    map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amountMinor);
+    const meta = resolveMoneyCategoryMeta(tx, t);
+    if (!meta) continue;
+    const prev = map.get(meta.key);
+    if (prev) {
+      prev.amountMinor += tx.amountMinor;
+    } else {
+      map.set(meta.key, {
+        pick: meta.pick,
+        category: meta.pick.kind === "builtin" ? meta.pick.category : null,
+        userCategoryId:
+          meta.pick.kind === "custom" ? meta.pick.userCategoryId : undefined,
+        label: meta.label,
+        emoji: meta.emoji,
+        color: meta.color,
+        amountMinor: tx.amountMinor,
+      });
+    }
   }
-  const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+  const total = Array.from(map.values()).reduce((a, b) => a + b.amountMinor, 0);
   return Array.from(map.entries())
-    .map(([category, amountMinor]) => ({
-      category,
-      amountMinor,
-      share: total > 0 ? amountMinor / total : 0,
+    .map(([key, row]) => ({
+      key,
+      pick: row.pick,
+      category: row.category,
+      userCategoryId: row.userCategoryId,
+      label: row.label,
+      emoji: row.emoji,
+      color: row.color,
+      amountMinor: row.amountMinor,
+      share: total > 0 ? row.amountMinor / total : 0,
     }))
     .sort((a, b) => b.amountMinor - a.amountMinor);
 }

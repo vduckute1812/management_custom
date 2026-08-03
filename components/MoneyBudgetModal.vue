@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import {
-  MONEY_EXPENSE_CATEGORIES,
   MoneyBudgetScope,
+  defaultCategoryPickForDirection,
+  moneyCategoryPickFromTx,
+  MoneyDirection,
   type MoneyBudget,
-  type MoneyCategory,
+  type MoneyCategoryPick,
 } from "~/types/money";
 import { formatMoneyMinorPlain, parseMoneyMinorInput } from "~/utils/money";
 
@@ -11,8 +13,7 @@ const props = defineProps<{
   open: boolean;
   budget?: MoneyBudget | null;
   yearMonth: string;
-  /** Prefer this category when creating a category budget. */
-  defaultCategory?: MoneyCategory | null;
+  defaultCategoryPick?: MoneyCategoryPick | null;
 }>();
 
 const emit = defineEmits<{
@@ -28,13 +29,15 @@ const { pushToast } = useToasts();
 interface FormShape {
   id?: string;
   scope: typeof MoneyBudgetScope.Overall | typeof MoneyBudgetScope.Category;
-  category: MoneyCategory;
+  categoryPick: MoneyCategoryPick;
   amountText: string;
 }
 
 const empty = (): FormShape => ({
   scope: MoneyBudgetScope.Category,
-  category: props.defaultCategory ?? MONEY_EXPENSE_CATEGORIES[0]!,
+  categoryPick:
+    props.defaultCategoryPick ??
+    defaultCategoryPickForDirection(MoneyDirection.Out),
   amountText: "",
 });
 
@@ -56,10 +59,15 @@ watch(
       form.value = empty();
       return;
     }
+    const pick =
+      moneyCategoryPickFromTx({
+        category: props.budget.category ?? null,
+        userCategoryId: props.budget.userCategoryId,
+      }) ?? defaultCategoryPickForDirection(MoneyDirection.Out);
     form.value = {
       id: props.budget.id,
       scope: props.budget.scope,
-      category: props.budget.category ?? MONEY_EXPENSE_CATEGORIES[0]!,
+      categoryPick: pick,
       amountText: formatMoneyMinorPlain(props.budget.amountMinor),
     };
   },
@@ -89,6 +97,7 @@ async function onSubmit() {
   submitting.value = true;
   errorMsg.value = null;
   try {
+    const pick = form.value.categoryPick;
     const saved = await saveBudget({
       id: form.value.id,
       yearMonth: props.yearMonth,
@@ -96,7 +105,15 @@ async function onSubmit() {
       category:
         form.value.scope === MoneyBudgetScope.Overall
           ? null
-          : form.value.category,
+          : pick.kind === "builtin"
+            ? pick.category
+            : null,
+      userCategoryId:
+        form.value.scope === MoneyBudgetScope.Overall
+          ? null
+          : pick.kind === "custom"
+            ? pick.userCategoryId
+            : null,
       amountMinor,
     });
     emit("saved", saved);
@@ -217,11 +234,12 @@ async function onDelete() {
               </label>
               <MoneyCategorySelect
                 :id="`${fid}-cat`"
-                :model-value="form.category"
+                :model-value="form.categoryPick"
                 mode="expense"
+                allow-create
                 @update:model-value="
                   (v) => {
-                    if (v != null) form.category = v;
+                    if (v != null) form.categoryPick = v;
                   }
                 "
               />

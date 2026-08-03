@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import {
-  MoneyCategory,
   MoneyDirection,
-  coerceCategoryForDirection,
-  defaultCategoryForDirection,
+  coerceCategoryPickForDirection,
+  defaultCategoryPickForDirection,
+  moneyCategoryPickFromTx,
+  type MoneyCategoryPick,
   type MoneyTransaction,
 } from "~/types/money";
 import { formatMoneyMinorPlain, parseMoneyMinorInput } from "~/utils/money";
@@ -12,8 +13,8 @@ const props = defineProps<{
   open: boolean;
   transaction?: MoneyTransaction | null;
   defaultDate?: string;
-  /** Prefer this category when creating (e.g. from a filter chip). */
-  defaultCategory?: MoneyCategory | null;
+  /** Prefer this category when creating (e.g. from a filter). */
+  defaultCategoryPick?: MoneyCategoryPick | null;
 }>();
 
 const emit = defineEmits<{
@@ -31,7 +32,7 @@ interface FormShape {
   occurredOn: string;
   amountText: string;
   direction: typeof MoneyDirection.Out | typeof MoneyDirection.In;
-  category: MoneyCategory;
+  categoryPick: MoneyCategoryPick;
   note: string;
 }
 
@@ -45,16 +46,15 @@ function todayIso(): string {
 
 const empty = (): FormShape => {
   const direction = MoneyDirection.Out;
-  const preferred = props.defaultCategory ?? null;
-  const category =
-    preferred != null
-      ? coerceCategoryForDirection(preferred, direction)
-      : defaultCategoryForDirection(direction);
+  const preferred = props.defaultCategoryPick ?? null;
+  const categoryPick = preferred
+    ? coerceCategoryPickForDirection(preferred, direction)
+    : defaultCategoryPickForDirection(direction);
   return {
     occurredOn: todayIso(),
     amountText: "",
     direction,
-    category,
+    categoryPick,
     note: "",
   };
 };
@@ -99,7 +99,9 @@ function loadFrom(tx?: MoneyTransaction | null) {
     occurredOn: tx.occurredOn,
     amountText: formatMoneyMinorPlain(tx.amountMinor),
     direction: tx.direction,
-    category: tx.category,
+    categoryPick:
+      moneyCategoryPickFromTx(tx) ??
+      defaultCategoryPickForDirection(tx.direction),
     note: tx.note ?? "",
   };
 }
@@ -108,8 +110,8 @@ function setDirection(
   direction: typeof MoneyDirection.Out | typeof MoneyDirection.In,
 ) {
   form.value.direction = direction;
-  form.value.category = coerceCategoryForDirection(
-    form.value.category,
+  form.value.categoryPick = coerceCategoryPickForDirection(
+    form.value.categoryPick,
     direction,
   );
 }
@@ -142,12 +144,14 @@ async function onSubmit() {
   submitting.value = true;
   errorMsg.value = null;
   try {
+    const pick = form.value.categoryPick;
     const saved = await saveTransaction({
       id: form.value.id,
       occurredOn: form.value.occurredOn,
       amountMinor,
       direction: form.value.direction,
-      category: form.value.category,
+      category: pick.kind === "builtin" ? pick.category : null,
+      userCategoryId: pick.kind === "custom" ? pick.userCategoryId : undefined,
       note: form.value.note.trim() || undefined,
     });
     justSaved.value = true;
@@ -364,12 +368,13 @@ watch(discardConfirmOpen, (open) => {
               </label>
               <MoneyCategorySelect
                 :id="fieldIds.category"
-                :model-value="form.category"
+                :model-value="form.categoryPick"
                 mode="direction"
                 :direction="form.direction"
+                allow-create
                 @update:model-value="
                   (v) => {
-                    if (v != null) form.category = v;
+                    if (v != null) form.categoryPick = v;
                   }
                 "
               />

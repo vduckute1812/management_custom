@@ -49,8 +49,16 @@ export const useMoneyExport = () => {
       : t("money.direction.out");
   }
 
-  function categoryLabel(c: MoneyTransaction["category"]) {
-    return t(MONEY_CATEGORY_I18N_KEYS[c]);
+  function categoryLabelForTx(tx: MoneyTransaction) {
+    if (tx.userCategory) return tx.userCategory.name;
+    if (tx.category != null) return t(MONEY_CATEGORY_I18N_KEYS[tx.category]);
+    return "";
+  }
+
+  function categoryLabelForBudget(b: MoneyBudget) {
+    if (b.userCategory) return b.userCategory.name;
+    if (b.category != null) return t(MONEY_CATEGORY_I18N_KEYS[b.category]);
+    return "";
   }
 
   function scopeLabel(s: MoneyBudget["scope"]) {
@@ -65,7 +73,7 @@ export const useMoneyExport = () => {
   ) {
     const body = buildMoneyTransactionsCsv(transactions, {
       direction: directionLabel,
-      category: categoryLabel,
+      category: categoryLabelForTx,
     });
     download(
       `money-transactions-${yearMonth}-${stamp()}.csv`,
@@ -110,7 +118,7 @@ export const useMoneyExport = () => {
   function exportBudgetsCsv(month: MoneyBudgetsMonth) {
     const body = buildMoneyBudgetsCsv(month, {
       scope: scopeLabel,
-      category: categoryLabel,
+      category: categoryLabelForBudget,
     });
     download(
       `money-budgets-${month.yearMonth}-${stamp()}.csv`,

@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import {
-  MONEY_CATEGORY_COLORS,
-  MONEY_CATEGORY_I18N_KEYS,
   MoneyDirection,
-  type MoneyCategory,
+  moneyCategoryKey,
+  moneyCategoryPickFromTx,
+  type MoneyCategoryPick,
   type MoneyTransaction,
 } from "~/types/money";
-import { formatMoneyMinor, toYearMonth } from "~/utils/money";
+import {
+  formatMoneyMinor,
+  resolveMoneyCategoryMeta,
+  toYearMonth,
+} from "~/utils/money";
 
 const { t, locale } = useI18n();
 const {
@@ -20,14 +24,15 @@ const {
 } = useMoney();
 const { pushToast } = useToasts();
 const { exportTransactionsCsv, exportTransactionsJson } = useMoneyExport();
+const { fetchCategories } = useMoneyCategories();
 
 const modalOpen = ref(false);
 const editing = ref<MoneyTransaction | null>(null);
 const filterDirection = ref<"all" | MoneyDirection>("all");
-const filterCategory = ref<MoneyCategory | null>(null);
+const filterCategoryPick = ref<MoneyCategoryPick | null>(null);
 
 await useAsyncData("money:initial", async () => {
-  await fetchMonth();
+  await Promise.all([fetchMonth(), fetchCategories()]);
   return { ok: true };
 });
 
@@ -87,25 +92,31 @@ const filtered = computed(() => {
     ) {
       return false;
     }
-    if (filterCategory.value != null && tx.category !== filterCategory.value) {
-      return false;
+    if (filterCategoryPick.value != null) {
+      const pick = moneyCategoryPickFromTx(tx);
+      if (!pick) return false;
+      if (
+        moneyCategoryKey(pick) !== moneyCategoryKey(filterCategoryPick.value)
+      ) {
+        return false;
+      }
     }
     return true;
   });
 });
 
 const hasFilters = computed(
-  () => filterDirection.value !== "all" || filterCategory.value != null,
+  () => filterDirection.value !== "all" || filterCategoryPick.value != null,
 );
 
 async function goMonth(delta: number) {
-  filterCategory.value = null;
+  filterCategoryPick.value = null;
   const next = shiftMonth(delta);
   await fetchMonth(next);
 }
 
 async function goCurrentMonth() {
-  filterCategory.value = null;
+  filterCategoryPick.value = null;
   await fetchMonth(toYearMonth(new Date()));
 }
 
@@ -130,12 +141,16 @@ function onDeleted() {
 
 function clearFilters() {
   filterDirection.value = "all";
-  filterCategory.value = null;
+  filterCategoryPick.value = null;
 }
 
-function onSelectCategoryFromChart(cat: MoneyCategory) {
+function onSelectCategoryFromChart(pick: MoneyCategoryPick) {
   filterDirection.value = MoneyDirection.Out;
-  filterCategory.value = cat;
+  filterCategoryPick.value = pick;
+}
+
+function txMeta(tx: MoneyTransaction) {
+  return resolveMoneyCategoryMeta(tx, t);
 }
 
 function onExportCsv() {
@@ -240,7 +255,7 @@ const netTone = computed(() => {
           :transactions="transactions"
           :year-month="yearMonth"
           :locale-tag="moneyLocale"
-          :active-category="filterCategory"
+          :active-pick="filterCategoryPick"
           @select-category="onSelectCategoryFromChart"
         />
 
@@ -303,9 +318,10 @@ const netTone = computed(() => {
               </label>
               <MoneyCategorySelect
                 id="money-filter-category"
-                v-model="filterCategory"
+                v-model="filterCategoryPick"
                 mode="all"
                 allow-null
+                :allow-create="false"
                 size="sm"
                 :aria-label="$t('money.filterCategoryAria')"
               />
@@ -369,15 +385,20 @@ const netTone = computed(() => {
             >
               <div class="flex min-w-0 items-start gap-3">
                 <span
+                  class="mt-0.5 text-base leading-none"
+                  aria-hidden="true"
+                  >{{ txMeta(tx)?.emoji || "📦" }}</span
+                >
+                <span
                   class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-2 ring-white"
                   :style="{
-                    backgroundColor: MONEY_CATEGORY_COLORS[tx.category],
+                    backgroundColor: txMeta(tx)?.color || '#94a3b8',
                   }"
                   aria-hidden="true"
                 />
                 <div class="min-w-0">
                   <p class="truncate text-sm font-semibold text-slate-900">
-                    {{ $t(MONEY_CATEGORY_I18N_KEYS[tx.category]) }}
+                    {{ txMeta(tx)?.label }}
                     <span v-if="tx.note" class="font-normal text-slate-500">
                       · {{ tx.note }}
                     </span>
@@ -410,7 +431,7 @@ const netTone = computed(() => {
     <MoneyTransactionModal
       :open="modalOpen"
       :transaction="editing"
-      :default-category="filterCategory"
+      :default-category-pick="filterCategoryPick"
       @close="modalOpen = false"
       @saved="onSaved"
       @deleted="onDeleted"

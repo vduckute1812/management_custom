@@ -118,6 +118,14 @@ Harden — client export + tests (no new tables/API):
 - Vitest coverage for export builders alongside schemas/helpers in `tests/money.test.ts`
 - i18n: `money.export.*`, `toasts.moneyExported` (en / vi / zh-CN / zh-TW)
 
+## Custom categories + dropdown (as-built)
+
+- Built-ins keep `MoneyCategory` ints + UI emoji map (`MONEY_CATEGORY_EMOJI`, e.g. Transport ⛽)
+- User categories: migration `0027_money_user_categories` (`mcat_*`); open-ended name/emoji/color; `direction` int enum
+- Ledger/budgets: exactly one of `category` (builtin) or `user_category_id` (custom)
+- `MoneyCategorySelect`: teleported list opens **below** the trigger; create-category form in the menu
+- API: `GET/POST /api/money/categories`, `DELETE /api/money/categories/:id` (archive)
+
 ## Out of scope (for now)
 
 Multi-currency / FX, shared wallets, bank sync, OCR, investments.

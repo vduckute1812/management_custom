@@ -296,6 +296,18 @@ Per-user monthly limits. Spec: [`money-spec.md`](./money-spec.md). `MoneyBudgetS
 
 Client: `/money/budgets` (month navigator + CSV/JSON export).
 
+## Money user categories
+
+Per-user custom categories (open-ended names). Built-ins remain `MoneyCategory` integers. Spec: [`money-spec.md`](./money-spec.md).
+
+| Method   | Endpoint                    | Auth     | Description                                                |
+| -------- | --------------------------- | -------- | ---------------------------------------------------------- |
+| `GET`    | `/api/money/categories`     | Required | `{ categories }` (non-archived).                           |
+| `POST`   | `/api/money/categories`     | Required | Upsert `{ id?, name, emoji, color (#RRGGBB), direction }`. |
+| `DELETE` | `/api/money/categories/:id` | Required | Soft-archive. Ownership `404`.                             |
+
+Transaction/budget upserts accept exactly one of `category` (builtin int) or `userCategoryId`.
+
 ---
 
 ## Epics (scoped to authenticated user)

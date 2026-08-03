@@ -52,11 +52,19 @@ export const useMoneyBudgets = () => {
     yearMonth: string;
     scope: MoneyBudgetScope;
     category?: MoneyCategory | null;
+    userCategoryId?: string | null;
     amountMinor: number;
   }) {
     const data = await apiFetch<SaveResponse>("/api/money/budgets", {
       method: "POST",
-      body: payload,
+      body: {
+        id: payload.id,
+        yearMonth: payload.yearMonth,
+        scope: payload.scope,
+        category: payload.userCategoryId ? null : (payload.category ?? null),
+        userCategoryId: payload.userCategoryId ?? null,
+        amountMinor: payload.amountMinor,
+      },
     });
     await fetchMonth(payload.yearMonth);
     return data.budget;

@@ -46,7 +46,8 @@ export const useMoney = () => {
       occurredOn: string;
       amountMinor: number;
       direction: MoneyTransaction["direction"];
-      category: MoneyTransaction["category"];
+      category?: MoneyTransaction["category"];
+      userCategoryId?: string | null;
     },
   ) {
     const data = await apiFetch<SaveResponse>("/api/money/transactions", {
@@ -56,7 +57,8 @@ export const useMoney = () => {
         occurredOn: payload.occurredOn,
         amountMinor: payload.amountMinor,
         direction: payload.direction,
-        category: payload.category,
+        category: payload.userCategoryId ? null : payload.category,
+        userCategoryId: payload.userCategoryId ?? null,
         note: payload.note ?? null,
       },
     });

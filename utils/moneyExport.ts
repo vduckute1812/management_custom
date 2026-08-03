@@ -26,7 +26,7 @@ export function buildMoneyTransactionsCsv(
   transactions: MoneyTransaction[],
   labels: {
     direction: (d: MoneyTransaction["direction"]) => string;
-    category: (c: MoneyTransaction["category"]) => string;
+    category: (tx: MoneyTransaction) => string;
   },
 ): string {
   const header = [
@@ -36,6 +36,7 @@ export function buildMoneyTransactionsCsv(
     "direction",
     "direction_label",
     "category",
+    "user_category_id",
     "category_label",
     "note",
     "created_at",
@@ -50,8 +51,9 @@ export function buildMoneyTransactionsCsv(
         tx.amountMinor,
         tx.direction,
         labels.direction(tx.direction),
-        tx.category,
-        labels.category(tx.category),
+        tx.category ?? "",
+        tx.userCategoryId ?? "",
+        labels.category(tx),
         tx.note ?? "",
         tx.createdAt,
         tx.updatedAt,
@@ -119,7 +121,7 @@ export function buildMoneyBudgetsCsv(
   month: MoneyBudgetsMonth,
   labels: {
     scope: (s: MoneyBudget["scope"]) => string;
-    category: (c: NonNullable<MoneyBudget["category"]>) => string;
+    category: (b: MoneyBudget) => string;
   },
 ): string {
   const header = [
@@ -128,6 +130,7 @@ export function buildMoneyBudgetsCsv(
     "scope",
     "scope_label",
     "category",
+    "user_category_id",
     "category_label",
     "amount_minor",
     "spent_minor",
@@ -144,7 +147,8 @@ export function buildMoneyBudgetsCsv(
         b.scope,
         labels.scope(b.scope),
         b.category ?? "",
-        b.category != null ? labels.category(b.category) : "",
+        b.userCategoryId ?? "",
+        labels.category(b),
         b.amountMinor,
         b.spentMinor,
         b.progress,

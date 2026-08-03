@@ -42,6 +42,7 @@ export async function upsertMoneyBudgetForUser(
       yearMonth: body.yearMonth,
       scope: body.scope,
       category: body.category,
+      userCategoryId: body.userCategoryId,
       amountMinor: body.amountMinor,
     });
   } catch (err: unknown) {
@@ -51,6 +52,9 @@ export async function upsertMoneyBudgetForUser(
     }
     if (code === "CATEGORY_REQUIRED") {
       throw new DomainError(400, "Category budget requires category");
+    }
+    if (code === "USER_CATEGORY_NOT_FOUND") {
+      throw new DomainError(404, "Category not found");
     }
     if (code === "CONFLICT") {
       throw new DomainError(409, "Budget already exists for this slot");

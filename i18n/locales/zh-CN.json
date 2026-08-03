@@ -889,7 +889,8 @@
     "budgetDeleted": "预算已删除",
     "budgetsCopied": "已复制 {count} 项预算",
     "failedToCopyBudgets": "无法复制预算",
-    "moneyExported": "已下载导出文件"
+    "moneyExported": "已下载导出文件",
+    "failedToLoadMoneyCategories": "无法加载分类"
   },
   "status": {
     "todo": "待办",
@@ -1246,6 +1247,17 @@
     "filterCategoryAria": "按分类筛选",
     "clearFilter": "清除筛选",
     "filterEmpty": "没有匹配筛选的记录。",
+    "categoriesAdd": {
+      "action": "添加分类",
+      "title": "新分类",
+      "namePlaceholder": "例如：加油",
+      "nameRequired": "请输入名称。",
+      "emoji": "表情",
+      "color": "颜色",
+      "save": "保存",
+      "saving": "保存中…",
+      "failed": "无法保存分类"
+    },
     "export": {
       "label": "导出",
       "csv": "CSV",

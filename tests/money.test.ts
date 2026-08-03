@@ -177,17 +177,12 @@ describe("sumByCategory / sumDaily", () => {
   ];
 
   it("groups expenses by category with shares", () => {
-    const slices = sumByCategory(rows, MoneyDirection.Out);
-    expect(slices[0]).toEqual({
-      category: MoneyCategory.Transport,
-      amountMinor: 200,
-      share: 200 / 350,
-    });
-    expect(slices[1]).toEqual({
-      category: MoneyCategory.Food,
-      amountMinor: 150,
-      share: 150 / 350,
-    });
+    const slices = sumByCategory(rows, MoneyDirection.Out, (k) => k);
+    expect(slices[0]?.key).toBe("b:1");
+    expect(slices[0]?.amountMinor).toBe(200);
+    expect(slices[0]?.share).toBe(200 / 350);
+    expect(slices[1]?.key).toBe("b:0");
+    expect(slices[1]?.amountMinor).toBe(150);
   });
 
   it("fills every day of the month when requested", () => {
@@ -362,7 +357,7 @@ describe("moneyExport builders", () => {
     });
     expect(csv).toContain("occurred_on");
     expect(csv).toContain("mtx_1");
-    expect(csv).toContain(",0,Expense,0,Food,");
+    expect(csv).toContain(",0,Expense,0,,Food,");
     expect(csv).toContain('"Lunch, ""pho"""');
   });
 
