@@ -3,11 +3,19 @@ import {
   moneyTransactionUpsertBodySchema,
   moneyTransactionsQuerySchema,
 } from "../server/schemas";
-import { MoneyCategory, MoneyDirection } from "../types/money";
+import {
+  MoneyCategory,
+  MoneyDirection,
+  coerceCategoryForDirection,
+  defaultCategoryForDirection,
+  type MoneyTransaction,
+} from "../types/money";
 import {
   formatMoneyMinorPlain,
   isYearMonth,
   parseMoneyMinorInput,
+  sumByCategory,
+  sumDaily,
   toYearMonth,
   yearMonthRange,
 } from "../utils/money";
@@ -100,5 +108,110 @@ describe("money utils", () => {
       start: "2026-02-01",
       end: "2026-02-28",
     });
+  });
+});
+
+function tx(
+  partial: Partial<MoneyTransaction> &
+    Pick<
+      MoneyTransaction,
+      "amountMinor" | "direction" | "category" | "occurredOn"
+    >,
+): MoneyTransaction {
+  return {
+    id: partial.id ?? "mtx_test",
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+    ...partial,
+  };
+}
+
+describe("sumByCategory / sumDaily", () => {
+  const rows = [
+    tx({
+      id: "a",
+      occurredOn: "2026-08-01",
+      amountMinor: 100,
+      direction: MoneyDirection.Out,
+      category: MoneyCategory.Food,
+    }),
+    tx({
+      id: "b",
+      occurredOn: "2026-08-01",
+      amountMinor: 50,
+      direction: MoneyDirection.Out,
+      category: MoneyCategory.Food,
+    }),
+    tx({
+      id: "c",
+      occurredOn: "2026-08-02",
+      amountMinor: 200,
+      direction: MoneyDirection.Out,
+      category: MoneyCategory.Transport,
+    }),
+    tx({
+      id: "d",
+      occurredOn: "2026-08-02",
+      amountMinor: 1000,
+      direction: MoneyDirection.In,
+      category: MoneyCategory.Income,
+    }),
+  ];
+
+  it("groups expenses by category with shares", () => {
+    const slices = sumByCategory(rows, MoneyDirection.Out);
+    expect(slices[0]).toEqual({
+      category: MoneyCategory.Transport,
+      amountMinor: 200,
+      share: 200 / 350,
+    });
+    expect(slices[1]).toEqual({
+      category: MoneyCategory.Food,
+      amountMinor: 150,
+      share: 150 / 350,
+    });
+  });
+
+  it("fills every day of the month when requested", () => {
+    const points = sumDaily(rows, "2026-08", { fillAll: true });
+    expect(points).toHaveLength(31);
+    expect(points[0]).toEqual({
+      day: "2026-08-01",
+      outMinor: 150,
+      inMinor: 0,
+    });
+    expect(points[1]).toEqual({
+      day: "2026-08-02",
+      outMinor: 200,
+      inMinor: 1000,
+    });
+    expect(points[2]).toEqual({
+      day: "2026-08-03",
+      outMinor: 0,
+      inMinor: 0,
+    });
+  });
+});
+
+describe("category direction helpers", () => {
+  it("defaults Income for In and Food for Out", () => {
+    expect(defaultCategoryForDirection(MoneyDirection.In)).toBe(
+      MoneyCategory.Income,
+    );
+    expect(defaultCategoryForDirection(MoneyDirection.Out)).toBe(
+      MoneyCategory.Food,
+    );
+  });
+
+  it("coerces mismatched Income ↔ expense categories", () => {
+    expect(
+      coerceCategoryForDirection(MoneyCategory.Food, MoneyDirection.In),
+    ).toBe(MoneyCategory.Income);
+    expect(
+      coerceCategoryForDirection(MoneyCategory.Income, MoneyDirection.Out),
+    ).toBe(MoneyCategory.Food);
+    expect(
+      coerceCategoryForDirection(MoneyCategory.Transfer, MoneyDirection.In),
+    ).toBe(MoneyCategory.Transfer);
   });
 });

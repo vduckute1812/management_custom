@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import {
+  MONEY_CATEGORIES,
+  MONEY_CATEGORY_COLORS,
   MONEY_CATEGORY_I18N_KEYS,
   MoneyDirection,
+  type MoneyCategory,
   type MoneyTransaction,
 } from "~/types/money";
 import { formatMoneyMinor, toYearMonth } from "~/utils/money";
@@ -20,6 +23,8 @@ const { pushToast } = useToasts();
 
 const modalOpen = ref(false);
 const editing = ref<MoneyTransaction | null>(null);
+const filterDirection = ref<"all" | MoneyDirection>("all");
+const filterCategory = ref<MoneyCategory | null>(null);
 
 await useAsyncData("money:initial", async () => {
   await fetchMonth();
@@ -60,12 +65,43 @@ function monthLabel(ym: string) {
   }
 }
 
+const filtered = computed(() => {
+  return transactions.value.filter((tx) => {
+    if (
+      filterDirection.value !== "all" &&
+      tx.direction !== filterDirection.value
+    ) {
+      return false;
+    }
+    if (filterCategory.value != null && tx.category !== filterCategory.value) {
+      return false;
+    }
+    return true;
+  });
+});
+
+const activeFilterCategories = computed(() => {
+  const seen = new Set<MoneyCategory>();
+  for (const tx of transactions.value) {
+    if (
+      filterDirection.value !== "all" &&
+      tx.direction !== filterDirection.value
+    ) {
+      continue;
+    }
+    seen.add(tx.category);
+  }
+  return MONEY_CATEGORIES.filter((c) => seen.has(c));
+});
+
 async function goMonth(delta: number) {
+  filterCategory.value = null;
   const next = shiftMonth(delta);
   await fetchMonth(next);
 }
 
 async function goCurrentMonth() {
+  filterCategory.value = null;
   await fetchMonth(toYearMonth(new Date()));
 }
 
@@ -86,6 +122,15 @@ function onSaved() {
 
 function onDeleted() {
   modalOpen.value = false;
+}
+
+function toggleCategoryFilter(cat: MoneyCategory) {
+  filterCategory.value = filterCategory.value === cat ? null : cat;
+}
+
+function onSelectCategoryFromChart(cat: MoneyCategory) {
+  filterDirection.value = MoneyDirection.Out;
+  filterCategory.value = cat;
 }
 </script>
 
@@ -122,7 +167,7 @@ function onDeleted() {
     </header>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin">
-      <div class="mx-auto max-w-3xl space-y-6 px-4 py-6 md:px-6">
+      <div class="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-6">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center gap-2">
             <button
@@ -196,6 +241,97 @@ function onDeleted() {
           </div>
         </section>
 
+        <MoneyCharts
+          :transactions="transactions"
+          :year-month="yearMonth"
+          :locale-tag="moneyLocale"
+          @select-category="onSelectCategoryFromChart"
+        />
+
+        <div class="space-y-3">
+          <div
+            class="flex flex-wrap gap-1.5"
+            role="group"
+            :aria-label="$t('money.filterDirectionAria')"
+          >
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              :class="
+                filterDirection === 'all'
+                  ? 'bg-slate-900 text-white ring-slate-900'
+                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+              "
+              :aria-pressed="filterDirection === 'all'"
+              @click="filterDirection = 'all'"
+            >
+              {{ $t("money.filterAll") }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              :class="
+                filterDirection === MoneyDirection.Out
+                  ? 'bg-rose-600 text-white ring-rose-600'
+                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+              "
+              :aria-pressed="filterDirection === MoneyDirection.Out"
+              @click="filterDirection = MoneyDirection.Out"
+            >
+              {{ $t("money.direction.out") }}
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-xs font-semibold ring-1 transition"
+              :class="
+                filterDirection === MoneyDirection.In
+                  ? 'bg-emerald-600 text-white ring-emerald-600'
+                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+              "
+              :aria-pressed="filterDirection === MoneyDirection.In"
+              @click="filterDirection = MoneyDirection.In"
+            >
+              {{ $t("money.direction.in") }}
+            </button>
+          </div>
+
+          <div
+            v-if="activeFilterCategories.length"
+            class="flex flex-wrap gap-1.5"
+            role="group"
+            :aria-label="$t('money.filterCategoryAria')"
+          >
+            <button
+              v-for="cat in activeFilterCategories"
+              :key="cat"
+              type="button"
+              class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium ring-1 transition"
+              :class="
+                filterCategory === cat
+                  ? 'bg-slate-900 text-white ring-slate-900'
+                  : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+              "
+              :aria-pressed="filterCategory === cat"
+              @click="toggleCategoryFilter(cat)"
+            >
+              <span
+                class="h-2 w-2 rounded-full"
+                :style="{ backgroundColor: MONEY_CATEGORY_COLORS[cat] }"
+                aria-hidden="true"
+              />
+              {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
+            </button>
+            <button
+              v-if="filterCategory != null"
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-500 ring-1 ring-slate-200 hover:bg-slate-50"
+              @click="filterCategory = null"
+            >
+              {{ $t("money.clearFilter") }}
+            </button>
+          </div>
+        </div>
+
         <p v-if="error" class="text-sm text-rose-600" role="alert">
           {{ error }}
         </p>
@@ -211,27 +347,42 @@ function onDeleted() {
         >
           {{ $t("money.empty") }}
         </p>
+        <p
+          v-else-if="!filtered.length"
+          class="rounded-xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-500 ring-1 ring-slate-200"
+        >
+          {{ $t("money.filterEmpty") }}
+        </p>
 
         <ul
           v-else
           class="divide-y divide-slate-100 rounded-xl ring-1 ring-slate-200"
         >
           <li
-            v-for="tx in transactions"
+            v-for="tx in filtered"
             :key="tx.id"
             class="flex cursor-pointer items-center justify-between gap-3 bg-white px-4 py-3 transition hover:bg-slate-50 first:rounded-t-xl last:rounded-b-xl"
             @click="openEdit(tx)"
           >
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium text-slate-900">
-                {{ $t(MONEY_CATEGORY_I18N_KEYS[tx.category]) }}
-                <span v-if="tx.note" class="font-normal text-slate-500">
-                  · {{ tx.note }}
-                </span>
-              </p>
-              <p class="mt-0.5 text-xs text-slate-400">
-                {{ tx.occurredOn }}
-              </p>
+            <div class="flex min-w-0 items-start gap-3">
+              <span
+                class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                :style="{
+                  backgroundColor: MONEY_CATEGORY_COLORS[tx.category],
+                }"
+                aria-hidden="true"
+              />
+              <div class="min-w-0">
+                <p class="truncate text-sm font-medium text-slate-900">
+                  {{ $t(MONEY_CATEGORY_I18N_KEYS[tx.category]) }}
+                  <span v-if="tx.note" class="font-normal text-slate-500">
+                    · {{ tx.note }}
+                  </span>
+                </p>
+                <p class="mt-0.5 text-xs text-slate-400">
+                  {{ tx.occurredOn }}
+                </p>
+              </div>
             </div>
             <p
               class="shrink-0 text-sm font-semibold tabular-nums"
@@ -255,6 +406,7 @@ function onDeleted() {
     <MoneyTransactionModal
       :open="modalOpen"
       :transaction="editing"
+      :default-category="filterCategory"
       @close="modalOpen = false"
       @saved="onSaved"
       @deleted="onDeleted"

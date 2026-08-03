@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import {
   MONEY_CATEGORIES,
+  MONEY_CATEGORY_COLORS,
   MONEY_CATEGORY_I18N_KEYS,
   MoneyCategory,
   MoneyDirection,
+  coerceCategoryForDirection,
+  defaultCategoryForDirection,
   type MoneyTransaction,
 } from "~/types/money";
 import { formatMoneyMinorPlain, parseMoneyMinorInput } from "~/utils/money";
@@ -12,6 +15,8 @@ const props = defineProps<{
   open: boolean;
   transaction?: MoneyTransaction | null;
   defaultDate?: string;
+  /** Prefer this category when creating (e.g. from a filter chip). */
+  defaultCategory?: MoneyCategory | null;
 }>();
 
 const emit = defineEmits<{
@@ -41,13 +46,21 @@ function todayIso(): string {
   return `${y}-${m}-${day}`;
 }
 
-const empty = (): FormShape => ({
-  occurredOn: todayIso(),
-  amountText: "",
-  direction: MoneyDirection.Out,
-  category: MoneyCategory.Food,
-  note: "",
-});
+const empty = (): FormShape => {
+  const direction = MoneyDirection.Out;
+  const preferred = props.defaultCategory ?? null;
+  const category =
+    preferred != null
+      ? coerceCategoryForDirection(preferred, direction)
+      : defaultCategoryForDirection(direction);
+  return {
+    occurredOn: todayIso(),
+    amountText: "",
+    direction,
+    category,
+    note: "",
+  };
+};
 
 const form = ref<FormShape>(empty());
 const submitting = ref(false);
@@ -92,6 +105,16 @@ function loadFrom(tx?: MoneyTransaction | null) {
     category: tx.category,
     note: tx.note ?? "",
   };
+}
+
+function setDirection(
+  direction: typeof MoneyDirection.Out | typeof MoneyDirection.In,
+) {
+  form.value.direction = direction;
+  form.value.category = coerceCategoryForDirection(
+    form.value.category,
+    direction,
+  );
 }
 
 watch(
@@ -278,7 +301,7 @@ watch(discardConfirmOpen, (open) => {
                     : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
                 "
                 :aria-pressed="form.direction === MoneyDirection.Out"
-                @click="form.direction = MoneyDirection.Out"
+                @click="setDirection(MoneyDirection.Out)"
               >
                 {{ $t("money.direction.out") }}
               </button>
@@ -291,7 +314,7 @@ watch(discardConfirmOpen, (open) => {
                     : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
                 "
                 :aria-pressed="form.direction === MoneyDirection.In"
-                @click="form.direction = MoneyDirection.In"
+                @click="setDirection(MoneyDirection.In)"
               >
                 {{ $t("money.direction.in") }}
               </button>
@@ -317,42 +340,54 @@ watch(discardConfirmOpen, (open) => {
               />
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.occurredOn"
+            <div>
+              <label
+                class="mb-1 block text-xs font-medium text-slate-600"
+                :for="fieldIds.occurredOn"
+              >
+                {{ $t("money.modal.date") }}
+              </label>
+              <input
+                :id="fieldIds.occurredOn"
+                v-model="form.occurredOn"
+                type="date"
+                required
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+              />
+            </div>
+
+            <div>
+              <p
+                :id="fieldIds.category"
+                class="mb-2 text-xs font-medium text-slate-600"
+              >
+                {{ $t("money.modal.category") }}
+              </p>
+              <div
+                class="flex flex-wrap gap-1.5"
+                role="group"
+                :aria-labelledby="fieldIds.category"
+              >
+                <button
+                  v-for="cat in MONEY_CATEGORIES"
+                  :key="cat"
+                  type="button"
+                  class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium ring-1 transition"
+                  :class="
+                    form.category === cat
+                      ? 'bg-slate-900 text-white ring-slate-900'
+                      : 'bg-white text-slate-700 ring-slate-200 hover:bg-slate-50'
+                  "
+                  :aria-pressed="form.category === cat"
+                  @click="form.category = cat"
                 >
-                  {{ $t("money.modal.date") }}
-                </label>
-                <input
-                  :id="fieldIds.occurredOn"
-                  v-model="form.occurredOn"
-                  type="date"
-                  required
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.category"
-                >
-                  {{ $t("money.modal.category") }}
-                </label>
-                <select
-                  :id="fieldIds.category"
-                  v-model.number="form.category"
-                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                >
-                  <option
-                    v-for="cat in MONEY_CATEGORIES"
-                    :key="cat"
-                    :value="cat"
-                  >
-                    {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
-                  </option>
-                </select>
+                  <span
+                    class="h-2 w-2 rounded-full"
+                    :style="{ backgroundColor: MONEY_CATEGORY_COLORS[cat] }"
+                    aria-hidden="true"
+                  />
+                  {{ $t(MONEY_CATEGORY_I18N_KEYS[cat]) }}
+                </button>
               </div>
             </div>
 

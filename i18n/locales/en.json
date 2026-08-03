@@ -1212,6 +1212,17 @@
       "discard": "Discard",
       "deleteTitle": "Delete transaction?",
       "deleteBody": "This cannot be undone."
-    }
+    },
+    "chartsAria": "Month charts",
+    "chartByCategory": "Spending by category",
+    "chartByCategoryHint": "Expenses this month — tap a row to filter",
+    "chartDaily": "Daily spending",
+    "chartDailyHint": "Expenses by day this month",
+    "chartEmpty": "No expenses to chart yet",
+    "filterAll": "All",
+    "filterDirectionAria": "Filter by direction",
+    "filterCategoryAria": "Filter by category",
+    "clearFilter": "Clear",
+    "filterEmpty": "No transactions match these filters."
   }
 }

@@ -355,9 +355,15 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] UI: month list + totals + create/edit/delete modal; i18n (`en` / `vi` / `zh-CN` / `zh-TW`)
 - [x] Vitest for money schemas + amount/yearMonth helpers; docs (api / database / roadmap / README)
 
+## Phase 21 — Money (Sprint 2: charts + category UX)
+
+- [x] Category color swatches; chip picker in modal; direction↔category coercion
+- [x] Month filters (direction + category); chart legend click filters the list
+- [x] Chart.js doughnut (spend by category) + daily expense bars on `/money`
+- [x] `sumByCategory` / `sumDaily` helpers + Vitest; docs (`money-spec`, api, roadmap)
+
 ### Later (Money)
 
-- Dashboard charts + category UX polish
 - Savings goals + contributions
 - Monthly budgets
 - Export / harden

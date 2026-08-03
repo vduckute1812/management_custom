@@ -1212,6 +1212,17 @@
       "discard": "放弃",
       "deleteTitle": "删除记录？",
       "deleteBody": "此操作无法撤销。"
-    }
+    },
+    "chartsAria": "本月图表",
+    "chartByCategory": "分类支出",
+    "chartByCategoryHint": "本月支出 — 点一行可筛选",
+    "chartDaily": "每日支出",
+    "chartDailyHint": "本月按日支出",
+    "chartEmpty": "暂无支出可绘制",
+    "filterAll": "全部",
+    "filterDirectionAria": "按方向筛选",
+    "filterCategoryAria": "按分类筛选",
+    "clearFilter": "清除",
+    "filterEmpty": "没有匹配筛选的记录。"
   }
 }

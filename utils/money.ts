@@ -3,7 +3,12 @@
  * Wire + DB use integer đồng; the UI may accept digit groups with separators.
  */
 
-import { MONEY_CURRENCY } from "~/types/money";
+import {
+  MONEY_CURRENCY,
+  MoneyDirection,
+  type MoneyCategory,
+  type MoneyTransaction,
+} from "~/types/money";
 
 /** Format minor units for display (vi-VN grouping, no fraction). */
 export function formatMoneyMinor(
@@ -66,4 +71,75 @@ export function yearMonthRange(yearMonth: string): {
   const lastDay = new Date(y, m, 0).getDate();
   const end = `${ys}-${ms}-${String(lastDay).padStart(2, "0")}`;
   return { start, end };
+}
+
+export interface MoneyCategorySlice {
+  category: MoneyCategory;
+  amountMinor: number;
+  /** Share of the parent total, 0–1. */
+  share: number;
+}
+
+/** Sum amounts for one direction, grouped by category (desc). */
+export function sumByCategory(
+  transactions: MoneyTransaction[],
+  direction: MoneyDirection,
+): MoneyCategorySlice[] {
+  const map = new Map<MoneyCategory, number>();
+  for (const tx of transactions) {
+    if (tx.direction !== direction) continue;
+    map.set(tx.category, (map.get(tx.category) ?? 0) + tx.amountMinor);
+  }
+  const total = Array.from(map.values()).reduce((a, b) => a + b, 0);
+  return Array.from(map.entries())
+    .map(([category, amountMinor]) => ({
+      category,
+      amountMinor,
+      share: total > 0 ? amountMinor / total : 0,
+    }))
+    .sort((a, b) => b.amountMinor - a.amountMinor);
+}
+
+export interface MoneyDailyPoint {
+  /** ISO date YYYY-MM-DD */
+  day: string;
+  outMinor: number;
+  inMinor: number;
+}
+
+/**
+ * Per-day in/out for a month.
+ * When `fillAll`, every calendar day in the month is present (zeros allowed).
+ */
+export function sumDaily(
+  transactions: MoneyTransaction[],
+  yearMonth: string,
+  opts?: { fillAll?: boolean },
+): MoneyDailyPoint[] {
+  const { start, end } = yearMonthRange(yearMonth);
+  const map = new Map<string, { outMinor: number; inMinor: number }>();
+
+  if (opts?.fillAll) {
+    const [ys, ms] = yearMonth.split("-").map(Number);
+    const last = new Date(ys!, ms!, 0).getDate();
+    for (let d = 1; d <= last; d++) {
+      const day = `${yearMonth}-${String(d).padStart(2, "0")}`;
+      map.set(day, { outMinor: 0, inMinor: 0 });
+    }
+  }
+
+  for (const tx of transactions) {
+    if (tx.occurredOn < start || tx.occurredOn > end) continue;
+    const entry = map.get(tx.occurredOn) ?? { outMinor: 0, inMinor: 0 };
+    if (tx.direction === MoneyDirection.Out) {
+      entry.outMinor += tx.amountMinor;
+    } else {
+      entry.inMinor += tx.amountMinor;
+    }
+    map.set(tx.occurredOn, entry);
+  }
+
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([day, v]) => ({ day, ...v }));
 }
