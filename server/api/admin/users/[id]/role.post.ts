@@ -1,7 +1,7 @@
 /**
  * POST /api/admin/users/:id/role  — admin only
  *
- * Body:  { role: "admin" | "normal" }
+ * Body:  { role: UserRole.Admin | UserRole.Normal } (integer)
  * Reply: { ok: true, user: AuthUser }
  *
  * Lets an admin change another user's role. Two guard rails:
@@ -13,7 +13,6 @@
  *     out of admin-only routes.
  */
 import {
-  ASSIGNABLE_USER_ROLES,
   UserRole,
   getUserById,
   isAdminRole,
@@ -22,10 +21,8 @@ import {
   updateUserRole,
 } from "~/server/utils/db";
 import { requireAdmin } from "~/server/utils/authContext";
-
-interface Body {
-  role?: UserRole;
-}
+import { parseBody } from "~/server/utils/http";
+import { adminUserRoleBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
   requireAdmin(event);
@@ -33,17 +30,8 @@ export default defineEventHandler(async (event) => {
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing user id" });
   }
-  const body = await readBody<Body>(event);
-  const role = body?.role;
-  if (
-    typeof role !== "number" ||
-    !ASSIGNABLE_USER_ROLES.includes(role as UserRole)
-  ) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: `role must be one of ${ASSIGNABLE_USER_ROLES.join(", ")}`,
-    });
-  }
+  const body = await parseBody(event, adminUserRoleBodySchema);
+  const role = body.role;
 
   const target = await getUserById(id);
   if (!target) {

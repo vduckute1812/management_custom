@@ -42,37 +42,19 @@ describe("attachUserFromHeader", () => {
     expect(event.context.user?.sub).toBe("user_attach");
   });
 
-  it("accepts ?access_token= on GET /api/uploads/*", () => {
+  it("ignores ?access_token= on media GETs (cookie/Bearer only)", () => {
     const event = stubH3Event({
       method: "GET",
       path: `/api/uploads/upl_1?access_token=${token}`,
     });
     attachUserFromHeader(event);
-    expect(event.context.user?.sub).toBe("user_attach");
-  });
-
-  it("accepts ?access_token= on HEAD /api/uploads/*", () => {
-    const event = stubH3Event({
-      method: "HEAD",
-      path: `/api/uploads/upl_1?access_token=${encodeURIComponent(token)}`,
-    });
-    attachUserFromHeader(event);
-    expect(event.context.user?.sub).toBe("user_attach");
+    expect(event.context.user).toBeUndefined();
   });
 
   it("ignores ?access_token= on non-upload routes", () => {
     const event = stubH3Event({
       method: "GET",
       path: `/api/posts?access_token=${token}`,
-    });
-    attachUserFromHeader(event);
-    expect(event.context.user).toBeUndefined();
-  });
-
-  it("ignores ?access_token= on POST /api/uploads/*", () => {
-    const event = stubH3Event({
-      method: "POST",
-      path: `/api/uploads?access_token=${token}`,
     });
     attachUserFromHeader(event);
     expect(event.context.user).toBeUndefined();

@@ -3,9 +3,16 @@
  *
  * Refresh stays off localStorage so XSS cannot exfiltrate the 30-day secret.
  * Access is also mirrored as an HttpOnly cookie so same-origin <img>/<video>
- * requests to `/api/uploads/*` authenticate without `?access_token=` in the URL.
+ * requests to `/api/uploads/*` authenticate without putting the JWT in the URL.
  */
-import type { H3Event } from "h3";
+import {
+  createError,
+  deleteCookie,
+  getCookie,
+  getRequestHeader,
+  setCookie,
+  type H3Event,
+} from "h3";
 import { TOKEN_TTL } from "./auth";
 
 export const REFRESH_COOKIE = "mgmt_rt";
@@ -80,9 +87,22 @@ export function readPresentedRefreshToken(
 }
 
 /**
- * Soft CSRF guard for cookie-authenticated auth mutations.
+ * Whether missing Origin/Referer should be rejected for cookie-auth mutations.
+ * Production (or explicit Secure cookies / https APP_BASE_URL) requires a
+ * matching Origin or Referer. Local HTTP allows bare curl/dev tools.
+ */
+export function requireOriginForCookieAuth(): boolean {
+  if (process.env.CSRF_REQUIRE_ORIGIN === "0") return false;
+  if (process.env.CSRF_REQUIRE_ORIGIN === "1") return true;
+  return cookieSecure();
+}
+
+/**
+ * CSRF guard for cookie-authenticated mutations.
  * Same-origin SPA POSTs always send Origin (or Referer). Cross-site form
  * posts typically do not match our host — reject those when a cookie is used.
+ *
+ * In production, a missing Origin *and* Referer is also rejected (M4).
  */
 export function assertSameOriginForCookieAuth(
   event: H3Event,
@@ -90,7 +110,15 @@ export function assertSameOriginForCookieAuth(
 ): void {
   if (!usedCookie) return;
   const host = getRequestHeader(event, "host");
-  if (!host) return;
+  if (!host) {
+    if (requireOriginForCookieAuth()) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: "Cross-origin auth cookie use blocked",
+      });
+    }
+    return;
+  }
   const origin = getRequestHeader(event, "origin");
   const referer = getRequestHeader(event, "referer");
   const allowed = (value: string | undefined): boolean => {
@@ -103,11 +131,16 @@ export function assertSameOriginForCookieAuth(
     }
   };
   if (allowed(origin) || allowed(referer)) return;
-  // Dev tools / curl without Origin — allow when neither header is present
-  // and the request is not obviously cross-site.
-  if (!origin && !referer) return;
+  if (!origin && !referer && !requireOriginForCookieAuth()) return;
   throw createError({
     statusCode: 403,
     statusMessage: "Cross-origin auth cookie use blocked",
   });
+}
+
+/** True when either auth cookie is present on the request. */
+export function hasAuthCookie(event: H3Event): boolean {
+  const rt = getCookie(event, REFRESH_COOKIE)?.trim();
+  const at = getCookie(event, ACCESS_COOKIE)?.trim();
+  return Boolean(rt || at);
 }

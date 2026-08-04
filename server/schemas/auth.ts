@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { APP_LOCALES } from "../../types/locale";
 import { MONEY_CURRENCIES } from "../../types/money";
+import { ASSIGNABLE_USER_ROLES, type UserRole } from "../../types/task";
 
 export const loginBodySchema = z.object({
   email: z.string().trim().email("A valid email is required"),
@@ -117,4 +118,17 @@ export const preferencesPatchBodySchema = z
 export const userDirectoryQuerySchema = z.object({
   q: z.string().trim().min(1).max(100),
   limit: z.coerce.number().int().min(1).max(20).optional().default(20),
+});
+
+export const adminUserRoleBodySchema = z.object({
+  role: z
+    .number()
+    .int()
+    .refine(
+      (v): v is UserRole =>
+        (ASSIGNABLE_USER_ROLES as readonly number[]).includes(v),
+      {
+        message: `role must be one of ${ASSIGNABLE_USER_ROLES.join(", ")}`,
+      },
+    ),
 });

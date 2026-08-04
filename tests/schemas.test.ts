@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminUserRoleBodySchema,
   epicUpsertBodySchema,
   feedQuerySchema,
   forgotPasswordBodySchema,
   loginBodySchema,
   logoutBodySchema,
   postReactionBodySchema,
+  postCommentCreateBodySchema,
   postCreateBodySchema,
   refreshBodySchema,
   resetPasswordBodySchema,
@@ -17,7 +19,7 @@ import {
   postCommentsQuerySchema,
   verifyEmailBodySchema,
 } from "../server/schemas";
-import { TaskPriority, TaskStatus } from "../types/task";
+import { TaskPriority, TaskStatus, UserRole } from "../types/task";
 import { ChatMessageKind } from "../types/chat";
 import { PostFormat, PostVisibility } from "../types/post";
 
@@ -295,5 +297,39 @@ describe("postCommentsQuerySchema", () => {
       expect(parsed.data.limit).toBe(10);
       expect(parsed.data.before).toBe("2026-07-31T00:00:00.000Z");
     }
+  });
+});
+
+describe("postCommentCreateBodySchema", () => {
+  it("requires a non-empty body", () => {
+    expect(postCommentCreateBodySchema.safeParse({ body: "" }).success).toBe(
+      false,
+    );
+    expect(
+      postCommentCreateBodySchema.safeParse({ body: "  hi  " }).success,
+    ).toBe(true);
+  });
+
+  it("rejects bodies over 2000 chars", () => {
+    expect(
+      postCommentCreateBodySchema.safeParse({ body: "x".repeat(2001) }).success,
+    ).toBe(false);
+  });
+});
+
+describe("adminUserRoleBodySchema", () => {
+  it("accepts assignable integer roles only", () => {
+    expect(
+      adminUserRoleBodySchema.safeParse({ role: UserRole.Admin }).success,
+    ).toBe(true);
+    expect(
+      adminUserRoleBodySchema.safeParse({ role: UserRole.Normal }).success,
+    ).toBe(true);
+    expect(
+      adminUserRoleBodySchema.safeParse({ role: UserRole.Superadmin }).success,
+    ).toBe(false);
+    expect(adminUserRoleBodySchema.safeParse({ role: "admin" }).success).toBe(
+      false,
+    );
   });
 });

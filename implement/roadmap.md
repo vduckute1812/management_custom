@@ -407,6 +407,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] M7: Privacy policy documents Money ledger; §14 aligned (HSTS; personal expenses OK; no bank passwords/cards/health secrets)
 - [x] Vitest `tests/google-oauth-user.test.ts`; auth.md + i18n error copy
 
+## Phase 25 — Sprint B (session / CSRF / LAN)
+
+- [x] M3: Refresh-token families (`0030_refresh_token_family`); reuse of a revoked hash revokes the whole family
+- [x] M4: Cookie-auth CSRF middleware on mutating `/api/*`; production requires Origin/Referer
+- [x] M1: `clientIp` trusts `CF-Connecting-IP` / `X-Real-IP` only from trusted proxy peers (`LAN_IP` / `TRUSTED_PROXY_IPS`)
+- [x] M2: MySQL/Redis loopback-only publishes; app/migrate via `host.containers.internal`
+- [x] Zod for comment create + admin role body; drop `?access_token=` query auth
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)

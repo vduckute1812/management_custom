@@ -23,14 +23,20 @@ services:
     ports:
       # Bind to the Pi LAN NIC only. Override with LAN_IP=… before compose.
       - "${LAN_IP:-192.168.1.4}:3000:3000"
+    extra_hosts:
+      # Reach MySQL/Redis published on the host loopback (no LAN DB/cache ports).
+      - "host.containers.internal:host-gateway"
     env_file:
       - .env.prod
     environment:
-      # Podman on this Pi has no compose service-name DNS. Point at the
-      # published LAN bind (same pattern as DB_HOST → ${LAN_IP}:3306).
-      # Forces redis even if an old .env.prod left CACHE_DRIVER=memory.
-      REDIS_URL: "redis://${LAN_IP:-192.168.1.4}:6379/0"
+      # Podman on this Pi has no compose service-name DNS. Reach host loopback
+      # publishes via host.containers.internal (see mysql/redis ports below).
+      REDIS_URL: "redis://host.containers.internal:6379/0"
       CACHE_DRIVER: "redis"
+      DB_HOST: "host.containers.internal"
+      # Rate-limit trusted proxies (nginx peer when proxying to LAN:3000).
+      LAN_IP: "${LAN_IP:-192.168.1.4}"
+      TRUSTED_PROXY_IPS: "127.0.0.1,::1,${LAN_IP:-192.168.1.4}"
     depends_on:
       mysql:
         condition: service_healthy
@@ -66,8 +72,8 @@ services:
       - --maxmemory-policy
       - allkeys-lru
     ports:
+      # Loopback only — app reaches Redis via host.containers.internal.
       - "127.0.0.1:6379:6379"
-      - "${LAN_IP:-192.168.1.4}:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -94,12 +100,9 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: "no"
       TZ: "Asia/Ho_Chi_Minh"
     ports:
-      # Loopback for host-side tools. The LAN publish exists so the one-shot
-      # migrate container (no service-name DNS on this Pi's podman network)
-      # can reach MySQL via ${LAN_IP}:3306 — see docker/ci-deploy.sh
-      # run_migrations. Do not drop the LAN bind without fixing that path.
+      # Loopback only for host-side tools + in-container access via
+      # host.containers.internal (see app extra_hosts). No LAN publish.
       - "127.0.0.1:3306:3306"
-      - "${LAN_IP:-192.168.1.4}:3306:3306"
     volumes:
       - mgmt-mysql-data:/var/lib/mysql
     healthcheck:

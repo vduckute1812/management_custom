@@ -9,27 +9,49 @@ import type { RefreshTokenRecord } from "./types";
  * Refresh-token lifecycle for `/api/auth/{login,refresh,logout}`.
  * The token itself is opaque (random 32-byte hex); only the SHA-256 hash
  * is persisted so a DB dump can't be replayed as a session.
+ *
+ * Tokens belong to a `family_id`. Login starts a family; rotation keeps the
+ * same family. Presenting a revoked hash in a family revokes every active
+ * token in that family (refresh-token theft / reuse detection).
  */
 
 export interface IssueRefreshTokenInput {
   userId: string;
   tokenHash: string;
   expiresAt: string;
+  /** Omit to mint a new family (login / OAuth). Rotation passes the prior id. */
+  familyId?: string;
   userAgent?: string;
   ip?: string;
 }
 
+function mapRow(r: RefreshTokenRow): RefreshTokenRecord {
+  return {
+    id: r.id,
+    userId: r.user_id,
+    familyId: r.family_id,
+    tokenHash: r.token_hash,
+    expiresAt: dbToISO(r.expires_at),
+    revokedAt: r.revoked_at ? dbToISO(r.revoked_at) : undefined,
+    userAgent: r.user_agent ?? undefined,
+    ip: r.ip ?? undefined,
+    createdAt: dbToISO(r.created_at),
+  };
+}
+
 export async function issueRefreshToken(
   input: IssueRefreshTokenInput,
-): Promise<void> {
+): Promise<{ familyId: string }> {
   const pool = getPool();
+  const familyId = input.familyId ?? generateId("rtfam");
   await pool.query(
     `INSERT INTO auth_refresh_tokens
-      (id, user_id, token_hash, expires_at, user_agent, ip, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      (id, user_id, family_id, token_hash, expires_at, user_agent, ip, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       generateId("rtok"),
       input.userId,
+      familyId,
       input.tokenHash,
       isoToDB(input.expiresAt),
       input.userAgent ?? null,
@@ -37,6 +59,7 @@ export async function issueRefreshToken(
       isoToDB(nowISO()),
     ],
   );
+  return { familyId };
 }
 
 export async function findActiveRefreshToken(
@@ -52,17 +75,22 @@ export async function findActiveRefreshToken(
     [tokenHash],
   );
   const r = rows[0];
-  if (!r) return null;
-  return {
-    id: r.id,
-    userId: r.user_id,
-    tokenHash: r.token_hash,
-    expiresAt: dbToISO(r.expires_at),
-    revokedAt: r.revoked_at ? dbToISO(r.revoked_at) : undefined,
-    userAgent: r.user_agent ?? undefined,
-    ip: r.ip ?? undefined,
-    createdAt: dbToISO(r.created_at),
-  };
+  return r ? mapRow(r) : null;
+}
+
+/** Any row for this hash (active or revoked) — used for reuse detection. */
+export async function findRefreshTokenByHash(
+  tokenHash: string,
+): Promise<RefreshTokenRecord | null> {
+  const pool = getPool();
+  const [rows] = await pool.query<RefreshTokenRow[]>(
+    `SELECT * FROM auth_refresh_tokens
+      WHERE token_hash = ?
+      LIMIT 1`,
+    [tokenHash],
+  );
+  const r = rows[0];
+  return r ? mapRow(r) : null;
 }
 
 export async function revokeRefreshToken(tokenHash: string): Promise<void> {
@@ -73,6 +101,20 @@ export async function revokeRefreshToken(tokenHash: string): Promise<void> {
   );
 }
 
+export async function revokeRefreshTokenFamily(
+  familyId: string,
+): Promise<number> {
+  const pool = getPool();
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE auth_refresh_tokens
+        SET revoked_at = ?
+      WHERE family_id = ?
+        AND revoked_at IS NULL`,
+    [isoToDB(nowISO()), familyId],
+  );
+  return result.affectedRows ?? 0;
+}
+
 /**
  * Atomically revoke the presented refresh hash and insert its successor in
  * one transaction. Returns false when the presented token was already
@@ -81,6 +123,7 @@ export async function revokeRefreshToken(tokenHash: string): Promise<void> {
  */
 export async function rotateRefreshToken(input: {
   presentedHash: string;
+  familyId: string;
   next: IssueRefreshTokenInput;
 }): Promise<boolean> {
   const pool = getPool();
@@ -102,11 +145,12 @@ export async function rotateRefreshToken(input: {
     }
     await conn.query(
       `INSERT INTO auth_refresh_tokens
-        (id, user_id, token_hash, expires_at, user_agent, ip, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        (id, user_id, family_id, token_hash, expires_at, user_agent, ip, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         generateId("rtok"),
         input.next.userId,
+        input.familyId,
         input.next.tokenHash,
         isoToDB(input.next.expiresAt),
         input.next.userAgent ?? null,
