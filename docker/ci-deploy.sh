@@ -21,6 +21,10 @@
 #   bash docker/ci-deploy.sh
 #   GIT_SHA=abc1234 bash docker/ci-deploy.sh
 #
+# Also triggered by Actions workflow_dispatch or any master push that touches
+# app/docker paths (docs-only pushes are paths-ignored — re-run Deploy if a
+# prior in-progress deploy was cancelled by a newer push).
+#
 # Env knobs: see docker/lib-compose.sh
 
 set -euo pipefail
