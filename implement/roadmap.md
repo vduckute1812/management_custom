@@ -389,14 +389,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Per-page `LanguageSwitcher` (the header one is signed-in only, and the Vietnamese text prevails)
 - [x] `components/AppFooter.vue` on hub + legal pages; signup consent line (`auth.signupConsent`)
 - [x] `legal.*` / `footer.*` chrome strings in all four locales; `tests/legal.test.ts` guards cross-language structure
-- [x] Content matches the install: cookie TTLs, retention windows, processors, admin reach (self-service account deletion added in Phase 23; chat message deletion still missing)
+- [x] Content matches the install: cookie TTLs, retention windows, processors, admin reach (self-service account deletion added in Phase 23; chat message deletion added in Phase 32)
 
 ## Phase 23 — Self-service account deletion
 
 - [x] `DELETE /api/auth/account` — typed email confirmation + password re-auth (omitted for Google-only); reuses `deleteUser`; clears cookies; rate-limited 5/min per IP and per email
 - [x] `deleteUser` also clears email-targeted `jobs`, legacy story R2 keys, and the public feed cache (FK CASCADE already covers owned MySQL rows)
 - [x] Settings → Danger zone + `DeleteAccountModal` (client gate in `utils/accountDeletion.ts`); superadmin cannot delete itself
-- [x] Privacy §12–13 and Terms termination updated (EN + VI) to describe the flow; export gap and chat-message deletion still named as missing
+- [x] Privacy §12–13 and Terms termination updated (EN + VI) to describe the flow; export gap and chat-message deletion named as missing (resolved in Phase 32)
 - [x] `tests/account-deletion.test.ts` covers confirmation helpers + Zod schema; `scripts/verify-user-delete-cascade.ts` audits leftovers against MySQL
 
 ## Phase 24 — Sprint A (security blockers)
@@ -457,9 +457,19 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] AnalyticsDashboard: fingerprint watch + `chart.update()` (no deep destroy/recreate)
 - [x] Task/Epic discard confirms: `inert` on parent form; BlockSpentPopover uses `useModal`
 
+## Phase 32 — Sprint I (chat message deletion)
+
+- [x] `deleteMessage(userId, conversationId, messageId)` in `server/db/chatMessages.ts`: sender-only hard delete, last_message_id pointer update, unread recount for both participants, orphan upload purge
+- [x] `ChatThreadDeletedEvent` added to `server/utils/chatThread.ts` union; `deleteChatMessage` service + SSE fan-out
+- [x] `DELETE /api/chat/conversations/:id/messages/:messageId` — sender-only, `404` for non-sender / missing
+- [x] `useChat`: SSE `deleted` listener removes message and updates sidebar; `deleteMessage()` exported with optimistic removal
+- [x] `ChatMessageThread`: trash button in teleported reaction picker bar (own messages only); `window.confirm` guard; `delete` emit
+- [x] i18n: `deleteMessage`, `deleteConfirm`, `deleted`, `failedToDeleteMessage` in all 4 locales (EN, VI, zh-CN, zh-TW)
+- [x] Privacy §13 EN + VI: add chat messages to the deletable-from-app list; remove statement that individual messages cannot be deleted; export gap note remains
+- [x] Docs: `api.md` + `chat-spec.md` updated with DELETE message + SSE `deleted`
+
 ### Later
 
-- Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Playwright smoke
 - Split remaining page/DB gods (`settings`, `feed`, `posts.ts`, `useChat`)

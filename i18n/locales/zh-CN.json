@@ -1295,7 +1295,11 @@
     "audioUnavailable": "语音不可用",
     "audioUnsupported": "浏览器无法播放此音频",
     "failedToLoadConversations": "无法加载会话",
-    "failedToLoadMessages": "无法加载消息"
+    "failedToLoadMessages": "无法加载消息",
+    "deleteMessage": "删除消息",
+    "deleteConfirm": "为双方删除这条消息？此操作无法撤销。",
+    "deleted": "消息已删除",
+    "failedToDeleteMessage": "删除消息失败"
   },
   "money": {
     "title": "记账",

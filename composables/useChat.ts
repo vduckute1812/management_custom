@@ -38,6 +38,8 @@ const threadLive = {
         reactionCount: number;
       }) => void)
     | null,
+  onDeleted: null as
+    ((payload: { messageId: string; conversationId: string }) => void) | null,
   onCatchUp: null as (() => void | Promise<void>) | null,
 };
 
@@ -192,6 +194,20 @@ function connectThreadStream(conversationId: string) {
         reactionCount: number;
       };
       if (payload?.messageId) threadLive.onReaction?.(payload);
+    } catch {
+      // ignore malformed frames
+    }
+  });
+
+  es.addEventListener("deleted", (ev) => {
+    if (generation !== threadLive.generation) return;
+    try {
+      const payload = JSON.parse((ev as MessageEvent).data) as {
+        type: "deleted";
+        messageId: string;
+        conversationId: string;
+      };
+      if (payload?.messageId) threadLive.onDeleted?.(payload);
     } catch {
       // ignore malformed frames
     }
@@ -363,6 +379,25 @@ export const useChat = () => {
     });
   }
 
+  function applyDeletedEvent(payload: {
+    messageId: string;
+    conversationId: string;
+  }) {
+    if (activeId.value && payload.conversationId !== activeId.value) {
+      return;
+    }
+    messages.value = messages.value.filter((m) => m.id !== payload.messageId);
+
+    const conv = conversations.value.find(
+      (c) => c.id === payload.conversationId,
+    );
+    if (conv?.lastMessage?.id === payload.messageId) {
+      const remaining = messages.value;
+      conv.lastMessage =
+        remaining.length > 0 ? (remaining[remaining.length - 1] ?? null) : null;
+    }
+  }
+
   async function pollNewMessages() {
     if (!activeId.value) return;
     const last = messages.value[messages.value.length - 1];
@@ -400,6 +435,7 @@ export const useChat = () => {
   threadLive.onRead = (userId, lastReadAt) =>
     applyReadEvent(userId, lastReadAt);
   threadLive.onReaction = (payload) => applyReactionEvent(payload);
+  threadLive.onDeleted = (payload) => applyDeletedEvent(payload);
   threadLive.onCatchUp = () => pollNewMessages();
 
   async function startConversation(peerUserId: string) {
@@ -653,6 +689,21 @@ export const useChat = () => {
     await mutateMessageReaction(messageId, null);
   }
 
+  async function deleteMessage(messageId: string) {
+    if (!activeId.value) return;
+    messages.value = messages.value.filter((m) => m.id !== messageId);
+    const conv = conversations.value.find((c) => c.id === activeId.value);
+    if (conv?.lastMessage?.id === messageId) {
+      const remaining = messages.value;
+      conv.lastMessage =
+        remaining.length > 0 ? (remaining[remaining.length - 1] ?? null) : null;
+    }
+    await apiFetch(
+      `/api/chat/conversations/${activeId.value}/messages/${messageId}`,
+      { method: "DELETE" },
+    );
+  }
+
   function closeConversation() {
     disconnectThreadStream();
     activeId.value = null;
@@ -687,6 +738,7 @@ export const useChat = () => {
     sendAudio,
     setMessageReaction,
     clearMessageReaction,
+    deleteMessage,
     startPolling,
     stopPolling,
     closeConversation,
