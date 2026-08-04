@@ -1295,7 +1295,11 @@
     "audioUnavailable": "語音無法使用",
     "audioUnsupported": "瀏覽器無法播放此音訊",
     "failedToLoadConversations": "無法載入會話",
-    "failedToLoadMessages": "無法載入訊息"
+    "failedToLoadMessages": "無法載入訊息",
+    "deleteMessage": "刪除訊息",
+    "deleteConfirm": "為雙方刪除這則訊息？此操作無法復原。",
+    "deleted": "訊息已刪除",
+    "failedToDeleteMessage": "刪除訊息失敗"
   },
   "money": {
     "title": "記帳",

@@ -7,6 +7,7 @@ import {
   sendMessage,
   type SendMessageInput,
 } from "~/server/utils/db";
+import { deleteMessage } from "~/server/db/chatMessages";
 import { refreshAndPushInbox } from "~/server/utils/chatInbox";
 import { publishChatThread } from "~/server/utils/chatThread";
 import {
@@ -64,6 +65,29 @@ export async function markChatConversationRead(
     lastReadAt: result.lastReadAt,
   });
   return result;
+}
+
+/**
+ * Hard-delete the sender's own message, refresh both inboxes, and push a
+ * `deleted` SSE event to open thread subscribers.
+ */
+export async function deleteChatMessage(
+  userId: string,
+  conversationId: string,
+  messageId: string,
+): Promise<{ ok: true; messageId: string }> {
+  await deleteMessage(userId, conversationId, messageId);
+  const peerId = await getPeerUserId(conversationId, userId);
+  void refreshAndPushInbox(userId);
+  if (peerId) {
+    void refreshAndPushInbox(peerId);
+  }
+  publishChatThread(conversationId, {
+    type: "deleted",
+    messageId,
+    conversationId,
+  });
+  return { ok: true, messageId };
 }
 
 /** Fan-out a reaction change to open thread subscribers. */

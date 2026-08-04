@@ -1295,7 +1295,11 @@
     "audioUnavailable": "Audio unavailable",
     "audioUnsupported": "Your browser cannot play this audio",
     "failedToLoadConversations": "Failed to load conversations",
-    "failedToLoadMessages": "Failed to load messages"
+    "failedToLoadMessages": "Failed to load messages",
+    "deleteMessage": "Delete message",
+    "deleteConfirm": "Delete this message for both you and the other person? This cannot be undone.",
+    "deleted": "Message deleted",
+    "failedToDeleteMessage": "Failed to delete message"
   },
   "money": {
     "title": "Money",

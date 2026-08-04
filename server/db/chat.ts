@@ -4,7 +4,7 @@
  * This is a thin barrel — implementation lives in focused sub-modules:
  *   - chatShared.ts        — Row interfaces, mappers, shared helpers
  *   - chatConversations.ts — listConversations, getOrCreateDirectConversation, getPeerUserId
- *   - chatMessages.ts      — listMessages, sendMessage, getChatMessageForParticipant, assertChatMessageAccessible
+ *   - chatMessages.ts      — listMessages, sendMessage, getChatMessageForParticipant, assertChatMessageAccessible, deleteMessage
  *   - chatReactions.ts     — setChatMessageReaction, clearChatMessageReaction
  *   - chatReads.ts         — markConversationRead, getUnreadTotal, getUnreadInbox
  */

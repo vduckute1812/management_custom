@@ -61,6 +61,7 @@ Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sq
 | `GET`    | `/api/chat/conversations/:id/messages`                      | History / cursors; includes `peerLastReadAt` / `readByPeer` / reactions |
 | `GET`    | `/api/chat/conversations/:id/stream`                        | SSE: `message` + `read` + `reaction` (+ `ping`) for the open thread     |
 | `POST`   | `/api/chat/conversations/:id/messages`                      | Send text / emoji / sticker / image / audio                             |
+| `DELETE` | `/api/chat/conversations/:id/messages/:messageId`           | Sender-only hard delete (both participants); SSE `deleted` event        |
 | `POST`   | `/api/chat/conversations/:id/messages/:messageId/reactions` | Set reaction                                                            |
 | `DELETE` | `/api/chat/conversations/:id/messages/:messageId/reactions` | Clear reaction                                                          |
 | `POST`   | `/api/chat/conversations/:id/read`                          | Mark read                                                               |

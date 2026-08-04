@@ -20,6 +20,7 @@ const emit = defineEmits<{
   loadMore: [];
   react: [messageId: string, reaction: ChatMessageReactionType];
   clearReact: [messageId: string];
+  delete: [messageId: string];
 }>();
 
 const { t, locale } = useI18n();
@@ -360,6 +361,12 @@ function onReactionChipClick(
   pickReaction(messageId, reaction);
 }
 
+function requestDelete(messageId: string) {
+  closePicker();
+  if (!window.confirm(t("chat.deleteConfirm"))) return;
+  emit("delete", messageId);
+}
+
 defineExpose({ scrollToBottom });
 </script>
 
@@ -564,7 +571,7 @@ defineExpose({ scrollToBottom });
         :aria-label="t('chat.chooseReaction')"
       >
         <div
-          class="flex flex-nowrap gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-lg"
+          class="flex flex-nowrap items-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 py-1 shadow-lg"
         >
           <button
             v-for="r in CHAT_REACTION_TYPES"
@@ -582,6 +589,21 @@ defineExpose({ scrollToBottom });
           >
             {{ CHAT_REACTION_EMOJI[r] }}
           </button>
+          <template v-if="pickerMessage.mine">
+            <span
+              class="mx-1 h-6 w-px shrink-0 bg-slate-200"
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base leading-none text-rose-500 transition hover:scale-110 hover:bg-rose-50 motion-reduce:transition-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-rose-500"
+              :title="t('chat.deleteMessage')"
+              :aria-label="t('chat.deleteMessage')"
+              @click.stop="requestDelete(pickerMessage.id)"
+            >
+              🗑
+            </button>
+          </template>
         </div>
       </div>
     </Teleport>

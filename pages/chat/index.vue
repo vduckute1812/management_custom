@@ -36,6 +36,7 @@ const {
   sendAudio,
   setMessageReaction,
   clearMessageReaction,
+  deleteMessage,
   startPolling,
   stopPolling,
   closeConversation,
@@ -115,6 +116,14 @@ function onReact(messageId: string, reaction: ChatMessageReactionType) {
 
 function onClearReact(messageId: string) {
   void clearMessageReaction(messageId);
+}
+
+async function onDelete(messageId: string) {
+  try {
+    await deleteMessage(messageId);
+  } catch {
+    // toast is handled by the apiFetch error boundary in useApi
+  }
 }
 
 function peerLabel() {
@@ -261,6 +270,7 @@ function backToList() {
             @load-more="onLoadMore"
             @react="onReact"
             @clear-react="onClearReact"
+            @delete="onDelete"
           />
 
           <ChatComposer

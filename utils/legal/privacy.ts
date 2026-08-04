@@ -161,9 +161,9 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "your-choices",
         heading: "13. Your data, your requests",
         paragraphs: [
-          "You can edit your profile at any time, and delete your own posts, comments, stories, tasks, and epics from the app. Settings → Your data exports your epics and tasks as JSON, CSV, or an iCal calendar file, and the Money module exports its own ledger.",
+          "You can edit your profile at any time, and delete your own posts, comments, stories, tasks, epics, and chat messages from the app. Deleting a chat message is a hard delete for both participants — the message is removed from both sides immediately and cannot be recovered. Settings → Your data exports your epics and tasks as JSON, CSV, or an iCal calendar file, and the Money module exports its own ledger.",
           "You can also delete the whole account yourself, from Settings → Danger zone. It asks you to type your address and, unless the account signs in only with Google, your password; then everything listed in section 12 goes at once. Conversations go with it for the other participant too, because a thread cannot exist with one side missing — export or copy anything you want to keep first.",
-          "One limit is honest to state: the built-in export does not yet cover feed posts, chat, stories, or profile data, and individual chat messages cannot be deleted from the app. For a full copy of your data, or to have specific messages removed without deleting the account, email ducbkdn95@gmail.com from the address on the account. Requests are answered without undue delay and within 30 days at the latest.",
+          "One limit is honest to state: the built-in export does not yet cover feed posts, chat, stories, or profile data. For a full copy of your data, email ducbkdn95@gmail.com from the address on the account. Requests are answered without undue delay and within 30 days at the latest.",
           "You may also object to processing or withdraw consent. Withdrawing consent for the essentials — email address and password — means the account can no longer exist, so the request is handled as an account deletion.",
         ],
       },
@@ -359,9 +359,9 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "your-choices",
         heading: "13. Dữ liệu của bạn và các yêu cầu",
         paragraphs: [
-          "Bạn có thể sửa hồ sơ bất cứ lúc nào, và tự xoá bài viết, bình luận, story, task, epic của mình trong ứng dụng. Cài đặt → Dữ liệu của bạn cho phép xuất epic và task ra JSON, CSV hoặc tệp lịch iCal, và module Ghi chép thu chi có chức năng xuất riêng.",
+          "Bạn có thể sửa hồ sơ bất cứ lúc nào, và tự xoá bài viết, bình luận, story, task, epic và tin nhắn của mình trong ứng dụng. Xoá tin nhắn là xoá vĩnh viễn cho cả hai phía — tin nhắn biến mất ngay lập tức với cả người gửi lẫn người nhận và không thể khôi phục. Cài đặt → Dữ liệu của bạn cho phép xuất epic và task ra JSON, CSV hoặc tệp lịch iCal, và module Ghi chép thu chi có chức năng xuất riêng.",
           "Bạn cũng có thể tự xoá toàn bộ tài khoản trong Cài đặt → Vùng nguy hiểm. Hệ thống yêu cầu bạn nhập đúng địa chỉ email và mật khẩu (trừ khi tài khoản chỉ đăng nhập bằng Google), sau đó mọi thứ nêu ở mục 12 sẽ mất cùng lúc. Các cuộc trò chuyện cũng mất với người còn lại, vì một luồng tin nhắn không thể tồn tại khi thiếu một bên — hãy xuất hoặc lưu lại những gì bạn muốn giữ trước khi xoá.",
-          "Có một giới hạn cần nói thẳng: chức năng xuất dữ liệu sẵn có chưa bao gồm bài viết, tin nhắn, story hay dữ liệu hồ sơ, và không thể xoá từng tin nhắn trong ứng dụng. Để lấy bản sao đầy đủ dữ liệu, hoặc để xoá một số tin nhắn cụ thể mà không xoá tài khoản, hãy gửi email tới ducbkdn95@gmail.com từ chính địa chỉ đã đăng ký. Yêu cầu được xử lý không chậm trễ và tối đa trong 30 ngày.",
+          "Có một giới hạn cần nói thẳng: chức năng xuất dữ liệu sẵn có chưa bao gồm bài viết, tin nhắn, story hay dữ liệu hồ sơ. Để lấy bản sao đầy đủ dữ liệu, hãy gửi email tới ducbkdn95@gmail.com từ chính địa chỉ đã đăng ký. Yêu cầu được xử lý không chậm trễ và tối đa trong 30 ngày.",
           "Bạn cũng có quyền phản đối việc xử lý hoặc rút lại sự đồng ý. Rút lại đồng ý với những dữ liệu cốt lõi — địa chỉ email và mật khẩu — đồng nghĩa tài khoản không thể tồn tại nữa, nên yêu cầu đó sẽ được xử lý như một yêu cầu xoá tài khoản.",
         ],
       },

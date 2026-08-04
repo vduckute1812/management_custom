@@ -28,8 +28,17 @@ export type ChatThreadReactionEvent = {
   reactionCount: number;
 };
 
+export type ChatThreadDeletedEvent = {
+  type: "deleted";
+  messageId: string;
+  conversationId: string;
+};
+
 export type ChatThreadEvent =
-  ChatThreadMessageEvent | ChatThreadReadEvent | ChatThreadReactionEvent;
+  | ChatThreadMessageEvent
+  | ChatThreadReadEvent
+  | ChatThreadReactionEvent
+  | ChatThreadDeletedEvent;
 
 type ThreadSink = (event: ChatThreadEvent) => void | Promise<void>;
 

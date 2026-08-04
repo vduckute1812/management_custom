@@ -65,4 +65,30 @@ describe("chatThread fan-out", () => {
     publishChatThread("conv-a", event);
     expect(sink).toHaveBeenCalledWith(event);
   });
+
+  it("delivers deleted events to subscribers", () => {
+    const sink = vi.fn();
+    subscribeChatThread("conv-a", sink);
+    const event = {
+      type: "deleted" as const,
+      messageId: "msg-42",
+      conversationId: "conv-a",
+    };
+    publishChatThread("conv-a", event);
+    expect(sink).toHaveBeenCalledWith(event);
+  });
+
+  it("does not deliver deleted event to a different conversation", () => {
+    const sinkA = vi.fn();
+    const sinkB = vi.fn();
+    subscribeChatThread("conv-a", sinkA);
+    subscribeChatThread("conv-b", sinkB);
+    publishChatThread("conv-a", {
+      type: "deleted",
+      messageId: "msg-42",
+      conversationId: "conv-a",
+    });
+    expect(sinkA).toHaveBeenCalledTimes(1);
+    expect(sinkB).not.toHaveBeenCalled();
+  });
 });

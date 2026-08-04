@@ -1295,7 +1295,11 @@
     "audioUnavailable": "Không nghe được ghi âm",
     "audioUnsupported": "Trình duyệt không phát được âm thanh này",
     "failedToLoadConversations": "Không tải được hội thoại",
-    "failedToLoadMessages": "Không tải được tin nhắn"
+    "failedToLoadMessages": "Không tải được tin nhắn",
+    "deleteMessage": "Xoá tin nhắn",
+    "deleteConfirm": "Xoá tin nhắn này cho cả hai phía? Hành động này không thể hoàn tác.",
+    "deleted": "Đã xoá tin nhắn",
+    "failedToDeleteMessage": "Không xoá được tin nhắn"
   },
   "money": {
     "title": "Tiền",
