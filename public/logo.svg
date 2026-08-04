@@ -1,28 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="Da Nang TechX">
   <defs>
-    <linearGradient id="hexFill" x1="48" y1="4" x2="88" y2="124" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#4F46E5"/>
-      <stop offset="1" stop-color="#0B0A24"/>
+    <linearGradient id="plate" x1="64" y1="8" x2="64" y2="120" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="0.55" stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#312E81"/>
     </linearGradient>
   </defs>
 
-  <path
-    fill="url(#hexFill)"
-    d="M64 4 L118 35.5 V92.5 L64 124 L10 92.5 V35.5 Z"
-  />
-  <path
+  <circle cx="64" cy="64" r="60" fill="url(#plate)"/>
+  <circle
+    cx="64"
+    cy="64"
+    r="52.5"
     fill="none"
     stroke="#FFFFFF"
-    stroke-opacity="0.3"
-    stroke-width="1.4"
-    d="M64 13 L109 38.5 V89.5 L64 115 L19 89.5 V38.5 Z"
+    stroke-opacity="0.18"
+    stroke-width="1"
   />
 
-  <g fill="#FFFFFF">
-    <!-- T with diagonal cut on the crossbar's right end -->
-    <path d="M22 38 H54 L64 48 V50 H48 V90 H37 V50 H22 Z"/>
-    <!-- X as facing chevrons; tips stop short of center for a channel -->
-    <path d="M68 38 H80 L90 64 L80 90 H68 L78 64 Z"/>
-    <path d="M118 38 H106 L96 64 L106 90 H118 L108 64 Z"/>
-  </g>
+  <!-- T: chamfer echoes the X diagonal -->
+  <path
+    fill="#FFFFFF"
+    d="M26 42 H52.5 L59.25 48.75 V51.75 H46.75 V86 H36.25 V51.75 H26 Z"
+  />
+
+  <!-- X: solid bowtie + diamond signature -->
+  <path
+    fill="#FFFFFF"
+    fill-rule="evenodd"
+    d="
+      M 67.5 42
+      H 79
+      L 85.75 54
+      L 92.5 42
+      H 104
+      L 89.5 64
+      L 104 86
+      H 92.5
+      L 85.75 74
+      L 79 86
+      H 67.5
+      L 82 64
+      Z
+
+      M 85.75 59.5
+      L 89.5 64
+      L 85.75 68.5
+      L 82 64
+      Z
+    "
+  />
 </svg>

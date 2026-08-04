@@ -4,9 +4,9 @@ withDefaults(
     /** Tailwind size classes for the mark, e.g. `h-8 w-8`. */
     sizeClass?: string;
     /**
-     * Soften the image box. Prefer `rounded-none` for the hex seal so the
-     * transparent corners stay unclipped; auth screens may still pass
-     * `rounded-xl` for a softer tile.
+     * Soften the image box. Prefer `rounded-none` for the circular mark so
+     * transparent corners stay unclipped; auth screens may pass `rounded-xl`
+     * if a softer tile is desired.
      */
     roundedClass?: string;
     /**
