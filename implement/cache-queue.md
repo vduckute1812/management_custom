@@ -143,10 +143,28 @@ Domain helpers for the article pipeline live in `server/services/articleService.
 `server/plugins/job-worker.ts` (Nitro plugin):
 
 1. Polls on `QUEUE_POLL_MS` / idles on `QUEUE_IDLE_MS`
-2. Claims one job, runs `processJob`, completes or fails
+2. Claims one job at a time (see **priority** below), runs `processJob`, completes or fails
 3. Exponential backoff on failure: 15s × 2^(attempt−1), cap 15 minutes
 4. After `max_attempts`, status → `dead`
 5. Every ~2 minutes: requeue stale `processing` rows (`QUEUE_STALE_SECONDS`), purge old `completed`/`dead` (`QUEUE_PURGE_DAYS`), and **sweep expired stories + their Cloudflare R2 media**
+
+#### Job priority (non-article first)
+
+`claimNextJob` uses an `ORDER BY` priority tier so that fast, user-visible jobs
+(`email.*`, `cache.*`, `media.*`) are always processed ahead of long-running
+AI article jobs (`articles.*`) when both are pending:
+
+```sql
+ORDER BY
+  CASE WHEN type LIKE 'articles.%' THEN 1 ELSE 0 END ASC,
+  available_at ASC,
+  created_at ASC
+```
+
+This means a queued verification e-mail will never be blocked behind an LLM
+rewrite call, even on a single-worker Pi deploy. The worker remains
+single-job serial; true concurrency is deferred until a dedicated worker
+container is warranted (see Evolution path §3).
 
 Disable for migrate-only containers: `QUEUE_WORKER_ENABLED=false`.
 
