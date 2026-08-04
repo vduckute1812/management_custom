@@ -119,7 +119,8 @@
     "termsLink": "Terms of Service",
     "privacyLink": "Privacy Policy",
     "name": "Name",
-    "nameRequired": "Enter your name."
+    "nameRequired": "Enter your name.",
+    "googleUnverifiedExists": "An account with this email already exists but is not verified. Open the verification link from your inbox (or use Forgot password), then link Google from Settings."
   },
   "settings": {
     "title": "Settings",

@@ -99,10 +99,12 @@ export default defineEventHandler(async (event) => {
   } catch (e: unknown) {
     const status = (e as { statusCode?: number }).statusCode;
     const msg = (e as { statusMessage?: string }).statusMessage ?? "";
-    console.error("[google-oauth] callback failed", status, msg, e);
+    const dataCode = (e as { data?: { code?: string } }).data?.code;
+    console.error("[google-oauth] callback failed", status, msg);
     let codeKey = "failed";
-    if (status === 409) codeKey = "conflict";
-    else if (status === 403) codeKey = "email";
+    if (status === 409) {
+      codeKey = dataCode === "unverified" ? "unverified" : "conflict";
+    } else if (status === 403) codeKey = "email";
     else if (status === 401) codeKey = "auth";
     else if (status === 502) codeKey = "google";
     return sendRedirect(event, failRedirect(state.intent, codeKey), 302);

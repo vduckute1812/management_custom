@@ -13,9 +13,9 @@ export const privacyPolicy: LegalDocumentSet = {
     title: "Privacy Policy",
     summary:
       "What this service records about you, who else can see it, and how long it is kept.",
-    effectiveDate: "2026-08-03",
+    effectiveDate: "2026-08-04",
     intro: [
-      "Da Nang TechX is a small, self-hosted community portal: a public feed, 24-hour stories, one-to-one chat, and a private time-management workspace. This policy explains what the service records about you, why, who else processes it, and what you can ask for.",
+      "Da Nang TechX is a small, self-hosted community portal: a public feed, 24-hour stories, one-to-one chat, a private time-management workspace, and a personal Money ledger. This policy explains what the service records about you, why, who else processes it, and what you can ask for.",
       "It describes what the software actually does. Where a capability does not exist yet — the built-in export does not cover chat, for example — this policy says so plainly instead of implying otherwise.",
     ],
     sections: [
@@ -31,7 +31,7 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "scope",
         heading: "2. What this policy covers",
         paragraphs: [
-          "This policy covers the website and API at dntechx.com — the public hub and feed, posts, comments, stories, chat, uploads, and the Time Management workspace — whether you are signed in or only browsing.",
+          "This policy covers the website and API at dntechx.com — the public hub and feed, posts, comments, stories, chat, uploads, the Time Management workspace, and the Money module — whether you are signed in or only browsing.",
           "Using the service also means accepting the Terms of Service. This policy does not license the source code, which is proprietary and covered by its own terms.",
         ],
       },
@@ -59,6 +59,7 @@ export const privacyPolicy: LegalDocumentSet = {
           "Feed: posts and their titles, bodies, categories, styling, comments, reactions, and the audience list when a post is shared with named members.",
           "Stories: the text, any attached media, reactions, and a record of which signed-in member viewed the story. Only the author can see that viewer list.",
           "Chat: message text, stickers, image and voice-note attachments, reactions, and per-conversation read state.",
+          "Money: income and expense transactions, custom categories, savings goals and contributions, monthly budgets, and the display currency preference. These rows are private to your account — no other member, admins included, has an endpoint that reads them.",
           "Uploads: the file itself plus its original name, MIME type, kind, size, and storage key.",
         ],
       },
@@ -170,8 +171,8 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "security",
         heading: "14. How the data is protected",
         paragraphs: [
-          "The install applies the protections you would expect of a careful small deployment: passwords hashed with bcrypt, refresh tokens stored only as SHA-256 hashes, session cookies marked HttpOnly with a same-origin check on sensitive routes, signed short-lived access tokens, a content-security policy and hardened response headers, request rate limits at both the web server and the application, HTML sanitisation of user content before it is rendered, magic-byte checking of uploads, a private storage bucket, and TLS on every public request.",
-          "No system is perfect, and this one is a personal install rather than a hardened enterprise platform. Please do not store credentials, financial details, health records, or other sensitive personal data here. If you believe you have found a vulnerability, email the operator before disclosing it publicly.",
+          "The install applies the protections you would expect of a careful small deployment: passwords hashed with bcrypt, refresh tokens stored only as SHA-256 hashes, session cookies marked HttpOnly with a same-origin check on sensitive routes, signed short-lived access tokens, a content-security policy and hardened response headers (including HSTS on HTTPS), request rate limits at both the web server and the application, HTML sanitisation of user content before it is rendered, magic-byte checking of uploads, a private storage bucket, and TLS on every public request.",
+          "No system is perfect, and this one is a personal install rather than a hardened enterprise platform. The Money module is intended for personal expense tracking you choose to keep here — do not store bank login credentials, payment-card numbers, health records, or other high-sensitivity secrets. If you believe you have found a vulnerability, email the operator before disclosing it publicly.",
         ],
       },
       {
@@ -208,9 +209,9 @@ export const privacyPolicy: LegalDocumentSet = {
     title: "Chính sách bảo mật",
     summary:
       "Dịch vụ ghi nhận những gì về bạn, ai khác có thể thấy, và dữ liệu được lưu bao lâu.",
-    effectiveDate: "2026-08-03",
+    effectiveDate: "2026-08-04",
     intro: [
-      "Da Nang TechX là một cổng cộng đồng nhỏ, tự vận hành: có bảng tin công khai, story 24 giờ, tin nhắn 1:1 và một không gian quản lý thời gian riêng tư. Chính sách này giải thích dịch vụ ghi nhận những gì về bạn, vì mục đích gì, ai khác xử lý dữ liệu, và bạn có thể yêu cầu những gì.",
+      "Da Nang TechX là một cổng cộng đồng nhỏ, tự vận hành: có bảng tin công khai, story 24 giờ, tin nhắn 1:1, một không gian quản lý thời gian riêng tư và sổ thu chi Money cá nhân. Chính sách này giải thích dịch vụ ghi nhận những gì về bạn, vì mục đích gì, ai khác xử lý dữ liệu, và bạn có thể yêu cầu những gì.",
       "Chính sách được viết đúng theo những gì phần mềm thực sự làm. Ở những chỗ tính năng chưa tồn tại — ví dụ chức năng xuất dữ liệu chưa bao gồm tin nhắn — chính sách nói rõ điều đó thay vì để bạn hiểu sai.",
     ],
     sections: [
@@ -226,7 +227,7 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "scope",
         heading: "2. Phạm vi áp dụng",
         paragraphs: [
-          "Chính sách này áp dụng cho website và API tại dntechx.com — trang chủ công khai và bảng tin, bài viết, bình luận, story, tin nhắn, tệp tải lên và không gian Quản lý thời gian — bất kể bạn đã đăng nhập hay chỉ ghé xem.",
+          "Chính sách này áp dụng cho website và API tại dntechx.com — trang chủ công khai và bảng tin, bài viết, bình luận, story, tin nhắn, tệp tải lên, không gian Quản lý thời gian và module Money — bất kể bạn đã đăng nhập hay chỉ ghé xem.",
           "Việc sử dụng dịch vụ đồng thời có nghĩa là bạn chấp nhận Điều khoản dịch vụ. Chính sách này không cấp quyền sử dụng mã nguồn; mã nguồn là tài sản độc quyền và có giấy phép riêng.",
         ],
       },
@@ -254,6 +255,7 @@ export const privacyPolicy: LegalDocumentSet = {
           "Bảng tin: bài viết cùng tiêu đề, nội dung, chuyên mục, định dạng trình bày, bình luận, biểu cảm, và danh sách người xem khi bài được chia sẻ với các thành viên cụ thể.",
           "Story: nội dung, tệp media kèm theo, biểu cảm, và bản ghi thành viên nào đã xem. Chỉ tác giả thấy được danh sách người xem.",
           "Tin nhắn: nội dung tin, sticker, ảnh và tin nhắn thoại, biểu cảm, cùng trạng thái đã đọc của từng cuộc trò chuyện.",
+          "Money: giao dịch thu/chi, danh mục tự tạo, mục tiêu tiết kiệm và khoản đóng góp, ngân sách tháng, cùng đơn vị tiền tệ hiển thị. Các bản ghi này riêng tư với tài khoản của bạn — không thành viên nào khác, kể cả quản trị viên, có endpoint để đọc chúng.",
           "Tệp tải lên: bản thân tệp cùng tên gốc, kiểu MIME, loại tệp, kích thước và khoá lưu trữ.",
         ],
       },
@@ -367,8 +369,8 @@ export const privacyPolicy: LegalDocumentSet = {
         id: "security",
         heading: "14. Cách dữ liệu được bảo vệ",
         paragraphs: [
-          "Hệ thống áp dụng các biện pháp hợp lý cho một triển khai nhỏ nhưng cẩn thận: mật khẩu băm bằng bcrypt, refresh token chỉ lưu dưới dạng băm SHA-256, cookie phiên đặt HttpOnly kèm kiểm tra cùng nguồn ở các route quan trọng, access token có chữ ký và thời hạn ngắn, chính sách bảo mật nội dung (CSP) cùng các header phản hồi được tăng cường, giới hạn tần suất yêu cầu ở cả web server và ứng dụng, làm sạch HTML của nội dung người dùng trước khi hiển thị, kiểm tra magic byte của tệp tải lên, bucket lưu trữ riêng tư, và TLS cho mọi yêu cầu công khai.",
-          "Không hệ thống nào hoàn hảo, và đây là một hệ thống cá nhân chứ không phải nền tảng doanh nghiệp được kiểm định. Xin đừng lưu tại đây thông tin đăng nhập, thông tin tài chính, hồ sơ sức khoẻ hay dữ liệu cá nhân nhạy cảm khác. Nếu bạn cho rằng mình phát hiện lỗ hổng, hãy gửi email cho chủ sở hữu trước khi công bố.",
+          "Hệ thống áp dụng các biện pháp hợp lý cho một triển khai nhỏ nhưng cẩn thận: mật khẩu băm bằng bcrypt, refresh token chỉ lưu dưới dạng băm SHA-256, cookie phiên đặt HttpOnly kèm kiểm tra cùng nguồn ở các route quan trọng, access token có chữ ký và thời hạn ngắn, chính sách bảo mật nội dung (CSP) cùng các header phản hồi được tăng cường (kể cả HSTS trên HTTPS), giới hạn tần suất yêu cầu ở cả web server và ứng dụng, làm sạch HTML của nội dung người dùng trước khi hiển thị, kiểm tra magic byte của tệp tải lên, bucket lưu trữ riêng tư, và TLS cho mọi yêu cầu công khai.",
+          "Không hệ thống nào hoàn hảo, và đây là một hệ thống cá nhân chứ không phải nền tảng doanh nghiệp được kiểm định. Module Money dành cho theo dõi thu chi cá nhân mà bạn chọn lưu tại đây — xin đừng lưu mật khẩu ngân hàng, số thẻ thanh toán, hồ sơ sức khoẻ hay bí mật độ nhạy cảm cao khác. Nếu bạn cho rằng mình phát hiện lỗ hổng, hãy gửi email cho chủ sở hữu trước khi công bố.",
         ],
       },
       {

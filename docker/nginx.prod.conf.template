@@ -3,11 +3,6 @@ events {
 }
 
 http {
-    add_header X-Frame-Options "SAMEORIGIN" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
@@ -22,6 +17,20 @@ http {
         default $http_x_forwarded_proto;
         ""      $scheme;
     }
+
+    # Emit HSTS only when the client (or tunnel) is on HTTPS.
+    map $forwarded_proto $hsts_value {
+        default "";
+        https   "max-age=31536000; includeSubDomains";
+    }
+
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Empty when not HTTPS so LAN http:// stays usable without sticky HSTS.
+    # Locations that set their own add_header must repeat this (nginx inheritance).
+    add_header Strict-Transport-Security $hsts_value always;
 
     server {
         listen 80;
@@ -64,6 +73,7 @@ http {
             proxy_read_timeout 60s;
             proxy_hide_header Cache-Control;
             add_header Cache-Control "no-store" always;
+            add_header Strict-Transport-Security $hsts_value always;
         }
 
         # Hashed build assets — keep Nuxt's immutable Cache-Control.
@@ -89,12 +99,14 @@ http {
             # Prevent stale SPA shells after deploy (old /_nuxt hashes → Nuxt 500).
             proxy_hide_header Cache-Control;
             add_header Cache-Control "no-store" always;
+            add_header Strict-Transport-Security $hsts_value always;
         }
 
         location /health {
             access_log off;
             return 200 "healthy\n";
             add_header Content-Type text/plain;
+            add_header Strict-Transport-Security $hsts_value always;
         }
     }
 
@@ -145,6 +157,7 @@ http {
             proxy_read_timeout 60s;
             proxy_hide_header Cache-Control;
             add_header Cache-Control "no-store" always;
+            add_header Strict-Transport-Security $hsts_value always;
         }
 
         # Hashed build assets — keep Nuxt's immutable Cache-Control.
@@ -169,12 +182,14 @@ http {
             proxy_set_header Connection "upgrade";
             proxy_hide_header Cache-Control;
             add_header Cache-Control "no-store" always;
+            add_header Strict-Transport-Security $hsts_value always;
         }
 
         location /health {
             access_log off;
             return 200 "healthy\n";
             add_header Content-Type text/plain;
+            add_header Strict-Transport-Security $hsts_value always;
         }
     }
 }

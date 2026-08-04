@@ -119,7 +119,8 @@
     "termsLink": "Điều khoản dịch vụ",
     "privacyLink": "Chính sách bảo mật",
     "name": "Tên",
-    "nameRequired": "Nhập tên của bạn."
+    "nameRequired": "Nhập tên của bạn.",
+    "googleUnverifiedExists": "Email này đã có tài khoản nhưng chưa xác minh. Mở liên kết xác minh trong hộp thư (hoặc dùng Quên mật khẩu), rồi liên kết Google trong Cài đặt."
   },
   "settings": {
     "title": "Cài đặt",

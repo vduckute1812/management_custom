@@ -25,6 +25,7 @@ const OAUTH_ERROR_KEYS: Record<string, string> = {
   config: "auth.googleNotConfigured",
   email: "auth.googleEmailUnverified",
   conflict: "auth.googleConflict",
+  unverified: "auth.googleUnverifiedExists",
   auth: "auth.googleAuthRequired",
   failed: "auth.googleFailed",
   google: "auth.googleUpstream",
