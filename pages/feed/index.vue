@@ -403,13 +403,6 @@ async function submitStory() {
               {{ $t("feed.composer.writeAPost") }}
             </button>
           </div>
-          <NuxtLink
-            v-else
-            to="/login"
-            class="hidden shrink-0 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md lg:inline-flex"
-          >
-            {{ $t("empty.login") }}
-          </NuxtLink>
         </div>
       </div>
     </header>
@@ -568,15 +561,9 @@ async function submitStory() {
             "
             illustration="spark"
             :primary-label="
-              auth.isAuthenticatedUi.value
-                ? $t('empty.writeAPost')
-                : $t('empty.login')
+              auth.isAuthenticatedUi.value ? $t('empty.writeAPost') : undefined
             "
-            @primary="
-              auth.isAuthenticatedUi.value
-                ? composerRef?.focus()
-                : navigateTo('/login')
-            "
+            @primary="composerRef?.focus()"
           />
 
           <div v-else class="space-y-5">
@@ -742,13 +729,6 @@ async function submitStory() {
               class="relative mt-2 block w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-white/20"
             >
               {{ $t("manuscript.writeCta") }}
-            </NuxtLink>
-            <NuxtLink
-              v-else
-              to="/login"
-              class="relative mt-4 block w-full rounded-xl bg-white px-3 py-2.5 text-center text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
-            >
-              {{ $t("empty.login") }}
             </NuxtLink>
           </section>
         </aside>

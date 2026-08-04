@@ -211,7 +211,7 @@ async function onDelete() {
                   class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
                   :class="
                     form.scope === MoneyBudgetScope.Overall
-                      ? 'bg-slate-900 text-white ring-slate-900'
+                      ? 'money-chip--active ring-1'
                       : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
                   "
                   :aria-pressed="form.scope === MoneyBudgetScope.Overall"
@@ -224,7 +224,7 @@ async function onDelete() {
                   class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
                   :class="
                     form.scope === MoneyBudgetScope.Category
-                      ? 'bg-slate-900 text-white ring-slate-900'
+                      ? 'money-chip--active ring-1'
                       : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
                   "
                   :aria-pressed="form.scope === MoneyBudgetScope.Category"
