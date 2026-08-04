@@ -429,7 +429,13 @@ function formatDateTime(iso?: string): string {
           {{ $t("admin.subtitle") }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <NuxtLink
+          to="/admin/articles/pending"
+          class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-800"
+        >
+          {{ $t("admin.pendingArticlesLink") }}
+        </NuxtLink>
         <label class="text-xs text-slate-500" for="admin-range">{{
           $t("admin.range")
         }}</label>
