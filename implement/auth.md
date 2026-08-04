@@ -55,7 +55,11 @@ Both auth cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to
 
 Login and refresh set both cookies. Logout revokes the refresh hash server-side and clears cookies.
 
-Cookie-authenticated auth mutations (`refresh`, `logout`, Google unlink) apply a soft same-origin check (`Origin` / `Referer` must match `Host` when a cookie is used) to reduce CSRF risk.
+Cookie-authenticated auth mutations (`refresh`, `logout`, Google unlink, account delete) apply a soft same-origin check (`Origin` / `Referer` must match `Host` when a cookie is used) to reduce CSRF risk.
+
+### Self-service account deletion
+
+Settings → Danger zone opens `DeleteAccountModal`: the user must type their own email and, unless the account is Google-only, their password. `DELETE /api/auth/account` reuses `deleteUser` (MySQL CASCADE for every user-owned table, plus email-targeted queue jobs, R2 sweep including legacy story keys, comment-count recount, and public-feed cache bust — same path as the superadmin delete), then clears auth cookies. The superadmin account cannot delete itself. There is no recycle bin and no grace period — conversations disappear for the other participant too, because a thread cannot exist with one side missing.
 
 ---
 

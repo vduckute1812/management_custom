@@ -381,7 +381,26 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Client CSV/JSON export for ledger, savings goals, and budgets (`utils/moneyExport`, `useMoneyExport`, `MoneyExportMenu`)
 - [x] Vitest for export builders; i18n export labels; docs polish (`money-spec` Sprint 5 as-built)
 
+## Phase 22 — Public legal pages (privacy + terms)
+
+- [x] `types/legal.ts` + `utils/legal/{privacy,terms}.ts` — documents as data (integer `LegalDocId`), authored in `en` + `vi`
+- [x] `composables/useLegalDocument.ts` + `components/LegalDocumentView.vue` — one renderer, TOC, anchors, English fallback notice for `zh-*`
+- [x] `pages/privacy.vue` / `pages/terms.vue` — public, SSR'd (`swr: 3600`), in the sitemap, listed in `llms.txt`
+- [x] Per-page `LanguageSwitcher` (the header one is signed-in only, and the Vietnamese text prevails)
+- [x] `components/AppFooter.vue` on hub + legal pages; signup consent line (`auth.signupConsent`)
+- [x] `legal.*` / `footer.*` chrome strings in all four locales; `tests/legal.test.ts` guards cross-language structure
+- [x] Content matches the install: cookie TTLs, retention windows, processors, admin reach (self-service account deletion added in Phase 23; chat message deletion still missing)
+
+## Phase 23 — Self-service account deletion
+
+- [x] `DELETE /api/auth/account` — typed email confirmation + password re-auth (omitted for Google-only); reuses `deleteUser`; clears cookies; rate-limited 5/min per IP and per email
+- [x] `deleteUser` also clears email-targeted `jobs`, legacy story R2 keys, and the public feed cache (FK CASCADE already covers owned MySQL rows)
+- [x] Settings → Danger zone + `DeleteAccountModal` (client gate in `utils/accountDeletion.ts`); superadmin cannot delete itself
+- [x] Privacy §12–13 and Terms termination updated (EN + VI) to describe the flow; export gap and chat-message deletion still named as missing
+- [x] `tests/account-deletion.test.ts` covers confirmation helpers + Zod schema; `scripts/verify-user-delete-cascade.ts` audits leftovers against MySQL
+
 ### Later
 
+- Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts

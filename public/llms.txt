@@ -8,6 +8,8 @@ Public surfaces are crawlable. Signed-in app routes (tasks, epics, analytics, ad
 
 - [Home](https://dntechx.com/): Public hub for Da Nang TechX.
 - [Feed](https://dntechx.com/feed): Public manuscript feed of community posts and R&D notes.
+- [Privacy Policy](https://dntechx.com/privacy): What the service collects, who processes it, and how long it is kept.
+- [Terms of Service](https://dntechx.com/terms): Rules for using the service, content ownership, and acceptable use.
 - [Sitemap](https://dntechx.com/sitemap.xml): Machine-readable list of indexable URLs.
 - [Robots](https://dntechx.com/robots.txt): Crawl rules for public vs private surfaces.
 

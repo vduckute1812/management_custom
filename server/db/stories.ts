@@ -160,6 +160,26 @@ function rowToStory(
 }
 
 /**
+ * R2 keys on stories owned by this user that may not appear in `uploads`
+ * (legacy rows with `media_storage_key` and a NULL `upload_id`). Union with
+ * `listStorageKeysForUser` before a user hard-delete.
+ */
+export async function listStoryStorageKeysForUser(
+  userId: string,
+): Promise<string[]> {
+  const pool = getPool();
+  const [rows] = await pool.query<
+    (RowDataPacket & { media_storage_key: string | null })[]
+  >(
+    `SELECT media_storage_key
+     FROM stories
+     WHERE user_id = ? AND media_storage_key IS NOT NULL AND media_storage_key <> ''`,
+    [userId],
+  );
+  return rows.map((r) => r.media_storage_key).filter((k): k is string => !!k);
+}
+
+/**
  * Remove expired stories and delete their Cloudflare media when no longer
  * referenced. Returns how many story rows were removed.
  */

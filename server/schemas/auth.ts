@@ -39,6 +39,17 @@ export const resetPasswordBodySchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+/**
+ * Self-service account deletion. `email` is the typed confirmation, so it is
+ * compared against the signed-in account rather than looked up. `password` is
+ * required for accounts that have one — the handler decides, since Google-only
+ * accounts have no hash to check.
+ */
+export const deleteAccountBodySchema = z.object({
+  email: z.string().trim().min(1, "Type your email address to confirm"),
+  password: z.string().min(1).optional(),
+});
+
 const optionalProfileText = z
   .union([z.string(), z.null()])
   .optional()

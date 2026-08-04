@@ -42,7 +42,9 @@
     "sectionMoneyHint": "收支與月度彙總",
     "moneyLedger": "帳本",
     "moneySavings": "儲蓄",
-    "moneyBudgets": "預算"
+    "moneyBudgets": "預算",
+    "privacy": "隱私",
+    "terms": "條款"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -112,7 +114,10 @@
     "googleAuthRequired": "請重新登入後再連結 Google。",
     "googleFailed": "Google 登入失敗，請重試。",
     "googleUpstream": "Google 暫時無法完成登入，請稍後再試。",
-    "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。"
+    "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。",
+    "signupConsent": "建立帳號即表示你同意{terms}與{privacy}。",
+    "termsLink": "服務條款",
+    "privacyLink": "隱私政策"
   },
   "settings": {
     "title": "設定",
@@ -196,6 +201,29 @@
       "formatTasksCsv": "任務 CSV 每個時段一列——多工作階段任務會有多列。標籤以豎線分隔。",
       "formatEpicsCsv": "史詩 CSV 每個史詩一列，含彙總合計。",
       "formatIcs": "日曆（.ics）為每個已排程時段產生一個 VEVENT，為每個有截止日期的任務產生一個 VTODO——可匯入 Apple 日曆、Google 日曆或 Outlook 作為唯讀鏡像。"
+    },
+    "danger": {
+      "title": "危險區域",
+      "subtitle": "對此帳戶的不可撤銷操作。",
+      "body": "刪除帳戶會立即把帳戶及其中的所有資料從伺服器上移除。聊天對話也會在對方那裡消失，因為缺了一方的對話無法存在。",
+      "exportFirst": "想先留一份副本？上面的匯出按鈕包含任務與史詩。",
+      "openButton": "刪除帳戶",
+      "superadminBlocked": "超級管理員帳戶不能刪除自己，否則本站將失去維運者。",
+      "modalTitle": "確定刪除你的帳戶？",
+      "modalIntro": "此操作無法復原。以下內容會同時消失：",
+      "itemTasks": "史詩、任務、時間區塊與計時紀錄",
+      "itemFeed": "貼文、留言、表情回應與限時動態",
+      "itemChat": "對話及其中的媒體檔案——雙方都會消失",
+      "itemMoney": "記帳紀錄、儲蓄目標與預算",
+      "itemUploads": "已上傳的檔案、個人資料與所有登入工作階段",
+      "permanent": "沒有垃圾桶，也沒有緩衝期。維運者不會保留任何副本。",
+      "emailLabel": "請輸入 {email} 以確認",
+      "passwordLabel": "目前密碼",
+      "googleOnlyHint": "此帳戶使用 Google 登入，因此只需輸入正確的電子郵件地址即可確認。",
+      "confirmButton": "刪除我的帳戶",
+      "deleting": "正在刪除…",
+      "deleted": "你的帳戶與資料已被刪除。",
+      "failed": "無法刪除帳戶。"
     },
     "print": {
       "title": "列印",
@@ -1023,7 +1051,11 @@
     "moneySavings": "儲蓄",
     "moneySavingsDescription": "以越南盾追蹤儲蓄目標與存入。",
     "moneyBudgets": "預算",
-    "moneyBudgetsDescription": "越南盾月度支出預算。"
+    "moneyBudgetsDescription": "越南盾月度支出預算。",
+    "privacy": "隱私政策",
+    "privacyDescription": "Da Nang TechX 蒐集哪些資料、由誰處理、保存多久，以及如何申請匯出或刪除。",
+    "terms": "服務條款",
+    "termsDescription": "使用 Da Nang TechX 的規則：使用資格、內容歸屬、可接受使用、內容管理與責任限制。"
   },
   "categories": {
     "electronics": "電子",
@@ -1354,5 +1386,22 @@
         "deleteBody": "將移除本月該限額。"
       }
     }
+  },
+  "legal": {
+    "lastUpdated": "最後更新於 {date}",
+    "contents": "本頁目錄",
+    "languageNotice": "本文件以英文與越南文發布。若兩種文本有差異，以越南文版本為準。",
+    "languageFallback": "本文件尚未翻譯為你的介面語言，因此顯示英文文本。",
+    "contactHeading": "還有疑問？",
+    "contactBody": "請寫信至 {email}，營運者會回覆你。",
+    "seePrivacy": "閱讀隱私政策",
+    "seeTerms": "閱讀服務條款",
+    "backHome": "返回首頁",
+    "readIn": "閱讀本文件的語言"
+  },
+  "footer": {
+    "rights": "保留一切權利。",
+    "contact": "聯絡",
+    "aria": "法律與聯絡連結"
   }
 }

@@ -66,6 +66,23 @@ export async function verifyPassword(
   return bcrypt.compare(password, hash);
 }
 
+/**
+ * Typed-confirmation check for irreversible account actions: does the string
+ * the user typed name their own account? Case and surrounding whitespace are
+ * ignored — the gate exists to prove intent, not to test keystrokes.
+ */
+export function emailConfirmationMatches(
+  typed: unknown,
+  accountEmail: unknown,
+): boolean {
+  if (typeof typed !== "string" || typeof accountEmail !== "string") {
+    return false;
+  }
+  const a = typed.trim().toLowerCase();
+  const b = accountEmail.trim().toLowerCase();
+  return a.length > 0 && a === b;
+}
+
 // -------------------------------------------------------------------------
 // Access tokens (JWT)
 // -------------------------------------------------------------------------

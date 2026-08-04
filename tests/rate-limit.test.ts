@@ -98,6 +98,14 @@ describe("resolvePolicy", () => {
       limit: 5,
       windowMs: 60_000,
     });
+    expect(resolveAccountPolicy("/api/auth/account")).toEqual({
+      limit: 5,
+      windowMs: 60_000,
+    });
+    expect(resolvePolicy("/api/auth/account")).toEqual({
+      limit: 5,
+      windowMs: 60_000,
+    });
     expect(resolveAccountPolicy("/api/tasks")).toBeNull();
   });
 });

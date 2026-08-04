@@ -7,6 +7,7 @@ export {
   verifyEmailBodySchema,
   forgotPasswordBodySchema,
   resetPasswordBodySchema,
+  deleteAccountBodySchema,
   profilePatchBodySchema,
   userDirectoryQuerySchema,
 } from "./auth";

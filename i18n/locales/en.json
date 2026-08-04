@@ -42,7 +42,9 @@
     "sectionMoneyHint": "Expenses and month totals",
     "moneyLedger": "Ledger",
     "moneySavings": "Savings",
-    "moneyBudgets": "Budgets"
+    "moneyBudgets": "Budgets",
+    "privacy": "Privacy",
+    "terms": "Terms"
   },
   "auth": {
     "signInTitle": "Sign in to continue",
@@ -112,7 +114,10 @@
     "googleAuthRequired": "Sign in again to link Google.",
     "googleFailed": "Google sign-in failed. Try again.",
     "googleUpstream": "Google could not complete sign-in. Try again in a moment.",
-    "googleAccountUseGoogle": "This account uses Google sign-in. Continue with Google instead."
+    "googleAccountUseGoogle": "This account uses Google sign-in. Continue with Google instead.",
+    "signupConsent": "By creating an account you agree to the {terms} and the {privacy}.",
+    "termsLink": "Terms of Service",
+    "privacyLink": "Privacy Policy"
   },
   "settings": {
     "title": "Settings",
@@ -196,6 +201,29 @@
       "formatTasksCsv": "Tasks CSV is one row per time block — tasks with multiple sessions get multiple rows. Tags are pipe-separated.",
       "formatEpicsCsv": "Epics CSV is one row per epic with rolled-up totals.",
       "formatIcs": "Calendar (.ics) emits one VEVENT per scheduled time block and one VTODO per task with a due date — drop the file into Apple Calendar, Google Calendar, or Outlook for a read-only mirror."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "subtitle": "Irreversible actions for this account.",
+      "body": "Deleting your account removes it and everything in it from the server straight away. Conversations disappear for the other person too, because a thread cannot exist with one side missing.",
+      "exportFirst": "Want a copy of your work first? The export buttons above cover tasks and epics.",
+      "openButton": "Delete account",
+      "superadminBlocked": "The superadmin account cannot delete itself — the install would lose its operator.",
+      "modalTitle": "Delete your account?",
+      "modalIntro": "This is permanent. Everything below goes at once:",
+      "itemTasks": "Epics, tasks, time blocks and timer history",
+      "itemFeed": "Posts, comments, reactions and stories",
+      "itemChat": "Conversations and their media — for both participants",
+      "itemMoney": "Money ledger, savings goals and budgets",
+      "itemUploads": "Uploaded files, your profile and every signed-in session",
+      "permanent": "There is no recycle bin and no grace period. The operator keeps no copy.",
+      "emailLabel": "Type {email} to confirm",
+      "passwordLabel": "Current password",
+      "googleOnlyHint": "This account signs in with Google, so the typed address is the only confirmation needed.",
+      "confirmButton": "Delete my account",
+      "deleting": "Deleting…",
+      "deleted": "Your account and its data are gone.",
+      "failed": "Could not delete the account."
     },
     "print": {
       "title": "Print",
@@ -1023,7 +1051,11 @@
     "moneySavings": "Savings",
     "moneySavingsDescription": "Track savings goals and contributions in VND.",
     "moneyBudgets": "Budgets",
-    "moneyBudgetsDescription": "Monthly spending budgets in VND."
+    "moneyBudgetsDescription": "Monthly spending budgets in VND.",
+    "privacy": "Privacy Policy",
+    "privacyDescription": "What Da Nang TechX collects, who processes it, how long it is kept, and how to request an export or deletion.",
+    "terms": "Terms of Service",
+    "termsDescription": "Rules for using Da Nang TechX: eligibility, content ownership, acceptable use, moderation, and liability."
   },
   "categories": {
     "electronics": "Electronics",
@@ -1354,5 +1386,22 @@
         "deleteBody": "This removes the limit for this month."
       }
     }
+  },
+  "legal": {
+    "lastUpdated": "Last updated {date}",
+    "contents": "On this page",
+    "languageNotice": "This document is published in English and Vietnamese. If the two texts differ, the Vietnamese version prevails.",
+    "languageFallback": "This document has not been translated into your interface language yet, so the English text is shown.",
+    "contactHeading": "Still have a question?",
+    "contactBody": "Write to {email} and the operator will answer.",
+    "seePrivacy": "Read the Privacy Policy",
+    "seeTerms": "Read the Terms of Service",
+    "backHome": "Back to home",
+    "readIn": "Read this document in"
+  },
+  "footer": {
+    "rights": "All rights reserved.",
+    "contact": "Contact",
+    "aria": "Legal and contact links"
   }
 }

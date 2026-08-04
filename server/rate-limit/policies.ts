@@ -13,6 +13,7 @@ export const ROUTE_POLICIES: Array<{
   limit: number;
   windowMs: number;
 }> = [
+  { prefix: "/api/auth/account", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/google/unlink", limit: 10, windowMs: 60_000 },
   { prefix: "/api/auth/google", limit: 20, windowMs: 60_000 },
   { prefix: "/api/auth/login", limit: 10, windowMs: 60_000 },
@@ -36,6 +37,7 @@ export const ACCOUNT_POLICIES: Array<{
   { prefix: "/api/auth/login", limit: 10, windowMs: 60_000 },
   { prefix: "/api/auth/signup", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
+  { prefix: "/api/auth/account", limit: 5, windowMs: 60_000 },
 ];
 
 export function resolvePolicy(path: string): RateLimitPolicy {

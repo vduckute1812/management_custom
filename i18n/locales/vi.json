@@ -42,7 +42,9 @@
     "sectionMoneyHint": "Chi tiêu và tổng theo tháng",
     "moneyLedger": "Sổ thu chi",
     "moneySavings": "Tiết kiệm",
-    "moneyBudgets": "Ngân sách"
+    "moneyBudgets": "Ngân sách",
+    "privacy": "Bảo mật",
+    "terms": "Điều khoản"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -112,7 +114,10 @@
     "googleAuthRequired": "Đăng nhập lại để liên kết Google.",
     "googleFailed": "Đăng nhập Google thất bại. Thử lại.",
     "googleUpstream": "Google chưa hoàn tất đăng nhập. Thử lại sau giây lát.",
-    "googleAccountUseGoogle": "Tài khoản này dùng đăng nhập Google. Hãy chọn Tiếp tục với Google."
+    "googleAccountUseGoogle": "Tài khoản này dùng đăng nhập Google. Hãy chọn Tiếp tục với Google.",
+    "signupConsent": "Khi tạo tài khoản, bạn đồng ý với {terms} và {privacy}.",
+    "termsLink": "Điều khoản dịch vụ",
+    "privacyLink": "Chính sách bảo mật"
   },
   "settings": {
     "title": "Cài đặt",
@@ -196,6 +201,29 @@
       "formatTasksCsv": "CSV công việc có một hàng cho mỗi khối thời gian — công việc nhiều phiên sẽ có nhiều hàng. Thẻ cách nhau bằng dấu |.",
       "formatEpicsCsv": "CSV epic có một hàng mỗi epic với tổng hợp cuộn lên.",
       "formatIcs": "Lịch (.ics) tạo một VEVENT cho mỗi khối thời gian đã lên lịch và một VTODO cho mỗi công việc có hạn — kéo vào Apple Calendar, Google Calendar hoặc Outlook để xem bản đọc-only."
+    },
+    "danger": {
+      "title": "Vùng nguy hiểm",
+      "subtitle": "Những hành động không thể hoàn tác với tài khoản này.",
+      "body": "Xoá tài khoản sẽ lập tức gỡ tài khoản và toàn bộ dữ liệu trong đó khỏi máy chủ. Các cuộc trò chuyện cũng biến mất với người còn lại, vì một luồng tin nhắn không thể tồn tại khi thiếu một bên.",
+      "exportFirst": "Muốn giữ một bản trước khi xoá? Các nút xuất dữ liệu ở trên bao gồm task và epic.",
+      "openButton": "Xoá tài khoản",
+      "superadminBlocked": "Tài khoản superadmin không thể tự xoá — hệ thống sẽ mất người vận hành.",
+      "modalTitle": "Xoá tài khoản của bạn?",
+      "modalIntro": "Việc này là vĩnh viễn. Toàn bộ những phần dưới đây sẽ mất cùng lúc:",
+      "itemTasks": "Epic, task, khối thời gian và lịch sử bấm giờ",
+      "itemFeed": "Bài viết, bình luận, biểu cảm và story",
+      "itemChat": "Các cuộc trò chuyện và media trong đó — với cả hai người",
+      "itemMoney": "Sổ thu chi, mục tiêu tiết kiệm và ngân sách",
+      "itemUploads": "Tệp đã tải lên, hồ sơ và mọi phiên đăng nhập",
+      "permanent": "Không có thùng rác và không có thời gian chờ. Người vận hành không giữ bản sao nào.",
+      "emailLabel": "Nhập {email} để xác nhận",
+      "passwordLabel": "Mật khẩu hiện tại",
+      "googleOnlyHint": "Tài khoản này đăng nhập bằng Google, nên chỉ cần nhập đúng địa chỉ email để xác nhận.",
+      "confirmButton": "Xoá tài khoản của tôi",
+      "deleting": "Đang xoá…",
+      "deleted": "Tài khoản và dữ liệu của bạn đã bị xoá.",
+      "failed": "Không xoá được tài khoản."
     },
     "print": {
       "title": "In",
@@ -1023,7 +1051,11 @@
     "moneySavings": "Tiết kiệm",
     "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp bằng VND.",
     "moneyBudgets": "Ngân sách",
-    "moneyBudgetsDescription": "Ngân sách chi tiêu tháng bằng VND."
+    "moneyBudgetsDescription": "Ngân sách chi tiêu tháng bằng VND.",
+    "privacy": "Chính sách bảo mật",
+    "privacyDescription": "Da Nang TechX thu thập những gì, ai xử lý dữ liệu, lưu trong bao lâu, và cách yêu cầu xuất hoặc xoá dữ liệu.",
+    "terms": "Điều khoản dịch vụ",
+    "termsDescription": "Quy tắc sử dụng Da Nang TechX: điều kiện tham gia, quyền với nội dung, sử dụng hợp lệ, kiểm duyệt và trách nhiệm."
   },
   "categories": {
     "electronics": "Điện tử",
@@ -1354,5 +1386,22 @@
         "deleteBody": "Sẽ gỡ hạn mức tháng này."
       }
     }
+  },
+  "legal": {
+    "lastUpdated": "Cập nhật lần cuối {date}",
+    "contents": "Nội dung trang",
+    "languageNotice": "Văn bản này được công bố bằng tiếng Anh và tiếng Việt. Nếu hai bản có khác biệt, bản tiếng Việt được ưu tiên áp dụng.",
+    "languageFallback": "Văn bản này chưa được dịch sang ngôn ngữ giao diện của bạn, nên bản tiếng Anh được hiển thị.",
+    "contactHeading": "Vẫn còn thắc mắc?",
+    "contactBody": "Hãy viết thư tới {email}, chủ sở hữu sẽ phản hồi.",
+    "seePrivacy": "Đọc Chính sách bảo mật",
+    "seeTerms": "Đọc Điều khoản dịch vụ",
+    "backHome": "Về trang chủ",
+    "readIn": "Đọc văn bản này bằng"
+  },
+  "footer": {
+    "rights": "Bảo lưu mọi quyền.",
+    "contact": "Liên hệ",
+    "aria": "Liên kết pháp lý và liên hệ"
   }
 }

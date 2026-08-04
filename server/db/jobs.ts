@@ -1,4 +1,9 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
+import type {
+  Pool,
+  PoolConnection,
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
@@ -273,6 +278,21 @@ export async function countJobsByStatus(): Promise<{
     else if (status === JobStatus.Dead) out.dead = n;
   }
   return out;
+}
+
+/** Drop every job whose payload targets this email (verify / reset / send). */
+export async function deleteJobsForRecipientEmail(
+  email: string,
+  executor: Pool | PoolConnection = getPool(),
+): Promise<number> {
+  const normalised = email.trim().toLowerCase();
+  if (!normalised) return 0;
+  const [result] = await executor.query<ResultSetHeader>(
+    `DELETE FROM jobs
+     WHERE LOWER(JSON_UNQUOTE(JSON_EXTRACT(payload, '$.to'))) = ?`,
+    [normalised],
+  );
+  return result.affectedRows ?? 0;
 }
 
 /** Drop old terminal jobs to keep the table lean. */

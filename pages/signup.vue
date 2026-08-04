@@ -245,6 +245,27 @@ async function onSubmit() {
           {{ busy ? $t("auth.creatingAccount") : $t("auth.createAccount") }}
         </button>
 
+        <p class="text-[11px] leading-5 text-slate-500">
+          <i18n-t keypath="auth.signupConsent" tag="span">
+            <template #terms>
+              <NuxtLink
+                to="/terms"
+                class="font-medium text-brand-700 hover:underline"
+              >
+                {{ $t("auth.termsLink") }}
+              </NuxtLink>
+            </template>
+            <template #privacy>
+              <NuxtLink
+                to="/privacy"
+                class="font-medium text-brand-700 hover:underline"
+              >
+                {{ $t("auth.privacyLink") }}
+              </NuxtLink>
+            </template>
+          </i18n-t>
+        </p>
+
         <div class="flex items-center justify-between text-xs">
           <NuxtLink to="/login" class="text-brand-600 hover:underline">
             {{ $t("auth.alreadyHaveAccount") }}
