@@ -449,7 +449,7 @@ Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.
 
 Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Migration `0017` adds message reactions as `TINYINT`. Migration `0018` converts legacy post/story `ENUM` reaction strings to the same `TINYINT` `ReactionType` constants. Migration `0019` converts post visibility/format and upload/attachment kind to `TINYINT` consts. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
-Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat.ts`. Deleting a user cascades conversations and messages.
+Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat.ts` (barrel) → `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` (+ `chatShared`). Deleting a user cascades conversations and messages.
 
 ---
 
@@ -470,13 +470,15 @@ Wire DTOs: `~/types/money.ts`. Domain SQL: `server/db/money.ts`. Deleting a user
 | `money_savings_goals`         | Goals: `title`, `target_minor`, `status` (`Active=0`/`Completed=1`/`Archived=2`), optional `target_date`/`note` |
 | `money_savings_contributions` | Deposits toward a goal (`amount_minor` ≥ 0); cascade-delete with goal                                           |
 
-Saved amount is `SUM(contributions)` (derived on read). Domain SQL: `server/db/moneySavings.ts`.
+Saved amount is `SUM(contributions)` derived on read via a `LEFT JOIN` aggregate (not a correlated subquery per goal). Domain SQL: `server/db/moneySavings.ts`.
 
 ## Money budgets (migration 0026)
 
 | Table           | Purpose                                                                                                                                                                               |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `money_budgets` | Monthly limits: `budget_ym` (YYYY-MM), `scope` (`Overall=0` / `Category=1`), optional builtin `category` **or** `user_category_id`, `amount_minor`; spent derived from ledger on read |
+
+Month copy (`copyMoneyBudgetsFromMonth`) uses one multi-row `INSERT … ON DUPLICATE KEY UPDATE` on `(user_id, budget_ym, slot_key)`, skipping archived custom categories.
 
 ## Money user categories (migration 0027)
 

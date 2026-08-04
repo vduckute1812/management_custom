@@ -83,13 +83,16 @@ export async function listMoneySavingsGoals(
   userId: string,
 ): Promise<MoneySavingsGoal[]> {
   const pool = getPool();
+  // Aggregate via LEFT JOIN once (not a correlated SUM per goal row).
   const [rows] = await pool.query<GoalRow[]>(
     `SELECT g.*,
-       COALESCE((
-         SELECT SUM(c.amount_minor) FROM money_savings_contributions c
-         WHERE c.goal_id = g.id
-       ), 0) AS saved_minor
+       COALESCE(s.saved_minor, 0) AS saved_minor
      FROM money_savings_goals g
+     LEFT JOIN (
+       SELECT goal_id, SUM(amount_minor) AS saved_minor
+         FROM money_savings_contributions
+        GROUP BY goal_id
+     ) s ON s.goal_id = g.id
      WHERE g.user_id = ?
      ORDER BY
        CASE g.status WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END,
@@ -107,14 +110,17 @@ export async function getMoneySavingsGoalById(
   const pool = getPool();
   const [rows] = await pool.query<GoalRow[]>(
     `SELECT g.*,
-       COALESCE((
-         SELECT SUM(c.amount_minor) FROM money_savings_contributions c
-         WHERE c.goal_id = g.id
-       ), 0) AS saved_minor
+       COALESCE(s.saved_minor, 0) AS saved_minor
      FROM money_savings_goals g
+     LEFT JOIN (
+       SELECT goal_id, SUM(amount_minor) AS saved_minor
+         FROM money_savings_contributions
+        WHERE goal_id = ?
+        GROUP BY goal_id
+     ) s ON s.goal_id = g.id
      WHERE g.user_id = ? AND g.id = ?
      LIMIT 1`,
-    [userId, id],
+    [id, userId, id],
   );
   const row = rows[0];
   return row ? rowToGoal(row) : null;

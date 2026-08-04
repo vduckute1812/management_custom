@@ -304,6 +304,12 @@ export async function deleteMoneyBudget(
   return (result.affectedRows ?? 0) > 0;
 }
 
+/**
+ * Copy every usable budget slot from one month into another in a single
+ * multi-row `INSERT … ON DUPLICATE KEY UPDATE` (unique on
+ * `(user_id, budget_ym, slot_key)`). Skips rows whose custom category is
+ * missing or archived — same as the old per-row upsert path.
+ */
 export async function copyMoneyBudgetsFromMonth(
   userId: string,
   fromYearMonth: string,
@@ -312,24 +318,49 @@ export async function copyMoneyBudgetsFromMonth(
   if (fromYearMonth === toYearMonth) return 0;
   const pool = getPool();
   const [source] = await pool.query<BudgetRow[]>(
-    `SELECT * FROM money_budgets WHERE user_id = ? AND budget_ym = ?`,
+    `SELECT s.*
+     FROM money_budgets s
+     LEFT JOIN money_user_categories uc
+       ON uc.id = s.user_category_id AND uc.user_id = s.user_id
+     WHERE s.user_id = ? AND s.budget_ym = ?
+       AND (
+         s.user_category_id IS NULL
+         OR (uc.id IS NOT NULL AND uc.archived_at IS NULL)
+       )`,
     [userId, fromYearMonth],
   );
   if (!source.length) return 0;
-  let copied = 0;
+
+  const now = nowISO();
+  const nowDb = isoToDB(now);
+  const values: unknown[] = [];
+  const placeholders: string[] = [];
   for (const row of source) {
-    try {
-      await upsertMoneyBudget(userId, {
-        yearMonth: toYearMonth,
-        scope: toMoneyBudgetScope(row.scope),
-        category: row.category != null ? toMoneyCategory(row.category) : null,
-        userCategoryId: row.user_category_id,
-        amountMinor: Number(row.amount_minor),
-      });
-      copied += 1;
-    } catch {
-      // Skip unusable rows.
-    }
+    placeholders.push("(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    values.push(
+      generateId("mbd"),
+      userId,
+      toYearMonth,
+      row.scope,
+      row.category,
+      row.user_category_id,
+      Number(row.amount_minor),
+      nowDb,
+      nowDb,
+    );
   }
-  return copied;
+
+  await pool.query<ResultSetHeader>(
+    `INSERT INTO money_budgets
+       (id, user_id, budget_ym, scope, category, user_category_id,
+        amount_minor, created_at, updated_at)
+     VALUES ${placeholders.join(", ")}
+     ON DUPLICATE KEY UPDATE
+       amount_minor = VALUES(amount_minor),
+       updated_at = VALUES(updated_at)`,
+    values,
+  );
+
+  // Each source row maps to one unique slot in the target month.
+  return source.length;
 }

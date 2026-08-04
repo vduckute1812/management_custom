@@ -40,3 +40,11 @@ export function getPool(): Pool {
   });
   return _pool;
 }
+
+/** Close the lazy pool (integration tests / CLI teardown). Safe to call twice. */
+export async function closePool(): Promise<void> {
+  if (!_pool) return;
+  const pool = _pool;
+  _pool = null;
+  await pool.end();
+}

@@ -94,13 +94,17 @@ export default defineNitroPlugin((nitroApp) => {
             (err as Error)?.message || err,
           );
         }
-        // Safety net for posts.comment_count drift. Full-table rewrite — run
-        // every ~30 minutes (15 × 2 min ticks), not on every sweep.
+        // Safety net for posts.comment_count drift. Only drifted rows are
+        // rewritten (JOIN vs live COUNT). Run every ~30 minutes
+        // (15 × 2 min ticks), not on every sweep.
         maintenanceTicks += 1;
         if (maintenanceTicks % 15 === 0) {
           try {
             const { recountCommentCounts } = await import("../db/postComments");
-            await recountCommentCounts();
+            const fixed = await recountCommentCounts();
+            if (fixed > 0) {
+              console.info(`[queue] comment_count drift fixed posts=${fixed}`);
+            }
           } catch (err) {
             console.warn(
               "[queue] comment_count recount failed:",
