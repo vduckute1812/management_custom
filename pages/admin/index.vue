@@ -456,6 +456,18 @@ function formatDateTime(iso?: string): string {
 
       <AdminSystemMonitor v-if="isSuperAdmin" />
 
+      <NuxtLink
+        to="/admin/articles/pending"
+        class="block bg-white border border-slate-200 rounded-xl px-4 py-3 hover:border-slate-300 hover:bg-slate-50/80 transition-colors"
+      >
+        <p class="text-sm font-semibold text-slate-900">
+          {{ $t("admin.pendingArticlesLink") }}
+        </p>
+        <p class="text-xs text-slate-500 mt-0.5">
+          {{ $t("admin.pendingArticlesLinkHint") }}
+        </p>
+      </NuxtLink>
+
       <div v-if="stats" class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="bg-white border border-slate-200 rounded-xl px-4 py-3">
           <p class="text-[11px] uppercase tracking-wider text-slate-400">

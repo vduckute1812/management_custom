@@ -23,6 +23,8 @@ export const JobTypes = {
   EmailPasswordReset: "email.passwordReset",
   CacheInvalidate: "cache.invalidate",
   MediaPurgeExpired: "media.purgeExpired",
+  ArticlesFetch: "articles.fetch",
+  ArticlesRewrite: "articles.rewrite",
 } as const;
 
 export type JobType = (typeof JobTypes)[keyof typeof JobTypes];
@@ -143,6 +145,33 @@ export async function processJob(job: JobRow): Promise<void> {
           `[queue] media.purgeExpired stories=${result.stories} uploads=${result.uploads}`,
         );
       }
+      return;
+    }
+    case JobTypes.ArticlesFetch: {
+      const { runArticleFetchJob } =
+        await import("~/server/services/articleService");
+      const result = await runArticleFetchJob();
+      console.info(
+        `[queue] articles.fetch fetched=${result.fetched} inserted=${result.inserted} skipped=${result.skipped} rewriteQueued=${result.rewriteQueued} errors=${result.errors.length}`,
+      );
+      for (const err of result.errors) {
+        console.warn(
+          `[queue] articles.fetch source=${err.source}: ${err.message}`,
+        );
+      }
+      return;
+    }
+    case JobTypes.ArticlesRewrite: {
+      const articleId = String(job.payload.articleId || "");
+      if (!articleId) {
+        throw new Error("articles.rewrite: missing articleId");
+      }
+      const { runArticleRewriteJob } =
+        await import("~/server/services/articleService");
+      const article = await runArticleRewriteJob(articleId);
+      console.info(
+        `[queue] articles.rewrite id=${article.id} status=${article.status}`,
+      );
       return;
     }
     default:

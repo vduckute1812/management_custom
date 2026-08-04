@@ -51,3 +51,11 @@ export {
   moneyBudgetsCopyBodySchema,
   moneyUserCategoryUpsertBodySchema,
 } from "./money";
+
+export {
+  pendingArticlesQuerySchema,
+  pendingArticlePatchBodySchema,
+  pendingArticleApproveBodySchema,
+  pendingArticleRejectBodySchema,
+  pendingArticleFetchBodySchema,
+} from "./article";

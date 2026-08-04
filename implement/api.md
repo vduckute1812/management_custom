@@ -40,19 +40,20 @@ Implementation: `server/rate-limit/` module (policies, memory store with optiona
 
 ## Enum encoding
 
-Integer wire enums (TS code, JSON, MySQL `TINYINT UNSIGNED`) cover task/epic status & priority, recurrence, user role, `ReactionType`, `ChatMessageKind`, post visibility/format, and upload kind. Request bodies for these fields must send numbers; the server rejects string values with `400`.
+Integer wire enums (TS code, JSON, MySQL `TINYINT UNSIGNED`) cover task/epic status & priority, recurrence, user role, `ReactionType`, `ChatMessageKind`, post visibility/format, upload kind, and pending-article review status. Request bodies for these fields must send numbers; the server rejects string values with `400`.
 
-| Field             | 0        | 1            | 2            | 3       | 4       | 5       |
-| ----------------- | -------- | ------------ | ------------ | ------- | ------- | ------- |
-| `status`          | `Todo`   | `InProgress` | `Done`       |         |         |         |
-| `priority`        | `Low`    | `Normal`     | `High`       |         |         |         |
-| `recurrence.rule` | `Daily`  | `Weekly`     | `Monthly`    |         |         |         |
-| `role`            | `Normal` | `Admin`      | `Superadmin` |         |         |         |
-| `ReactionType`    | `Like`   | `Love`       | `Haha`       | `Wow`   | `Sad`   | `Angry` |
-| `ChatMessageKind` | `Text`   | `Emoji`      | `Sticker`    | `Image` | `Audio` |         |
-| `PostVisibility`  | `Public` | `Private`    | `Shared`     |         |         |         |
-| `PostFormat`      | `Update` | `Manuscript` |              |         |         |         |
-| `UploadKind`      | `Image`  | `Document`   | `Audio`      |         |         |         |
+| Field             | 0        | 1                 | 2            | 3          | 4       | 5       |
+| ----------------- | -------- | ----------------- | ------------ | ---------- | ------- | ------- |
+| `status`          | `Todo`   | `InProgress`      | `Done`       |            |         |         |
+| `priority`        | `Low`    | `Normal`          | `High`       |            |         |         |
+| `recurrence.rule` | `Daily`  | `Weekly`          | `Monthly`    |            |         |         |
+| `role`            | `Normal` | `Admin`           | `Superadmin` |            |         |         |
+| article `status`  | `Draft`  | `PendingApproval` | `Approved`   | `Rejected` |         |         |
+| `ReactionType`    | `Like`   | `Love`            | `Haha`       | `Wow`      | `Sad`   | `Angry` |
+| `ChatMessageKind` | `Text`   | `Emoji`           | `Sticker`    | `Image`    | `Audio` |         |
+| `PostVisibility`  | `Public` | `Private`         | `Shared`     |            |         |         |
+| `PostFormat`      | `Update` | `Manuscript`      |              |            |         |         |
+| `UploadKind`      | `Image`  | `Document`        | `Audio`      |            |         |         |
 
 Some API fields are still intentional **string tokens** because they are presentational/open tokens: `fontFamily`, `textColor`, sticker `category`. New closed domains must use integer consts — see [`database.md`](./database.md#integer-enums-end-to-end).
 
@@ -100,15 +101,24 @@ Details: [`architecture.md`](./architecture.md#request-validation--services).
 
 ## Admin (role ≥ 1)
 
-| Method   | Endpoint                    | Description                                                                                                                                                                                                            |
-| -------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/admin/users`          | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
-| `GET`    | `/api/admin/stats?days=30`  | System-wide totals + daily-hours series + status mix. Query `days` clamped `1..365`, default `30`.                                                                                                                     |
-| `GET`    | `/api/admin/queue`          | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                   |
-| `GET`    | `/api/admin/system`         | **Superadmin only.** Live ops snapshot: process RAM/CPU, container memory/disk, DB + readiness + Redis latency, migrations, cache driver, job queue.                                                                   |
-| `GET`    | `/api/admin/system/logs`    | **Superadmin only.** Recent in-process console lines from the app container (ring buffer; not sibling containers).                                                                                                     |
-| `POST`   | `/api/admin/users/:id/role` | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`400`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
-| `DELETE` | `/api/admin/users/:id`      | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
+| Method   | Endpoint                                     | Description                                                                                                                                                                                                            |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/admin/users`                           | Per-user summary: counts of tasks/epics, hours logged, last activity.                                                                                                                                                  |
+| `GET`    | `/api/admin/stats?days=30`                   | System-wide totals + daily-hours series + status mix. Query `days` clamped `1..365`, default `30`.                                                                                                                     |
+| `GET`    | `/api/admin/queue`                           | Cache driver + job-queue depth snapshot (`pending` / `processing` / `completed` / `dead`). See [`cache-queue.md`](./cache-queue.md).                                                                                   |
+| `GET`    | `/api/admin/system`                          | **Superadmin only.** Live ops snapshot: process RAM/CPU, container memory/disk, DB + readiness + Redis latency, migrations, cache driver, job queue.                                                                   |
+| `GET`    | `/api/admin/system/logs`                     | **Superadmin only.** Recent in-process console lines from the app container (ring buffer; not sibling containers).                                                                                                     |
+| `POST`   | `/api/admin/users/:id/role`                  | Body `{ role: 0 \| 1 }` (`Normal` or `Admin`). Refuses to demote the last admin-or-superadmin, refuses to target a `superadmin` user (`400`), and refuses `role: 2` outright (`400`) — `superadmin` is bootstrap-only. |
+| `DELETE` | `/api/admin/users/:id`                       | **Superadmin only.** Permanently deletes the user and cascaded data.                                                                                                                                                   |
+| `GET`    | `/api/admin/articles/pending`                | List pipeline articles. Query: `status` (int, default `1` pending_approval), `categoryId`, `createdFrom`/`createdTo` (`YYYY-MM-DD`), `limit`, `offset`.                                                                |
+| `POST`   | `/api/admin/articles/pending/fetch`          | Manually enqueue `articles.fetch` (`{ force?: boolean }`).                                                                                                                                                             |
+| `GET`    | `/api/admin/articles/pending/:id`            | Full pending article (original + rewrite).                                                                                                                                                                             |
+| `PATCH`  | `/api/admin/articles/pending/:id`            | Edit `rewrittenTitle` / `rewrittenContent` / `excerpt` / `categoryId`.                                                                                                                                                 |
+| `POST`   | `/api/admin/articles/pending/:id/approve`    | Approve & publish as public manuscript; optional body overrides rewrite/category.                                                                                                                                      |
+| `POST`   | `/api/admin/articles/pending/:id/reject`     | Reject (`{ delete?: boolean }` to delete the row).                                                                                                                                                                     |
+| `POST`   | `/api/admin/articles/pending/:id/regenerate` | Re-queue AI rewrite (`articles.rewrite`).                                                                                                                                                                              |
+
+Admin UI: `/admin/articles/pending` (list) and `/admin/articles/pending/:id` (side-by-side review).
 
 ---
 

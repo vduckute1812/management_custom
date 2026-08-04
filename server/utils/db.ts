@@ -33,6 +33,7 @@
  *   - uploads.ts               — Cloudflare R2 uploads for posts/stories
  *   - stories.ts               — 24h ephemeral stories
  *   - jobs.ts                  — Durable background job queue (email, cache bust)
+ *   - pendingArticles.ts       — AI content pipeline drafts awaiting admin review
  *   - chat.ts                  — Barrel: re-exports all chat sub-modules below
  *   - chatShared.ts            — Shared row interfaces, mappers, helpers (internal)
  *   - chatConversations.ts     — listConversations, getOrCreateDirectConversation, getPeerUserId
@@ -69,6 +70,7 @@ export * from "../db/categories";
 export * from "../db/uploads";
 export * from "../db/stories";
 export * from "../db/jobs";
+export * from "../db/pendingArticles";
 export * from "../db/chat";
 export * from "../db/money";
 export * from "../db/moneySavings";

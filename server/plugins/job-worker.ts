@@ -112,6 +112,17 @@ export default defineNitroPlugin((nitroApp) => {
             );
           }
         }
+        // Daily article pipeline — enqueue once after ARTICLES_FETCH_HOUR_UTC.
+        try {
+          const { maybeScheduleDailyArticleFetch } =
+            await import("../services/articleService");
+          await maybeScheduleDailyArticleFetch();
+        } catch (err) {
+          console.warn(
+            "[queue] article fetch schedule failed:",
+            (err as Error)?.message || err,
+          );
+        }
       }
 
       const job = await claimNextJob(workerId);

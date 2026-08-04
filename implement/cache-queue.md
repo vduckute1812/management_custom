@@ -122,16 +122,21 @@ cannot double-run the same job.
 
 ### Job types
 
-| Type                  | Payload                        | Handler                                                |
-| --------------------- | ------------------------------ | ------------------------------------------------------ |
-| `email.verification`  | `{ to, token }`                | `sendVerificationEmail`                                |
-| `email.passwordReset` | `{ to, token }`                | `sendPasswordResetEmail`                               |
-| `email.send`          | `{ to, subject, text, html? }` | `sendMail`                                             |
-| `cache.invalidate`    | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                  |
-| `media.purgeExpired`  | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads) |
+| Type                  | Payload                        | Handler                                                               |
+| --------------------- | ------------------------------ | --------------------------------------------------------------------- |
+| `email.verification`  | `{ to, token }`                | `sendVerificationEmail`                                               |
+| `email.passwordReset` | `{ to, token }`                | `sendPasswordResetEmail`                                              |
+| `email.send`          | `{ to, subject, text, html? }` | `sendMail`                                                            |
+| `cache.invalidate`    | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                                 |
+| `media.purgeExpired`  | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads)                |
+| `articles.fetch`      | `{ force?: boolean }`          | RSS/ArXiv fetch → insert `pending_articles` drafts → enqueue rewrites |
+| `articles.rewrite`    | `{ articleId }`                | Gemini/OpenAI storytelling rewrite → `pending_approval`               |
+
+Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleDailyArticleFetch()` after `ARTICLES_FETCH_HOUR_UTC` (default `2`) when no completed fetch exists for the UTC day. Env: `ARTICLES_FETCH_*`, `LLM_PROVIDER`, `GEMINI_*` / `OPENAI_*`.
 
 Enqueue helpers live in `server/utils/queue.ts`
 (`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
+Domain helpers for the article pipeline live in `server/services/articleService.ts`.
 
 ### Worker
 
