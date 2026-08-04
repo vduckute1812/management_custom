@@ -24,7 +24,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                            |
 | [`money-spec.md`](./money-spec.md)             | Feature spec for Money (ledger, savings, budgets, client export).                                           |
 | [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, Nuxt 4.5 / Node 26, deploy prune).      |
-| [`ci-cd.md`](./ci-cd.md)                       | Raspberry Pi self-hosted deploy, Docker npm 12 image, auto-build on `master`, rollback + prune rules.       |
+| [`ci-cd.md`](./ci-cd.md)                       | GitHub-hosted quality gate (unit + MySQL IT) and Raspberry Pi self-hosted deploy.                           |
 
 ## Feature specs vs. implementation docs
 

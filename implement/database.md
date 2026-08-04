@@ -32,9 +32,10 @@ claim → frontend. There are no string ↔ integer translation helpers for thos
 domains; the TypeScript type _is_ the integer.
 
 Compliant integer columns are listed below. Migration `0019` converts post
-visibility/format and upload/attachment kind to this convention. A few
-**legacy string-token** columns remain (job type/status) and should be migrated
-forward-only — do not add more of them.
+visibility/format and upload/attachment kind to this convention. Migration
+`0021` converts `jobs.status` to `TINYINT`. `jobs.type` stays `VARCHAR(64)`
+on purpose — it is an extensible worker registry key (`email.send`, …), not a
+closed domain set. Do not add new string-token enums for closed domains.
 
 In source, each enum is exported as a `const` object plus a numeric union:
 
@@ -94,7 +95,7 @@ token (`brand`, `sky`, `emerald`, …) composed into class names like
 `bg-${color}-100` all over the UI, so the strings carry real meaning
 outside the type system. It's stored as `VARCHAR(16)`.
 
-### Legacy string tokens (pending integer migration)
+### String tokens kept by design
 
 | Column      | Current DB    | Current TS               | Notes                                                                               |
 | ----------- | ------------- | ------------------------ | ----------------------------------------------------------------------------------- |

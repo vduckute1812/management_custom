@@ -156,3 +156,16 @@ bash docker/install-github-runner.sh \
 ```
 
 4. Re-run the workflow: Actions → Deploy (Raspberry Pi) → Run workflow.
+
+---
+
+## GitHub-hosted quality gate (`ci.yml`)
+
+Pull requests and pushes to `master` run on `ubuntu-latest` (not the Pi):
+
+| Job           | What                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------ |
+| `verify`      | Secrets scan, Prettier, `vue-tsc`, DB-free `npm test`, `nuxt build`                                    |
+| `integration` | Ephemeral MySQL 8 (`rc_test`) → `node --import tsx scripts/migrate.ts up` → `npm run test:integration` |
+
+The integration job sets `DB_*` in the workflow env (no `.env` file). Suites under `tests/integration/` skip unless `DB_INTEGRATION=1`, so the unit job stays DB-free.
