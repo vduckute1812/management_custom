@@ -190,6 +190,10 @@ html[data-theme="dark"] {
 .text-slate-500 {
   color: var(--ink-muted);
 }
+/* slate-400 is ~3:1 on white — map to ink-muted (≥4.5:1) for body/muted copy */
+.text-slate-400 {
+  color: var(--ink-muted);
+}
 .border-slate-200 {
   border-color: var(--border);
 }
@@ -382,8 +386,9 @@ html[data-theme="dark"] .text-slate-700 {
 html[data-theme="dark"] .text-slate-600 {
   color: #94a3b8 !important;
 }
+/* Prefer semantic muted token (was hardcoded #64748b — weak on dark surfaces) */
 html[data-theme="dark"] .text-slate-400 {
-  color: #64748b !important;
+  color: var(--ink-muted) !important;
 }
 html[data-theme="dark"] .text-slate-300 {
   color: #cbd5e1 !important;

@@ -199,6 +199,9 @@ function onExportJson() {
           :label="monthLabel(yearMonth)"
           :prev-label="$t('money.prevMonth')"
           :next-label="$t('money.nextMonth')"
+          :current-label="
+            $t('money.currentMonthNav', { month: monthLabel(yearMonth) })
+          "
           @prev="goMonth(-1)"
           @next="goMonth(1)"
           @current="goCurrentMonth"
@@ -292,6 +295,16 @@ function onExportJson() {
               </div>
               <div
                 class="mt-3.5 h-2.5 overflow-hidden rounded-full bg-slate-100"
+                role="progressbar"
+                :aria-valuenow="pct(budget)"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                :aria-label="
+                  $t('money.budgets.progressAria', {
+                    label: labelFor(budget),
+                    pct: pct(budget),
+                  })
+                "
               >
                 <div
                   class="h-full rounded-full transition-all duration-500"

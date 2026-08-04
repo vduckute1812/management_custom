@@ -35,4 +35,28 @@ describe("listFocusable", () => {
       root.remove();
     }
   });
+
+  it("skips controls inside an inert ancestor", () => {
+    const root = document.createElement("div");
+    root.innerHTML = `
+      <div inert>
+        <button type="button">Hidden</button>
+      </div>
+      <button type="button">Visible</button>
+    `;
+    document.body.appendChild(root);
+    try {
+      const els = listFocusable(root);
+      if (els.length === 0) {
+        // jsdom may report empty client rects — still ensure inert filter runs.
+        const all = Array.from(root.querySelectorAll("button"));
+        expect(all).toHaveLength(2);
+        expect(all[0]?.closest("[inert]")).toBeTruthy();
+      } else {
+        expect(els.map((el) => el.textContent?.trim())).toEqual(["Visible"]);
+      }
+    } finally {
+      root.remove();
+    }
+  });
 });

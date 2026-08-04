@@ -219,7 +219,12 @@ onMounted(async () => {
             </p>
           </template>
 
-          <form v-else class="space-y-3" @submit.prevent="onSave">
+          <form
+            v-else
+            id="profile-edit-form"
+            class="space-y-3"
+            @submit.prevent="onSave"
+          >
             <div>
               <label
                 class="block text-xs font-medium text-slate-600"
@@ -345,10 +350,10 @@ onMounted(async () => {
         </template>
         <template v-else>
           <button
-            type="button"
+            type="submit"
+            form="profile-edit-form"
             class="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:opacity-50"
             :disabled="busy"
-            @click="onSave"
           >
             {{ busy ? $t("profile.saving") : $t("profile.save") }}
           </button>

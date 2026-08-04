@@ -3,6 +3,8 @@ defineProps<{
   label: string;
   prevLabel: string;
   nextLabel: string;
+  /** Accessible name for the center control (defaults to visible `label`). */
+  currentLabel?: string;
 }>();
 
 const emit = defineEmits<{
@@ -41,6 +43,7 @@ const emit = defineEmits<{
     <button
       type="button"
       class="min-w-[10.5rem] rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-50"
+      :aria-label="currentLabel || label"
       @click="emit('current')"
     >
       {{ label }}

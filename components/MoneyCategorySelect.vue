@@ -68,6 +68,11 @@ const triggerEl = ref<HTMLButtonElement | null>(null);
 const menuEl = ref<HTMLElement | null>(null);
 const menuStyle = ref<Record<string, string>>({});
 const activeIndex = ref(0);
+const createFieldIds = {
+  name: useId(),
+  emoji: useId(),
+  color: useId(),
+};
 
 onMounted(() => {
   void fetchCategories();
@@ -497,19 +502,35 @@ void parseMoneyCategoryKey;
               {{ $t("money.modal.cancel") }}
             </button>
           </div>
-          <input
-            ref="createNameInput"
-            v-model="createName"
-            type="text"
-            maxlength="120"
-            :placeholder="$t('money.categoriesAdd.namePlaceholder')"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-          />
           <div>
-            <p class="mb-1.5 text-[11px] font-medium text-slate-500">
+            <label
+              class="mb-1 block text-xs font-medium text-slate-600"
+              :for="createFieldIds.name"
+            >
+              {{ $t("money.categoriesAdd.name") }}
+            </label>
+            <input
+              :id="createFieldIds.name"
+              ref="createNameInput"
+              v-model="createName"
+              type="text"
+              maxlength="120"
+              :placeholder="$t('money.categoriesAdd.namePlaceholder')"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            />
+          </div>
+          <div>
+            <p
+              :id="createFieldIds.emoji"
+              class="mb-1.5 text-[11px] font-medium text-slate-500"
+            >
               {{ $t("money.categoriesAdd.emoji") }}
             </p>
-            <div class="flex flex-wrap gap-1.5">
+            <div
+              class="flex flex-wrap gap-1.5"
+              role="group"
+              :aria-labelledby="createFieldIds.emoji"
+            >
               <button
                 v-for="em in MONEY_USER_CATEGORY_EMOJI_SUGGESTIONS"
                 :key="em"
@@ -520,6 +541,8 @@ void parseMoneyCategoryKey;
                     ? 'bg-brand-50 ring-brand-400'
                     : 'bg-slate-50 ring-slate-200 hover:ring-slate-300'
                 "
+                :aria-pressed="createEmoji === em"
+                :aria-label="em"
                 @click="createEmoji = em"
               >
                 {{ em }}
@@ -527,10 +550,17 @@ void parseMoneyCategoryKey;
             </div>
           </div>
           <div>
-            <p class="mb-1.5 text-[11px] font-medium text-slate-500">
+            <p
+              :id="createFieldIds.color"
+              class="mb-1.5 text-[11px] font-medium text-slate-500"
+            >
               {{ $t("money.categoriesAdd.color") }}
             </p>
-            <div class="flex flex-wrap gap-2">
+            <div
+              class="flex flex-wrap gap-2"
+              role="group"
+              :aria-labelledby="createFieldIds.color"
+            >
               <button
                 v-for="c in MONEY_USER_CATEGORY_COLORS"
                 :key="c"
@@ -540,6 +570,7 @@ void parseMoneyCategoryKey;
                   createColor === c ? 'ring-slate-900' : 'ring-transparent'
                 "
                 :style="{ backgroundColor: c }"
+                :aria-pressed="createColor === c"
                 :aria-label="c"
                 @click="createColor = c"
               />

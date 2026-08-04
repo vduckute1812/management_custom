@@ -422,6 +422,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Money save/delete patches local list + `computeMonthTotals` (no full `fetchMonth()`)
 - [x] Dayjs: load only the active locale pack on demand
 
+## Phase 27 — Sprint D (UI/UX a11y)
+
+- [x] Contrast: `.text-slate-400` → `--ink-muted` (≥4.5:1 light + dark)
+- [x] Nested money confirms: `inert` parent form; `listFocusable` skips `[inert]`
+- [x] Money ledger: charts collapsed on mobile (`chartsToggle`)
+- [x] Category create labels; Export Escape; MonthNav `aria-label`; budget `progressbar`
+- [x] Profile Save `type="submit"` via `form=`; Settings density/week/time `aria-pressed`
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)

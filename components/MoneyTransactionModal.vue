@@ -264,190 +264,194 @@ watch(discardConfirmOpen, (open) => {
           aria-modal="true"
           aria-labelledby="money-modal-title"
         >
-          <header
-            class="flex items-center justify-between border-b border-slate-200 px-6 py-4"
-          >
-            <h2
-              id="money-modal-title"
-              class="text-lg font-semibold text-slate-900"
+          <div :inert="discardConfirmOpen || deleteConfirmOpen">
+            <header
+              class="flex items-center justify-between border-b border-slate-200 px-6 py-4"
             >
-              {{
-                form.id
-                  ? $t("money.modal.editTitle")
-                  : $t("money.modal.newTitle")
-              }}
-            </h2>
-            <button
-              type="button"
-              class="text-slate-400 transition hover:text-slate-700"
-              :aria-label="$t('money.modal.close')"
-              @click="requestClose"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="h-5 w-5"
+              <h2
+                id="money-modal-title"
+                class="text-lg font-semibold text-slate-900"
               >
-                <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-              </svg>
-            </button>
-          </header>
-
-          <form
-            class="flex-1 space-y-4 overflow-y-auto px-6 py-5 scrollbar-thin"
-            @submit.prevent="onSubmit"
-          >
-            <div class="grid grid-cols-2 gap-3">
+                {{
+                  form.id
+                    ? $t("money.modal.editTitle")
+                    : $t("money.modal.newTitle")
+                }}
+              </h2>
               <button
                 type="button"
-                class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
-                :class="
-                  form.direction === MoneyDirection.Out
-                    ? 'bg-rose-50 text-rose-700 ring-rose-200'
-                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-                "
-                :aria-pressed="form.direction === MoneyDirection.Out"
-                @click="setDirection(MoneyDirection.Out)"
+                class="text-slate-400 transition hover:text-slate-700"
+                :aria-label="$t('money.modal.close')"
+                @click="requestClose"
               >
-                {{ $t("money.direction.out") }}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  class="h-5 w-5"
+                >
+                  <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
+                </svg>
               </button>
-              <button
-                type="button"
-                class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
-                :class="
-                  form.direction === MoneyDirection.In
-                    ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                    : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-                "
-                :aria-pressed="form.direction === MoneyDirection.In"
-                @click="setDirection(MoneyDirection.In)"
-              >
-                {{ $t("money.direction.in") }}
-              </button>
-            </div>
+            </header>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <form
+              class="flex-1 space-y-4 overflow-y-auto px-6 py-5 scrollbar-thin"
+              @submit.prevent="onSubmit"
+            >
+              <div class="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
+                  :class="
+                    form.direction === MoneyDirection.Out
+                      ? 'bg-rose-50 text-rose-700 ring-rose-200'
+                      : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+                  "
+                  :aria-pressed="form.direction === MoneyDirection.Out"
+                  @click="setDirection(MoneyDirection.Out)"
+                >
+                  {{ $t("money.direction.out") }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
+                  :class="
+                    form.direction === MoneyDirection.In
+                      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                      : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
+                  "
+                  :aria-pressed="form.direction === MoneyDirection.In"
+                  @click="setDirection(MoneyDirection.In)"
+                >
+                  {{ $t("money.direction.in") }}
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label
+                    class="mb-1 block text-xs font-medium text-slate-600"
+                    :for="fieldIds.amount"
+                  >
+                    {{ $t("money.modal.amount") }}
+                  </label>
+                  <input
+                    :id="fieldIds.amount"
+                    ref="amountInput"
+                    v-model="form.amountText"
+                    type="text"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    required
+                    :placeholder="$t('money.modal.amountPlaceholder')"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    class="mb-1 block text-xs font-medium text-slate-600"
+                    :for="fieldIds.occurredOn"
+                  >
+                    {{ $t("money.modal.date") }}
+                  </label>
+                  <input
+                    :id="fieldIds.occurredOn"
+                    v-model="form.occurredOn"
+                    type="date"
+                    required
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label
                   class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.amount"
+                  :for="fieldIds.category"
                 >
-                  {{ $t("money.modal.amount") }}
+                  {{ $t("money.modal.category") }}
                 </label>
-                <input
-                  :id="fieldIds.amount"
-                  ref="amountInput"
-                  v-model="form.amountText"
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  required
-                  :placeholder="$t('money.modal.amountPlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                <MoneyCategorySelect
+                  :id="fieldIds.category"
+                  :model-value="form.categoryPick"
+                  mode="direction"
+                  :direction="form.direction"
+                  allow-create
+                  @update:model-value="
+                    (v) => {
+                      if (v != null) form.categoryPick = v;
+                    }
+                  "
                 />
               </div>
 
               <div>
                 <label
                   class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.occurredOn"
+                  :for="fieldIds.note"
                 >
-                  {{ $t("money.modal.date") }}
+                  {{ $t("money.modal.note") }}
                 </label>
                 <input
-                  :id="fieldIds.occurredOn"
-                  v-model="form.occurredOn"
-                  type="date"
-                  required
+                  :id="fieldIds.note"
+                  v-model="form.note"
+                  type="text"
+                  maxlength="500"
+                  :placeholder="$t('money.modal.notePlaceholder')"
                   class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
                 />
               </div>
-            </div>
 
-            <div>
-              <label
-                class="mb-1 block text-xs font-medium text-slate-600"
-                :for="fieldIds.category"
+              <p
+                v-if="errorMsg"
+                class="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
+                role="alert"
               >
-                {{ $t("money.modal.category") }}
-              </label>
-              <MoneyCategorySelect
-                :id="fieldIds.category"
-                :model-value="form.categoryPick"
-                mode="direction"
-                :direction="form.direction"
-                allow-create
-                @update:model-value="
-                  (v) => {
-                    if (v != null) form.categoryPick = v;
-                  }
-                "
-              />
-            </div>
+                {{ errorMsg }}
+              </p>
+            </form>
 
-            <div>
-              <label
-                class="mb-1 block text-xs font-medium text-slate-600"
-                :for="fieldIds.note"
-              >
-                {{ $t("money.modal.note") }}
-              </label>
-              <input
-                :id="fieldIds.note"
-                v-model="form.note"
-                type="text"
-                maxlength="500"
-                :placeholder="$t('money.modal.notePlaceholder')"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              />
-            </div>
-
-            <p
-              v-if="errorMsg"
-              class="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
-              role="alert"
+            <footer
+              class="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4"
             >
-              {{ errorMsg }}
-            </p>
-          </form>
-
-          <footer
-            class="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4"
-          >
-            <button
-              v-if="form.id"
-              type="button"
-              class="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-50"
-              :disabled="submitting"
-              @click="requestDelete"
-            >
-              {{ $t("money.modal.delete") }}
-            </button>
-            <div v-else />
-            <div class="flex items-center gap-2">
               <button
+                v-if="form.id"
                 type="button"
-                class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                class="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-50"
                 :disabled="submitting"
-                @click="requestClose"
+                @click="requestDelete"
               >
-                {{ $t("money.modal.cancel") }}
+                {{ $t("money.modal.delete") }}
               </button>
-              <button
-                type="button"
-                class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
-                :disabled="submitting"
-                @click="onSubmit"
-              >
-                {{
-                  submitting ? $t("money.modal.saving") : $t("money.modal.save")
-                }}
-              </button>
-            </div>
-          </footer>
+              <div v-else />
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  :disabled="submitting"
+                  @click="requestClose"
+                >
+                  {{ $t("money.modal.cancel") }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
+                  :disabled="submitting"
+                  @click="onSubmit"
+                >
+                  {{
+                    submitting
+                      ? $t("money.modal.saving")
+                      : $t("money.modal.save")
+                  }}
+                </button>
+              </div>
+            </footer>
+          </div>
 
           <div
             v-if="discardConfirmOpen"
