@@ -380,10 +380,16 @@ run_migrations() {
   # One-shot container: args replace the image CMD so we only migrate (the app
   # entrypoint also migrates on boot — this fails CI before switching traffic).
   #
-  # MySQL is loopback-only on the host. The app service defines
-  # host.containers.internal → host-gateway so in-container clients reach
-  # 127.0.0.1:3306. Force that host here even if .env.prod still has LAN_IP.
-  local db_host="host.containers.internal"
+  # Do NOT force DB_HOST=mysql. On this Pi, podman-compose puts services on the
+  # default `podman` network (no service-name DNS), while .env.prod points at the
+  # published LAN bind (${LAN_IP}:3306). Overriding to `mysql` caused
+  # getaddrinfo ENOTFOUND. Only rewrite loopback / broken hosts that cannot
+  # work in-container (incl. host.containers.internal from a bad Sprint B cut).
+  local db_host
+  db_host="$(grep -E '^DB_HOST=' docker/.env.prod 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]' || true)"
+  case "${db_host}" in
+    ""|127.0.0.1|localhost|mysql|host.containers.internal) db_host="${LAN_IP}" ;;
+  esac
   log "migrate DB_HOST=${db_host}"
 
   # -T: no pseudo-TTY (GitHub Actions has no TTY; avoids podman-compose warning).
@@ -554,4 +560,4 @@ echo "  Image:  ${NEW_TAG}"
 echo "  Cache:  ${BUILDER_CACHE_TAG}"
 echo "  Libs:   uv sync + image npm ci (layer-cached)"
 echo "  DB:     migrations applied before app switch"
-echo "  Redis:  127.0.0.1:6379 (app via host.containers.internal; fail-open to memory)"
+echo "  Redis:  ${LAN_IP}:6379 (app cache; fail-open to memory)"
