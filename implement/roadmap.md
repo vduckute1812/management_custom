@@ -450,8 +450,17 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] GitHub Actions `integration` job: MySQL 8 service → migrate → `npm run test:integration`
 - [x] Docs: architecture testing note, `ci-cd.md` quality-gate section, `jobs.type` by-design (not legacy)
 
+## Phase 31 — Sprint H (perf + a11y polish)
+
+- [x] Resolve leftover merge conflict in `implement/architecture.md`
+- [x] Lazy-load `marked` + DOMPurify in `renderPostBody` (KaTeX already lazy)
+- [x] AnalyticsDashboard: fingerprint watch + `chart.update()` (no deep destroy/recreate)
+- [x] Task/Epic discard confirms: `inert` on parent form; BlockSpentPopover uses `useModal`
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Playwright smoke
+- Split remaining page/DB gods (`settings`, `feed`, `posts.ts`, `useChat`)
+- Worker concurrency / separate queue for article rewrite

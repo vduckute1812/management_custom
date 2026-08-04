@@ -26,6 +26,16 @@ const saving = ref(false);
 const showCustom = ref(false);
 const inputEl = ref<HTMLInputElement | null>(null);
 const panelEl = ref<HTMLElement | null>(null);
+const rootEl = ref<HTMLElement | null>(null);
+
+const isOpen = computed(
+  () => props.open && Boolean(props.task) && Boolean(props.block),
+);
+useModal(isOpen, {
+  container: rootEl,
+  initialFocus: () => inputEl.value ?? panelEl.value,
+  onClose: () => emit("close"),
+});
 
 watch(
   () => [props.open, props.block?.id] as const,
@@ -135,10 +145,8 @@ function onBackdrop(e: MouseEvent) {
 }
 
 function onKeydown(e: KeyboardEvent) {
-  if (e.key === "Escape") {
-    e.preventDefault();
-    emit("close");
-  } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+  // Escape is handled by useModal (focus trap + body scroll lock).
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
     e.preventDefault();
     if (showCustom.value) onSaveCustom();
     else logFullBlock();
@@ -151,6 +159,7 @@ function onKeydown(e: KeyboardEvent) {
     <Transition name="fade">
       <div
         v-if="open && task && block"
+        ref="rootEl"
         class="fixed inset-0 z-[60]"
         @mousedown="onBackdrop"
         @keydown="onKeydown"
