@@ -412,7 +412,7 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] M3: Refresh-token families (`0030_refresh_token_family`); reuse of a revoked hash revokes the whole family
 - [x] M4: Cookie-auth CSRF middleware on mutating `/api/*`; production requires Origin/Referer
 - [x] M1: `clientIp` trusts `CF-Connecting-IP` / `X-Real-IP` only from trusted proxy peers (`LAN_IP` / `TRUSTED_PROXY_IPS`)
-- [x] M2: MySQL/Redis loopback-only publishes; app/migrate via `host.containers.internal`
+- [x] M2 (partial): MySQL/Redis stay on `${LAN_IP}` publish — loopback-only + `host.containers.internal` cannot reach `127.0.0.1` binds from Linux Podman bridge (reverted after deploy hang). True isolation needs compose DNS / shared network.
 - [x] Zod for comment create + admin role body; drop `?access_token=` query auth
 
 ### Later
