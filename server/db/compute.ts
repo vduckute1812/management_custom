@@ -11,7 +11,12 @@ export function roundHours(n: number): number {
 }
 
 export function computeTaskSpent(task: Task): number {
-  if (!task.timeBlocks?.length) return 0;
+  if (!task.timeBlocks?.length) {
+    // Light path: no block rows were loaded. If spentHours was already
+    // attached from a SQL aggregate (getAllTasks without includeBlocks),
+    // preserve it rather than returning 0.
+    return Number.isFinite(task.spentHours) ? (task.spentHours as number) : 0;
+  }
   const sum = task.timeBlocks.reduce(
     (acc, b) => acc + (typeof b.spentHours === "number" ? b.spentHours : 0),
     0,
@@ -21,7 +26,12 @@ export function computeTaskSpent(task: Task): number {
 
 export function computeChecklistProgress(task: Task): number {
   const items = task.checklist ?? [];
-  if (items.length === 0) return 0;
+  if (items.length === 0) {
+    // Preserve a pre-computed value if present (e.g. from a future aggregate).
+    return Number.isFinite(task.checklistProgress)
+      ? (task.checklistProgress as number)
+      : 0;
+  }
   const done = items.filter((i) => i.done).length;
   return Math.round((done / items.length) * 100);
 }

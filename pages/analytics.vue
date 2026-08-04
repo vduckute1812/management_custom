@@ -19,7 +19,10 @@ const { load: loadSamples } = useSampleData();
 const seeding = ref(false);
 
 await useAsyncData("analytics:initial", async () => {
-  await Promise.all([fetchAll(), fetchEpics()]);
+  await Promise.all([
+    fetchAll({ include: ["blocks", "checklists"] }),
+    fetchEpics(),
+  ]);
   return { ok: true };
 });
 

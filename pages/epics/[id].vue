@@ -23,7 +23,10 @@ const taskModalOpen = ref(false);
 const editingTask = ref<Task | null>(null);
 
 await useAsyncData(`epic:${epicId.value}`, async () => {
-  await Promise.all([fetchEpics(), fetchTasks()]);
+  await Promise.all([
+    fetchEpics(),
+    fetchTasks({ include: ["blocks", "checklists"] }),
+  ]);
   return { ok: true };
 });
 
@@ -61,12 +64,18 @@ function openEditTask(task: Task) {
 
 async function onTaskSaved() {
   taskModalOpen.value = false;
-  await Promise.all([fetchTasks(), fetchEpics()]);
+  await Promise.all([
+    fetchTasks({ include: ["blocks", "checklists"] }),
+    fetchEpics(),
+  ]);
 }
 
 async function onTaskDeleted() {
   taskModalOpen.value = false;
-  await Promise.all([fetchTasks(), fetchEpics()]);
+  await Promise.all([
+    fetchTasks({ include: ["blocks", "checklists"] }),
+    fetchEpics(),
+  ]);
 }
 
 async function onEpicSaved() {
@@ -76,7 +85,10 @@ async function onEpicSaved() {
 
 async function onEpicDeleted() {
   editEpicOpen.value = false;
-  await Promise.all([fetchEpics(), fetchTasks()]);
+  await Promise.all([
+    fetchEpics(),
+    fetchTasks({ include: ["blocks", "checklists"] }),
+  ]);
   router.push("/epics");
 }
 </script>

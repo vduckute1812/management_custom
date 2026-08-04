@@ -63,7 +63,10 @@ watch(isNarrow, (narrow) => {
 });
 
 await useAsyncData("dashboard:initial", async () => {
-  await Promise.all([fetchAll(), fetchEpics()]);
+  await Promise.all([
+    fetchAll({ include: ["blocks", "checklists"] }),
+    fetchEpics(),
+  ]);
   return { ok: true };
 });
 

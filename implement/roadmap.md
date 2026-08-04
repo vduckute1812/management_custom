@@ -468,9 +468,16 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Privacy §13 EN + VI: add chat messages to the deletable-from-app list; remove statement that individual messages cannot be deleted; export gap note remains
 - [x] Docs: `api.md` + `chat-spec.md` updated with DELETE message + SSE `deleted`
 
+## Phase 33 — Sprint J (lightweight tasks list API)
+
+- [x] `getAllTasks(userId, opts?)` — `includeBlocks` / `includeChecklists` flags (default both `false`); when `!includeBlocks` runs `COALESCE(SUM(spent_hours),0) GROUP BY task_id` aggregate and attaches `spentHours` on each task
+- [x] `computeTaskSpent` / `computeChecklistProgress` — preserve pre-computed values when no child arrays are loaded (light path no longer zeroes `spentHours`)
+- [x] `GET /api/tasks` — parses `?include=blocks,checklists` (comma-separated); defaults to light; sort uses `firstBlock.start` only when blocks are present
+- [x] `GET /api/epics` and `epicService.upsertEpicForUser` — already call `getAllTasks(userId)` without opts; automatically use light + aggregate `spentHours` for `computeEpicHours`
+- [x] `useTasks().fetchAll(opts?)` — accepts `{ include?: Array<'blocks'|'checklists'> }`; default (no args) is light; calendar/editing views (`tasks/index`, `epics/[id]`, analytics, settings) pass `{ include: ['blocks','checklists'] }` explicitly
+
 ### Later
 
-- Lightweight tasks list API (blocks on demand)
 - Playwright smoke
 - Split remaining page/DB gods (`settings`, `feed`, `posts.ts`, `useChat`)
 - Worker concurrency / separate queue for article rewrite
