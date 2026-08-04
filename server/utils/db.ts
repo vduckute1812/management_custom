@@ -33,7 +33,12 @@
  *   - uploads.ts               — Cloudflare R2 uploads for posts/stories
  *   - stories.ts               — 24h ephemeral stories
  *   - jobs.ts                  — Durable background job queue (email, cache bust)
- *   - chat.ts                  — Direct messages (conversations / messages / reads)
+ *   - chat.ts                  — Barrel: re-exports all chat sub-modules below
+ *   - chatShared.ts            — Shared row interfaces, mappers, helpers (internal)
+ *   - chatConversations.ts     — listConversations, getOrCreateDirectConversation, getPeerUserId
+ *   - chatMessages.ts          — listMessages, sendMessage, getChatMessageForParticipant
+ *   - chatReactions.ts         — setChatMessageReaction, clearChatMessageReaction
+ *   - chatReads.ts             — markConversationRead, getUnreadTotal, getUnreadInbox
  *   - money.ts                 — Per-user expense ledger (money_transactions)
  *   - moneySavings.ts          — Savings goals + contributions
  *   - moneyBudgets.ts          — Monthly budgets (overall / per-category)
