@@ -202,7 +202,7 @@ onMounted(async () => {
 
         <div class="min-w-0 flex-1">
           <template v-if="!editing">
-            <p class="truncate text-lg font-semibold text-slate-900">
+            <p class="truncate text-lg font-semibold uppercase text-slate-900">
               {{ user.name || $t("profile.unnamedUser") }}
             </p>
             <p class="truncate text-sm text-slate-500">{{ user.email }}</p>
