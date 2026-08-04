@@ -7,6 +7,7 @@ export type IdPrefix =
   | "chk"
   | "user"
   | "rtok"
+  | "rtfam"
   | "vrfy"
   | "prst"
   | "post"

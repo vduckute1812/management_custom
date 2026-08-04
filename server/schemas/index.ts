@@ -11,6 +11,7 @@ export {
   profilePatchBodySchema,
   preferencesPatchBodySchema,
   userDirectoryQuerySchema,
+  adminUserRoleBodySchema,
 } from "./auth";
 
 export {
@@ -23,6 +24,7 @@ export {
   postReactionBodySchema,
   feedQuerySchema,
   postCommentsQuerySchema,
+  postCommentCreateBodySchema,
   postCreateBodySchema,
   postPatchBodySchema,
   postShareBodySchema,

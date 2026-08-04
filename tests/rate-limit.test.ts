@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   _resetRateLimitStoreForTests,
   checkRateLimit,
@@ -111,18 +111,32 @@ describe("resolvePolicy", () => {
 });
 
 describe("clientIp", () => {
-  function event(headers: Record<string, string | string[] | undefined>) {
+  const prevLan = process.env.LAN_IP;
+  const prevTrusted = process.env.TRUSTED_PROXY_IPS;
+
+  afterEach(() => {
+    if (prevLan === undefined) delete process.env.LAN_IP;
+    else process.env.LAN_IP = prevLan;
+    if (prevTrusted === undefined) delete process.env.TRUSTED_PROXY_IPS;
+    else process.env.TRUSTED_PROXY_IPS = prevTrusted;
+  });
+
+  function event(
+    headers: Record<string, string | string[] | undefined>,
+    remoteAddress = "10.0.0.9",
+  ) {
     return {
       node: {
         req: {
           headers,
-          socket: { remoteAddress: "10.0.0.9" },
+          socket: { remoteAddress },
         },
       },
     };
   }
 
-  it("prefers CF-Connecting-IP over every other signal", () => {
+  it("prefers CF-Connecting-IP over every other signal when peer is trusted", () => {
+    process.env.TRUSTED_PROXY_IPS = "10.0.0.9";
     expect(
       clientIp(
         event({
@@ -135,6 +149,7 @@ describe("clientIp", () => {
   });
 
   it("falls back to X-Real-IP (nginx-set) when CF is absent", () => {
+    process.env.TRUSTED_PROXY_IPS = "10.0.0.9";
     expect(
       clientIp(
         event({

@@ -131,6 +131,8 @@ export interface UserRecord extends _AuthUser {
 export interface RefreshTokenRecord {
   id: string;
   userId: string;
+  /** Stable id across rotations; reuse of a revoked sibling revokes the family. */
+  familyId: string;
   tokenHash: string;
   expiresAt: string;
   revokedAt?: string;

@@ -13,13 +13,7 @@
  * file rather than relying on the middleware to know which paths are
  * protected (which is fragile when route filenames change).
  */
-import {
-  createError,
-  getCookie,
-  getQuery,
-  getRequestHeader,
-  type H3Event,
-} from "h3";
+import { createError, getCookie, getRequestHeader, type H3Event } from "h3";
 import { verifyAccessToken, type AccessTokenClaims } from "./auth";
 import { UserRole, isAdminRole } from "./db";
 import { ACCESS_COOKIE } from "./refreshCookie";
@@ -45,27 +39,15 @@ export function attachUserFromHeader(event: H3Event): void {
     const fromCookie = getCookie(event, ACCESS_COOKIE);
     if (fromCookie && fromCookie.trim()) token = fromCookie.trim();
   }
-  // Query tokens end up in access logs, browser history, and Referer headers.
-  // Accept them only on media GETs that older cached HTML may still call with
-  // `?access_token=` — every other route requires Bearer or the HttpOnly cookie.
-  if (!token && isUploadMediaGet(event)) {
-    const fromQuery = getQuery(event).access_token;
-    if (typeof fromQuery === "string" && fromQuery.trim()) {
-      token = fromQuery.trim();
-    }
-  }
+  // Query `?access_token=` is intentionally not accepted — tokens in URLs
+  // land in access logs, browser history, and Referer headers. Media GETs
+  // use the HttpOnly access cookie instead.
   if (!token) return;
   try {
     event.context.user = verifyAccessToken(token);
   } catch {
     // Swallow — middleware never blocks; protected routes assert below.
   }
-}
-
-function isUploadMediaGet(event: H3Event): boolean {
-  if (event.method !== "GET" && event.method !== "HEAD") return false;
-  const path = event.path.split("?")[0] || "";
-  return path.startsWith("/api/uploads/");
 }
 
 export function getOptionalUser(event: H3Event): AccessTokenClaims | undefined {

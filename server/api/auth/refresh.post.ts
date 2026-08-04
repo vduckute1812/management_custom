@@ -6,11 +6,14 @@
  *
  * Rotates the refresh token atomically: the presented hash is revoked and the
  * successor inserted in one transaction so concurrent refreshes cannot both
- * succeed.
+ * succeed. Presenting a revoked token revokes the entire token family
+ * (reuse / theft detection).
  */
 import {
   findActiveRefreshToken,
+  findRefreshTokenByHash,
   getUserById,
+  revokeRefreshTokenFamily,
   rotateRefreshToken,
   toAuthUser,
 } from "~/server/utils/db";
@@ -48,6 +51,12 @@ export default defineEventHandler(async (event) => {
   const presentedHash = hashOpaqueToken(presented);
   const record = await findActiveRefreshToken(presentedHash);
   if (!record) {
+    // Reuse of a rotated/revoked refresh → kill the whole family so a stolen
+    // token cannot keep minting sessions after the victim refreshed.
+    const prior = await findRefreshTokenByHash(presentedHash);
+    if (prior?.revokedAt) {
+      await revokeRefreshTokenFamily(prior.familyId);
+    }
     clearAuthCookies(event);
     throw createError({
       statusCode: 401,
@@ -68,6 +77,7 @@ export default defineEventHandler(async (event) => {
   const refreshExpiresAt = nowPlusSeconds(TOKEN_TTL.refreshSeconds);
   const rotated = await rotateRefreshToken({
     presentedHash,
+    familyId: record.familyId,
     next: {
       userId: user.id,
       tokenHash: hashOpaqueToken(newRefresh),
@@ -77,6 +87,8 @@ export default defineEventHandler(async (event) => {
     },
   });
   if (!rotated) {
+    // Concurrent refresh lost the race — the winner already holds the live
+    // successor. Do not revoke the family here (that would kill the winner).
     clearAuthCookies(event);
     throw createError({
       statusCode: 401,

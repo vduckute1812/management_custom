@@ -1,5 +1,7 @@
 import { createPostComment } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { parseBody } from "~/server/utils/http";
+import { postCommentCreateBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
@@ -8,23 +10,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: "Post id required" });
   }
 
-  const body = await readBody<{ body?: string }>(event);
-  const text = typeof body?.body === "string" ? body.body.trim() : "";
-  if (!text) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Comment body is required",
-    });
-  }
-  if (text.length > 2000) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "Comment must be 2000 characters or fewer",
-    });
-  }
+  const body = await parseBody(event, postCommentCreateBodySchema);
 
   try {
-    const comment = await createPostComment(user.sub, id, text);
+    const comment = await createPostComment(user.sub, id, body.body);
     return { comment };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;

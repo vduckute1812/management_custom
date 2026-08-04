@@ -133,6 +133,7 @@ export interface UserRow extends RowDataPacket {
 export interface RefreshTokenRow extends RowDataPacket {
   id: string;
   user_id: string;
+  family_id: string;
   token_hash: string;
   expires_at: string;
   revoked_at: string | null;

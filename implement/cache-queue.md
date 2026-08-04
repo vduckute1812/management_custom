@@ -61,7 +61,7 @@ Nitro API routes
 ### Drivers
 
 1. **Memory (default locally)** — `Map` with TTL + crude LRU eviction (`CACHE_MEMORY_MAX`, default 500). Used when `REDIS_URL` is unset.
-2. **Redis (production)** — `docker-compose.prod.yml` runs `mgmt-redis-prod` and sets `REDIS_URL` + `CACHE_DRIVER=redis` to the Pi LAN bind (no compose DNS on this Podman network). Uses `ioredis`. On connect/ping failure, **falls back to memory** and logs a warning. Keys are prefixed `mgmt:{CACHE_NAMESPACE|DB_NAME}:`. Cache-only Redis: no RDB/AOF, `maxmemory 128mb`, `allkeys-lru`.
+2. **Redis (production)** — `docker-compose.prod.yml` runs `mgmt-redis-prod` (loopback publish only) and sets `REDIS_URL=redis://host.containers.internal:6379/0` + `CACHE_DRIVER=redis` (no compose DNS on this Podman network). Uses `ioredis`. On connect/ping failure, **falls back to memory** and logs a warning. Keys are prefixed `mgmt:{CACHE_NAMESPACE|DB_NAME}:`. Cache-only Redis: no RDB/AOF, `maxmemory 128mb`, `allkeys-lru`.
 
 ### What we cache today
 
@@ -184,17 +184,17 @@ returns `{ ok: true }` to avoid account enumeration).
 
 ## Configuration
 
-| Env                    | Default                                                     | Meaning                                  |
-| ---------------------- | ----------------------------------------------------------- | ---------------------------------------- |
-| `REDIS_URL`            | unset locally; prod compose sets `redis://${LAN_IP}:6379/0` | Enable Redis cache driver when reachable |
-| `CACHE_DRIVER`         | auto; prod compose forces `redis`                           | Force `memory` or `redis`                |
-| `CACHE_NAMESPACE`      | `DB_NAME` / `rc`                                            | Redis key prefix segment                 |
-| `CACHE_MEMORY_MAX`     | `500`                                                       | In-process entry cap                     |
-| `QUEUE_WORKER_ENABLED` | `true`                                                      | Run in-process worker                    |
-| `QUEUE_POLL_MS`        | `1500`                                                      | Busy poll interval                       |
-| `QUEUE_IDLE_MS`        | `4000`                                                      | Sleep when queue empty                   |
-| `QUEUE_STALE_SECONDS`  | `300`                                                       | Reclaim stuck `processing`               |
-| `QUEUE_PURGE_DAYS`     | `14`                                                        | Delete old terminal jobs                 |
+| Env                    | Default                                                                    | Meaning                                  |
+| ---------------------- | -------------------------------------------------------------------------- | ---------------------------------------- |
+| `REDIS_URL`            | unset locally; prod compose sets `redis://host.containers.internal:6379/0` | Enable Redis cache driver when reachable |
+| `CACHE_DRIVER`         | auto; prod compose forces `redis`                                          | Force `memory` or `redis`                |
+| `CACHE_NAMESPACE`      | `DB_NAME` / `rc`                                                           | Redis key prefix segment                 |
+| `CACHE_MEMORY_MAX`     | `500`                                                                      | In-process entry cap                     |
+| `QUEUE_WORKER_ENABLED` | `true`                                                                     | Run in-process worker                    |
+| `QUEUE_POLL_MS`        | `1500`                                                                     | Busy poll interval                       |
+| `QUEUE_IDLE_MS`        | `4000`                                                                     | Sleep when queue empty                   |
+| `QUEUE_STALE_SECONDS`  | `300`                                                                      | Reclaim stuck `processing`               |
+| `QUEUE_PURGE_DAYS`     | `14`                                                                       | Delete old terminal jobs                 |
 
 See `.env.example` and [`getting-started.md`](./getting-started.md).
 
