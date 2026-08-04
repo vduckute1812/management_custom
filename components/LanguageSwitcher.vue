@@ -12,6 +12,7 @@ const props = withDefaults(
 
 const { locales, locale } = useI18n();
 const { update } = useSettings();
+const { syncLocaleToServer } = useMoneyCurrency();
 
 const options = computed(() =>
   locales.value.map((l) =>
@@ -23,6 +24,7 @@ const options = computed(() =>
 
 function onSelect(code: string) {
   update("locale", code as AppLocale);
+  void syncLocaleToServer(code as AppLocale);
 }
 
 function onSelectChange(e: Event) {

@@ -1,19 +1,25 @@
 <script setup lang="ts">
 import type { Chart as ChartType, ChartConfiguration } from "chart.js";
 import {
+  MoneyCurrency,
   MoneyDirection,
   moneyCategoryKey,
   type MoneyCategoryPick,
+  type MoneyCurrency as MoneyCurrencyT,
   type MoneyTransaction,
 } from "~/types/money";
 import { formatMoneyMinor, sumByCategory, sumDaily } from "~/utils/money";
 
-const props = defineProps<{
-  transactions: MoneyTransaction[];
-  yearMonth: string;
-  localeTag: string;
-  activePick?: MoneyCategoryPick | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    transactions: MoneyTransaction[];
+    yearMonth: string;
+    localeTag: string;
+    currency?: MoneyCurrencyT;
+    activePick?: MoneyCategoryPick | null;
+  }>(),
+  { currency: MoneyCurrency.VND },
+);
 
 const emit = defineEmits<{
   (e: "select-category", pick: MoneyCategoryPick): void;
@@ -44,7 +50,7 @@ const activeKey = computed(() =>
 );
 
 function fmt(n: number) {
-  return formatMoneyMinor(n, props.localeTag);
+  return formatMoneyMinor(n, props.localeTag, props.currency);
 }
 
 function chartInk() {
@@ -181,7 +187,13 @@ async function renderAll() {
 }
 
 watch(
-  () => [props.transactions, props.yearMonth, props.localeTag] as const,
+  () =>
+    [
+      props.transactions,
+      props.yearMonth,
+      props.localeTag,
+      props.currency,
+    ] as const,
   () => {
     void nextTick(() => renderAll());
   },

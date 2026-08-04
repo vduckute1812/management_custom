@@ -12,6 +12,7 @@ definePageMeta({ layout: false });
 // unauthenticated sign-up flow here.
 const auth = useAuth();
 const { t } = useI18n();
+const { settings } = useSettings();
 
 useSeoMeta({
   title: computed(() => t("seo.signup")),
@@ -72,6 +73,7 @@ async function onSubmit() {
       email: email.value.trim(),
       password: password.value,
       name: name.value.trim() || undefined,
+      locale: settings.value.locale,
     });
     success.value = { verificationSent: result.verificationSent };
   } catch (err: unknown) {

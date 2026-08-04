@@ -121,10 +121,10 @@
   },
   "settings": {
     "title": "设置",
-    "subtitle": "偏好设置仅保存在本设备上。",
+    "subtitle": "登录后语言与货币会同步到账号。其他偏好仅保存在本设备。",
     "language": {
       "title": "语言",
-      "subtitle": "选择界面语言。",
+      "subtitle": "界面语言。已登录账号也会用于邮件。",
       "label": "界面语言"
     },
     "account": {
@@ -230,6 +230,18 @@
       "subtitle": "仪表盘提供打印样式表，可输出整洁的周议程。",
       "body": "在周视图中打开仪表盘，然后按 ⌘ P 预览议程。侧栏、导航和彩色背景会自动去除。",
       "dashboardLink": "仪表盘"
+    },
+    "currency": {
+      "title": "货币",
+      "subtitle": "用于 Money 金额显示。新账号默认随语言选择。",
+      "label": "显示货币",
+      "hint": "更改货币不会换算已有金额，只改变显示标签。",
+      "saved": "货币已更新",
+      "failed": "无法更新货币",
+      "vnd": "越南盾 (VND)",
+      "usd": "美元 (USD)",
+      "cny": "人民币 (CNY)",
+      "twd": "新台币 (TWD)"
     }
   },
   "profile": {
@@ -1047,11 +1059,11 @@
     "manuscriptEditDescription": "更新动态中的帖子或手稿。",
     "chat": "聊天",
     "money": "记账",
-    "moneyDescription": "用越南盾记录收入与支出。",
+    "moneyDescription": "记录收入与支出。",
     "moneySavings": "储蓄",
-    "moneySavingsDescription": "用越南盾跟踪储蓄目标与存入。",
+    "moneySavingsDescription": "跟踪储蓄目标与存入。",
     "moneyBudgets": "预算",
-    "moneyBudgetsDescription": "越南盾月度支出预算。",
+    "moneyBudgetsDescription": "月度支出预算。",
     "privacy": "隐私政策",
     "privacyDescription": "Da Nang TechX 收集哪些数据、由谁处理、保存多久，以及如何申请导出或删除。",
     "terms": "服务条款",
@@ -1214,7 +1226,7 @@
   },
   "money": {
     "title": "记账",
-    "subtitle": "用越南盾记录收入与支出",
+    "subtitle": "记录收入与支出",
     "addTransaction": "添加记录",
     "prevMonth": "上个月",
     "nextMonth": "下个月",
@@ -1224,7 +1236,7 @@
     "net": "净额",
     "loading": "加载中…",
     "empty": "本月暂无记录。添加一笔开始。",
-    "emptyHint": "用越南盾记录收支——本月合计与图表会随之更新。",
+    "emptyHint": "记录收入与支出 — 本月合计与图表会更新。",
     "direction": {
       "out": "支出",
       "in": "收入"
@@ -1246,7 +1258,7 @@
       "newTitle": "新记录",
       "editTitle": "编辑记录",
       "close": "关闭",
-      "amount": "金额（₫）",
+      "amount": "金额",
       "amountPlaceholder": "例如 150000",
       "amountRequired": "请输入有效金额。",
       "date": "日期",
@@ -1297,7 +1309,7 @@
     },
     "savings": {
       "title": "储蓄",
-      "subtitle": "目标与存入（越南盾）",
+      "subtitle": "目标与存入",
       "addGoal": "新建目标",
       "loading": "加载中…",
       "empty": "还没有储蓄目标。创建一个开始存钱。",
@@ -1322,7 +1334,7 @@
         "title": "名称",
         "titlePlaceholder": "例如 应急金",
         "titleRequired": "请输入名称。",
-        "target": "目标金额（₫）",
+        "target": "目标金额",
         "targetPlaceholder": "例如 10000000",
         "targetRequired": "请输入有效目标金额。",
         "status": "状态",
@@ -1344,7 +1356,7 @@
       },
       "contribute": {
         "title": "存入",
-        "amount": "金额（₫）",
+        "amount": "金额",
         "amountRequired": "请输入有效金额。",
         "date": "日期",
         "note": "备注",
@@ -1373,7 +1385,7 @@
         "editTitle": "编辑预算",
         "close": "关闭",
         "category": "分类",
-        "amount": "限额（₫）",
+        "amount": "限额",
         "amountPlaceholder": "例如 5000000",
         "amountRequired": "请输入有效金额。",
         "save": "保存",

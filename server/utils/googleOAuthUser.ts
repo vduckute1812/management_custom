@@ -13,9 +13,11 @@ import {
   markUserEmailVerified,
   type UserRecord,
 } from "~/server/utils/db";
+import { isAppLocale, type AppLocale } from "~/types/locale";
 
 export async function resolveGoogleLoginUser(
   profile: GoogleProfile,
+  locale?: string,
 ): Promise<UserRecord> {
   if (!profile.emailVerified) {
     throw createError({
@@ -55,11 +57,15 @@ export async function resolveGoogleLoginUser(
     return byEmail;
   }
 
+  const preferredLocale: AppLocale | undefined = isAppLocale(locale)
+    ? locale
+    : undefined;
   const created = await createUser({
     email: profile.email,
     passwordHash: null,
     name: profile.name,
     emailVerified: true,
+    locale: preferredLocale,
   });
   await linkIdentity({
     userId: created.id,
@@ -125,6 +131,7 @@ export async function resolveGoogleOAuthUser(input: {
   profile: GoogleProfile;
   intent: (typeof AuthOAuthIntent)[keyof typeof AuthOAuthIntent];
   linkUserId?: string;
+  locale?: string;
 }): Promise<UserRecord> {
   if (input.intent === AuthOAuthIntent.Link) {
     if (!input.linkUserId) {
@@ -135,5 +142,5 @@ export async function resolveGoogleOAuthUser(input: {
     }
     return resolveGoogleLinkUser(input.profile, input.linkUserId);
   }
-  return resolveGoogleLoginUser(input.profile);
+  return resolveGoogleLoginUser(input.profile, input.locale);
 }

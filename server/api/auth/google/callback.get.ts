@@ -77,6 +77,7 @@ export default defineEventHandler(async (event) => {
       profile,
       intent: state.intent,
       linkUserId: state.userId,
+      locale: state.locale,
     });
     await issueAuthSession(event, user);
 

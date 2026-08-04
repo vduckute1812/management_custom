@@ -59,6 +59,7 @@ export default defineEventHandler(async (event) => {
 
   const passwordHash = await hashPassword(password);
   const rawToken = generateOpaqueToken();
+  const locale = body.locale;
   const user = await createUserWithEmailVerification({
     user: {
       email,
@@ -66,6 +67,7 @@ export default defineEventHandler(async (event) => {
       name,
       role: UserRole.Normal,
       emailVerified: false,
+      locale,
     },
     tokenHash: hashOpaqueToken(rawToken),
     expiresAt: nowPlusSeconds(VERIFY_TTL_SECONDS),
@@ -74,7 +76,11 @@ export default defineEventHandler(async (event) => {
   let verificationSent = true;
   try {
     // Enqueue so signup stays fast and SMTP retries happen in the worker.
-    await enqueueVerificationEmail({ to: email, token: rawToken });
+    await enqueueVerificationEmail({
+      to: email,
+      token: rawToken,
+      locale: user.locale,
+    });
   } catch (err) {
     // Queue insert failures shouldn't block sign-up — the user + verification
     // row already exist. Never log the raw token / verify URL.

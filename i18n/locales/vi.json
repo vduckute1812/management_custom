@@ -121,10 +121,10 @@
   },
   "settings": {
     "title": "Cài đặt",
-    "subtitle": "Tuỳ chọn chỉ được lưu trên thiết bị này.",
+    "subtitle": "Ngôn ngữ và đơn vị tiền tệ đồng bộ với tài khoản khi đăng nhập. Các tuỳ chọn khác chỉ lưu trên thiết bị này.",
     "language": {
       "title": "Ngôn ngữ",
-      "subtitle": "Chọn ngôn ngữ giao diện.",
+      "subtitle": "Ngôn ngữ giao diện. Tài khoản đã đăng nhập cũng dùng cho email.",
       "label": "Ngôn ngữ giao diện"
     },
     "account": {
@@ -230,6 +230,18 @@
       "subtitle": "Bảng điều khiển có stylesheet in cho lịch trình tuần gọn gàng.",
       "body": "Mở bảng điều khiển ở chế độ xem tuần, rồi nhấn ⌘ P để xem trước. Thanh bên, điều hướng và nền màu sẽ bị loại tự động.",
       "dashboardLink": "bảng điều khiển"
+    },
+    "currency": {
+      "title": "Đơn vị tiền tệ",
+      "subtitle": "Dùng cho số tiền trong Money. Tài khoản mới kế thừa theo ngôn ngữ.",
+      "label": "Đơn vị hiển thị",
+      "hint": "Đổi đơn vị không quy đổi số đã lưu — chỉ đổi cách gắn nhãn.",
+      "saved": "Đã cập nhật đơn vị tiền tệ",
+      "failed": "Không cập nhật được đơn vị tiền tệ",
+      "vnd": "Đồng Việt Nam (VND)",
+      "usd": "Đô la Mỹ (USD)",
+      "cny": "Nhân dân tệ (CNY)",
+      "twd": "Đô la Đài Loan (TWD)"
     }
   },
   "profile": {
@@ -1047,11 +1059,11 @@
     "manuscriptEditDescription": "Cập nhật bài viết hoặc bản thảo trên bảng tin.",
     "chat": "Chat",
     "money": "Tiền",
-    "moneyDescription": "Theo dõi thu chi bằng VND.",
+    "moneyDescription": "Theo dõi thu chi.",
     "moneySavings": "Tiết kiệm",
-    "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp bằng VND.",
+    "moneySavingsDescription": "Theo dõi mục tiêu tiết kiệm và đóng góp.",
     "moneyBudgets": "Ngân sách",
-    "moneyBudgetsDescription": "Ngân sách chi tiêu tháng bằng VND.",
+    "moneyBudgetsDescription": "Ngân sách chi tiêu tháng.",
     "privacy": "Chính sách bảo mật",
     "privacyDescription": "Da Nang TechX thu thập những gì, ai xử lý dữ liệu, lưu trong bao lâu, và cách yêu cầu xuất hoặc xoá dữ liệu.",
     "terms": "Điều khoản dịch vụ",
@@ -1214,7 +1226,7 @@
   },
   "money": {
     "title": "Tiền",
-    "subtitle": "Theo dõi thu chi bằng VND",
+    "subtitle": "Theo dõi thu chi",
     "addTransaction": "Thêm giao dịch",
     "prevMonth": "Tháng trước",
     "nextMonth": "Tháng sau",
@@ -1224,7 +1236,7 @@
     "net": "Ròng",
     "loading": "Đang tải…",
     "empty": "Chưa có giao dịch tháng này. Thêm một giao dịch để bắt đầu.",
-    "emptyHint": "Ghi thu/chi bằng VND — tổng và biểu đồ cập nhật theo tháng.",
+    "emptyHint": "Ghi thu/chi — tổng và biểu đồ cập nhật theo tháng.",
     "direction": {
       "out": "Chi",
       "in": "Thu"
@@ -1246,7 +1258,7 @@
       "newTitle": "Giao dịch mới",
       "editTitle": "Sửa giao dịch",
       "close": "Đóng",
-      "amount": "Số tiền (₫)",
+      "amount": "Số tiền",
       "amountPlaceholder": "vd. 150000",
       "amountRequired": "Nhập số tiền hợp lệ.",
       "date": "Ngày",
@@ -1297,7 +1309,7 @@
     },
     "savings": {
       "title": "Tiết kiệm",
-      "subtitle": "Mục tiêu và khoản đóng góp bằng VND",
+      "subtitle": "Mục tiêu và khoản đóng góp",
       "addGoal": "Mục tiêu mới",
       "loading": "Đang tải…",
       "empty": "Chưa có mục tiêu tiết kiệm. Tạo một mục tiêu để bắt đầu.",
@@ -1322,7 +1334,7 @@
         "title": "Tên",
         "titlePlaceholder": "vd. Quỹ dự phòng",
         "titleRequired": "Nhập tên.",
-        "target": "Mục tiêu (₫)",
+        "target": "Mục tiêu",
         "targetPlaceholder": "vd. 10000000",
         "targetRequired": "Nhập số tiền mục tiêu hợp lệ.",
         "status": "Trạng thái",
@@ -1344,7 +1356,7 @@
       },
       "contribute": {
         "title": "Thêm đóng góp",
-        "amount": "Số tiền (₫)",
+        "amount": "Số tiền",
         "amountRequired": "Nhập số tiền hợp lệ.",
         "date": "Ngày",
         "note": "Ghi chú",
@@ -1373,7 +1385,7 @@
         "editTitle": "Sửa ngân sách",
         "close": "Đóng",
         "category": "Danh mục",
-        "amount": "Hạn mức (₫)",
+        "amount": "Hạn mức",
         "amountPlaceholder": "vd. 5000000",
         "amountRequired": "Nhập số tiền hợp lệ.",
         "save": "Lưu",

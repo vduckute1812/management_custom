@@ -7,7 +7,8 @@ import {
 } from "~/types/money";
 import { formatMoneyMinor } from "~/utils/money";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const {
   goals,
   isLoading,
@@ -39,18 +40,10 @@ useSeoMeta({
 
 usePageShortcuts([{ key: "n", handler: () => openCreate() }]);
 
-const moneyLocale = computed(() => {
-  const map: Record<string, string> = {
-    en: "en-US",
-    vi: "vi-VN",
-    "zh-CN": "zh-CN",
-    "zh-TW": "zh-TW",
-  };
-  return map[locale.value] ?? "vi-VN";
-});
+const moneyLocale = intlLocale;
 
 function fmt(amount: number) {
-  return formatMoneyMinor(amount, moneyLocale.value);
+  return formatMoneyMinor(amount, moneyLocale.value, currency.value);
 }
 
 function progressPct(goal: MoneySavingsGoal) {

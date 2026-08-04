@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { APP_LOCALES } from "../../types/locale";
+import { MONEY_CURRENCIES } from "../../types/money";
 
 export const loginBodySchema = z.object({
   email: z.string().trim().email("A valid email is required"),
@@ -9,6 +11,13 @@ export const signupBodySchema = z.object({
   email: z.string().trim().email("A valid email is required"),
   password: z.string().min(1),
   name: z.string().trim().max(120).optional(),
+  /** Preferred UI / email language; defaults to `en` server-side when omitted. */
+  locale: z
+    .string()
+    .refine((v): v is (typeof APP_LOCALES)[number] =>
+      (APP_LOCALES as readonly string[]).includes(v),
+    )
+    .optional(),
 });
 
 export const refreshBodySchema = z
@@ -72,6 +81,26 @@ export const profilePatchBodySchema = z
       b.location !== undefined,
     { message: "At least one profile field is required" },
   );
+
+export const preferencesPatchBodySchema = z
+  .object({
+    locale: z
+      .string()
+      .refine((v): v is (typeof APP_LOCALES)[number] =>
+        (APP_LOCALES as readonly string[]).includes(v),
+      )
+      .optional(),
+    moneyCurrency: z
+      .number()
+      .int()
+      .refine((v): v is (typeof MONEY_CURRENCIES)[number] =>
+        (MONEY_CURRENCIES as readonly number[]).includes(v),
+      )
+      .optional(),
+  })
+  .refine((b) => b.locale !== undefined || b.moneyCurrency !== undefined, {
+    message: "At least one preference field is required",
+  });
 
 export const userDirectoryQuerySchema = z.object({
   q: z.string().trim().min(1).max(100),

@@ -6,6 +6,12 @@ import { avatarUrlFromUploadId, rowToUser, type UserRow } from "./mappers";
 import { getPool } from "./pool";
 import { UserRole, type UserRecord } from "./types";
 import { UploadKind, type PostAuthor } from "../../types/post";
+import {
+  defaultMoneyCurrencyForLocale,
+  isAppLocale,
+  type AppLocale,
+} from "../../types/locale";
+import { isMoneyCurrency, type MoneyCurrency } from "../../types/money";
 
 // -------------------------------------------------------------------------
 // Reads
@@ -60,6 +66,25 @@ export interface CreateUserInput {
   name?: string;
   role?: UserRole;
   emailVerified?: boolean;
+  /** Preferred UI / email language. Defaults to `en`. */
+  locale?: AppLocale;
+  /**
+   * Money display currency. Defaults from `locale` when omitted.
+   * Pass explicitly only when the caller already chose a currency.
+   */
+  moneyCurrency?: MoneyCurrency;
+}
+
+function resolveCreatePrefs(input: CreateUserInput): {
+  locale: AppLocale;
+  moneyCurrency: MoneyCurrency;
+} {
+  const locale = isAppLocale(input.locale) ? input.locale : "en";
+  const moneyCurrency =
+    input.moneyCurrency !== undefined && isMoneyCurrency(input.moneyCurrency)
+      ? input.moneyCurrency
+      : defaultMoneyCurrencyForLocale(locale);
+  return { locale, moneyCurrency };
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
@@ -68,10 +93,11 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
   const now = nowISO();
   const role = input.role ?? UserRole.Normal;
   const verified = input.emailVerified ? 1 : 0;
+  const { locale, moneyCurrency } = resolveCreatePrefs(input);
   await pool.query(
     `INSERT INTO users
-      (id, email, password_hash, name, role, email_verified, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, email, password_hash, name, role, email_verified, locale, money_currency, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.email.toLowerCase(),
@@ -79,6 +105,8 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
       input.name ?? null,
       role,
       verified,
+      locale,
+      moneyCurrency,
       isoToDB(now),
       isoToDB(now),
     ],
@@ -106,12 +134,13 @@ export async function createUserWithEmailVerification(input: {
   const now = nowISO();
   const role = input.user.role ?? UserRole.Normal;
   const verified = input.user.emailVerified ? 1 : 0;
+  const { locale, moneyCurrency } = resolveCreatePrefs(input.user);
   try {
     await conn.beginTransaction();
     await conn.query(
       `INSERT INTO users
-        (id, email, password_hash, name, role, email_verified, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, email, password_hash, name, role, email_verified, locale, money_currency, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.user.email.toLowerCase(),
@@ -119,6 +148,8 @@ export async function createUserWithEmailVerification(input: {
         input.user.name ?? null,
         role,
         verified,
+        locale,
+        moneyCurrency,
         isoToDB(now),
         isoToDB(now),
       ],
@@ -291,6 +322,63 @@ export async function updateUserProfile(
     user: updated,
     previousAvatarUploadId: avatarChanged ? previousAvatarUploadId : null,
   };
+}
+
+export interface UpdateUserPreferencesInput {
+  locale?: AppLocale;
+  moneyCurrency?: MoneyCurrency;
+}
+
+/**
+ * Partial preference update (language + Money currency). Changing locale
+ * does not rewrite currency — callers must pass moneyCurrency explicitly.
+ */
+export async function updateUserPreferences(
+  id: string,
+  input: UpdateUserPreferencesInput,
+): Promise<UserRecord> {
+  const pool = getPool();
+  const sets: string[] = [];
+  const params: unknown[] = [];
+
+  if (input.locale !== undefined) {
+    if (!isAppLocale(input.locale)) {
+      throw new DomainError(400, "Unsupported locale");
+    }
+    sets.push("locale = ?");
+    params.push(input.locale);
+  }
+  if (input.moneyCurrency !== undefined) {
+    if (!isMoneyCurrency(input.moneyCurrency)) {
+      throw new DomainError(400, "Unsupported currency");
+    }
+    sets.push("money_currency = ?");
+    params.push(input.moneyCurrency);
+  }
+
+  if (!sets.length) {
+    const existing = await getUserById(id);
+    if (!existing) throw new DomainError(404, "User not found");
+    return existing;
+  }
+
+  sets.push("updated_at = ?");
+  params.push(isoToDB(nowISO()));
+  params.push(id);
+
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE users SET ${sets.join(", ")} WHERE id = ?`,
+    params,
+  );
+  if (result.affectedRows === 0) {
+    throw new DomainError(404, "User not found");
+  }
+
+  const updated = await getUserById(id);
+  if (!updated) {
+    throw new Error("updateUserPreferences: row vanished after update");
+  }
+  return updated;
 }
 
 /**

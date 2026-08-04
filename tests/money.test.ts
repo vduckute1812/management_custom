@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   MoneyBudgetScope,
   MoneyCategory,
+  MoneyCurrency,
   MoneyDirection,
   MoneySavingsGoalStatus,
   budgetProgress,
@@ -10,6 +11,7 @@ import {
   savingsProgress,
   type MoneyTransaction,
 } from "../types/money";
+import { defaultMoneyCurrencyForLocale } from "../types/locale";
 import {
   moneyBudgetUpsertBodySchema,
   moneyBudgetsQuerySchema,
@@ -114,8 +116,17 @@ describe("money utils", () => {
     expect(parseMoneyMinorInput("")).toBeNull();
   });
 
+  it("parses fractional currencies into minor units", () => {
+    expect(parseMoneyMinorInput("12.34", MoneyCurrency.USD)).toBe(1234);
+    expect(parseMoneyMinorInput("1,234.56", MoneyCurrency.USD)).toBe(123_456);
+    expect(parseMoneyMinorInput("12", MoneyCurrency.CNY)).toBe(1200);
+  });
+
   it("formats plain amounts", () => {
     expect(formatMoneyMinorPlain(1_500_000)).toMatch(/1/);
+    expect(formatMoneyMinorPlain(1234, "en-US", MoneyCurrency.USD)).toMatch(
+      /12/,
+    );
   });
 
   it("yearMonth helpers", () => {
@@ -126,6 +137,15 @@ describe("money utils", () => {
       start: "2026-02-01",
       end: "2026-02-28",
     });
+  });
+});
+
+describe("money currency defaults", () => {
+  it("maps locale to a default currency", () => {
+    expect(defaultMoneyCurrencyForLocale("vi")).toBe(MoneyCurrency.VND);
+    expect(defaultMoneyCurrencyForLocale("en")).toBe(MoneyCurrency.USD);
+    expect(defaultMoneyCurrencyForLocale("zh-CN")).toBe(MoneyCurrency.CNY);
+    expect(defaultMoneyCurrencyForLocale("zh-TW")).toBe(MoneyCurrency.TWD);
   });
 });
 
