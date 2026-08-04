@@ -171,12 +171,18 @@ function positionMenu() {
   const rect = el.getBoundingClientRect();
   const width = Math.max(rect.width, 220);
   const left = Math.min(rect.left, window.innerWidth - width - 8);
+  const estimatedHeight = 280;
+  const spaceBelow = window.innerHeight - rect.bottom - 12;
+  const openUp = spaceBelow < estimatedHeight && rect.top > spaceBelow;
   menuStyle.value = {
     position: "fixed",
-    top: `${rect.bottom + 6}px`,
+    ...(openUp
+      ? { bottom: `${window.innerHeight - rect.top + 6}px`, top: "auto" }
+      : { top: `${rect.bottom + 6}px`, bottom: "auto" }),
     left: `${Math.max(8, left)}px`,
     width: `${width}px`,
     zIndex: "80",
+    maxHeight: `${Math.min(320, openUp ? rect.top - 16 : spaceBelow)}px`,
   };
 }
 
@@ -229,11 +235,6 @@ function onKeydown(e: KeyboardEvent) {
     return;
   }
   if (creating.value) {
-    if (e.key === "Escape") {
-      e.preventDefault();
-      e.stopPropagation();
-      creating.value = false;
-    }
     return;
   }
   if (e.key === "Escape") {
@@ -298,6 +299,7 @@ watch(
 
 function startCreate() {
   creating.value = true;
+  open.value = false;
   createName.value = "";
   createEmoji.value = "📌";
   createColor.value =
@@ -306,6 +308,21 @@ function startCreate() {
     ]!;
   createError.value = null;
 }
+
+function cancelCreate() {
+  creating.value = false;
+  createError.value = null;
+}
+
+const createDialogEl = ref<HTMLElement | null>(null);
+const createNameInput = ref<HTMLInputElement | null>(null);
+
+useModal(creating, {
+  container: createDialogEl,
+  onClose: cancelCreate,
+  initialFocus: createNameInput,
+  // Parent money modals already lock scroll; nesting is fine.
+});
 
 async function submitCreate() {
   const name = createName.value.trim();
@@ -392,7 +409,7 @@ void parseMoneyCategoryKey;
       <div
         v-if="open"
         ref="menuEl"
-        class="overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-200"
+        class="flex flex-col overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-slate-200"
         :style="menuStyle"
         role="listbox"
         tabindex="-1"
@@ -401,7 +418,7 @@ void parseMoneyCategoryKey;
         "
         @keydown="onKeydown"
       >
-        <div class="max-h-64 overflow-y-auto py-1 scrollbar-thin">
+        <div class="min-h-0 flex-1 overflow-y-auto py-1 scrollbar-thin">
           <button
             v-for="(row, idx) in options"
             :id="`money-cat-opt-${idx}`"
@@ -438,9 +455,9 @@ void parseMoneyCategoryKey;
 
         <div
           v-if="allowCreate"
-          class="border-t border-slate-100 bg-slate-50/80"
+          class="shrink-0 border-t border-slate-100 bg-slate-50/80"
         >
-          <div v-if="!creating" class="p-1.5">
+          <div class="p-1.5">
             <button
               type="button"
               class="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-xs font-semibold text-brand-700 transition hover:bg-white"
@@ -450,85 +467,108 @@ void parseMoneyCategoryKey;
               {{ $t("money.categoriesAdd.action") }}
             </button>
           </div>
-          <form v-else class="space-y-2 p-3" @submit.prevent="submitCreate">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-wider text-slate-500"
-            >
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
+        v-if="creating"
+        class="fixed inset-0 z-[90] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+        @mousedown.self="cancelCreate"
+      >
+        <form
+          ref="createDialogEl"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="$t('money.categoriesAdd.title')"
+          class="w-full max-w-sm space-y-3 rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-200"
+          @submit.prevent="submitCreate"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <p class="text-sm font-semibold text-slate-900">
               {{ $t("money.categoriesAdd.title") }}
             </p>
-            <input
-              v-model="createName"
-              type="text"
-              maxlength="120"
-              :placeholder="$t('money.categoriesAdd.namePlaceholder')"
-              class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-              autofocus
-            />
-            <div>
-              <p class="mb-1 text-[11px] font-medium text-slate-500">
-                {{ $t("money.categoriesAdd.emoji") }}
-              </p>
-              <div class="flex flex-wrap gap-1">
-                <button
-                  v-for="em in MONEY_USER_CATEGORY_EMOJI_SUGGESTIONS"
-                  :key="em"
-                  type="button"
-                  class="flex h-8 w-8 items-center justify-center rounded-lg text-base ring-1 transition"
-                  :class="
-                    createEmoji === em
-                      ? 'bg-white ring-brand-400'
-                      : 'bg-white/70 ring-slate-200 hover:ring-slate-300'
-                  "
-                  @click="createEmoji = em"
-                >
-                  {{ em }}
-                </button>
-              </div>
-            </div>
-            <div>
-              <p class="mb-1 text-[11px] font-medium text-slate-500">
-                {{ $t("money.categoriesAdd.color") }}
-              </p>
-              <div class="flex flex-wrap gap-1.5">
-                <button
-                  v-for="c in MONEY_USER_CATEGORY_COLORS"
-                  :key="c"
-                  type="button"
-                  class="h-5 w-5 rounded-full ring-2 transition"
-                  :class="
-                    createColor === c ? 'ring-slate-900' : 'ring-transparent'
-                  "
-                  :style="{ backgroundColor: c }"
-                  :aria-label="c"
-                  @click="createColor = c"
-                />
-              </div>
-            </div>
-            <p v-if="createError" class="text-xs text-rose-600" role="alert">
-              {{ createError }}
+            <button
+              type="button"
+              class="rounded-lg px-2 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100"
+              @click="cancelCreate"
+            >
+              {{ $t("money.modal.cancel") }}
+            </button>
+          </div>
+          <input
+            ref="createNameInput"
+            v-model="createName"
+            type="text"
+            maxlength="120"
+            :placeholder="$t('money.categoriesAdd.namePlaceholder')"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+          />
+          <div>
+            <p class="mb-1.5 text-[11px] font-medium text-slate-500">
+              {{ $t("money.categoriesAdd.emoji") }}
             </p>
-            <div class="flex justify-end gap-2 pt-1">
+            <div class="flex flex-wrap gap-1.5">
               <button
+                v-for="em in MONEY_USER_CATEGORY_EMOJI_SUGGESTIONS"
+                :key="em"
                 type="button"
-                class="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-white"
-                @click="creating = false"
+                class="flex h-9 w-9 items-center justify-center rounded-lg text-base ring-1 transition"
+                :class="
+                  createEmoji === em
+                    ? 'bg-brand-50 ring-brand-400'
+                    : 'bg-slate-50 ring-slate-200 hover:ring-slate-300'
+                "
+                @click="createEmoji = em"
               >
-                {{ $t("money.modal.cancel") }}
-              </button>
-              <button
-                type="submit"
-                class="rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                :disabled="createBusy"
-              >
-                {{
-                  createBusy
-                    ? $t("money.categoriesAdd.saving")
-                    : $t("money.categoriesAdd.save")
-                }}
+                {{ em }}
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+          <div>
+            <p class="mb-1.5 text-[11px] font-medium text-slate-500">
+              {{ $t("money.categoriesAdd.color") }}
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="c in MONEY_USER_CATEGORY_COLORS"
+                :key="c"
+                type="button"
+                class="h-6 w-6 rounded-full ring-2 transition"
+                :class="
+                  createColor === c ? 'ring-slate-900' : 'ring-transparent'
+                "
+                :style="{ backgroundColor: c }"
+                :aria-label="c"
+                @click="createColor = c"
+              />
+            </div>
+          </div>
+          <p v-if="createError" class="text-xs text-rose-600" role="alert">
+            {{ createError }}
+          </p>
+          <div class="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              class="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+              @click="cancelCreate"
+            >
+              {{ $t("money.modal.cancel") }}
+            </button>
+            <button
+              type="submit"
+              class="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+              :disabled="createBusy"
+            >
+              {{
+                createBusy
+                  ? $t("money.categoriesAdd.saving")
+                  : $t("money.categoriesAdd.save")
+              }}
+            </button>
+          </div>
+        </form>
       </div>
     </Teleport>
   </div>

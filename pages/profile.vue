@@ -202,7 +202,7 @@ onMounted(async () => {
 
         <div class="min-w-0 flex-1">
           <template v-if="!editing">
-            <p class="truncate text-lg font-semibold uppercase text-slate-900">
+            <p class="truncate text-lg font-semibold text-slate-900">
               {{ user.name || $t("profile.unnamedUser") }}
             </p>
             <p class="truncate text-sm text-slate-500">{{ user.email }}</p>
@@ -234,7 +234,7 @@ onMounted(async () => {
                 required
                 maxlength="120"
                 autocomplete="name"
-                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm uppercase text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                 :placeholder="$t('profile.fields.namePlaceholder')"
               />
             </div>
