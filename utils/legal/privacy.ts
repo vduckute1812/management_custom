@@ -44,6 +44,7 @@ export const privacyPolicy: LegalDocumentSet = {
         bullets: [
           "Optional profile fields you choose to fill in: display name, avatar image, title, job, and location.",
           "Your role in the install (member, admin, or superadmin) and whether your email address has been verified.",
+          "Preferred interface language and Money display currency, stored on the account so emails and Money formatting follow your choice across devices.",
           "If you sign in with Google: the Google account identifier, the email address, and the name Google returns. The Google profile photo is received but not stored.",
         ],
       },
@@ -238,6 +239,7 @@ export const privacyPolicy: LegalDocumentSet = {
         bullets: [
           "Các trường hồ sơ tuỳ chọn do bạn tự điền: tên hiển thị, ảnh đại diện, chức danh, công việc và địa điểm.",
           "Vai trò của bạn trong hệ thống (thành viên, quản trị viên hoặc superadmin) và trạng thái email đã xác thực hay chưa.",
+          "Ngôn ngữ giao diện và đơn vị tiền tệ Money ưa thích, lưu trên tài khoản để email và định dạng số tiền theo lựa chọn của bạn trên mọi thiết bị.",
           "Nếu bạn đăng nhập bằng Google: mã định danh tài khoản Google, địa chỉ email và tên mà Google trả về. Ảnh đại diện Google được nhận nhưng không được lưu.",
         ],
       },

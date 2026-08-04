@@ -19,6 +19,9 @@
  * meaning outside this module.
  */
 
+import type { AppLocale } from "./locale";
+import type { MoneyCurrency } from "./money";
+
 // -------------------------------------------------------------------------
 // TaskStatus
 // -------------------------------------------------------------------------
@@ -316,6 +319,16 @@ export interface AuthUser {
   job?: string;
   /** Free-form location (city, timezone, remote, …). */
   location?: string;
+  /**
+   * Preferred UI / email language (`en` / `vi` / `zh-CN` / `zh-TW`).
+   * Stored on the user so outbound mail matches the account, not the device.
+   */
+  locale: AppLocale;
+  /**
+   * Money display currency (`MoneyCurrency` TINYINT). Defaults from locale
+   * at signup; user may change later without rewriting history.
+   */
+  moneyCurrency: MoneyCurrency;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;

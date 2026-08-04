@@ -42,7 +42,11 @@ export default defineEventHandler(async (event) => {
     });
 
     try {
-      await enqueuePasswordResetEmail({ to: email, token: rawToken });
+      await enqueuePasswordResetEmail({
+        to: email,
+        token: rawToken,
+        locale: user.locale,
+      });
     } catch (err) {
       // Never log the raw token / reset URL.
       console.error("[forgot-password] failed to enqueue reset email", err);

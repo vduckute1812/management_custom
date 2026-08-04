@@ -1,57 +1,112 @@
 /**
- * Format / parse VND minor units for the Money module.
- * Wire + DB use integer đồng; the UI may accept digit groups with separators.
+ * Format / parse Money minor units for the active currency.
+ * Wire + DB use integer minor units (đồng for VND, cents for USD/CNY/TWD).
  */
 
 import {
   MONEY_CATEGORY_COLORS,
   MONEY_CATEGORY_EMOJI,
   MONEY_CATEGORY_I18N_KEYS,
-  MONEY_CURRENCY,
+  MONEY_CURRENCY_CODE,
+  MONEY_CURRENCY_FRACTION_DIGITS,
+  MoneyCurrency,
   MoneyDirection,
   moneyCategoryKey,
   moneyCategoryPickFromTx,
   type MoneyCategory,
   type MoneyCategoryPick,
+  type MoneyCurrency as MoneyCurrencyT,
   type MoneyTransaction,
 } from "~/types/money";
 
-/** Format minor units for display (vi-VN grouping, no fraction). */
 export function formatMoneyMinor(
   amountMinor: number,
   locale = "vi-VN",
+  currency: MoneyCurrencyT = MoneyCurrency.VND,
 ): string {
   const n = Number.isFinite(amountMinor) ? Math.trunc(amountMinor) : 0;
+  const code = MONEY_CURRENCY_CODE[currency] ?? "VND";
+  const fraction = MONEY_CURRENCY_FRACTION_DIGITS[currency] ?? 0;
+  const major = fraction > 0 ? n / 10 ** fraction : n;
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: MONEY_CURRENCY,
-      maximumFractionDigits: 0,
-      minimumFractionDigits: 0,
-    }).format(n);
+      currency: code,
+      maximumFractionDigits: fraction,
+      minimumFractionDigits: fraction,
+    }).format(major);
   } catch {
-    return `${n.toLocaleString("vi-VN")} ₫`;
+    return `${major.toLocaleString(locale)} ${code}`;
   }
 }
 
-/** Compact absolute amount without currency symbol (for inputs). */
-export function formatMoneyMinorPlain(amountMinor: number): string {
+/** Compact absolute amount in major units without currency symbol (for inputs). */
+export function formatMoneyMinorPlain(
+  amountMinor: number,
+  locale = "vi-VN",
+  currency: MoneyCurrencyT = MoneyCurrency.VND,
+): string {
   const n = Number.isFinite(amountMinor)
     ? Math.trunc(Math.abs(amountMinor))
     : 0;
-  return n.toLocaleString("vi-VN");
+  const fraction = MONEY_CURRENCY_FRACTION_DIGITS[currency] ?? 0;
+  if (fraction === 0) {
+    return n.toLocaleString(locale, { maximumFractionDigits: 0 });
+  }
+  const major = n / 10 ** fraction;
+  return major.toLocaleString(locale, {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: fraction,
+  });
 }
 
 /**
  * Parse a user-typed amount into minor units.
- * Accepts digits with optional thousand separators (., spaces); strips to digits.
+ * VND (0 fraction): digits only; `.` / `,` / spaces are thousand separators.
+ * USD/CNY/TWD (2 fraction): last `.` or `,` with 1–2 trailing digits is decimal.
  */
-export function parseMoneyMinorInput(raw: string): number | null {
-  const digits = raw.trim().replace(/[^\d]/g, "");
-  if (!digits) return null;
-  const n = Number(digits);
-  if (!Number.isSafeInteger(n) || n < 0) return null;
-  return n;
+export function parseMoneyMinorInput(
+  raw: string,
+  currency: MoneyCurrencyT = MoneyCurrency.VND,
+): number | null {
+  const trimmed = raw.trim().replace(/\s+/g, "");
+  if (!trimmed) return null;
+
+  const fraction = MONEY_CURRENCY_FRACTION_DIGITS[currency] ?? 0;
+  if (fraction === 0) {
+    const digits = trimmed.replace(/[^\d]/g, "");
+    if (!digits) return null;
+    const n = Number(digits);
+    if (!Number.isSafeInteger(n) || n < 0) return null;
+    return n;
+  }
+
+  // Fractional currencies: decide decimal vs thousand separators.
+  const lastDot = trimmed.lastIndexOf(".");
+  const lastComma = trimmed.lastIndexOf(",");
+  const decPos = Math.max(lastDot, lastComma);
+  let majorStr: string;
+  if (decPos >= 0) {
+    const after = trimmed.slice(decPos + 1);
+    const before = trimmed.slice(0, decPos);
+    // 1–2 digits after the last separator → decimal; else thousand grouping.
+    if (/^\d{1,2}$/.test(after) && !/[.,]/.test(after)) {
+      const intPart = before.replace(/[^\d]/g, "") || "0";
+      const fracPart = after.padEnd(fraction, "0").slice(0, fraction);
+      majorStr = `${intPart}.${fracPart}`;
+    } else {
+      majorStr = trimmed.replace(/[^\d]/g, "");
+    }
+  } else {
+    majorStr = trimmed.replace(/[^\d]/g, "");
+  }
+
+  if (!majorStr || majorStr === ".") return null;
+  const major = Number(majorStr);
+  if (!Number.isFinite(major) || major < 0) return null;
+  const minor = Math.round(major * 10 ** fraction);
+  if (!Number.isSafeInteger(minor) || minor < 0) return null;
+  return minor;
 }
 
 /** `YYYY-MM` for a Date (local calendar parts). */

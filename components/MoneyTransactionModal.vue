@@ -24,6 +24,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const { saveTransaction, deleteTransaction } = useMoney();
 const { pushToast } = useToasts();
 
@@ -97,7 +98,11 @@ function loadFrom(tx?: MoneyTransaction | null) {
   form.value = {
     id: tx.id,
     occurredOn: tx.occurredOn,
-    amountText: formatMoneyMinorPlain(tx.amountMinor),
+    amountText: formatMoneyMinorPlain(
+      tx.amountMinor,
+      intlLocale.value,
+      currency.value,
+    ),
     direction: tx.direction,
     categoryPick:
       moneyCategoryPickFromTx(tx) ??
@@ -132,7 +137,10 @@ watch(
 );
 
 async function onSubmit() {
-  const amountMinor = parseMoneyMinorInput(form.value.amountText);
+  const amountMinor = parseMoneyMinorInput(
+    form.value.amountText,
+    currency.value,
+  );
   if (amountMinor == null) {
     errorMsg.value = t("money.modal.amountRequired");
     return;

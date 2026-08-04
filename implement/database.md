@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities` → `0024_money_transactions` → `0025_money_savings` → `0026_money_budgets` → `0027_money_user_categories`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities` → `0024_money_transactions` → `0025_money_savings` → `0026_money_budgets` → `0027_money_user_categories` → `0028_user_locale_currency`.
 
 ## Migration system
 
@@ -72,6 +72,7 @@ MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 | Column                                                                                     | Type                    | Mapping                                                                                 |
 | ------------------------------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------- |
 | `users.role`                                                                               | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`                                                       |
+| `users.money_currency`                                                                     | `TINYINT UNSIGNED`      | `VND=0, USD=1, CNY=2, TWD=3` (Money display; amounts stay minor units)                  |
 | `auth_identities.provider`                                                                 | `TINYINT UNSIGNED`      | `AuthProvider.Google=0`                                                                 |
 | `epics.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
 | `tasks.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
@@ -120,6 +121,8 @@ CREATE TABLE users (
   title           VARCHAR(120) NULL,   -- migration 0010
   job             VARCHAR(120) NULL,   -- migration 0010
   location        VARCHAR(120) NULL,   -- migration 0010
+  locale          VARCHAR(16) NOT NULL DEFAULT 'en',  -- migration 0028 (BCP-47)
+  money_currency  TINYINT UNSIGNED NOT NULL DEFAULT 0, -- migration 0028; VND=0 USD=1 CNY=2 TWD=3
   role            TINYINT UNSIGNED NOT NULL DEFAULT 0,
   email_verified  TINYINT(1)    NOT NULL DEFAULT 0,
   created_at      DATETIME(3)   NOT NULL,
@@ -147,7 +150,7 @@ CREATE TABLE auth_identities (
   INDEX idx_auth_identities_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Money ledger (migration 0024). Amounts are VND đồng (BIGINT ≥ 0).
+-- Money ledger (migration 0024). Amounts are minor units (BIGINT ≥ 0); display currency is users.money_currency.
 -- MoneyDirection: Out=0 In=1. MoneyCategory: Food=0 … Other=10.
 CREATE TABLE money_transactions (
   id            VARCHAR(64)  NOT NULL,

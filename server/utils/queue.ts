@@ -45,24 +45,24 @@ export async function enqueueEmailSend(
 }
 
 export async function enqueueVerificationEmail(
-  args: { to: string; token: string },
+  args: { to: string; token: string; locale?: string },
   opts?: { delaySeconds?: number; maxAttempts?: number },
 ): Promise<JobRow> {
   return enqueueJob({
     type: JobTypes.EmailVerification,
-    payload: { to: args.to, token: args.token },
+    payload: { to: args.to, token: args.token, locale: args.locale ?? "en" },
     delaySeconds: opts?.delaySeconds,
     maxAttempts: opts?.maxAttempts ?? 5,
   });
 }
 
 export async function enqueuePasswordResetEmail(
-  args: { to: string; token: string },
+  args: { to: string; token: string; locale?: string },
   opts?: { delaySeconds?: number; maxAttempts?: number },
 ): Promise<JobRow> {
   return enqueueJob({
     type: JobTypes.EmailPasswordReset,
-    payload: { to: args.to, token: args.token },
+    payload: { to: args.to, token: args.token, locale: args.locale ?? "en" },
     delaySeconds: opts?.delaySeconds,
     maxAttempts: opts?.maxAttempts ?? 5,
   });
@@ -106,19 +106,23 @@ export async function processJob(job: JobRow): Promise<void> {
     case JobTypes.EmailVerification: {
       const to = String(job.payload.to || "");
       const token = String(job.payload.token || "");
+      const locale =
+        typeof job.payload.locale === "string" ? job.payload.locale : "en";
       if (!to || !token) {
         throw new Error("email.verification: missing to/token");
       }
-      await sendVerificationEmail({ to, token });
+      await sendVerificationEmail({ to, token, locale });
       return;
     }
     case JobTypes.EmailPasswordReset: {
       const to = String(job.payload.to || "");
       const token = String(job.payload.token || "");
+      const locale =
+        typeof job.payload.locale === "string" ? job.payload.locale : "en";
       if (!to || !token) {
         throw new Error("email.passwordReset: missing to/token");
       }
-      await sendPasswordResetEmail({ to, token });
+      await sendPasswordResetEmail({ to, token, locale });
       return;
     }
     case JobTypes.CacheInvalidate: {

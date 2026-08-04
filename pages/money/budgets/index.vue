@@ -8,7 +8,8 @@ import {
 } from "~/types/money";
 import { formatMoneyMinor, toYearMonth } from "~/utils/money";
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const {
   month,
   yearMonth,
@@ -37,18 +38,10 @@ useSeoMeta({
 
 usePageShortcuts([{ key: "n", handler: () => openCreate() }]);
 
-const moneyLocale = computed(() => {
-  const map: Record<string, string> = {
-    en: "en-US",
-    vi: "vi-VN",
-    "zh-CN": "zh-CN",
-    "zh-TW": "zh-TW",
-  };
-  return map[locale.value] ?? "vi-VN";
-});
+const moneyLocale = intlLocale;
 
 function fmt(n: number) {
-  return formatMoneyMinor(n, moneyLocale.value);
+  return formatMoneyMinor(n, moneyLocale.value, currency.value);
 }
 
 function monthLabel(ym: string) {

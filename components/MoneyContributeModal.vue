@@ -13,6 +13,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const { addContribution } = useMoneySavings();
 
 function todayIso(): string {
@@ -57,7 +58,7 @@ function onBackdrop(e: MouseEvent) {
 
 async function onSubmit() {
   if (!props.goal) return;
-  const amountMinor = parseMoneyMinorInput(amountText.value);
+  const amountMinor = parseMoneyMinorInput(amountText.value, currency.value);
   if (amountMinor == null || amountMinor < 1) {
     errorMsg.value = t("money.savings.contribute.amountRequired");
     return;
@@ -136,7 +137,9 @@ async function onSubmit() {
                 type="text"
                 inputmode="numeric"
                 required
-                :placeholder="formatMoneyMinorPlain(100000)"
+                :placeholder="
+                  formatMoneyMinorPlain(100000, intlLocale, currency)
+                "
                 class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
               />
             </div>

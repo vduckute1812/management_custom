@@ -14,6 +14,7 @@ import {
   safeOAuthRedirect,
   setOAuthStateCookie,
 } from "~/server/utils/googleOAuth";
+import { isAppLocale } from "~/types/locale";
 
 export default defineEventHandler(async (event) => {
   const config = getGoogleOAuthConfig();
@@ -40,7 +41,18 @@ export default defineEventHandler(async (event) => {
     userId = claims.sub;
   }
 
-  const { state, nonce } = createOAuthState({ intent, redirect, userId });
+  const cookieLocale = getCookie(event, "mgmt_locale");
+  const locale =
+    (typeof query.locale === "string" && isAppLocale(query.locale)
+      ? query.locale
+      : null) ?? (isAppLocale(cookieLocale) ? cookieLocale : undefined);
+
+  const { state, nonce } = createOAuthState({
+    intent,
+    redirect,
+    userId,
+    locale,
+  });
   setOAuthStateCookie(event, nonce);
   return sendRedirect(event, buildGoogleAuthorizeUrl(config, state), 302);
 });

@@ -1,4 +1,10 @@
 import { UserRole, type AuthUser } from "~/types/task";
+import {
+  defaultMoneyCurrencyForLocale,
+  isAppLocale,
+  type AppLocale,
+} from "~/types/locale";
+import { isMoneyCurrency } from "~/types/money";
 
 /**
  * Auth state for the client. Owns:
@@ -29,6 +35,15 @@ const KEYS = {
 } as const;
 
 const CREDENTIALS = { credentials: "include" as const };
+
+/** Normalize legacy cached AuthUser shapes missing locale / moneyCurrency. */
+function normalizeAuthUser(raw: AuthUser): AuthUser {
+  const locale: AppLocale = isAppLocale(raw.locale) ? raw.locale : "en";
+  const moneyCurrency = isMoneyCurrency(raw.moneyCurrency)
+    ? raw.moneyCurrency
+    : defaultMoneyCurrencyForLocale(locale);
+  return { ...raw, locale, moneyCurrency };
+}
 
 /**
  * Public routes (`/`, `/feed`) are selectively SSR'd for Google. Auth still
@@ -82,7 +97,7 @@ export const useAuth = () => {
         user.value = null;
         ls.removeItem(KEYS.user);
       } else {
-        user.value = parsed;
+        user.value = parsed ? normalizeAuthUser(parsed) : null;
       }
     } catch {
       clearSession();
@@ -90,11 +105,20 @@ export const useAuth = () => {
   }
 
   function setSession(session: AuthSession) {
-    user.value = session.user;
+    user.value = normalizeAuthUser(session.user);
     accessToken.value = session.accessToken;
     accessExpiresAt.value = session.accessExpiresAt;
     hasRefreshSession.value = true;
     persist();
+    // Keep device language aligned with the account (emails use AuthUser.locale).
+    if (import.meta.client && isAppLocale(user.value.locale)) {
+      try {
+        const { update } = useSettings();
+        update("locale", user.value.locale);
+      } catch {
+        // Settings may be unavailable during early boot — non-fatal.
+      }
+    }
   }
 
   function clearSession() {
@@ -119,6 +143,7 @@ export const useAuth = () => {
     email: string;
     password: string;
     name?: string;
+    locale?: AppLocale;
   }): Promise<{ user: AuthUser; verificationSent: boolean }> {
     return await $fetch("/api/auth/signup", {
       method: "POST",
@@ -175,8 +200,16 @@ export const useAuth = () => {
           : undefined,
         ...CREDENTIALS,
       });
-      user.value = fresh;
+      user.value = normalizeAuthUser(fresh);
       persist();
+      if (import.meta.client && isAppLocale(user.value.locale)) {
+        try {
+          const { update } = useSettings();
+          update("locale", user.value.locale);
+        } catch {
+          // ignore
+        }
+      }
       return fresh;
     } catch {
       return null;
@@ -201,7 +234,27 @@ export const useAuth = () => {
         ...CREDENTIALS,
       },
     );
-    user.value = fresh;
+    user.value = normalizeAuthUser(fresh);
+    persist();
+    return fresh;
+  }
+
+  async function updatePreferences(input: {
+    locale?: AppLocale;
+    moneyCurrency?: import("~/types/money").MoneyCurrency;
+  }): Promise<AuthUser> {
+    const { user: fresh } = await $fetch<{ user: AuthUser }>(
+      "/api/auth/preferences",
+      {
+        method: "PATCH",
+        body: input,
+        headers: accessToken.value
+          ? { Authorization: `Bearer ${accessToken.value}` }
+          : undefined,
+        ...CREDENTIALS,
+      },
+    );
+    user.value = normalizeAuthUser(fresh);
     persist();
     return fresh;
   }
@@ -261,6 +314,7 @@ export const useAuth = () => {
     refresh,
     fetchMe,
     updateProfile,
+    updatePreferences,
     logout,
   };
 };

@@ -7,10 +7,12 @@ the ledger; later sprints add savings goals and budgets.
 
 - Top-level module (header nav), auth-required, **per-user** data (same
   isolation model as tasks/epics).
-- Install currency for v1: **VND**. Amounts are integer **minor units**
-  (đồng). No fractional VND in storage or on the wire.
-- UI language follows app i18n (`en` / `vi` / `zh-CN` / `zh-TW`); currency
-  formatting is always VND.
+- Per-user display currency (`MoneyCurrency` TINYINT on `users.money_currency`):
+  **VND=0**, **USD=1**, **CNY=2**, **TWD=3**. Defaults from signup locale
+  (`vi→VND`, `en→USD`, `zh-CN→CNY`, `zh-TW→TWD`); user may change in Settings.
+- Amounts are integer **minor units** (đồng for VND, cents for USD/CNY/TWD).
+  Changing currency does **not** convert historical amounts.
+- UI language follows app i18n; Money formatting uses the account currency.
 
 ## Integer enums
 
@@ -128,4 +130,4 @@ Harden — client export + tests (no new tables/API):
 
 ## Out of scope (for now)
 
-Multi-currency / FX, shared wallets, bank sync, OCR, investments.
+FX conversion / multi-wallet, shared wallets, bank sync, OCR, investments.

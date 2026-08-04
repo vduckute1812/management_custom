@@ -15,6 +15,11 @@
  * before the operator has wired in a real provider.
  */
 import nodemailer, { type Transporter } from "nodemailer";
+import {
+  buildAuthEmailHtml,
+  passwordResetEmailCopy,
+  verificationEmailCopy,
+} from "~/server/utils/emailI18n";
 
 interface MailerState {
   transport: Transporter | null;
@@ -125,87 +130,15 @@ export function buildResetUrl(token: string): string {
 export async function sendPasswordResetEmail(args: {
   to: string;
   token: string;
+  locale?: string;
 }): Promise<void> {
   const url = buildResetUrl(args.token);
+  const copy = passwordResetEmailCopy(args.locale);
   await sendMail({
     to: args.to,
-    subject: "Reset your password",
-    text:
-      `We received a request to reset your password.\n\n` +
-      `Open this email in an HTML-capable mail app and click “Reset password”.\n\n` +
-      `This link expires in 1 hour.\n\n` +
-      `If you didn't request a reset, you can ignore this email.`,
-    html: `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reset your password</title>
-  </head>
-  <body style="margin:0;padding:0;background:#f8fafc;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      Reset your password using the link in this email.
-    </div>
-
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
-      <tr>
-        <td align="center" style="padding:28px 14px;">
-          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
-            <tr>
-              <td style="padding:22px 24px 8px 24px;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b;">
-                  Da Nang Tech R&amp;D and Networking Portal
-                </div>
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:22px; font-weight:700; line-height:1.25; color:#0f172a; margin-top:10px;">
-                  Reset your password
-                </div>
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:14px; line-height:1.6; color:#334155; margin-top:10px;">
-                  Click the button below to choose a new password. This link works once and expires in one hour.
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:14px 24px 8px 24px;">
-                <table role="presentation" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td align="center" bgcolor="#4f46e5" style="border-radius:10px;">
-                      <a href="${url}"
-                         style="display:inline-block;padding:12px 16px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
-                        Reset password
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:0 24px 20px 24px;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:12px; line-height:1.6; color:#64748b;">
-                  This link expires in <strong style="color:#475569;">1 hour</strong>.
-                  If you didn't request a password reset, you can safely ignore this email.
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:14px 24px 22px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:12px; line-height:1.6; color:#64748b;">
-                  If the button doesn't work, try opening this email in Gmail or Apple Mail.
-                </div>
-              </td>
-            </tr>
-          </table>
-
-          <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:11px; line-height:1.6; color:#94a3b8; margin-top:10px;">
-            © ${new Date().getFullYear()} Da Nang Tech R&amp;D and Networking Portal
-          </div>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`,
+    subject: copy.subject,
+    text: copy.text,
+    html: buildAuthEmailHtml({ copy, url }),
   });
 }
 
@@ -253,90 +186,17 @@ export async function sendPublicIpChangeEmail(args: {
 export async function sendVerificationEmail(args: {
   to: string;
   token: string;
+  locale?: string;
 }): Promise<void> {
   const url = buildVerifyUrl(args.token);
+  const copy = verificationEmailCopy(args.locale);
   await sendMail({
     to: args.to,
-    subject: "Verify your email address",
+    subject: copy.subject,
     // Intentionally does NOT print the raw verification URL in the message
     // body (per UX request). The verification link exists only behind the
     // HTML button.
-    text:
-      `Welcome!\n\n` +
-      `Please verify your email address to finish creating your account.\n\n` +
-      `Open this email in an HTML-capable mail app and click “Verify email”.\n\n` +
-      `This verification expires in 24 hours.\n\n` +
-      `If you didn't create an account, you can ignore this email.`,
-    html: `<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Verify your email</title>
-  </head>
-  <body style="margin:0;padding:0;background:#f8fafc;">
-    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
-      Verify your email address to finish creating your account.
-    </div>
-
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;">
-      <tr>
-        <td align="center" style="padding:28px 14px;">
-          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
-            <tr>
-              <td style="padding:22px 24px 8px 24px;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:#64748b;">
-                  Da Nang Tech R&amp;D and Networking Portal
-                </div>
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:22px; font-weight:700; line-height:1.25; color:#0f172a; margin-top:10px;">
-                  Verify your email address
-                </div>
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:14px; line-height:1.6; color:#334155; margin-top:10px;">
-                  Thanks for signing up. Confirm your email to activate your account.
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:14px 24px 8px 24px;">
-                <table role="presentation" cellspacing="0" cellpadding="0">
-                  <tr>
-                    <td align="center" bgcolor="#4f46e5" style="border-radius:10px;">
-                      <a href="${url}"
-                         style="display:inline-block;padding:12px 16px;font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;">
-                        Verify email
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:0 24px 20px 24px;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:12px; line-height:1.6; color:#64748b;">
-                  This link expires in <strong style="color:#475569;">24 hours</strong>.
-                  If you didn’t create an account, you can safely ignore this email.
-                </div>
-              </td>
-            </tr>
-
-            <tr>
-              <td style="padding:14px 24px 22px 24px;border-top:1px solid #e2e8f0;background:#f8fafc;">
-                <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:12px; line-height:1.6; color:#64748b;">
-                  If the button doesn’t work, your email client may be blocking HTML links. Try opening this email in Gmail or Apple Mail.
-                </div>
-              </td>
-            </tr>
-          </table>
-
-          <div style="font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Arial; font-size:11px; line-height:1.6; color:#94a3b8; margin-top:10px;">
-            © ${new Date().getFullYear()} Da Nang Tech R&amp;D and Networking Portal
-          </div>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>`,
+    text: copy.text,
+    html: buildAuthEmailHtml({ copy, url }),
   });
 }

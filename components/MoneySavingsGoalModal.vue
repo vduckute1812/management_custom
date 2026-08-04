@@ -19,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const { saveGoal, deleteGoal } = useMoneySavings();
 const { pushToast } = useToasts();
 
@@ -74,7 +75,11 @@ function loadFrom(goal?: MoneySavingsGoal | null) {
   form.value = {
     id: goal.id,
     title: goal.title,
-    targetText: formatMoneyMinorPlain(goal.targetMinor),
+    targetText: formatMoneyMinorPlain(
+      goal.targetMinor,
+      intlLocale.value,
+      currency.value,
+    ),
     status: goal.status,
     targetDate: goal.targetDate ?? "",
     note: goal.note ?? "",
@@ -97,7 +102,10 @@ watch(
 );
 
 async function onSubmit() {
-  const targetMinor = parseMoneyMinorInput(form.value.targetText);
+  const targetMinor = parseMoneyMinorInput(
+    form.value.targetText,
+    currency.value,
+  );
   if (!form.value.title.trim()) {
     errorMsg.value = t("money.savings.modal.titleRequired");
     return;

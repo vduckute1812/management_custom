@@ -15,6 +15,8 @@ import {
   type TimeBlock,
   type UserRecord,
 } from "./types";
+import { toAppLocale } from "../../types/locale";
+import { toMoneyCurrency } from "../../types/money";
 
 // MySQL returns enum-typed TINYINT columns as `number`. These helpers narrow
 // the raw value back to its enum union and pin out-of-range values to the
@@ -119,6 +121,8 @@ export interface UserRow extends RowDataPacket {
   title: string | null;
   job: string | null;
   location: string | null;
+  locale: string;
+  money_currency: number;
   role: number;
   email_verified: number;
   created_at: string;
@@ -248,6 +252,8 @@ export function rowToUser(r: UserRow): UserRecord {
     title: r.title ?? undefined,
     job: r.job ?? undefined,
     location: r.location ?? undefined,
+    locale: toAppLocale(r.locale),
+    moneyCurrency: toMoneyCurrency(r.money_currency),
     role: toRole(r.role),
     emailVerified: r.email_verified === 1,
     passwordHash: r.password_hash,

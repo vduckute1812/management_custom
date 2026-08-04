@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { currency, intlLocale } = useMoneyCurrency();
 const { saveBudget, deleteBudget } = useMoneyBudgets();
 const { pushToast } = useToasts();
 
@@ -68,7 +69,11 @@ watch(
       id: props.budget.id,
       scope: props.budget.scope,
       categoryPick: pick,
-      amountText: formatMoneyMinorPlain(props.budget.amountMinor),
+      amountText: formatMoneyMinorPlain(
+        props.budget.amountMinor,
+        intlLocale.value,
+        currency.value,
+      ),
     };
   },
   { immediate: true },
@@ -89,7 +94,10 @@ function onBackdrop(e: MouseEvent) {
 }
 
 async function onSubmit() {
-  const amountMinor = parseMoneyMinorInput(form.value.amountText);
+  const amountMinor = parseMoneyMinorInput(
+    form.value.amountText,
+    currency.value,
+  );
   if (amountMinor == null) {
     errorMsg.value = t("money.budgets.modal.amountRequired");
     return;

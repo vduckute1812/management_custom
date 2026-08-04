@@ -26,6 +26,8 @@ export interface GoogleOAuthState {
   redirect: string;
   nonce: string;
   userId?: string;
+  /** Preferred locale for new Google accounts. */
+  locale?: string;
   exp: number;
 }
 
@@ -95,6 +97,7 @@ export function createOAuthState(input: {
   intent: AuthOAuthIntentT;
   redirect: string;
   userId?: string;
+  locale?: string;
 }): { state: string; nonce: string } {
   const nonce = generateOpaqueToken(16);
   const payload: GoogleOAuthState = {
@@ -103,6 +106,7 @@ export function createOAuthState(input: {
     nonce,
     exp: Math.floor(Date.now() / 1000) + STATE_TTL_SECONDS,
     ...(input.userId ? { userId: input.userId } : {}),
+    ...(input.locale ? { locale: input.locale } : {}),
   };
   return { state: signStatePayload(JSON.stringify(payload)), nonce };
 }

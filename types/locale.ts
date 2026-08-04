@@ -1,3 +1,5 @@
+import { MoneyCurrency, type MoneyCurrency as MoneyCurrencyT } from "./money";
+
 export const APP_LOCALES = ["en", "vi", "zh-CN", "zh-TW"] as const;
 export type AppLocale = (typeof APP_LOCALES)[number];
 
@@ -6,6 +8,35 @@ export function isAppLocale(value: unknown): value is AppLocale {
     typeof value === "string" &&
     (APP_LOCALES as readonly string[]).includes(value)
   );
+}
+
+/**
+ * Default Money currency for a UI locale (signup / first preference only).
+ * Later language changes do not rewrite currency — the user picks that
+ * explicitly in Settings.
+ */
+export function defaultMoneyCurrencyForLocale(
+  locale: AppLocale,
+): MoneyCurrencyT {
+  switch (locale) {
+    case "vi":
+      return MoneyCurrency.VND;
+    case "zh-CN":
+      return MoneyCurrency.CNY;
+    case "zh-TW":
+      return MoneyCurrency.TWD;
+    case "en":
+    default:
+      return MoneyCurrency.USD;
+  }
+}
+
+/** Coerce unknown / missing DB values to a supported app locale. */
+export function toAppLocale(
+  value: unknown,
+  fallback: AppLocale = "en",
+): AppLocale {
+  return isAppLocale(value) ? value : fallback;
 }
 
 /** dayjs locale pack name for each app locale. */

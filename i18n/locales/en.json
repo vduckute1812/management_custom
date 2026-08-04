@@ -121,10 +121,10 @@
   },
   "settings": {
     "title": "Settings",
-    "subtitle": "Preferences are saved on this device only.",
+    "subtitle": "Language and currency sync to your account when signed in. Other preferences stay on this device.",
     "language": {
       "title": "Language",
-      "subtitle": "Choose the language for the interface.",
+      "subtitle": "Interface language. Signed-in accounts also use this for emails.",
       "label": "Interface language"
     },
     "account": {
@@ -230,6 +230,18 @@
       "subtitle": "The dashboard has a print stylesheet for a clean weekly agenda.",
       "body": "Open the dashboard in weekly view, then press ⌘ P to preview the agenda. Sidebar, navigation, and color-coded backgrounds are stripped automatically.",
       "dashboardLink": "dashboard"
+    },
+    "currency": {
+      "title": "Currency",
+      "subtitle": "Default for Money amounts. New accounts inherit this from your language.",
+      "label": "Display currency",
+      "hint": "Changing currency does not convert existing amounts — only how they are labeled.",
+      "saved": "Currency updated",
+      "failed": "Could not update currency",
+      "vnd": "Vietnamese đồng (VND)",
+      "usd": "US dollar (USD)",
+      "cny": "Chinese yuan (CNY)",
+      "twd": "New Taiwan dollar (TWD)"
     }
   },
   "profile": {
@@ -1047,11 +1059,11 @@
     "manuscriptEditDescription": "Update an existing feed post or manuscript.",
     "chat": "Chat",
     "money": "Money",
-    "moneyDescription": "Track income and expenses in VND.",
+    "moneyDescription": "Track income and expenses.",
     "moneySavings": "Savings",
-    "moneySavingsDescription": "Track savings goals and contributions in VND.",
+    "moneySavingsDescription": "Track savings goals and contributions.",
     "moneyBudgets": "Budgets",
-    "moneyBudgetsDescription": "Monthly spending budgets in VND.",
+    "moneyBudgetsDescription": "Monthly spending budgets.",
     "privacy": "Privacy Policy",
     "privacyDescription": "What Da Nang TechX collects, who processes it, how long it is kept, and how to request an export or deletion.",
     "terms": "Terms of Service",
@@ -1214,7 +1226,7 @@
   },
   "money": {
     "title": "Money",
-    "subtitle": "Track income and expenses in VND",
+    "subtitle": "Track income and expenses",
     "addTransaction": "Add transaction",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
@@ -1224,7 +1236,7 @@
     "net": "Net",
     "loading": "Loading…",
     "empty": "No transactions this month. Add one to get started.",
-    "emptyHint": "Log income and expenses in VND — totals and charts update for the month.",
+    "emptyHint": "Log income and expenses — totals and charts update for the month.",
     "direction": {
       "out": "Expense",
       "in": "Income"
@@ -1246,7 +1258,7 @@
       "newTitle": "New transaction",
       "editTitle": "Edit transaction",
       "close": "Close",
-      "amount": "Amount (₫)",
+      "amount": "Amount",
       "amountPlaceholder": "e.g. 150000",
       "amountRequired": "Enter a valid amount.",
       "date": "Date",
@@ -1297,7 +1309,7 @@
     },
     "savings": {
       "title": "Savings",
-      "subtitle": "Goals and contributions in VND",
+      "subtitle": "Goals and contributions",
       "addGoal": "New goal",
       "loading": "Loading…",
       "empty": "No savings goals yet. Create one to start putting money aside.",
@@ -1322,7 +1334,7 @@
         "title": "Name",
         "titlePlaceholder": "e.g. Emergency fund",
         "titleRequired": "Enter a name.",
-        "target": "Target (₫)",
+        "target": "Target",
         "targetPlaceholder": "e.g. 10000000",
         "targetRequired": "Enter a valid target amount.",
         "status": "Status",
@@ -1344,7 +1356,7 @@
       },
       "contribute": {
         "title": "Add contribution",
-        "amount": "Amount (₫)",
+        "amount": "Amount",
         "amountRequired": "Enter a valid amount.",
         "date": "Date",
         "note": "Note",
@@ -1373,7 +1385,7 @@
         "editTitle": "Edit budget",
         "close": "Close",
         "category": "Category",
-        "amount": "Limit (₫)",
+        "amount": "Limit",
         "amountPlaceholder": "e.g. 5000000",
         "amountRequired": "Enter a valid amount.",
         "save": "Save",

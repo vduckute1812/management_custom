@@ -9,6 +9,7 @@ export {
   resetPasswordBodySchema,
   deleteAccountBodySchema,
   profilePatchBodySchema,
+  preferencesPatchBodySchema,
   userDirectoryQuerySchema,
 } from "./auth";
 
