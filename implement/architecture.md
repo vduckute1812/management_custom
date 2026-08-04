@@ -7,24 +7,25 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 ## Tech Stack
 
 <<<<<<< HEAD
-| Layer      | Technology                     | Purpose                                                                                                    |
-| ---------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                |
-| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                           |
-| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)                    |
-| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                             |
-| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                         |
-| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                                     |
-| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                                     |
-| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                         |
-| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md)   |
-| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
-| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                                     |
-| Charts     | Chart.js                       | Velocity and trend visualizations                                                                          |
-| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`        |
-| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                               |
-| Tests      | Vitest                         | `npm test` (DB-free units) + CI MySQL job (`npm run test:integration`). Playwright is a follow-up.         |
-=======
+
+| Layer      | Technology                     | Purpose                                                                                                                                          |
+| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                                                      |
+| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                                                                 |
+| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)                                                          |
+| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                                                                   |
+| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                                                               |
+| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                                                                           |
+| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                                                                           |
+| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                                                               |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md)                                         |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…`                                       |
+| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                                                                           |
+| Charts     | Chart.js                       | Velocity and trend visualizations                                                                                                                |
+| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`                                              |
+| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                                                                     |
+| Tests      | Vitest                         | `npm test` (DB-free units) + CI MySQL job (`npm run test:integration`). Playwright is a follow-up.                                               |
+| =======    |
 | Layer      | Technology                     | Purpose                                                                                                                                          |
 | ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                                                      |
@@ -42,7 +43,8 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`                                              |
 | Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                                                                     |
 | Tests      | Vitest                         | `npm test` — auth JWT/guards/attach, schemas, security, rate-limit, chat helpers, markdown sanitize. DB integration / Playwright are follow-ups. |
->>>>>>> 796e1f2 (feat: automated article pipeline with admin review)
+
+> > > > > > > 796e1f2 (feat: automated article pipeline with admin review)
 
 ## Project facts
 
