@@ -25,6 +25,8 @@ export function listFocusable(root: HTMLElement): HTMLElement[] {
     root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
   ).filter((el) => {
     if (el.getAttribute("aria-hidden") === "true") return false;
+    // Nested confirms set `inert` on the parent form so Tab cannot escape.
+    if (el.closest("[inert]")) return false;
     // Visible to assistive tech / keyboard (offsetParent misses fixed/flex
     // children in some trees — getClientRects covers those).
     return el.getClientRects().length > 0;

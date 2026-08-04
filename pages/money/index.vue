@@ -31,6 +31,8 @@ const modalOpen = ref(false);
 const editing = ref<MoneyTransaction | null>(null);
 const filterDirection = ref<"all" | MoneyDirection>("all");
 const filterCategoryPick = ref<MoneyCategoryPick | null>(null);
+/** Mobile: charts collapsed so the first viewport stays usable. */
+const chartsExpanded = ref(false);
 
 await useAsyncData("money:initial", async () => {
   await Promise.all([fetchMonth(), fetchCategories()]);
@@ -217,6 +219,9 @@ const netTone = computed(() => {
             :label="monthLabel(yearMonth)"
             :prev-label="$t('money.prevMonth')"
             :next-label="$t('money.nextMonth')"
+            :current-label="
+              $t('money.currentMonthNav', { month: monthLabel(yearMonth) })
+            "
             @prev="goMonth(-1)"
             @next="goMonth(1)"
             @current="goCurrentMonth"
@@ -244,14 +249,34 @@ const netTone = computed(() => {
           />
         </section>
 
-        <LazyMoneyCharts
-          :transactions="transactions"
-          :year-month="yearMonth"
-          :locale-tag="moneyLocale"
-          :currency="currency"
-          :active-pick="filterCategoryPick"
-          @select-category="onSelectCategoryFromChart"
-        />
+        <div class="space-y-3">
+          <button
+            type="button"
+            class="flex w-full items-center justify-between rounded-xl bg-white/90 px-3 py-2 text-left text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200/80 lg:hidden"
+            :aria-expanded="chartsExpanded"
+            aria-controls="money-charts-panel"
+            @click="chartsExpanded = !chartsExpanded"
+          >
+            <span>{{ $t("money.chartsToggle") }}</span>
+            <span class="text-xs font-medium text-slate-500" aria-hidden="true">
+              {{ chartsExpanded ? "▴" : "▾" }}
+            </span>
+          </button>
+          <div
+            id="money-charts-panel"
+            class="lg:block"
+            :class="chartsExpanded ? 'block' : 'hidden'"
+          >
+            <LazyMoneyCharts
+              :transactions="transactions"
+              :year-month="yearMonth"
+              :locale-tag="moneyLocale"
+              :currency="currency"
+              :active-pick="filterCategoryPick"
+              @select-category="onSelectCategoryFromChart"
+            />
+          </div>
+        </div>
 
         <div
           class="sticky top-0 z-[1] -mx-1 space-y-3 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-md"

@@ -655,6 +655,7 @@ async function doExportICS() {
                         ? 'bg-brand-600 text-white'
                         : 'bg-white text-slate-600 hover:bg-slate-50'
                     "
+                    :aria-pressed="settings.density === opt"
                     @click="update('density', opt)"
                   >
                     {{
@@ -703,6 +704,7 @@ async function doExportICS() {
                       ? 'bg-brand-600 text-white'
                       : 'bg-white text-slate-600 hover:bg-slate-50'
                   "
+                  :aria-pressed="settings.weekStart === opt"
                   @click="update('weekStart', opt)"
                 >
                   {{
@@ -736,6 +738,7 @@ async function doExportICS() {
                       ? 'bg-brand-600 text-white'
                       : 'bg-white text-slate-600 hover:bg-slate-50'
                   "
+                  :aria-pressed="settings.timeFormat === opt"
                   @click="update('timeFormat', opt)"
                 >
                   {{

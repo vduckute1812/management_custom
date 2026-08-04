@@ -27,8 +27,22 @@ function onDocClick(e: MouseEvent) {
   if (!root.value.contains(e.target as Node)) open.value = false;
 }
 
-onMounted(() => document.addEventListener("click", onDocClick));
-onBeforeUnmount(() => document.removeEventListener("click", onDocClick));
+function onDocKeydown(e: KeyboardEvent) {
+  if (!open.value) return;
+  if (e.key === "Escape") {
+    e.preventDefault();
+    open.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("click", onDocClick);
+  document.addEventListener("keydown", onDocKeydown);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("click", onDocClick);
+  document.removeEventListener("keydown", onDocKeydown);
+});
 </script>
 
 <template>
