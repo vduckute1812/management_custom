@@ -6,23 +6,23 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Tech Stack
 
-| Layer      | Technology                     | Purpose                                                                                                                                          |
-| ---------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                                                      |
-| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                                                                 |
-| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)                                                          |
-| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                                                                   |
-| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                                                               |
-| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                                                                           |
-| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                                                                           |
-| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                                                               |
-| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md)                                         |
-| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…`                                       |
-| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                                                                           |
-| Charts     | Chart.js                       | Velocity and trend visualizations                                                                                                                |
-| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`                                              |
-| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                                                                     |
-| Tests      | Vitest                         | `npm test` — DB-free unit suite. Optional MySQL integration: `DB_INTEGRATION=1 npm run test:integration` (see below). Playwright is a follow-up. |
+| Layer      | Technology                     | Purpose                                                                                                    |
+| ---------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| Frontend   | Nuxt 4.5 / Vue 3               | Reactive UI, routing; **hybrid**: SSR for `/` + `/feed`, SPA for app chrome                                |
+| Styling    | TailwindCSS v4                 | Utility-first layout and theming                                                                           |
+| i18n       | `@nuxtjs/i18n`                 | UI languages `en` / `vi` / `zh-CN` / `zh-TW` (`no_prefix`) — see [`i18n.md`](./i18n.md)                    |
+| SEO        | `@nuxtjs/seo`                  | Site identity, `/robots.txt`, `/sitemap.xml`, OG/Twitter text meta (see below)                             |
+| Type-check | TypeScript **5.9** + `vue-tsc` | Classic TS only — native TypeScript 7 does not expose the API Volar/`vue-tsc` need                         |
+| Backend    | Nitro (bundled with Nuxt 4.5)  | Server-side API routes                                                                                     |
+| Storage    | MySQL 8 (`mysql2` driver)      | Primary persistence — database `rc` (override via env)                                                     |
+| Cache      | Memory (default) / Redis       | Read-through cache via `server/utils/cache.ts`; Redis only when `REDIS_URL` is set                         |
+| Queue      | MySQL `jobs` + Nitro worker    | Durable background jobs (email, cache invalidate, media purge); see [`cache-queue.md`](./cache-queue.md)   |
+| Media      | Cloudflare R2 (S3 API)         | Optional object storage for feed/story/chat/avatar uploads (`server/utils/r2.ts`); keys `uploads/{kind}/…` |
+| Time       | Day.js                         | Date parsing, formatting, diffing (locale packs sync with UI language)                                     |
+| Charts     | Chart.js                       | Velocity and trend visualizations                                                                          |
+| Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`        |
+| Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                               |
+| Tests      | Vitest                         | `npm test` (DB-free units) + CI MySQL job (`npm run test:integration`). Playwright is a follow-up.         |
 
 ## Project facts
 
@@ -299,7 +299,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 
 **Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Post SQL is split: list/CRUD in `server/db/posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat.ts`.
 
-**Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). Optional MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). Point `DB_*` at a migrated throwaway database (`rc_test` recommended) — never prod. Playwright smoke remains a follow-up.
+**Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). GitHub Actions runs that suite in a dedicated job against an ephemeral MySQL 8 service (`rc_test`). Locally, point `DB_*` at a migrated throwaway database — never prod. Playwright smoke remains a follow-up.
 
 ---
 

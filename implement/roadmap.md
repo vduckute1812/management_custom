@@ -445,10 +445,13 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `server/db/chat.ts` split → conversations / messages / reactions / reads (+ shared helpers)
 - [x] MySQL integration scaffold: `tests/integration/*` gated by `DB_INTEGRATION=1` (`npm run test:integration`)
 
+## Phase 30 — Sprint G (integration CI)
+
+- [x] GitHub Actions `integration` job: MySQL 8 service → migrate → `npm run test:integration`
+- [x] Docs: architecture testing note, `ci-cd.md` quality-gate section, `jobs.type` by-design (not legacy)
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
-- Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts
-- Wire `test:integration` into CI with an ephemeral MySQL service
 - Playwright smoke

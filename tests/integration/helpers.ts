@@ -2,8 +2,9 @@
  * Shared helpers for MySQL integration tests.
  *
  * Gated by `DB_INTEGRATION=1` (plus normal `DB_*` env). Default `npm test`
- * still loads these files; suites skip unless the flag is set so CI stays
- * DB-free. Run against a migrated database with:
+ * still loads these files; suites skip unless the flag is set so the unit
+ * CI job stays DB-free. GitHub Actions runs them in a separate job against
+ * an ephemeral MySQL service. Locally:
  *
  *   DB_INTEGRATION=1 npm run test:integration
  *
