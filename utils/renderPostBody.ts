@@ -1,18 +1,48 @@
-import { marked, Renderer } from "marked";
-import DOMPurify from "isomorphic-dompurify";
-
-const renderer = new Renderer();
-const baseLink = renderer.link.bind(renderer);
-renderer.link = (token) => {
-  const html = baseLink(token);
-  return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" ');
+type MarkedApi = {
+  parse: (
+    src: string,
+    options?: { async?: boolean },
+  ) => string | Promise<string>;
+  setOptions: (opts: Record<string, unknown>) => void;
 };
 
-marked.setOptions({
-  gfm: true,
-  breaks: true,
-  renderer,
-});
+let markedSetup: Promise<MarkedApi> | null = null;
+let purifySetup: Promise<
+  (typeof import("isomorphic-dompurify"))["default"]
+> | null = null;
+
+async function getMarked(): Promise<MarkedApi> {
+  if (!markedSetup) {
+    markedSetup = (async () => {
+      const mod = await import("marked");
+      const marked = mod.marked as MarkedApi;
+      const Renderer = mod.Renderer;
+      const renderer = new Renderer();
+      const baseLink = renderer.link.bind(renderer);
+      renderer.link = (token) => {
+        const html = baseLink(token);
+        return html.replace(
+          /^<a /,
+          '<a target="_blank" rel="noopener noreferrer" ',
+        );
+      };
+      marked.setOptions({
+        gfm: true,
+        breaks: true,
+        renderer,
+      });
+      return marked;
+    })();
+  }
+  return markedSetup;
+}
+
+async function getDOMPurify() {
+  if (!purifySetup) {
+    purifySetup = import("isomorphic-dompurify").then((m) => m.default);
+  }
+  return purifySetup;
+}
 
 const MATH_TOKEN = (i: number) => `%%MDMATH${i}%%`;
 const MATH_RESTORE = /%%MDMATH(\d+)%%/g;
@@ -245,8 +275,8 @@ export function normalizeMarkdownTables(src: string): string {
  * Render post body: GitHub-flavored Markdown + KaTeX ($…$ / $$…$$).
  * Output is sanitized HTML safe for v-html.
  *
- * KaTeX (~280KB JS + fonts + CSS) is loaded only when the body contains math,
- * so the public `/feed` route does not pay that cost for ordinary posts.
+ * `marked` + DOMPurify (and KaTeX when math is present) load on first render
+ * so the public `/feed` shell does not pay that cost until a post body paints.
  */
 export async function renderPostBody(raw: string): Promise<string> {
   if (!raw) return "";
@@ -270,6 +300,7 @@ export async function renderPostBody(raw: string): Promise<string> {
   text = dollars.restore(text);
   text = normalizeMarkdownTables(text);
 
+  const [marked, DOMPurify] = await Promise.all([getMarked(), getDOMPurify()]);
   let html = marked.parse(text, { async: false }) as string;
 
   if (slots.length) {

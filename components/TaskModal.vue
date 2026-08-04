@@ -397,485 +397,502 @@ watch(discardConfirmOpen, (open) => {
           aria-modal="true"
           aria-labelledby="task-modal-title"
         >
-          <header
-            class="flex items-center justify-between px-6 py-4 border-b border-slate-200 gap-3"
-          >
-            <h2
-              id="task-modal-title"
-              class="text-lg font-semibold text-slate-900 min-w-0 truncate"
+          <div :inert="discardConfirmOpen">
+            <header
+              class="flex items-center justify-between px-6 py-4 border-b border-slate-200 gap-3"
             >
-              {{
-                form.id ? $t("tasks.modal.editTask") : $t("tasks.modal.newTask")
-              }}
-            </h2>
-            <div class="flex items-center gap-2 shrink-0">
-              <TaskTimerButton v-if="task && form.id" :task="task" size="md" />
-              <button
-                type="button"
-                class="text-slate-400 hover:text-slate-700 transition"
-                :aria-label="$t('tasks.modal.close')"
-                @click="requestClose"
+              <h2
+                id="task-modal-title"
+                class="text-lg font-semibold text-slate-900 min-w-0 truncate"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="w-5 h-5"
-                >
-                  <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                </svg>
-              </button>
-            </div>
-          </header>
-
-          <form
-            class="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5"
-            @submit.prevent="onSubmit"
-          >
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600 mb-1"
-                :for="fieldIds.title"
-              >
-                {{ $t("tasks.modal.title") }}
-              </label>
-              <input
-                :id="fieldIds.title"
-                ref="titleInput"
-                v-model="form.title"
-                type="text"
-                required
-                :placeholder="$t('tasks.modal.titlePlaceholder')"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-              />
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.epic"
-                >
-                  {{ $t("tasks.modal.epicOptional") }}
-                </label>
-                <select
-                  :id="fieldIds.epic"
-                  v-model="form.epicId"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                >
-                  <option value="">
-                    {{ $t("tasks.modal.standaloneTask") }}
-                  </option>
-                  <option v-for="epic in epics" :key="epic.id" :value="epic.id">
-                    {{ epic.title }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.priority"
-                >
-                  {{ $t("tasks.modal.priority") }}
-                </label>
-                <select
-                  :id="fieldIds.priority"
-                  v-model.number="form.priority"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                >
-                  <option :value="TaskPriority.High">
-                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.High]) }}
-                  </option>
-                  <option :value="TaskPriority.Normal">
-                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Normal]) }}
-                  </option>
-                  <option :value="TaskPriority.Low">
-                    {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Low]) }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600 mb-1"
-                :for="fieldIds.notes"
-              >
-                {{ $t("tasks.modal.notes") }}
-              </label>
-              <textarea
-                :id="fieldIds.notes"
-                v-model="form.notes"
-                rows="3"
-                :placeholder="$t('tasks.modal.notesPlaceholder')"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-y"
-              />
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.status"
-                >
-                  {{ $t("tasks.modal.status") }}
-                </label>
-                <select
-                  :id="fieldIds.status"
-                  v-model.number="form.status"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                >
-                  <option :value="TaskStatus.Todo">
-                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Todo]) }}
-                  </option>
-                  <option :value="TaskStatus.InProgress">
-                    {{ $t(STATUS_I18N_KEYS[TaskStatus.InProgress]) }}
-                  </option>
-                  <option :value="TaskStatus.Done">
-                    {{ $t(STATUS_I18N_KEYS[TaskStatus.Done]) }}
-                  </option>
-                </select>
-              </div>
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.dueDate"
-                >
-                  {{ $t("tasks.modal.dueDate") }}
-                </label>
-                <input
-                  :id="fieldIds.dueDate"
-                  v-model="form.dueDate"
-                  type="date"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.estimated"
-                >
-                  {{ $t("tasks.modal.estimatedHours") }}
-                </label>
-                <input
-                  :id="fieldIds.estimated"
-                  v-model="form.estimatedHours"
-                  type="number"
-                  min="0"
-                  step="0.25"
-                  :placeholder="$t('tasks.modal.estimatedPlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">
-                  {{ $t("tasks.modal.hoursSpentDerived") }}
-                </label>
-                <div
-                  class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 tabular-nums flex items-center justify-between"
-                >
-                  <span>{{ totalSpent }}h</span>
-                  <span class="text-[10px] text-slate-400 uppercase">
-                    {{ $t("tasks.modal.sumOfBlocks") }}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1"
-                :for="fieldIds.progress"
-              >
-                <span>{{ $t("tasks.modal.progress") }}</span>
-                <span class="text-slate-500">{{ form.progress }}%</span>
-              </label>
-              <input
-                :id="fieldIds.progress"
-                v-model.number="form.progress"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                class="w-full accent-brand-600"
-              />
-            </div>
-
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600 mb-1"
-                :for="fieldIds.tags"
-              >
-                {{ $t("tasks.modal.tags") }}
-              </label>
-              <input
-                :id="fieldIds.tags"
-                v-model="form.tags"
-                type="text"
-                :placeholder="$t('tasks.modal.tagsPlaceholder')"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-              />
-            </div>
-
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <label
-                  class="text-xs font-medium text-slate-600"
-                  :for="fieldIds.checklistAdd"
-                >
-                  {{ $t("tasks.modal.checklist") }}
-                </label>
-                <p
-                  v-if="checklistSummary"
-                  class="text-[11px] text-slate-500 tabular-nums"
-                >
-                  {{
-                    $t("tasks.modal.checklistSummary", {
-                      done: checklistSummary.done,
-                      total: checklistSummary.total,
-                      percent: checklistSummary.percent,
-                    })
-                  }}
-                </p>
-                <p v-else class="text-[11px] text-slate-500">
-                  {{ $t("tasks.modal.checklistHint") }}
-                </p>
-              </div>
-
-              <ul
-                v-if="form.checklist.length"
-                class="rounded-lg border border-slate-200 divide-y divide-slate-100 mb-2 overflow-hidden"
-              >
-                <li
-                  v-for="(item, idx) in form.checklist"
-                  :key="item.id"
-                  class="flex items-center gap-2 px-3 py-1.5 group hover:bg-slate-50"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="item.done"
-                    class="accent-brand-600 w-4 h-4 shrink-0"
-                    :aria-label="
-                      $t('tasks.modal.toggleItem', { text: item.text })
-                    "
-                    @change="toggleChecklistItem(idx)"
-                  />
-                  <input
-                    v-model="item.text"
-                    type="text"
-                    class="flex-1 bg-transparent text-sm outline-none border-none px-0 py-0"
-                    :class="
-                      item.done
-                        ? 'line-through text-slate-400'
-                        : 'text-slate-800'
-                    "
-                  />
-                  <button
-                    type="button"
-                    class="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                    :aria-label="
-                      $t('tasks.modal.removeItem', { text: item.text })
-                    "
-                    @click="removeChecklistItem(idx)"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      class="w-3.5 h-3.5"
-                    >
-                      <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                    </svg>
-                  </button>
-                </li>
-              </ul>
-
-              <div class="flex items-center gap-2">
-                <input
-                  :id="fieldIds.checklistAdd"
-                  v-model="newChecklistItem"
-                  type="text"
-                  :placeholder="$t('tasks.modal.addSubStep')"
-                  class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  @keydown.enter.prevent="addChecklistItem"
+                {{
+                  form.id
+                    ? $t("tasks.modal.editTask")
+                    : $t("tasks.modal.newTask")
+                }}
+              </h2>
+              <div class="flex items-center gap-2 shrink-0">
+                <TaskTimerButton
+                  v-if="task && form.id"
+                  :task="task"
+                  size="md"
                 />
                 <button
                   type="button"
-                  class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition disabled:opacity-50"
-                  :disabled="!newChecklistItem.trim()"
-                  @click="addChecklistItem"
+                  class="text-slate-400 hover:text-slate-700 transition"
+                  :aria-label="$t('tasks.modal.close')"
+                  @click="requestClose"
                 >
-                  {{ $t("tasks.modal.add") }}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    class="w-5 h-5"
+                  >
+                    <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
+                  </svg>
                 </button>
               </div>
-            </div>
+            </header>
 
-            <div>
-              <div class="flex items-center justify-between mb-2">
-                <label class="text-xs font-medium text-slate-600">
-                  {{ $t("tasks.modal.timeBlocks") }}
-                </label>
-                <p class="text-[11px] text-slate-500">
-                  {{ $t("tasks.modal.timeBlocksHint") }}
-                </p>
-              </div>
-              <TimeBlockEditor v-model="form.timeBlocks" />
-            </div>
-
-            <div class="rounded-lg ring-1 ring-slate-200 bg-slate-50/60 p-3">
-              <label
-                class="flex items-start gap-2 cursor-pointer"
-                :for="fieldIds.recurs"
-              >
-                <input
-                  :id="fieldIds.recurs"
-                  v-model="form.recurs"
-                  type="checkbox"
-                  class="mt-0.5 accent-brand-600 w-4 h-4 shrink-0"
-                />
-                <div class="min-w-0">
-                  <div class="text-xs font-medium text-slate-700">
-                    {{ $t("tasks.modal.repeat") }}
-                  </div>
-                  <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                    {{ $t("tasks.modal.repeatHint") }}
-                  </p>
-                </div>
-              </label>
-
-              <div v-if="form.recurs" class="mt-3 space-y-3 pl-6">
-                <div
-                  v-if="!hasSeedBlocks"
-                  class="text-[11px] text-amber-700 bg-amber-50 ring-1 ring-amber-200 rounded-md px-2.5 py-1.5"
+            <form
+              class="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5"
+              @submit.prevent="onSubmit"
+            >
+              <div>
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.title"
                 >
-                  {{ $t("tasks.modal.needSeedBlock") }}
-                </div>
+                  {{ $t("tasks.modal.title") }}
+                </label>
+                <input
+                  :id="fieldIds.title"
+                  ref="titleInput"
+                  v-model="form.title"
+                  type="text"
+                  required
+                  :placeholder="$t('tasks.modal.titlePlaceholder')"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                />
+              </div>
 
-                <div class="flex items-center gap-2 flex-wrap text-xs">
-                  <span class="text-slate-600">{{
-                    $t("tasks.modal.every")
-                  }}</span>
-                  <input
-                    v-model.number="form.recurrenceInterval"
-                    type="number"
-                    min="1"
-                    max="365"
-                    step="1"
-                    class="w-16 rounded-md border border-slate-300 px-2 py-1 text-xs tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  />
-                  <select
-                    v-model.number="form.recurrenceRule"
-                    class="rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    class="block text-xs font-medium text-slate-600 mb-1"
+                    :for="fieldIds.epic"
                   >
-                    <option :value="RecurrenceRule.Daily">
-                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Daily]) }}
+                    {{ $t("tasks.modal.epicOptional") }}
+                  </label>
+                  <select
+                    :id="fieldIds.epic"
+                    v-model="form.epicId"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
+                  >
+                    <option value="">
+                      {{ $t("tasks.modal.standaloneTask") }}
                     </option>
-                    <option :value="RecurrenceRule.Weekly">
-                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Weekly]) }}
-                    </option>
-                    <option :value="RecurrenceRule.Monthly">
-                      {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Monthly]) }}
+                    <option
+                      v-for="epic in epics"
+                      :key="epic.id"
+                      :value="epic.id"
+                    >
+                      {{ epic.title }}
                     </option>
                   </select>
-                  <span class="text-slate-500">{{
-                    $t("tasks.modal.until")
-                  }}</span>
-                  <input
-                    v-model="form.recurrenceUntil"
-                    type="date"
-                    class="rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  />
-                  <button
-                    v-if="form.recurrenceUntil"
-                    type="button"
-                    class="text-[11px] text-slate-500 hover:text-slate-700 underline"
-                    @click="form.recurrenceUntil = ''"
+                </div>
+                <div>
+                  <label
+                    class="block text-xs font-medium text-slate-600 mb-1"
+                    :for="fieldIds.priority"
                   >
-                    {{ $t("tasks.modal.noEnd") }}
-                  </button>
+                    {{ $t("tasks.modal.priority") }}
+                  </label>
+                  <select
+                    :id="fieldIds.priority"
+                    v-model.number="form.priority"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
+                  >
+                    <option :value="TaskPriority.High">
+                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.High]) }}
+                    </option>
+                    <option :value="TaskPriority.Normal">
+                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Normal]) }}
+                    </option>
+                    <option :value="TaskPriority.Low">
+                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Low]) }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.notes"
+                >
+                  {{ $t("tasks.modal.notes") }}
+                </label>
+                <textarea
+                  :id="fieldIds.notes"
+                  v-model="form.notes"
+                  rows="3"
+                  :placeholder="$t('tasks.modal.notesPlaceholder')"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-y"
+                />
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    class="block text-xs font-medium text-slate-600 mb-1"
+                    :for="fieldIds.status"
+                  >
+                    {{ $t("tasks.modal.status") }}
+                  </label>
+                  <select
+                    :id="fieldIds.status"
+                    v-model.number="form.status"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
+                  >
+                    <option :value="TaskStatus.Todo">
+                      {{ $t(STATUS_I18N_KEYS[TaskStatus.Todo]) }}
+                    </option>
+                    <option :value="TaskStatus.InProgress">
+                      {{ $t(STATUS_I18N_KEYS[TaskStatus.InProgress]) }}
+                    </option>
+                    <option :value="TaskStatus.Done">
+                      {{ $t(STATUS_I18N_KEYS[TaskStatus.Done]) }}
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    class="block text-xs font-medium text-slate-600 mb-1"
+                    :for="fieldIds.dueDate"
+                  >
+                    {{ $t("tasks.modal.dueDate") }}
+                  </label>
+                  <input
+                    :id="fieldIds.dueDate"
+                    v-model="form.dueDate"
+                    type="date"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    class="block text-xs font-medium text-slate-600 mb-1"
+                    :for="fieldIds.estimated"
+                  >
+                    {{ $t("tasks.modal.estimatedHours") }}
+                  </label>
+                  <input
+                    :id="fieldIds.estimated"
+                    v-model="form.estimatedHours"
+                    type="number"
+                    min="0"
+                    step="0.25"
+                    :placeholder="$t('tasks.modal.estimatedPlaceholder')"
+                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">
+                    {{ $t("tasks.modal.hoursSpentDerived") }}
+                  </label>
+                  <div
+                    class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 tabular-nums flex items-center justify-between"
+                  >
+                    <span>{{ totalSpent }}h</span>
+                    <span class="text-[10px] text-slate-400 uppercase">
+                      {{ $t("tasks.modal.sumOfBlocks") }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label
+                  class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.progress"
+                >
+                  <span>{{ $t("tasks.modal.progress") }}</span>
+                  <span class="text-slate-500">{{ form.progress }}%</span>
+                </label>
+                <input
+                  :id="fieldIds.progress"
+                  v-model.number="form.progress"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  class="w-full accent-brand-600"
+                />
+              </div>
+
+              <div>
+                <label
+                  class="block text-xs font-medium text-slate-600 mb-1"
+                  :for="fieldIds.tags"
+                >
+                  {{ $t("tasks.modal.tags") }}
+                </label>
+                <input
+                  :id="fieldIds.tags"
+                  v-model="form.tags"
+                  type="text"
+                  :placeholder="$t('tasks.modal.tagsPlaceholder')"
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                />
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label
+                    class="text-xs font-medium text-slate-600"
+                    :for="fieldIds.checklistAdd"
+                  >
+                    {{ $t("tasks.modal.checklist") }}
+                  </label>
+                  <p
+                    v-if="checklistSummary"
+                    class="text-[11px] text-slate-500 tabular-nums"
+                  >
+                    {{
+                      $t("tasks.modal.checklistSummary", {
+                        done: checklistSummary.done,
+                        total: checklistSummary.total,
+                        percent: checklistSummary.percent,
+                      })
+                    }}
+                  </p>
+                  <p v-else class="text-[11px] text-slate-500">
+                    {{ $t("tasks.modal.checklistHint") }}
+                  </p>
                 </div>
 
-                <p v-if="recurrenceSummary" class="text-[11px] text-slate-500">
-                  {{ recurrenceSummary }}
-                </p>
+                <ul
+                  v-if="form.checklist.length"
+                  class="rounded-lg border border-slate-200 divide-y divide-slate-100 mb-2 overflow-hidden"
+                >
+                  <li
+                    v-for="(item, idx) in form.checklist"
+                    :key="item.id"
+                    class="flex items-center gap-2 px-3 py-1.5 group hover:bg-slate-50"
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="item.done"
+                      class="accent-brand-600 w-4 h-4 shrink-0"
+                      :aria-label="
+                        $t('tasks.modal.toggleItem', { text: item.text })
+                      "
+                      @change="toggleChecklistItem(idx)"
+                    />
+                    <input
+                      v-model="item.text"
+                      type="text"
+                      class="flex-1 bg-transparent text-sm outline-none border-none px-0 py-0"
+                      :class="
+                        item.done
+                          ? 'line-through text-slate-400'
+                          : 'text-slate-800'
+                      "
+                    />
+                    <button
+                      type="button"
+                      class="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                      :aria-label="
+                        $t('tasks.modal.removeItem', { text: item.text })
+                      "
+                      @click="removeChecklistItem(idx)"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        class="w-3.5 h-3.5"
+                      >
+                        <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
+                      </svg>
+                    </button>
+                  </li>
+                </ul>
+
+                <div class="flex items-center gap-2">
+                  <input
+                    :id="fieldIds.checklistAdd"
+                    v-model="newChecklistItem"
+                    type="text"
+                    :placeholder="$t('tasks.modal.addSubStep')"
+                    class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                    @keydown.enter.prevent="addChecklistItem"
+                  />
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition disabled:opacity-50"
+                    :disabled="!newChecklistItem.trim()"
+                    @click="addChecklistItem"
+                  >
+                    {{ $t("tasks.modal.add") }}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <p
-              v-if="errorMsg"
-              class="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
-            >
-              {{ errorMsg }}
-            </p>
-          </form>
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="text-xs font-medium text-slate-600">
+                    {{ $t("tasks.modal.timeBlocks") }}
+                  </label>
+                  <p class="text-[11px] text-slate-500">
+                    {{ $t("tasks.modal.timeBlocksHint") }}
+                  </p>
+                </div>
+                <TimeBlockEditor v-model="form.timeBlocks" />
+              </div>
 
-          <footer
-            class="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl"
-          >
-            <button
-              v-if="form.id"
-              type="button"
-              :disabled="submitting"
-              class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
-              @click="requestDelete"
+              <div class="rounded-lg ring-1 ring-slate-200 bg-slate-50/60 p-3">
+                <label
+                  class="flex items-start gap-2 cursor-pointer"
+                  :for="fieldIds.recurs"
+                >
+                  <input
+                    :id="fieldIds.recurs"
+                    v-model="form.recurs"
+                    type="checkbox"
+                    class="mt-0.5 accent-brand-600 w-4 h-4 shrink-0"
+                  />
+                  <div class="min-w-0">
+                    <div class="text-xs font-medium text-slate-700">
+                      {{ $t("tasks.modal.repeat") }}
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                      {{ $t("tasks.modal.repeatHint") }}
+                    </p>
+                  </div>
+                </label>
+
+                <div v-if="form.recurs" class="mt-3 space-y-3 pl-6">
+                  <div
+                    v-if="!hasSeedBlocks"
+                    class="text-[11px] text-amber-700 bg-amber-50 ring-1 ring-amber-200 rounded-md px-2.5 py-1.5"
+                  >
+                    {{ $t("tasks.modal.needSeedBlock") }}
+                  </div>
+
+                  <div class="flex items-center gap-2 flex-wrap text-xs">
+                    <span class="text-slate-600">{{
+                      $t("tasks.modal.every")
+                    }}</span>
+                    <input
+                      v-model.number="form.recurrenceInterval"
+                      type="number"
+                      min="1"
+                      max="365"
+                      step="1"
+                      class="w-16 rounded-md border border-slate-300 px-2 py-1 text-xs tabular-nums focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                    />
+                    <select
+                      v-model.number="form.recurrenceRule"
+                      class="rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
+                    >
+                      <option :value="RecurrenceRule.Daily">
+                        {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Daily]) }}
+                      </option>
+                      <option :value="RecurrenceRule.Weekly">
+                        {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Weekly]) }}
+                      </option>
+                      <option :value="RecurrenceRule.Monthly">
+                        {{ $t(RECURRENCE_I18N_KEYS[RecurrenceRule.Monthly]) }}
+                      </option>
+                    </select>
+                    <span class="text-slate-500">{{
+                      $t("tasks.modal.until")
+                    }}</span>
+                    <input
+                      v-model="form.recurrenceUntil"
+                      type="date"
+                      class="rounded-md border border-slate-300 px-2 py-1 text-xs focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
+                    />
+                    <button
+                      v-if="form.recurrenceUntil"
+                      type="button"
+                      class="text-[11px] text-slate-500 hover:text-slate-700 underline"
+                      @click="form.recurrenceUntil = ''"
+                    >
+                      {{ $t("tasks.modal.noEnd") }}
+                    </button>
+                  </div>
+
+                  <p
+                    v-if="recurrenceSummary"
+                    class="text-[11px] text-slate-500"
+                  >
+                    {{ recurrenceSummary }}
+                  </p>
+                </div>
+              </div>
+
+              <p
+                v-if="errorMsg"
+                class="text-sm text-rose-600 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2"
+              >
+                {{ errorMsg }}
+              </p>
+            </form>
+
+            <footer
+              class="flex items-center justify-between px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl"
             >
-              {{ $t("tasks.modal.delete") }}
-            </button>
-            <span v-else class="text-[11px] text-slate-400">
-              <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono">⌘</kbd>
-              <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1"
-                >↵</kbd
-              >
-              {{ $t("tasks.modal.toSave") }}
-            </span>
-            <div class="flex items-center gap-2">
               <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition"
-                @click="requestClose"
-              >
-                {{ $t("tasks.modal.cancel") }}
-              </button>
-              <button
+                v-if="form.id"
                 type="button"
                 :disabled="submitting"
-                class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
-                @click="onSubmit"
+                class="text-sm font-medium text-rose-600 hover:text-rose-700 disabled:opacity-50"
+                @click="requestDelete"
               >
-                <svg
-                  v-if="justSaved"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="3"
-                  class="w-4 h-4"
-                >
-                  <polyline
-                    points="20 6 9 17 4 12"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                {{
-                  justSaved
-                    ? $t("tasks.modal.saved")
-                    : submitting
-                      ? $t("tasks.modal.saving")
-                      : form.id
-                        ? $t("tasks.modal.saveChanges")
-                        : $t("tasks.modal.createTask")
-                }}
+                {{ $t("tasks.modal.delete") }}
               </button>
-            </div>
-          </footer>
+              <span v-else class="text-[11px] text-slate-400">
+                <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono"
+                  >⌘</kbd
+                >
+                <kbd class="px-1.5 py-0.5 bg-slate-100 rounded font-mono ml-1"
+                  >↵</kbd
+                >
+                {{ $t("tasks.modal.toSave") }}
+              </span>
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  class="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 rounded-lg transition"
+                  @click="requestClose"
+                >
+                  {{ $t("tasks.modal.cancel") }}
+                </button>
+                <button
+                  type="button"
+                  :disabled="submitting"
+                  class="px-4 py-2 text-sm font-medium bg-brand-600 hover:bg-brand-700 text-white rounded-lg shadow-sm disabled:opacity-50 inline-flex items-center gap-2"
+                  @click="onSubmit"
+                >
+                  <svg
+                    v-if="justSaved"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    class="w-4 h-4"
+                  >
+                    <polyline
+                      points="20 6 9 17 4 12"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  {{
+                    justSaved
+                      ? $t("tasks.modal.saved")
+                      : submitting
+                        ? $t("tasks.modal.saving")
+                        : form.id
+                          ? $t("tasks.modal.saveChanges")
+                          : $t("tasks.modal.createTask")
+                  }}
+                </button>
+              </div>
+            </footer>
+          </div>
 
           <div
             v-if="discardConfirmOpen"
