@@ -8,9 +8,6 @@ const { fetchAll: fetchTasks, tasks } = useTasks();
 const { fetchAll: fetchEpics, epics } = useEpics();
 const { pushToast } = useToasts();
 const auth = useAuth();
-const router = useRouter();
-const route = useRoute();
-const { apiFetch } = useApi();
 const {
   currency: moneyCurrency,
   options: currencyOptions,
@@ -49,131 +46,10 @@ useSeoMeta({
   description: computed(() => t("seo.settingsDescription")),
 });
 
-const googleEnabled = ref(false);
-const googleLinked = ref(false);
 const hasPassword = ref(true);
-const googleBusy = ref(false);
-
-async function loadIdentities() {
-  if (!auth.isAuthenticated.value) return;
-  try {
-    const [providers, identities] = await Promise.all([
-      apiFetch<{ google: boolean }>("/api/auth/providers"),
-      apiFetch<{
-        googleLinked: boolean;
-        hasPassword: boolean;
-      }>("/api/auth/identities"),
-    ]);
-    googleEnabled.value = providers.google === true;
-    googleLinked.value = identities.googleLinked === true;
-    hasPassword.value = identities.hasPassword === true;
-  } catch {
-    googleEnabled.value = false;
-  }
-}
-
-async function onUnlinkGoogle() {
-  if (googleBusy.value) return;
-  googleBusy.value = true;
-  try {
-    await apiFetch("/api/auth/google/unlink", { method: "POST" });
-    googleLinked.value = false;
-    pushToast(t("settings.account.googleUnlinked"), {
-      tone: "success",
-      duration: 2200,
-    });
-  } catch (err: unknown) {
-    const msg =
-      (err as { data?: { statusMessage?: string }; statusMessage?: string })
-        ?.data?.statusMessage ??
-      (err as { statusMessage?: string }).statusMessage ??
-      t("settings.account.googleUnlinkFailed");
-    pushToast(msg, { tone: "danger", duration: 4000 });
-  } finally {
-    googleBusy.value = false;
-  }
-}
-
-async function onLogout() {
-  await auth.logout();
-  await router.replace("/");
-}
-
-const deleteOpen = ref(false);
-const deleteBusy = ref(false);
-const deleteError = ref("");
-
-function openDeleteAccount() {
-  deleteError.value = "";
-  deleteOpen.value = true;
-}
-
-async function onDeleteAccount(payload: { email: string; password: string }) {
-  if (deleteBusy.value) return;
-  deleteBusy.value = true;
-  deleteError.value = "";
-  try {
-    await apiFetch("/api/auth/account", {
-      method: "DELETE",
-      body: {
-        email: payload.email,
-        password: payload.password || undefined,
-      },
-    });
-    deleteOpen.value = false;
-    // The row is gone, so /api/auth/logout would 401 — drop local state directly.
-    auth.clearSession();
-    pushToast(t("settings.danger.deleted"), {
-      tone: "success",
-      duration: 6000,
-    });
-    await router.replace("/");
-  } catch (err: unknown) {
-    deleteError.value = apiErrorMessage(err, t("settings.danger.failed"));
-  } finally {
-    deleteBusy.value = false;
-  }
-}
 
 if (import.meta.client) {
   hydratePermission();
-  void loadIdentities();
-  const oauthErr =
-    typeof route.query.oauth_error === "string" ? route.query.oauth_error : "";
-  const linked = route.query.linked === "google";
-  if (oauthErr || linked) {
-    if (oauthErr) {
-      const key =
-        (
-          {
-            denied: "auth.googleDenied",
-            state: "auth.googleStateInvalid",
-            config: "auth.googleNotConfigured",
-            email: "auth.googleEmailUnverified",
-            conflict: "auth.googleConflict",
-            unverified: "auth.googleUnverifiedExists",
-            auth: "auth.googleAuthRequired",
-            failed: "auth.googleFailed",
-            google: "auth.googleUpstream",
-          } as Record<string, string>
-        )[oauthErr] || "auth.googleFailed";
-      queueMicrotask(() => {
-        pushToast(t(key), { tone: "danger", duration: 4200 });
-      });
-    } else {
-      queueMicrotask(() => {
-        pushToast(t("settings.account.googleLinked"), {
-          tone: "success",
-          duration: 2200,
-        });
-      });
-      googleLinked.value = true;
-    }
-    const nextQuery = { ...route.query };
-    delete nextQuery.oauth_error;
-    delete nextQuery.linked;
-    void router.replace({ path: "/settings", query: nextQuery });
-  }
 }
 
 async function toggleNotifications() {
@@ -367,7 +243,7 @@ async function ensureExportData() {
 }
 
 onMounted(() => {
-  // Warm counts in the background after paint; export buttons still await.
+  // Warm export counts in the background after paint; export buttons still await.
   void ensureExportData().catch(() => undefined);
 });
 
@@ -417,109 +293,7 @@ async function doExportICS() {
 
     <div class="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6">
       <div class="max-w-2xl mx-auto space-y-6">
-        <section
-          v-if="auth.user.value"
-          class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm"
-        >
-          <header class="px-5 py-3 border-b border-slate-100">
-            <h2 class="text-sm font-semibold text-slate-800">
-              {{ $t("settings.account.title") }}
-            </h2>
-            <p class="text-[11px] text-slate-500">
-              {{ $t("settings.account.subtitle") }}
-            </p>
-          </header>
-          <div class="px-5 py-4 flex items-center gap-3">
-            <UserAvatar
-              :name="auth.user.value.name"
-              :email="auth.user.value.email"
-              :avatar-url="auth.user.value.avatarUrl"
-              size="md"
-            />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-slate-800 truncate">
-                {{ auth.user.value.name || auth.user.value.email }}
-              </p>
-              <p class="text-[11px] text-slate-500 truncate">
-                <template v-if="auth.user.value.title || auth.user.value.job">
-                  <span v-if="auth.user.value.title">{{
-                    auth.user.value.title
-                  }}</span>
-                  <span v-if="auth.user.value.title && auth.user.value.job">
-                    ·
-                  </span>
-                  <span v-if="auth.user.value.job">{{
-                    auth.user.value.job
-                  }}</span>
-                </template>
-                <template v-else>
-                  {{ auth.user.value.email }}
-                </template>
-              </p>
-            </div>
-            <NuxtLink
-              to="/profile"
-              class="text-xs font-medium text-brand-700 hover:text-brand-800 px-3 py-1.5 rounded-lg hover:bg-brand-50"
-            >
-              {{ $t("settings.account.editProfile") }}
-            </NuxtLink>
-            <button
-              type="button"
-              class="text-xs font-medium text-rose-600 hover:text-rose-700 px-3 py-1.5 rounded-lg hover:bg-rose-50"
-              @click="onLogout"
-            >
-              {{ $t("settings.account.signOut") }}
-            </button>
-          </div>
-          <div
-            v-if="googleEnabled"
-            class="px-5 pb-4 pt-0 border-t border-slate-100 space-y-2"
-          >
-            <p class="text-[11px] text-slate-500 pt-3">
-              {{ $t("settings.account.googleHint") }}
-            </p>
-            <div class="flex flex-wrap items-center gap-2">
-              <p
-                class="text-xs font-medium"
-                :class="googleLinked ? 'text-emerald-700' : 'text-slate-600'"
-              >
-                {{
-                  googleLinked
-                    ? $t("settings.account.googleLinkedStatus")
-                    : $t("settings.account.googleNotLinked")
-                }}
-              </p>
-              <GoogleSignInButton
-                v-if="!googleLinked"
-                intent="link"
-                redirect="/settings"
-                :busy="googleBusy"
-                class="!w-auto px-3"
-                :label="$t('settings.account.linkGoogle')"
-              />
-              <button
-                v-else
-                type="button"
-                class="text-xs font-medium text-slate-700 px-3 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
-                :disabled="googleBusy || !hasPassword"
-                :title="
-                  !hasPassword
-                    ? $t('settings.account.googleUnlinkNeedPassword')
-                    : undefined
-                "
-                @click="onUnlinkGoogle"
-              >
-                {{ $t("settings.account.unlinkGoogle") }}
-              </button>
-            </div>
-            <p
-              v-if="googleLinked && !hasPassword"
-              class="text-[11px] text-amber-700"
-            >
-              {{ $t("settings.account.googleUnlinkNeedPassword") }}
-            </p>
-          </div>
-        </section>
+        <SettingsAccountSection @has-password-change="hasPassword = $event" />
 
         <!-- Language -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
@@ -993,41 +767,7 @@ async function doExportICS() {
         </section>
 
         <!-- Danger zone -->
-        <section
-          v-if="auth.user.value"
-          class="bg-white ring-1 ring-rose-200 rounded-xl shadow-sm"
-        >
-          <header class="px-5 py-3 border-b border-rose-100">
-            <h2 class="text-sm font-semibold text-rose-700">
-              {{ $t("settings.danger.title") }}
-            </h2>
-            <p class="text-[11px] text-slate-500">
-              {{ $t("settings.danger.subtitle") }}
-            </p>
-          </header>
-          <div class="px-5 py-4 space-y-3">
-            <p class="text-xs text-slate-600 leading-relaxed">
-              {{ $t("settings.danger.body") }}
-            </p>
-            <p class="text-[11px] text-slate-500">
-              {{ $t("settings.danger.exportFirst") }}
-            </p>
-            <p
-              v-if="auth.isSuperAdmin.value"
-              class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800"
-            >
-              {{ $t("settings.danger.superadminBlocked") }}
-            </p>
-            <button
-              v-else
-              type="button"
-              class="px-3 py-2 rounded-lg text-xs font-semibold text-rose-700 ring-1 ring-rose-300 hover:bg-rose-50 transition"
-              @click="openDeleteAccount"
-            >
-              {{ $t("settings.danger.openButton") }}
-            </button>
-          </div>
-        </section>
+        <SettingsDangerZone :has-password="hasPassword" />
 
         <!-- Print -->
         <section class="bg-white ring-1 ring-slate-200 rounded-xl shadow-sm">
@@ -1048,15 +788,5 @@ async function doExportICS() {
         </section>
       </div>
     </div>
-
-    <DeleteAccountModal
-      :open="deleteOpen"
-      :account-email="auth.user.value?.email ?? ''"
-      :requires-password="hasPassword"
-      :busy="deleteBusy"
-      :error="deleteError"
-      @cancel="deleteOpen = false"
-      @confirm="onDeleteAccount"
-    />
   </div>
 </template>

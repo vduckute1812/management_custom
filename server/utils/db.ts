@@ -27,7 +27,8 @@
  *   - refresh-tokens.ts        — Refresh-token lifecycle
  *   - email-verifications.ts   — Email-verification lifecycle
  *   - admin.ts                 — Cross-user aggregations (UNSCOPED)
- *   - posts.ts                 — Shared social feed (post list / CRUD / helpers)
+ *   - posts.ts                 — Post mutations (createPost / updatePost / deletePost)
+ *   - postQueries.ts           — Post read helpers (listFeedPosts / getPostById / cursors / hydration)
  *   - postReactions.ts         — Post reaction set / clear
  *   - postComments.ts          — Post comments list / CRUD + comment_count recount
  *   - uploads.ts               — Cloudflare R2 uploads for posts/stories
@@ -63,7 +64,14 @@ export * from "../db/refresh-tokens";
 export * from "../db/email-verifications";
 export * from "../db/password-resets";
 export * from "../db/admin";
-export * from "../db/posts";
+export {
+  encodeFeedCursor,
+  parseFeedCursor,
+  assertPostVisible,
+  listFeedPosts,
+  getPostById,
+} from "../db/postQueries";
+export { createPost, updatePost, deletePost } from "../db/posts";
 export * from "../db/postReactions";
 export * from "../db/postComments";
 export * from "../db/categories";
