@@ -22,11 +22,14 @@ import {
 } from "../server/schemas";
 import {
   formatMoneyMinorPlain,
+  computeMonthTotals,
   isYearMonth,
   parseMoneyMinorInput,
   sumByCategory,
   sumDaily,
   toYearMonth,
+  upsertTransactionInMonth,
+  yearMonthFromOccurredOn,
   yearMonthRange,
 } from "../utils/money";
 import {
@@ -453,5 +456,77 @@ describe("moneyExport builders", () => {
       }),
     );
     expect(parsed.month.budgets).toHaveLength(1);
+  });
+});
+
+describe("computeMonthTotals + local list patch", () => {
+  const base = {
+    category: MoneyCategory.Food,
+    createdAt: "2026-08-01T00:00:00.000Z",
+    updatedAt: "2026-08-01T00:00:00.000Z",
+  };
+
+  it("sums in/out/net for the month list", () => {
+    const totals = computeMonthTotals(
+      [
+        {
+          id: "a",
+          occurredOn: "2026-08-01",
+          amountMinor: 100,
+          direction: MoneyDirection.In,
+          ...base,
+          category: MoneyCategory.Income,
+        },
+        {
+          id: "b",
+          occurredOn: "2026-08-02",
+          amountMinor: 40,
+          direction: MoneyDirection.Out,
+          ...base,
+        },
+      ],
+      "2026-08",
+    );
+    expect(totals).toEqual({
+      yearMonth: "2026-08",
+      inMinor: 100,
+      outMinor: 40,
+      netMinor: 60,
+    });
+  });
+
+  it("upserts by id and sorts newest first", () => {
+    const first: MoneyTransaction = {
+      id: "tx_1",
+      occurredOn: "2026-08-01",
+      amountMinor: 10,
+      direction: MoneyDirection.Out,
+      ...base,
+    };
+    const second: MoneyTransaction = {
+      id: "tx_2",
+      occurredOn: "2026-08-03",
+      amountMinor: 20,
+      direction: MoneyDirection.Out,
+      ...base,
+    };
+    const updated: MoneyTransaction = {
+      ...first,
+      amountMinor: 99,
+      occurredOn: "2026-08-02",
+    };
+    const list = upsertTransactionInMonth(
+      upsertTransactionInMonth([], first),
+      second,
+    );
+    expect(list.map((t) => t.id)).toEqual(["tx_2", "tx_1"]);
+    const patched = upsertTransactionInMonth(list, updated);
+    expect(patched).toHaveLength(2);
+    expect(patched[0]?.id).toBe("tx_2");
+    expect(patched.find((t) => t.id === "tx_1")?.amountMinor).toBe(99);
+  });
+
+  it("derives yearMonth from occurredOn", () => {
+    expect(yearMonthFromOccurredOn("2026-08-15")).toBe("2026-08");
   });
 });

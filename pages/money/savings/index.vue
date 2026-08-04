@@ -342,14 +342,14 @@ function onExportJson() {
       </div>
     </div>
 
-    <MoneySavingsGoalModal
+    <LazyMoneySavingsGoalModal
       :open="goalModalOpen"
       :goal="editingGoal"
       @close="goalModalOpen = false"
       @saved="onGoalSaved"
       @deleted="goalModalOpen = false"
     />
-    <MoneyContributeModal
+    <LazyMoneyContributeModal
       :open="contributeOpen"
       :goal="contributeGoal"
       @close="contributeOpen = false"

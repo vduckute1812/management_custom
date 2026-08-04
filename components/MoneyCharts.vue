@@ -49,6 +49,19 @@ const activeKey = computed(() =>
   props.activePick ? moneyCategoryKey(props.activePick) : null,
 );
 
+/** Stable string so we avoid deep-watching the transactions array. */
+const chartFingerprint = computed(() =>
+  [
+    props.yearMonth,
+    props.localeTag,
+    String(props.currency),
+    outSlices.value
+      .map((s) => `${s.key}:${s.amountMinor}:${s.emoji}:${s.label}:${s.color}`)
+      .join(","),
+    daily.value.map((p) => `${p.day}:${p.outMinor}`).join(","),
+  ].join("#"),
+);
+
 function fmt(n: number) {
   return formatMoneyMinor(n, props.localeTag, props.currency);
 }
@@ -86,14 +99,29 @@ async function renderCategory() {
   }
   const Chart = await ensureChartLib();
   const slices = outSlices.value;
+  const labels = slices.map((s) => `${s.emoji} ${s.label}`);
+  const data = slices.map((s) => s.amountMinor);
+  const colors = slices.map((s) => s.color);
+
+  if (categoryInst) {
+    categoryInst.data.labels = labels;
+    const ds = categoryInst.data.datasets[0];
+    if (ds) {
+      ds.data = data;
+      ds.backgroundColor = colors;
+    }
+    categoryInst.update();
+    return;
+  }
+
   const cfg: ChartConfiguration<"doughnut"> = {
     type: "doughnut",
     data: {
-      labels: slices.map((s) => `${s.emoji} ${s.label}`),
+      labels,
       datasets: [
         {
-          data: slices.map((s) => s.amountMinor),
-          backgroundColor: slices.map((s) => s.color),
+          data,
+          backgroundColor: colors,
           borderWidth: 0,
         },
       ],
@@ -115,7 +143,6 @@ async function renderCategory() {
       },
     },
   };
-  categoryInst?.destroy();
   categoryInst = new Chart(categoryCanvas.value, cfg);
 }
 
@@ -128,13 +155,34 @@ async function renderDaily() {
   const Chart = await ensureChartLib();
   const { muted, border } = chartInk();
   const points = daily.value;
+  const labels = points.map((p) => p.day.slice(8));
+  const data = points.map((p) => p.outMinor);
+
+  if (dailyInst) {
+    dailyInst.data.labels = labels;
+    const ds = dailyInst.data.datasets[0];
+    if (ds) ds.data = data;
+    const yTicks = dailyInst.options.scales?.y?.ticks as
+      | { color?: string; callback?: (value: string | number) => string }
+      | undefined;
+    if (yTicks) {
+      yTicks.color = muted;
+      yTicks.callback = (value) => fmt(Number(value));
+    }
+    const xTicks = dailyInst.options.scales?.x?.ticks as
+      { color?: string } | undefined;
+    if (xTicks) xTicks.color = muted;
+    dailyInst.update();
+    return;
+  }
+
   const cfg: ChartConfiguration<"bar"> = {
     type: "bar",
     data: {
-      labels: points.map((p) => p.day.slice(8)),
+      labels,
       datasets: [
         {
-          data: points.map((p) => p.outMinor),
+          data,
           backgroundColor: "#f43f5e",
           borderRadius: 4,
           maxBarThickness: 18,
@@ -178,7 +226,6 @@ async function renderDaily() {
       },
     },
   };
-  dailyInst?.destroy();
   dailyInst = new Chart(dailyCanvas.value, cfg);
 }
 
@@ -186,19 +233,9 @@ async function renderAll() {
   await Promise.all([renderCategory(), renderDaily()]);
 }
 
-watch(
-  () =>
-    [
-      props.transactions,
-      props.yearMonth,
-      props.localeTag,
-      props.currency,
-    ] as const,
-  () => {
-    void nextTick(() => renderAll());
-  },
-  { deep: true },
-);
+watch(chartFingerprint, () => {
+  void nextTick(() => renderAll());
+});
 
 onMounted(() => {
   void renderAll();

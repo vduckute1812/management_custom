@@ -244,7 +244,7 @@ const netTone = computed(() => {
           />
         </section>
 
-        <MoneyCharts
+        <LazyMoneyCharts
           :transactions="transactions"
           :year-month="yearMonth"
           :locale-tag="moneyLocale"
@@ -422,7 +422,7 @@ const netTone = computed(() => {
       </div>
     </div>
 
-    <MoneyTransactionModal
+    <LazyMoneyTransactionModal
       :open="modalOpen"
       :transaction="editing"
       :default-category-pick="filterCategoryPick"
