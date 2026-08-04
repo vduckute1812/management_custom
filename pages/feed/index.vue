@@ -357,7 +357,7 @@ async function submitStory() {
               <span
                 class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700"
               >
-                Da Nang TechX
+                {{ $t("home.brand") }}
               </span>
             </div>
             <h1

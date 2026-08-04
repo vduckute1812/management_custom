@@ -252,7 +252,7 @@ const netTone = computed(() => {
         <div class="space-y-3">
           <button
             type="button"
-            class="flex w-full items-center justify-between rounded-xl bg-white/90 px-3 py-2 text-left text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200/80 lg:hidden"
+            class="flex w-full items-center justify-between rounded-xl bg-white/90 px-3 py-2 text-left text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200/80 xl:hidden"
             :aria-expanded="chartsExpanded"
             aria-controls="money-charts-panel"
             @click="chartsExpanded = !chartsExpanded"
@@ -264,7 +264,7 @@ const netTone = computed(() => {
           </button>
           <div
             id="money-charts-panel"
-            class="lg:block"
+            class="xl:block"
             :class="chartsExpanded ? 'block' : 'hidden'"
           >
             <LazyMoneyCharts

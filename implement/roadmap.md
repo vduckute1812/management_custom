@@ -485,8 +485,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `components/SettingsGoogleLink.vue` — Google link/unlink; emits `hasPasswordChange`
 - [x] `components/SettingsAccountSection.vue` — account card + OAuth redirect handling (uses `SettingsGoogleLink`)
 
+## Phase 35 — Sprint L (worker priority + UI polish)
+
+- [x] `claimNextJob` priority tier: non-`articles.*` jobs (`email.*` / `cache.*` / `media.*`) before `articles.*` — documented in `cache-queue.md`
+- [x] `pages/feed/index.vue`: replace hardcoded `"Da Nang TechX"` with `$t("home.brand")`
+- [x] `pages/money/index.vue`: charts toggle collapsed below `xl` breakpoint (was `lg`) — MD desktop no longer hides charts behind a manual expand
+
 ### Later
 
 - Playwright smoke
 - Split remaining page gods (`settings` remainder, `feed`)
-- Worker concurrency / separate queue for article rewrite
+- True parallel worker concurrency / dedicated article queue (priority tier ships in Phase 35)
