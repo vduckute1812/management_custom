@@ -120,7 +120,7 @@ export const useNotifications = () => {
         body,
         tag, // browsers coalesce notifications sharing a tag
         silent: false,
-        icon: "/favicon.ico",
+        icon: "/favicon.png",
       });
     } catch {
       // Some browsers throw if called from a non-secure context; fail silently.

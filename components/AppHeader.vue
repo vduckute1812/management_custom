@@ -110,15 +110,9 @@ watch(
         to="/"
         class="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
       >
-        <div
-          class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-bold text-white shadow-sm"
-          aria-hidden="true"
-        >
-          M
-        </div>
-        <!-- Mobile hides the brand visually (`hidden sm:inline`), which left this
-             link with no accessible name (M is aria-hidden). Keep an sr-only
-             label below the sm breakpoint so agents/AT still get discernible text. -->
+        <AppLogo size-class="h-8 w-8" rounded-class="rounded-lg" />
+        <!-- Mobile hides the brand label (`hidden sm:inline`); keep an sr-only
+             name below the sm breakpoint so the logo-only link stays accessible. -->
         <span class="sr-only sm:hidden">{{ $t("nav.brand") }}</span>
         <span class="hidden text-sm font-semibold text-slate-900 sm:inline">
           {{ $t("nav.brand") }}
