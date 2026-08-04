@@ -480,10 +480,10 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 - [x] `server/db/postQuery/` sub-modules (`types`, `normalizers`, `acl`, `cursors`, `select`, `hydration`, `queries`); `postQueries.ts` barrel; `posts.ts` facade re-exports read helpers for sibling modules
 - [x] `composables/chatThreadLive.ts` — module-scoped SSE connection, reconnect, REST fallback, `applyPeerRead`, `normalizeMessage`
-- [x] `useChat.ts` wires `chatThreadLive`; public API unchanged
+- [x] `useChat.ts` wires `chatThreadLive`; public API unchanged (747 → ~530 lines)
 - [x] `components/SettingsDangerZone.vue` — delete-account section carved from `pages/settings.vue`
 - [x] `components/SettingsGoogleLink.vue` — Google link/unlink; emits `hasPasswordChange`
-- [x] `components/SettingsAccountSection.vue` — account card + OAuth redirect handling
+- [x] `components/SettingsAccountSection.vue` — account card + OAuth redirect handling (uses `SettingsGoogleLink`)
 
 ### Later
 
