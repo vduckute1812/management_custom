@@ -19,6 +19,18 @@ export type TaskSavePayload = Omit<Partial<Task>, "recurrence"> & {
   recurrence?: Recurrence | null;
 };
 
+export interface FetchTasksOpts {
+  /**
+   * Child arrays to include in the response. Omit or pass an empty array for
+   * the light path (no timeBlocks / checklist loaded, but spentHours is still
+   * accurate via a SQL aggregate). Pass both to get the full payload needed
+   * by the calendar and task-editing views.
+   *
+   * Maps directly to the server's `?include=blocks,checklists` query param.
+   */
+  include?: Array<"blocks" | "checklists">;
+}
+
 export const useTasks = () => {
   // Also pulled in from plugins/notifications.client.ts at app boot.
   const { t } = useSafeI18n();
@@ -27,11 +39,15 @@ export const useTasks = () => {
   const error = useState<string | null>("tasks:error", () => null);
   const { apiFetch } = useApi();
 
-  async function fetchAll() {
+  async function fetchAll(opts?: FetchTasksOpts) {
     isLoading.value = true;
     error.value = null;
     try {
-      const data = await apiFetch<TasksApiResponse>("/api/tasks");
+      const qs =
+        opts?.include && opts.include.length > 0
+          ? `?include=${opts.include.join(",")}`
+          : "";
+      const data = await apiFetch<TasksApiResponse>(`/api/tasks${qs}`);
       tasks.value = data.tasks ?? [];
     } catch (err: unknown) {
       error.value =

@@ -1,4 +1,4 @@
-import type { Pool, PoolConnection } from "mysql2/promise";
+import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 import { dateOnlyOrNull, isoToDB, jsonOrNull } from "./datetime";
 import {
   rowToBlock,
@@ -15,11 +15,17 @@ import {
   type Task,
   type TimeBlock,
 } from "./types";
+import { roundHours } from "./compute";
 
 // -------------------------------------------------------------------------
 // Child loaders — kept private; the only consumers are getAllTasks /
 // getTaskById, which always need blocks + checklist alongside the parent.
 // -------------------------------------------------------------------------
+
+interface SpentAggRow extends RowDataPacket {
+  task_id: string;
+  spent: number;
+}
 
 async function loadBlocksByTask(
   conn: PoolConnection | Pool,
@@ -59,24 +65,81 @@ async function loadChecklistByTask(
   return out;
 }
 
+/**
+ * Aggregate `SUM(spent_hours)` per task without loading individual block rows.
+ * Used by the light path when `includeBlocks` is false.
+ */
+async function loadSpentByTask(
+  conn: PoolConnection | Pool,
+  taskIds: string[],
+): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (taskIds.length === 0) return out;
+  const placeholders = taskIds.map(() => "?").join(",");
+  const [rows] = await conn.query<SpentAggRow[]>(
+    `SELECT task_id, COALESCE(SUM(spent_hours), 0) AS spent
+     FROM time_blocks
+     WHERE task_id IN (${placeholders})
+     GROUP BY task_id`,
+    taskIds,
+  );
+  for (const row of rows) {
+    out.set(row.task_id, Number(row.spent));
+  }
+  return out;
+}
+
 // -------------------------------------------------------------------------
 // Task reads
 // -------------------------------------------------------------------------
 
-export async function getAllTasks(userId: string): Promise<Task[]> {
+/**
+ * Return all tasks for `userId`.
+ *
+ * Default (light) mode omits child arrays and instead attaches `spentHours`
+ * via a single GROUP BY aggregate — cheaper than fetching every block row
+ * when the caller only needs list metadata or epic roll-ups.
+ *
+ * Pass `includeBlocks: true` to load full `timeBlocks` arrays (required for
+ * the calendar and task-editing views). Pass `includeChecklists: true` to
+ * load `checklist` items (required by the task edit modal).
+ */
+export async function getAllTasks(
+  userId: string,
+  opts?: { includeBlocks?: boolean; includeChecklists?: boolean },
+): Promise<Task[]> {
+  const includeBlocks = opts?.includeBlocks ?? false;
+  const includeChecklists = opts?.includeChecklists ?? false;
+
   const pool = getPool();
   const [taskRows] = await pool.query<TaskRow[]>(
     "SELECT * FROM tasks WHERE user_id = ?",
     [userId],
   );
   const ids = taskRows.map((r) => r.id);
-  const [blocks, checklists] = await Promise.all([
-    loadBlocksByTask(pool, ids),
-    loadChecklistByTask(pool, ids),
+
+  const [blocksMap, checklistsMap] = await Promise.all([
+    includeBlocks
+      ? loadBlocksByTask(pool, ids)
+      : Promise.resolve(new Map<string, TimeBlock[]>()),
+    includeChecklists
+      ? loadChecklistByTask(pool, ids)
+      : Promise.resolve(new Map<string, ChecklistItem[]>()),
   ]);
-  return taskRows.map((r) =>
-    rowToTask(r, blocks.get(r.id) ?? [], checklists.get(r.id) ?? []),
+
+  const tasks = taskRows.map((r) =>
+    rowToTask(r, blocksMap.get(r.id) ?? [], checklistsMap.get(r.id) ?? []),
   );
+
+  if (!includeBlocks) {
+    // Attach aggregate spentHours so the light response is still accurate.
+    const spentMap = await loadSpentByTask(pool, ids);
+    for (const task of tasks) {
+      task.spentHours = roundHours(spentMap.get(task.id) ?? 0);
+    }
+  }
+
+  return tasks;
 }
 
 export async function getTaskById(

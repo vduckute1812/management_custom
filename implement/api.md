@@ -338,11 +338,11 @@ Transaction/budget upserts accept exactly one of `category` (builtin int) or `us
 
 ## Tasks (scoped to authenticated user)
 
-| Method   | Endpoint         | Description                                                                                                                                        |
-| -------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/tasks`     | Returns the caller's tasks with `spentHours` derived from blocks.                                                                                  |
-| `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (`taskUpsertBodySchema`, including `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`. |
-| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                                           |
+| Method   | Endpoint         | Description                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET`    | `/api/tasks`     | Returns the caller's tasks. **Default (light):** omits `timeBlocks` and `checklist` arrays but returns accurate `spentHours` via a SQL `SUM` aggregate. Opt in with `?include=blocks` and/or `?include=checklists` (comma-separated, e.g. `?include=blocks,checklists`). Client note: the `useTasks().fetchAll()` composable defaults to light; calendar/editing views pass `{ include: ['blocks','checklists'] }` explicitly. |
+| `POST`   | `/api/tasks`     | Creates or updates one of the caller's tasks (`taskUpsertBodySchema`, including `timeBlocks`). Cross-user ids `404`. Cross-user `epicId` is `400`.                                                                                                                                                                                                                                                                             |
+| `DELETE` | `/api/tasks/:id` | Removes one of the caller's tasks. Cross-user ids `404`.                                                                                                                                                                                                                                                                                                                                                                       |
 
 ---
 
@@ -369,7 +369,7 @@ Each user has their own independent timer row keyed by `user_id`. Two users can 
 
 **`DELETE /api/epics/:id`** — Removes the Epic record only. Child tasks are **not** deleted; their `epicId` field is cleared. Response includes `orphanedTasks: number`.
 
-**`GET /api/tasks`** — Returns all tasks. Each task includes a computed `spentHours` field summed from its `timeBlocks`.
+**`GET /api/tasks`** — Returns all tasks. **Light (default):** no `timeBlocks` or `checklist` arrays; `spentHours` is accurate via `COALESCE(SUM(spent_hours),0)` grouped by task. Opt in with `?include=blocks,checklists` (comma-separated; `checklist` singular is also accepted). Sort key when blocks are present: `dueDate ?? firstBlock.start ?? createdAt`; without blocks: `dueDate ?? createdAt`.
 
 **`POST /api/tasks`** — Accepts a full task object including the `timeBlocks` array. If `id` matches an existing record it replaces it; otherwise appends new. Blocks are sorted by `start` on save.
 

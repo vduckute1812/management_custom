@@ -114,7 +114,10 @@ export const useSampleData = () => {
       await saveTask(t);
     }
 
-    await Promise.all([fetchEpics(), fetchTasks()]);
+    await Promise.all([
+      fetchEpics(),
+      fetchTasks({ include: ["blocks", "checklists"] }),
+    ]);
   }
 
   return { load };

@@ -353,7 +353,10 @@ async function ensureExportData() {
   exportDataLoading.value = true;
   exportDataInflight = (async () => {
     try {
-      await Promise.all([fetchTasks(), fetchEpics()]);
+      await Promise.all([
+        fetchTasks({ include: ["blocks", "checklists"] }),
+        fetchEpics(),
+      ]);
       exportDataReady.value = true;
     } finally {
       exportDataLoading.value = false;
