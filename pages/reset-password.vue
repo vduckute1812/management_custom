@@ -80,7 +80,7 @@ async function onSubmit() {
   >
     <div class="w-full max-w-sm">
       <div class="flex items-center justify-center gap-3 mb-8">
-        <AppLogo size-class="h-11 w-11" rounded-class="rounded-xl" />
+        <AppLogo size-class="h-11 w-11" />
         <div class="text-left">
           <p class="text-base font-semibold text-slate-900 leading-tight">
             {{ $t("auth.resetPasswordTitle") }}

@@ -3,7 +3,11 @@ withDefaults(
   defineProps<{
     /** Tailwind size classes for the mark, e.g. `h-8 w-8`. */
     sizeClass?: string;
-    /** Soften the outer radius to match surrounding chrome. */
+    /**
+     * Soften the image box. Prefer `rounded-none` for the hex seal so the
+     * transparent corners stay unclipped; auth screens may still pass
+     * `rounded-xl` for a softer tile.
+     */
     roundedClass?: string;
     /**
      * When true (default), the image is decorative — a nearby text label
@@ -13,7 +17,7 @@ withDefaults(
   }>(),
   {
     sizeClass: "h-8 w-8",
-    roundedClass: "rounded-lg",
+    roundedClass: "rounded-none",
     decorative: true,
   },
 );
@@ -23,12 +27,12 @@ const { t } = useI18n();
 
 <template>
   <img
-    src="/logo.svg"
+    src="/logo.png"
     width="64"
     height="64"
     decoding="async"
     :alt="decorative ? '' : t('nav.brand')"
     :aria-hidden="decorative ? 'true' : undefined"
-    :class="[sizeClass, roundedClass, 'shrink-0 shadow-sm']"
+    :class="[sizeClass, roundedClass, 'shrink-0']"
   />
 </template>

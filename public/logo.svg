@@ -1,17 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Da Nang TechX">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" role="img" aria-label="Da Nang TechX">
   <defs>
-    <linearGradient id="tx-bg" x1="12" y1="4" x2="52" y2="60" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#6366F1"/>
-      <stop offset="1" stop-color="#4338CA"/>
+    <linearGradient id="hexFill" x1="48" y1="4" x2="88" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4F46E5"/>
+      <stop offset="1" stop-color="#0B0A24"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="14" fill="url(#tx-bg)"/>
+
+  <path
+    fill="url(#hexFill)"
+    d="M64 4 L118 35.5 V92.5 L64 124 L10 92.5 V35.5 Z"
+  />
+  <path
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-opacity="0.3"
+    stroke-width="1.4"
+    d="M64 13 L109 38.5 V89.5 L64 115 L19 89.5 V38.5 Z"
+  />
+
   <g fill="#FFFFFF">
-    <!-- T -->
-    <rect x="9.5" y="15" width="25" height="8" rx="1.5"/>
-    <rect x="18" y="15" width="8" height="34" rx="1.5"/>
-    <!-- X -->
-    <rect x="45.5" y="14.5" width="8" height="35" rx="1.5" transform="rotate(32 49.5 32)"/>
-    <rect x="45.5" y="14.5" width="8" height="35" rx="1.5" transform="rotate(-32 49.5 32)"/>
+    <!-- T with diagonal cut on the crossbar's right end -->
+    <path d="M22 38 H54 L64 48 V50 H48 V90 H37 V50 H22 Z"/>
+    <!-- X as facing chevrons; tips stop short of center for a channel -->
+    <path d="M68 38 H80 L90 64 L80 90 H68 L78 64 Z"/>
+    <path d="M118 38 H106 L96 64 L106 90 H118 L108 64 Z"/>
   </g>
 </svg>

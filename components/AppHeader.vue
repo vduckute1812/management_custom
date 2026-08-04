@@ -110,7 +110,7 @@ watch(
         to="/"
         class="flex shrink-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
       >
-        <AppLogo size-class="h-8 w-8" rounded-class="rounded-lg" />
+        <AppLogo size-class="h-8 w-8" />
         <!-- Mobile hides the brand label (`hidden sm:inline`); keep an sr-only
              name below the sm breakpoint so the logo-only link stays accessible. -->
         <span class="sr-only sm:hidden">{{ $t("nav.brand") }}</span>
