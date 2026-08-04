@@ -54,7 +54,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     ├── server/middleware/security-headers.ts  →  CSP + HSTS (when HTTPS) + baseline headers
     ├── server/middleware/rate-limit.ts      →  per-IP fixed-window caps on /api/*
     ├── server/middleware/auth.ts              →  Bearer / HttpOnly access cookie
-    ├── server/middleware/csrf.ts              →  Origin/Referer check on cookie-auth mutations
+    ├── server/middleware/csrf-cookie.ts       →  Origin/Referer check on cookie-auth mutations
     │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
     │
@@ -82,7 +82,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 - **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `postReactions`, `postComments`, `stories`, `uploads`, `categories`, `jobs`, `money*`, `chat`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
 - **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
 - **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction; tokens share a `family_id` so reuse of a revoked hash revokes the whole family (migration **0030**).
-- **CSRF.** Cookie-authenticated mutating `/api/*` requests must present a same-origin `Origin` or `Referer` (production requires one). See `server/middleware/csrf.ts`.
+- **CSRF.** Cookie-authenticated mutating `/api/*` requests must present a same-origin `Origin` or `Referer` (production requires one). See `server/middleware/csrf-cookie.ts`.
 - **Cache & queue.** Hot public reads use the cache facade; signup email and similar side-effects go through the MySQL job queue. Full design: [`cache-queue.md`](./cache-queue.md).
 - **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, signup user+verification, refresh rotate, etc.) run inside `BEGIN … COMMIT`.
 - **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
@@ -217,7 +217,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
-│   │   ├── csrf.ts                  # Cookie-auth Origin/Referer gate on mutations
+│   │   ├── csrf-cookie.ts           # Cookie-auth Origin/Referer gate on mutations
 │   │   ├── rate-limit.ts            # Per-IP fixed-window caps on /api/*
 │   │   └── security-headers.ts      # CSP + HSTS + baseline security headers
 │   ├── plugins/
