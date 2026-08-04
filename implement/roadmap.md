@@ -457,8 +457,6 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] AnalyticsDashboard: fingerprint watch + `chart.update()` (no deep destroy/recreate)
 - [x] Task/Epic discard confirms: `inert` on parent form; BlockSpentPopover uses `useModal`
 
-<<<<<<< HEAD
-
 ## Phase 32 — Sprint I (chat message deletion)
 
 - [x] `deleteMessage(userId, conversationId, messageId)` in `server/db/chatMessages.ts`: sender-only hard delete, last_message_id pointer update, unread recount for both participants, orphan upload purge
@@ -470,12 +468,7 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Privacy §13 EN + VI: add chat messages to the deletable-from-app list; remove statement that individual messages cannot be deleted; export gap note remains
 - [x] Docs: `api.md` + `chat-spec.md` updated with DELETE message + SSE `deleted`
 
-### Later
-
-- Lightweight tasks list API (blocks on demand)
-  \=======
-
-## Phase 32 — Sprint J (lightweight tasks list API)
+## Phase 33 — Sprint J (lightweight tasks list API)
 
 - [x] `getAllTasks(userId, opts?)` — `includeBlocks` / `includeChecklists` flags (default both `false`); when `!includeBlocks` runs `COALESCE(SUM(spent_hours),0) GROUP BY task_id` aggregate and attaches `spentHours` on each task
 - [x] `computeTaskSpent` / `computeChecklistProgress` — preserve pre-computed values when no child arrays are loaded (light path no longer zeroes `spentHours`)
@@ -484,10 +477,6 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `useTasks().fetchAll(opts?)` — accepts `{ include?: Array<'blocks'|'checklists'> }`; default (no args) is light; calendar/editing views (`tasks/index`, `epics/[id]`, analytics, settings) pass `{ include: ['blocks','checklists'] }` explicitly
 
 ### Later
-
-- Chat message deletion (still named as missing in the privacy policy)
-
-> > > > > > > b36a8ba (feat(tasks): Sprint J — lightweight list API with optional blocks)
 
 - Playwright smoke
 - Split remaining page/DB gods (`settings`, `feed`, `posts.ts`, `useChat`)
