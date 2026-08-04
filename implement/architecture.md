@@ -43,7 +43,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Runtime topology
 
-Three product modules share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), and **Chat** (1:1 DMs). Auth and admin sit across all three.
+Three product modules share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), **Money** (personal expense ledger), and **Chat** (1:1 DMs). Auth and admin sit across all of them.
 
 ```
 Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
@@ -51,20 +51,24 @@ Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
     ▼
 Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │
-    ├── server/middleware/security-headers.ts  →  CSP + baseline headers
+    ├── server/middleware/security-headers.ts  →  CSP + HSTS (when HTTPS) + baseline headers
     ├── server/middleware/rate-limit.ts      →  per-IP fixed-window caps on /api/*
     ├── server/middleware/auth.ts              →  Bearer / HttpOnly access cookie
+    ├── server/middleware/csrf.ts              →  Origin/Referer check on cookie-auth mutations
     │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
     │
     ├── server/services/*      →  selective workflow orchestration
-    │     (task save, timer start/stop, post create, chat send/read, …)
+    │     (task save, timer, post create, chat send/read, money CRUD,
+    │      auth signup/refresh/delete/Google callback, …)
     │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
-    │     tables: users (+ last_login_at, profile fields via 0010), auth_*,
+    │     tables: users (+ locale / money_currency / profile via 0010+0028),
+    │             auth_* (+ oauth identities 0023, refresh family 0030),
     │             epics, tasks, time_blocks, checklist_items, active_timer,
-    │             posts, post_*, uploads, stories, story_*,
+    │             posts, post_* (reactions/comments modules), uploads, stories,
     │             post_categories, jobs, schema_migrations,
+    │             money_transactions / savings / budgets / user_categories (0024–0027),
     │             chat_conversations, chat_messages, chat_conversation_reads,
     │             chat_message_reactions
     │
@@ -74,14 +78,16 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 ```
 
 - **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
-- **Schema ownership.** Versioned SQL in `server/db/migrations/`, applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
-- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `stories`, `uploads`, `categories`, `jobs`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0030+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
+- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `posts`, `postReactions`, `postComments`, `stories`, `uploads`, `categories`, `jobs`, `money*`, `chat`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
 - **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
-- **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction.
+- **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction; tokens share a `family_id` so reuse of a revoked hash revokes the whole family (migration **0030**).
+- **CSRF.** Cookie-authenticated mutating `/api/*` requests must present a same-origin `Origin` or `Referer` (production requires one). See `server/middleware/csrf.ts`.
 - **Cache & queue.** Hot public reads use the cache facade; signup email and similar side-effects go through the MySQL job queue. Full design: [`cache-queue.md`](./cache-queue.md).
 - **Transactions.** Multi-table writes (epic delete, task upsert with blocks/checklist, timer start that finalizes a prior task, signup user+verification, refresh rotate, etc.) run inside `BEGIN … COMMIT`.
 - **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
-- **Auth scoping.** Time-management CRUD is always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
+- **Auth scoping.** Time-management and Money CRUD are always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
+- **OAuth.** Google login/link via `GET /api/auth/google` → callback; identity rows in `auth_identities` (migration **0023**). Unverified password accounts are **not** auto-linked (H1). Details: [`auth.md`](./auth.md).
 - **Feed → Tasks seam.** `usePlanPostAsTask` owns "plan this post as a task"; Feed UI components must not call `useTasks` directly for that flow.
 
 ---
@@ -93,6 +99,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 | Hub             | `/`                                                                         | Public (localized category cards → `/feed?category=…`)                                   |
 | Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login          |
 | Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                            |
+| Money           | `/money`                                                                    | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
 | Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account` |
 | Admin           | `/admin`                                                                    | Admin / superadmin                                                                       |
 | Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                                       |
@@ -120,16 +127,24 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 
 **Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
 
-| Service        | Responsibility                                                     |
-| -------------- | ------------------------------------------------------------------ |
-| `taskService`  | `saveTaskForUser` — ownership guards + upsert                      |
-| `timerService` | `startTimerForUser` / `stopTimerForUser`                           |
-| `postService`  | `createPostForUser` + public-feed cache invalidate                 |
-| `chatService`  | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out |
+| Service                     | Responsibility                                                                |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `taskService`               | `saveTaskForUser` — ownership guards + upsert                                 |
+| `timerService`              | `startTimerForUser` / `stopTimerForUser`                                      |
+| `postService`               | `createPostForUser` + public-feed cache invalidate                            |
+| `chatService`               | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out            |
+| `moneyService` (+ siblings) | Money ledger / budgets / savings / user-categories workflows                  |
+| `authService`               | Signup, refresh rotation, account delete, Google OAuth callback orchestration |
 
-Auth signup / refresh / password-reset, post update/share, and admin role policy are still mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
+Password-reset / verify-email and admin role policy remain mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
 
 Add new services only for workflows that span several DB calls or need shared transaction boundaries — not for every CRUD route.
+
+---
+
+## Money module
+
+Per-user personal expense ledger (not shared with Feed). Amounts are **minor units** (`BIGINT`); display currency is `users.money_currency` (`MoneyCurrency` TINYINT — VND/USD/CNY/TWD). Schema: migrations **0024–0027** (+ **0028** locale/currency on users). Domain SQL: `server/db/money.ts`, `moneySavings.ts`, `moneyBudgets.ts`, plus user-categories helpers. Client: `/money`, `composables/useMoney*`, Chart.js via lazy `MoneyCharts`. Details: [`database.md`](./database.md#money-migration-0024), [`api.md`](./api.md).
 
 ---
 
@@ -138,6 +153,7 @@ Add new services only for workflows that span several DB calls or need shared tr
 `server/middleware/security-headers.ts` sets baseline headers on every response:
 
 - `Content-Security-Policy` (self-hosted scripts/styles; `unsafe-inline` for theme boot + Vue; Cloudflare Insights beacon + Google Fonts allowlisted)
+- `Strict-Transport-Security` when the request is HTTPS / `X-Forwarded-Proto: https` (also set on the nginx prod edge)
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-Frame-Options: SAMEORIGIN`
@@ -170,11 +186,12 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ~/Projects/management_custom/
 ├── server/
 │   ├── api/
-│   │   ├── auth/                    # signup, login, refresh, logout, account delete, verify-email, me, profile
+│   │   ├── auth/                    # signup, login, refresh, logout, account delete, verify-email, me, profile, google/*
 │   │   ├── admin/                   # users, stats, queue, role, DELETE user (superadmin)
 │   │   ├── epics/                   # caller-scoped
 │   │   ├── tasks/                   # caller-scoped
 │   │   ├── timer/                   # per-user active timer
+│   │   ├── money/                   # transactions, budgets, savings, user categories
 │   │   ├── posts/                   # feed CRUD, comments, reactions, share
 │   │   ├── stories/                 # 24h stories, views, reactions, insights
 │   │   ├── uploads/                 # R2 upload + signed GET
@@ -184,19 +201,25 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── geo.get.ts               # Public Cloudflare country hint for first-visit locale
 │   │   └── users/directory.get.ts   # people picker for shared visibility + chat
 │   ├── schemas/
-│   │   └── index.ts                 # Shared Zod request schemas
+│   │   └── index.ts                 # Shared Zod request schemas (+ auth.ts, money*, …)
 │   ├── services/
 │   │   ├── taskService.ts           # Task upsert workflow
 │   │   ├── timerService.ts          # Timer start/stop workflow
 │   │   ├── postService.ts           # Post create + cache bust
-│   │   └── chatService.ts           # Chat send/read + inbox SSE push
+│   │   ├── chatService.ts           # Chat send/read + inbox SSE push
+│   │   ├── moneyService.ts          # Money ledger (+ budgets/savings/categories siblings)
+│   │   └── authService.ts           # Signup / refresh / account delete / Google callback
 │   ├── db/                          # SQL domain modules + migrator + pool
-│   │   └── migrations/              # 0001…0018 SQL files
+│   │   ├── posts.ts                 # Post list / CRUD / visibility helpers
+│   │   ├── postReactions.ts         # Reaction set / clear
+│   │   ├── postComments.ts          # Comments CRUD + comment_count recount
+│   │   └── migrations/              # 0001…0030+ SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
+│   │   ├── csrf.ts                  # Cookie-auth Origin/Referer gate on mutations
 │   │   ├── rate-limit.ts            # Per-IP fixed-window caps on /api/*
-│   │   └── security-headers.ts      # CSP + baseline security headers
+│   │   └── security-headers.ts      # CSP + HSTS + baseline security headers
 │   ├── plugins/
 │   │   ├── db-verify.ts             # Refuses boot if migrations pending/drifted
 │   │   └── job-worker.ts            # MySQL jobs worker
@@ -207,16 +230,17 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │       ├── http.ts                  # parseBody, parseQuery, DomainError, mapDomainError
 │       ├── refreshCookie.ts         # HttpOnly mgmt_rt / mgmt_at helpers
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
+│       ├── googleOAuth*.ts          # Google OAuth config, state, profile → user
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
 │       ├── queue.ts                 # Enqueue helpers (email.*, cache.invalidate, media.purgeExpired)
 │       ├── r2.ts                    # S3-compatible Cloudflare R2 client
 │       └── fileSignature.ts         # Magic-byte sniff for uploads
 ├── tests/                           # Vitest unit tests (`npm test`) — DB-free
-│   ├── auth-*.test.ts               # JWT, role guards, attach (Bearer/cookie/upload query)
+│   ├── auth-*.test.ts               # JWT, role guards, attach (Bearer/cookie)
 │   ├── helpers/                     # H3Event stubs for authContext
 │   ├── schemas.test.ts
 │   ├── security-utils.test.ts
-│   └── …                            # rate-limit, chat helpers, feed cursor, markdown, …
+│   └── …                            # rate-limit, chat helpers, feed cursor, markdown, google OAuth, …
 ├── scripts/
 │   ├── migrate.ts                   # CLI for npm run migrate*
 │   ├── migrate-auth.ts              # Seed superadmin
@@ -228,20 +252,23 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── feed/index.vue, feed/write, feed/edit/:id
 │   ├── chat/index.vue               # Direct messages (auth required)
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
+│   ├── money/index.vue              # Personal expense ledger
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
 │   ├── privacy.vue, terms.vue          # Public legal pages (SSR'd, indexable)
 │   └── login.vue, signup.vue, verify-email.vue, forgot-password, reset-password
-├── components/                      # Flat SFC set (calendars, feed, shell, …)
+├── components/                      # Flat SFC set (calendars, feed, shell, money, …)
 │   ├── AppHeader.vue, AppFooter.vue, LanguageSwitcher.vue, CommandPalette.vue, …
 │   ├── LegalDocumentView.vue        # Renders a privacy / terms document
 │   ├── PostComposer.vue, PostCard.vue, PostCommentsPanel.vue, StoryTray.vue, …
 │   ├── ChatConversationList.vue, ChatMessageThread.vue, ChatComposer.vue
+│   ├── MoneyCharts.vue, …           # Lazy-loaded ledger charts / modals
 │   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
 ├── composables/
 │   ├── useAuth.ts, useApi.ts, useSettings.ts, useToasts.ts, useUiOverlays.ts
 │   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
 │   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
 │   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
+│   ├── useMoney.ts, useMoneyBudgets.ts, useMoneySavings.ts, …
 │   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
 │   ├── useChat.ts                   # DM list / thread / module-scoped SSE singleton / send
 │   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
@@ -256,8 +283,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── chat-inbox.client.ts         # Unread badge / toast via SSE inbox stream
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
-├── types/                           # task.ts, post.ts, story.ts, chat.ts, reaction.ts, locale.ts, legal.ts
-├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, …
+├── types/                           # auth.ts, task.ts, post.ts, story.ts, chat.ts, money.ts, reaction.ts, locale.ts, legal.ts
+├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, money helpers, …
 │   └── legal/                       # privacy.ts + terms.ts document text (en/vi) + registry
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts
@@ -265,11 +292,13 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 └── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
 ```
 
+**Shared types.** Account identity / roles / OAuth consts live in `types/auth.ts` (`UserRole`, `AuthUser`, `AuthProvider`, …). Task/epic types stay in `types/task.ts`, which **re-exports** the auth surface for backward-compatible imports. Server barrel `server/db/types.ts` re-exports auth from `types/auth.ts`.
+
 **Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
 
-**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`.
+**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Post SQL is split: list/CRUD in `server/db/posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`.
 
-**Testing.** The Vitest suite is **DB-free** (JWT, role guards, media `?access_token=` scope, Zod schemas, pure helpers). Ephemeral-MySQL integration (refresh rotation, ACL, migrations) and Playwright smoke are follow-ups once a test database is available in CI.
+**Testing.** The Vitest suite is **DB-free** (JWT, role guards, Zod schemas, pure helpers). Ephemeral-MySQL integration (refresh rotation, ACL, migrations) and Playwright smoke are follow-ups once a test database is available in CI.
 
 ---
 

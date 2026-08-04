@@ -430,8 +430,16 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Category create labels; Export Escape; MonthNav `aria-label`; budget `progressbar`
 - [x] Profile Save `type="submit"` via `form=`; Settings density/week/time `aria-pressed`
 
+## Phase 28 — Sprint E (structure)
+
+- [x] `implement/architecture.md` synced: Money module, OAuth, CSRF/HSTS, migrations through **0030**, posts split, `authService`
+- [x] Auth types canonical in `types/auth.ts` (`UserRole` / `AuthUser` / OAuth consts); `types/task.ts` re-exports for BC
+- [x] `server/db/posts.ts` list/CRUD only; reactions → `postReactions.ts`; comments → `postComments.ts`
+- [x] `server/services/authService.ts` — signup, refresh rotation, account delete, Google callback
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts
+- Sprint F: savings SUM rewrite, budget multi-row upsert, worker incremental recount, MySQL integration tests, `chat.ts` split

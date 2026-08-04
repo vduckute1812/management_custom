@@ -9,21 +9,8 @@
  * succeed. Presenting a revoked token revokes the entire token family
  * (reuse / theft detection).
  */
-import {
-  findActiveRefreshToken,
-  findRefreshTokenByHash,
-  getUserById,
-  revokeRefreshTokenFamily,
-  rotateRefreshToken,
-  toAuthUser,
-} from "~/server/utils/db";
-import {
-  generateOpaqueToken,
-  hashOpaqueToken,
-  nowPlusSeconds,
-  signAccessToken,
-  TOKEN_TTL,
-} from "~/server/utils/auth";
+import { parseBody, mapDomainError, DomainError } from "~/server/utils/http";
+import { refreshBodySchema } from "~/server/schemas";
 import {
   REFRESH_COOKIE,
   assertSameOriginForCookieAuth,
@@ -32,8 +19,7 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "~/server/utils/refreshCookie";
-import { parseBody } from "~/server/utils/http";
-import { refreshBodySchema } from "~/server/schemas";
+import { refreshAuthSession } from "~/server/services/authService";
 
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, refreshBodySchema);
@@ -48,68 +34,20 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const presentedHash = hashOpaqueToken(presented);
-  const record = await findActiveRefreshToken(presentedHash);
-  if (!record) {
-    // Reuse of a rotated/revoked refresh → kill the whole family so a stolen
-    // token cannot keep minting sessions after the victim refreshed.
-    const prior = await findRefreshTokenByHash(presentedHash);
-    if (prior?.revokedAt) {
-      await revokeRefreshTokenFamily(prior.familyId);
+  try {
+    const result = await refreshAuthSession(event, presented);
+    setRefreshCookie(event, result.refreshToken);
+    setAccessCookie(event, result.accessToken);
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+      accessExpiresAt: result.accessExpiresAt,
+      refreshExpiresAt: result.refreshExpiresAt,
+    };
+  } catch (err) {
+    if (err instanceof DomainError && err.statusCode === 401) {
+      clearAuthCookies(event);
     }
-    clearAuthCookies(event);
-    throw createError({
-      statusCode: 401,
-      statusMessage: "Refresh token invalid or expired",
-    });
+    mapDomainError(err);
   }
-
-  const user = await getUserById(record.userId);
-  if (!user) {
-    clearAuthCookies(event);
-    throw createError({
-      statusCode: 401,
-      statusMessage: "Account no longer exists",
-    });
-  }
-
-  const newRefresh = generateOpaqueToken();
-  const refreshExpiresAt = nowPlusSeconds(TOKEN_TTL.refreshSeconds);
-  const rotated = await rotateRefreshToken({
-    presentedHash,
-    familyId: record.familyId,
-    next: {
-      userId: user.id,
-      tokenHash: hashOpaqueToken(newRefresh),
-      expiresAt: refreshExpiresAt,
-      userAgent: getRequestHeader(event, "user-agent") ?? undefined,
-      ip: getRequestIP(event, { xForwardedFor: true }) ?? undefined,
-    },
-  });
-  if (!rotated) {
-    // Concurrent refresh lost the race — the winner already holds the live
-    // successor. Do not revoke the family here (that would kill the winner).
-    clearAuthCookies(event);
-    throw createError({
-      statusCode: 401,
-      statusMessage: "Refresh token invalid or expired",
-    });
-  }
-
-  const accessToken = signAccessToken({
-    sub: user.id,
-    email: user.email,
-    role: user.role,
-  });
-  const accessExpiresAt = nowPlusSeconds(TOKEN_TTL.accessSeconds);
-
-  setRefreshCookie(event, newRefresh);
-  setAccessCookie(event, accessToken);
-
-  return {
-    user: toAuthUser(user),
-    accessToken,
-    accessExpiresAt,
-    refreshExpiresAt,
-  };
 });

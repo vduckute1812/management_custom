@@ -3,11 +3,13 @@
  *
  * # Enum encoding
  *
- * Every enum-shaped value (`status`, `priority`, `role`, `recurrence.rule`)
+ * Every enum-shaped value (`status`, `priority`, `recurrence.rule`)
  * is a small integer end-to-end:
  *   - persisted as `TINYINT UNSIGNED` in MySQL,
  *   - shipped as `number` in API responses, JSON exports, and JWT claims,
  *   - consumed in TS code as named constants (e.g. `TaskStatus.Done`).
+ *
+ * Account roles / `AuthUser` live in `types/auth.ts` (re-exported here for BC).
  *
  * Each enum is defined as a `const` object plus a numeric union type. This
  * pattern gives autocomplete (`TaskStatus.Done`) without TypeScript's
@@ -18,9 +20,6 @@
  * Tailwind tokens / URL state respectively, and their strings carry real
  * meaning outside this module.
  */
-
-import type { AppLocale } from "./locale";
-import type { MoneyCurrency } from "./money";
 
 // -------------------------------------------------------------------------
 // TaskStatus
@@ -149,50 +148,19 @@ export const RECURRENCE_UNIT_LABEL: Record<RecurrenceRule, string> = {
 };
 
 // -------------------------------------------------------------------------
-// UserRole — higher = more privileged
+// Auth (re-exported from types/auth.ts for backward-compatible imports)
 // -------------------------------------------------------------------------
 
-export const UserRole = {
-  Normal: 0,
-  Admin: 1,
-  Superadmin: 2,
-} as const;
-export type UserRole = (typeof UserRole)[keyof typeof UserRole];
-
-export const USER_ROLES: readonly UserRole[] = [
-  UserRole.Normal,
-  UserRole.Admin,
-  UserRole.Superadmin,
-];
-
-/**
- * Roles a user with admin powers may assign through the UI. `Superadmin` is
- * intentionally absent — it's seeded by `npm run migrate:auth` and can never
- * be granted from the app.
- */
-export const ASSIGNABLE_USER_ROLES: readonly UserRole[] = [
-  UserRole.Admin,
-  UserRole.Normal,
-];
-
-/** i18n keys under `roles.*`. */
-export const ROLE_I18N_KEYS: Record<UserRole, string> = {
-  [UserRole.Normal]: "roles.normal",
-  [UserRole.Admin]: "roles.admin",
-  [UserRole.Superadmin]: "roles.superadmin",
-};
-
-/** @deprecated Prefer ROLE_I18N_KEYS + t(). */
-export const ROLE_LABELS: Record<UserRole, string> = {
-  [UserRole.Normal]: "Member",
-  [UserRole.Admin]: "Admin",
-  [UserRole.Superadmin]: "Superadmin",
-};
-
-/** True for any role with admin-dashboard access. */
-export function isAdminRole(role: UserRole): boolean {
-  return role >= UserRole.Admin;
-}
+export {
+  UserRole,
+  USER_ROLES,
+  ASSIGNABLE_USER_ROLES,
+  ROLE_I18N_KEYS,
+  ROLE_LABELS,
+  isAdminRole,
+  type AuthUser,
+  type AdminUserSummary,
+} from "./auth";
 
 // -------------------------------------------------------------------------
 // EpicColor — *not* an integer enum: each value is a Tailwind token used in
@@ -297,54 +265,6 @@ export interface Epic {
 }
 
 export type CalendarView = "daily" | "weekly" | "monthly";
-
-// -------------------------------------------------------------------------
-// Auth
-// -------------------------------------------------------------------------
-
-/**
- * Public-safe shape of a user account. Server responses MUST NEVER include
- * `passwordHash` or any other internal field. Anything beyond these props
- * is admin-only and lives in `AdminUserSummary` below.
- */
-export interface AuthUser {
-  id: string;
-  email: string;
-  /** Display name — always set (signup required; legacy rows derived from email). */
-  name: string;
-  /** Proxied upload URL (`/api/uploads/…`) when the user set an avatar. */
-  avatarUrl?: string;
-  /** Short professional headline (e.g. "Staff engineer"). */
-  title?: string;
-  /** Job / role at work (e.g. "Frontend lead at Acme"). */
-  job?: string;
-  /** Free-form location (city, timezone, remote, …). */
-  location?: string;
-  /**
-   * Preferred UI / email language (`en` / `vi` / `zh-CN` / `zh-TW`).
-   * Stored on the user so outbound mail matches the account, not the device.
-   */
-  locale: AppLocale;
-  /**
-   * Money display currency (`MoneyCurrency` TINYINT). Defaults from locale
-   * at signup; user may change later without rewriting history.
-   */
-  moneyCurrency: MoneyCurrency;
-  role: UserRole;
-  emailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface AdminUserSummary extends AuthUser {
-  taskCount: number;
-  epicCount: number;
-  hoursLogged: number;
-  /** Latest `time_blocks.end_at` across this user's tasks. */
-  lastActivity?: string;
-  /** Latest successful `POST /api/auth/login` stamp. Undefined = never. */
-  lastLoginAt?: string;
-}
 
 // -------------------------------------------------------------------------
 // Epic color theming

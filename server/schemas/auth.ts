@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { APP_LOCALES } from "../../types/locale";
 import { MONEY_CURRENCIES } from "../../types/money";
-import { ASSIGNABLE_USER_ROLES, type UserRole } from "../../types/task";
+import { ASSIGNABLE_USER_ROLES, type UserRole } from "../../types/auth";
 
 export const loginBodySchema = z.object({
   email: z.string().trim().email("A valid email is required"),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { UploadKind } from "~/types/post";
-import { ROLE_I18N_KEYS } from "~/types/task";
+import { ROLE_I18N_KEYS } from "~/types/auth";
 import { INTL_LOCALE, type AppLocale } from "~/types/locale";
 
 const auth = useAuth();

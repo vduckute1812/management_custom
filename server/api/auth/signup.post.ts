@@ -10,86 +10,20 @@
  * unverified state machine simple and the login route is the only path that
  * issues tokens.
  */
-import {
-  UserRole,
-  createUserWithEmailVerification,
-  getUserByEmail,
-  toAuthUser,
-} from "~/server/utils/db";
-import {
-  generateOpaqueToken,
-  hashOpaqueToken,
-  hashPassword,
-  nowPlusSeconds,
-} from "~/server/utils/auth";
-import { enqueueVerificationEmail } from "~/server/utils/queue";
-import { parseBody } from "~/server/utils/http";
+import { parseBody, mapDomainError } from "~/server/utils/http";
 import { signupBodySchema } from "~/server/schemas";
-import { passwordStrengthError } from "~/utils/passwordPolicy";
 import { assertAccountRateLimit } from "~/server/rate-limit";
-
-const VERIFY_TTL_SECONDS = 24 * 3600;
+import { signupAccount } from "~/server/services/authService";
 
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, signupBodySchema);
   const email = body.email.trim().toLowerCase();
-  const password = body.password;
-  const name = body.name.trim();
 
   await assertAccountRateLimit(event, email, "/api/auth/signup");
 
-  const strengthError = passwordStrengthError(password);
-  if (strengthError) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: strengthError,
-    });
-  }
-
-  const existing = await getUserByEmail(email);
-  if (existing) {
-    // Use a generic 409 — explicitly avoid leaking "this email already has
-    // an account" via timing/body differences elsewhere, but on direct
-    // sign-up the user is asking us point-blank.
-    throw createError({
-      statusCode: 409,
-      statusMessage: "An account with this email already exists",
-    });
-  }
-
-  const passwordHash = await hashPassword(password);
-  const rawToken = generateOpaqueToken();
-  const locale = body.locale;
-  const user = await createUserWithEmailVerification({
-    user: {
-      email,
-      passwordHash,
-      name,
-      role: UserRole.Normal,
-      emailVerified: false,
-      locale,
-    },
-    tokenHash: hashOpaqueToken(rawToken),
-    expiresAt: nowPlusSeconds(VERIFY_TTL_SECONDS),
-  });
-
-  let verificationSent = true;
   try {
-    // Enqueue so signup stays fast and SMTP retries happen in the worker.
-    await enqueueVerificationEmail({
-      to: email,
-      token: rawToken,
-      locale: user.locale,
-    });
+    return await signupAccount(body);
   } catch (err) {
-    // Queue insert failures shouldn't block sign-up — the user + verification
-    // row already exist. Never log the raw token / verify URL.
-    console.error("[signup] failed to enqueue verification email", err);
-    verificationSent = false;
+    mapDomainError(err);
   }
-
-  return {
-    user: toAuthUser(user),
-    verificationSent,
-  };
 });

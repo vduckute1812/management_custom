@@ -99,7 +99,7 @@ export default defineNitroPlugin((nitroApp) => {
         maintenanceTicks += 1;
         if (maintenanceTicks % 15 === 0) {
           try {
-            const { recountCommentCounts } = await import("../db/posts");
+            const { recountCommentCounts } = await import("../db/postComments");
             await recountCommentCounts();
           } catch (err) {
             console.warn(
