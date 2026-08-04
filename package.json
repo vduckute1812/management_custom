@@ -27,7 +27,8 @@
     "migrate:auth": "node --env-file=.env --import tsx scripts/migrate-auth.ts",
     "check:db": "node --env-file=.env --import tsx scripts/check-db.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "DB_INTEGRATION=1 vitest run tests/integration"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,vue,json,css,md,yml,yaml}": "prettier --write"

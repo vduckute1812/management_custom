@@ -182,8 +182,9 @@ export async function deletePostComment(
 
 /**
  * Recompute `posts.comment_count` from `post_comments`.
- * Pass `postIds` to limit the rewrite (e.g. after a user delete cascades
- * comments off other people's posts); omit to recount every post.
+ * Pass `postIds` to force a rewrite for those posts (e.g. after a user
+ * delete cascades comments). Omit to fix only **drifted** rows — a JOIN
+ * against the live COUNT so unchanged posts are not rewritten.
  */
 export async function recountCommentCounts(
   postIds?: string[],
@@ -195,20 +196,30 @@ export async function recountCommentCounts(
     const placeholders = postIds.map(() => "?").join(",");
     const [result] = await pool.query<ResultSetHeader>(
       `UPDATE posts p
-       SET comment_count = (
-         SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id
-       )
+       LEFT JOIN (
+         SELECT post_id, COUNT(*) AS cnt
+           FROM post_comments
+          WHERE post_id IN (${placeholders})
+          GROUP BY post_id
+       ) x ON x.post_id = p.id
+       SET p.comment_count = COALESCE(x.cnt, 0)
        WHERE p.id IN (${placeholders})`,
-      postIds,
+      [...postIds, ...postIds],
     );
     return result.affectedRows ?? 0;
   }
 
+  // Safety-net path (job worker): only touch rows whose denormalized
+  // counter disagrees with the live COUNT.
   const [result] = await pool.query<ResultSetHeader>(
     `UPDATE posts p
-     SET comment_count = (
-       SELECT COUNT(*) FROM post_comments c WHERE c.post_id = p.id
-     )`,
+     LEFT JOIN (
+       SELECT post_id, COUNT(*) AS cnt
+         FROM post_comments
+        GROUP BY post_id
+     ) x ON x.post_id = p.id
+     SET p.comment_count = COALESCE(x.cnt, 0)
+     WHERE p.comment_count <> COALESCE(x.cnt, 0)`,
   );
   return result.affectedRows ?? 0;
 }

@@ -437,9 +437,18 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `server/db/posts.ts` list/CRUD only; reactions → `postReactions.ts`; comments → `postComments.ts`
 - [x] `server/services/authService.ts` — signup, refresh rotation, account delete, Google callback
 
+## Phase 29 — Sprint F (DB quality / structure)
+
+- [x] Savings goals: `saved_minor` via `LEFT JOIN` aggregate (not correlated SUM per row)
+- [x] Budget month copy: multi-row `INSERT … ON DUPLICATE KEY UPDATE` (skip archived custom categories)
+- [x] Worker comment recount: drift-only UPDATE (JOIN vs live COUNT); log when rows fixed
+- [x] `server/db/chat.ts` split → conversations / messages / reactions / reads (+ shared helpers)
+- [x] MySQL integration scaffold: `tests/integration/*` gated by `DB_INTEGRATION=1` (`npm run test:integration`)
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)
 - Lightweight tasks list API (blocks on demand)
 - Migrate legacy string-token columns (`posts.visibility` / `format`, `uploads.kind`, `jobs.type` / `status`) to integer consts
-- Sprint F: savings SUM rewrite, budget multi-row upsert, worker incremental recount, MySQL integration tests, `chat.ts` split
+- Wire `test:integration` into CI with an ephemeral MySQL service
+- Playwright smoke

@@ -20,6 +20,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // Integration suites under tests/integration/ self-skip unless
+    // DB_INTEGRATION=1 (see tests/integration/helpers.ts).
     reporters: ["default"],
   },
 });

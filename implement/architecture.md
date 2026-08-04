@@ -22,7 +22,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                                                                                |
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html`                                              |
 | Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                                                                     |
-| Tests      | Vitest                         | `npm test` — auth JWT/guards/attach, schemas, security, rate-limit, chat helpers, markdown sanitize. DB integration / Playwright are follow-ups. |
+| Tests      | Vitest                         | `npm test` — DB-free unit suite. Optional MySQL integration: `DB_INTEGRATION=1 npm run test:integration` (see below). Playwright is a follow-up. |
 
 ## Project facts
 
@@ -210,9 +210,10 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── moneyService.ts          # Money ledger (+ budgets/savings/categories siblings)
 │   │   └── authService.ts           # Signup / refresh / account delete / Google callback
 │   ├── db/                          # SQL domain modules + migrator + pool
+│   │   ├── chat.ts                  # Barrel over chatConversations / Messages / Reactions / Reads
 │   │   ├── posts.ts                 # Post list / CRUD / visibility helpers
 │   │   ├── postReactions.ts         # Reaction set / clear
-│   │   ├── postComments.ts          # Comments CRUD + comment_count recount
+│   │   ├── postComments.ts          # Comments CRUD + comment_count recount (drift-only when unscoped)
 │   │   └── migrations/              # 0001…0030+ SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
@@ -296,9 +297,9 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 
 **Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
 
-**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Post SQL is split: list/CRUD in `server/db/posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`.
+**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Post SQL is split: list/CRUD in `server/db/posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat.ts`.
 
-**Testing.** The Vitest suite is **DB-free** (JWT, role guards, Zod schemas, pure helpers). Ephemeral-MySQL integration (refresh rotation, ACL, migrations) and Playwright smoke are follow-ups once a test database is available in CI.
+**Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). Optional MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). Point `DB_*` at a migrated throwaway database (`rc_test` recommended) — never prod. Playwright smoke remains a follow-up.
 
 ---
 
