@@ -25,7 +25,8 @@ export type IdPrefix =
   | "msg"
   | "msc"
   | "mbd"
-  | "mcat";
+  | "mcat"
+  | "art";
 
 /**
  * 96 bits from the CSPRNG. `Math.random()` gave 32 bits from a predictable

@@ -53,6 +53,7 @@ describe("rateLimitScope / rateLimitKey", () => {
       "1.2.3.4:/api/auth/signup",
     );
     expect(rateLimitScope("/api/uploads")).toBe("/api/uploads");
+    expect(rateLimitScope("/api/uploads/upl_abc")).toBe("/api/uploads");
   });
 
   it("builds a separate account-scoped key", () => {

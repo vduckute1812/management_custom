@@ -142,7 +142,10 @@ export async function claimNextJob(workerId: string): Promise<JobRow | null> {
     const [rows] = await conn.query<JobDbRow[]>(
       `SELECT * FROM jobs
        WHERE status = ? AND available_at <= ?
-       ORDER BY available_at ASC, created_at ASC
+       ORDER BY
+         CASE WHEN type LIKE 'articles.%' THEN 1 ELSE 0 END ASC,
+         available_at ASC,
+         created_at ASC
        LIMIT 1
        FOR UPDATE SKIP LOCKED`,
       [JobStatus.Pending, isoToDB(nowISO())],
@@ -204,7 +207,11 @@ export async function failJob(
 
   const pool = getPool();
   const now = nowISO();
-  const message = error.slice(0, 4000);
+  // Avoid persisting LLM API keys that may appear in provider error URLs.
+  const message = error
+    .replace(/key=[^&\s"']+/gi, "key=REDACTED")
+    .replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, "Bearer REDACTED")
+    .slice(0, 4000);
   const exhausted = job.attempts >= job.maxAttempts;
 
   if (exhausted) {

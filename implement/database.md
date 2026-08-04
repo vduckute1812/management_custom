@@ -6,7 +6,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities` → `0024_money_transactions` → `0025_money_savings` → `0026_money_budgets` → `0027_money_user_categories` → `0028_user_locale_currency` → `0029_users_name_from_email` → `0030_refresh_token_family`.
+**Migrations on disk today:** `0001_initial` → `0002_users_last_login_at` → `0003_posts_feed` → `0004_feed_social` → `0005_post_categories_story_analytics` → `0006_core_tech_categories` → … → `0010_users_profile_fields` → `0011_post_translation_locales` → `0012_auth_password_resets` → `0013_chat` → `0014_chat_media` → `0015_chat_unread_counters` → `0016_posts_comment_count` → `0017_chat_message_reactions` → `0018_reaction_int_enums` → `0019_post_upload_int_enums` → … → `0022_index_hygiene` → `0023_auth_oauth_identities` → `0024_money_transactions` → `0025_money_savings` → `0026_money_budgets` → `0027_money_user_categories` → `0028_user_locale_currency` → `0029_users_name_from_email` → `0030_refresh_token_family` → `0031_pending_articles`.
 
 ## Migration system
 
@@ -70,25 +70,26 @@ columns/API fields must be `TINYINT UNSIGNED` + named integer const — not
 MySQL `ENUM('…')`, not `VARCHAR` tokens, not string unions on the wire. See
 [`.cursor/skills/integer-db-enums/SKILL.md`](../.cursor/skills/integer-db-enums/SKILL.md).
 
-| Column                                                                                     | Type                    | Mapping                                                                                 |
-| ------------------------------------------------------------------------------------------ | ----------------------- | --------------------------------------------------------------------------------------- |
-| `users.role`                                                                               | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`                                                       |
-| `users.money_currency`                                                                     | `TINYINT UNSIGNED`      | `VND=0, USD=1, CNY=2, TWD=3` (Money display; amounts stay minor units)                  |
-| `auth_identities.provider`                                                                 | `TINYINT UNSIGNED`      | `AuthProvider.Google=0`                                                                 |
-| `epics.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
-| `tasks.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                          |
-| `tasks.priority`                                                                           | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`                                                               |
-| `tasks.recurrence_rule`                                                                    | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`                                                          |
-| `chat_messages.kind`                                                                       | `TINYINT UNSIGNED`      | `Text=0, Emoji=1, Sticker=2, Image=3, Audio=4`                                          |
-| `post_reactions.reaction` / `story_reactions.reaction` / `chat_message_reactions.reaction` | `TINYINT UNSIGNED`      | `Like=0, Love=1, Haha=2, Wow=3, Sad=4, Angry=5` (`ReactionType` in `types/reaction.ts`) |
-| `posts.visibility`                                                                         | `TINYINT UNSIGNED`      | `Public=0, Private=1, Shared=2` (`PostVisibility` in `types/post.ts`)                   |
-| `posts.format`                                                                             | `TINYINT UNSIGNED`      | `Update=0, Manuscript=1` (`PostFormat` in `types/post.ts`)                              |
-| `uploads.kind` / `post_attachments.kind`                                                   | `TINYINT UNSIGNED`      | `Image=0, Document=1, Audio=2` (`UploadKind` in `types/post.ts`)                        |
-| `jobs.status`                                                                              | `TINYINT UNSIGNED`      | `Pending=0, Processing=1, Completed=2, Dead=3` (`JobStatus` in `types/job.ts`)          |
-| `money_transactions.direction`                                                             | `TINYINT UNSIGNED`      | `Out=0, In=1` (`MoneyDirection` in `types/money.ts`)                                    |
-| `money_transactions.category`                                                              | `TINYINT UNSIGNED`      | `Food=0` … `Other=10` (`MoneyCategory` in `types/money.ts`)                             |
-| `money_savings_goals.status`                                                               | `TINYINT UNSIGNED`      | `Active=0, Completed=1, Archived=2` (`MoneySavingsGoalStatus`)                          |
-| `money_budgets.scope`                                                                      | `TINYINT UNSIGNED`      | `Overall=0, Category=1` (`MoneyBudgetScope`)                                            |
+| Column                                                                                     | Type                    | Mapping                                                                                      |
+| ------------------------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------------------- |
+| `users.role`                                                                               | `TINYINT UNSIGNED`      | `Normal=0, Admin=1, Superadmin=2`                                                            |
+| `users.money_currency`                                                                     | `TINYINT UNSIGNED`      | `VND=0, USD=1, CNY=2, TWD=3` (Money display; amounts stay minor units)                       |
+| `auth_identities.provider`                                                                 | `TINYINT UNSIGNED`      | `AuthProvider.Google=0`                                                                      |
+| `epics.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                               |
+| `tasks.status`                                                                             | `TINYINT UNSIGNED`      | `Todo=0, InProgress=1, Done=2`                                                               |
+| `tasks.priority`                                                                           | `TINYINT UNSIGNED`      | `Low=0, Normal=1, High=2`                                                                    |
+| `tasks.recurrence_rule`                                                                    | `TINYINT UNSIGNED` NULL | `Daily=0, Weekly=1, Monthly=2`                                                               |
+| `chat_messages.kind`                                                                       | `TINYINT UNSIGNED`      | `Text=0, Emoji=1, Sticker=2, Image=3, Audio=4`                                               |
+| `post_reactions.reaction` / `story_reactions.reaction` / `chat_message_reactions.reaction` | `TINYINT UNSIGNED`      | `Like=0, Love=1, Haha=2, Wow=3, Sad=4, Angry=5` (`ReactionType` in `types/reaction.ts`)      |
+| `posts.visibility`                                                                         | `TINYINT UNSIGNED`      | `Public=0, Private=1, Shared=2` (`PostVisibility` in `types/post.ts`)                        |
+| `posts.format`                                                                             | `TINYINT UNSIGNED`      | `Update=0, Manuscript=1` (`PostFormat` in `types/post.ts`)                                   |
+| `uploads.kind` / `post_attachments.kind`                                                   | `TINYINT UNSIGNED`      | `Image=0, Document=1, Audio=2` (`UploadKind` in `types/post.ts`)                             |
+| `jobs.status`                                                                              | `TINYINT UNSIGNED`      | `Pending=0, Processing=1, Completed=2, Dead=3` (`JobStatus` in `types/job.ts`)               |
+| `pending_articles.status`                                                                  | `TINYINT UNSIGNED`      | `Draft=0, PendingApproval=1, Approved=2, Rejected=3` (`ArticleStatus` in `types/article.ts`) |
+| `money_transactions.direction`                                                             | `TINYINT UNSIGNED`      | `Out=0, In=1` (`MoneyDirection` in `types/money.ts`)                                         |
+| `money_transactions.category`                                                              | `TINYINT UNSIGNED`      | `Food=0` … `Other=10` (`MoneyCategory` in `types/money.ts`)                                  |
+| `money_savings_goals.status`                                                               | `TINYINT UNSIGNED`      | `Active=0, Completed=1, Archived=2` (`MoneySavingsGoalStatus`)                               |
+| `money_budgets.scope`                                                                      | `TINYINT UNSIGNED`      | `Overall=0, Category=1` (`MoneyBudgetScope`)                                                 |
 
 `epics.color` is intentionally **not** an integer enum — it's a Tailwind
 token (`brand`, `sky`, `emerald`, …) composed into class names like
@@ -303,6 +304,23 @@ CREATE TABLE active_timer (
 ```
 
 > **Note:** `epic.estimatedHours`, `epic.spentHours`, `epic.progress`, and `task.spentHours`, `task.checklistProgress` are **never stored** — they are always computed at read time in `server/db/compute.ts` (re-exported through `server/utils/db.ts`) and attached to the response by the API.
+
+### Pending articles (migration `0031`)
+
+Automated content pipeline rows awaiting admin review before publish.
+
+| Column                                              | Type                   | Notes                                                      |
+| --------------------------------------------------- | ---------------------- | ---------------------------------------------------------- |
+| `id`                                                | `VARCHAR(64)`          | `art_…`                                                    |
+| `original_title` / `original_url`                   | strings                | Source metadata                                            |
+| `url_hash`                                          | `CHAR(64)`             | SHA-256 of normalized URL (unique dedupe)                  |
+| `source_name`                                       | `VARCHAR(255)`         | e.g. IEEE Spectrum, ArXiv                                  |
+| `category_id`                                       | FK → `post_categories` | One of the 7 core directories when known                   |
+| `raw_content`                                       | `MEDIUMTEXT`           | Fetched plain text                                         |
+| `rewritten_title` / `rewritten_content` / `excerpt` | nullable               | AI storytelling rewrite (Markdown body)                    |
+| `status`                                            | `TINYINT UNSIGNED`     | `Draft=0`, `PendingApproval=1`, `Approved=2`, `Rejected=3` |
+| `published_post_id`                                 | FK → `posts`           | Set on approve                                             |
+| `source_published_at` / `published_at`              | `DATETIME(3)`          | Source date + approve time                                 |
 
 ---
 
