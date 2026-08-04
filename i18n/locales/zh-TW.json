@@ -119,7 +119,8 @@
     "termsLink": "服務條款",
     "privacyLink": "隱私政策",
     "name": "姓名",
-    "nameRequired": "請輸入姓名。"
+    "nameRequired": "請輸入姓名。",
+    "googleUnverifiedExists": "此信箱已有帳號但尚未驗證。請先開啟收件匣中的驗證連結（或使用「忘記密碼」），然後在設定中連結 Google。"
   },
   "settings": {
     "title": "設定",

@@ -399,6 +399,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Privacy §12–13 and Terms termination updated (EN + VI) to describe the flow; export gap and chat-message deletion still named as missing
 - [x] `tests/account-deletion.test.ts` covers confirmation helpers + Zod schema; `scripts/verify-user-delete-cascade.ts` audits leftovers against MySQL
 
+## Phase 24 — Sprint A (security blockers)
+
+- [x] H1: Google login refuses auto-link on unverified password accounts (`oauth_error=unverified`); no silent `email_verified` flip
+- [x] M6: Google token-exchange / userinfo failures log HTTP status only (no response bodies)
+- [x] M5: HSTS via Nitro middleware + nginx prod template when HTTPS / `X-Forwarded-Proto: https`
+- [x] M7: Privacy policy documents Money ledger; §14 aligned (HSTS; personal expenses OK; no bank passwords/cards/health secrets)
+- [x] Vitest `tests/google-oauth-user.test.ts`; auth.md + i18n error copy
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)

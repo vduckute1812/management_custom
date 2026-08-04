@@ -119,7 +119,8 @@
     "termsLink": "服务条款",
     "privacyLink": "隐私政策",
     "name": "姓名",
-    "nameRequired": "请输入姓名。"
+    "nameRequired": "请输入姓名。",
+    "googleUnverifiedExists": "该邮箱已有账号但尚未验证。请先打开收件箱中的验证链接（或使用“忘记密码”），然后在设置中关联 Google。"
   },
   "settings": {
     "title": "设置",

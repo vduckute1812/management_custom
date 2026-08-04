@@ -215,8 +215,9 @@ export async function exchangeGoogleCode(
     body,
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("[google-oauth] token exchange failed", res.status, text);
+    console.error("[google-oauth] token exchange failed", res.status);
+    // Drain body without logging — providers may echo tokens in error payloads.
+    await res.text().catch(() => "");
     throw createError({
       statusCode: 502,
       statusMessage: "Google token exchange failed",
@@ -239,8 +240,8 @@ export async function fetchGoogleProfile(
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("[google-oauth] userinfo failed", res.status, text);
+    console.error("[google-oauth] userinfo failed", res.status);
+    await res.text().catch(() => "");
     throw createError({
       statusCode: 502,
       statusMessage: "Google userinfo failed",

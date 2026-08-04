@@ -10,7 +10,6 @@ import {
   getUserByEmail,
   getUserById,
   linkIdentity,
-  markUserEmailVerified,
   type UserRecord,
 } from "~/server/utils/db";
 import { isAppLocale, type AppLocale } from "~/types/locale";
@@ -43,17 +42,23 @@ export async function resolveGoogleLoginUser(
 
   const byEmail = await getUserByEmail(profile.email);
   if (byEmail) {
+    // Never auto-link + verify an unverified password signup — that lets an
+    // attacker who registered the victim's email first take over when the
+    // victim later continues with Google.
+    if (!byEmail.emailVerified) {
+      throw createError({
+        statusCode: 409,
+        statusMessage:
+          "An account with this email exists but is not verified yet",
+        data: { code: "unverified" },
+      });
+    }
     await linkIdentity({
       userId: byEmail.id,
       provider: AuthProvider.Google,
       providerSubject: profile.sub,
       providerEmail: profile.email,
     });
-    if (!byEmail.emailVerified) {
-      await markUserEmailVerified(byEmail.id);
-      const refreshed = await getUserById(byEmail.id);
-      return refreshed ?? byEmail;
-    }
     return byEmail;
   }
 
