@@ -848,7 +848,19 @@
     "regenerate": "AI viết lại",
     "regenQueued": "Đã xếp hàng viết lại",
     "regenDone": "Bản viết lại mới đã sẵn sàng",
-    "regenFailed": "Không viết lại được"
+    "regenFailed": "Không viết lại được",
+    "regenStillRunning": "AI vẫn đang viết lại — hãy làm mới sau giây lát",
+    "regenerating": "Đang viết lại…",
+    "rejecting": "Đang từ chối…",
+    "approving": "Đang xuất bản…",
+    "waitForRewrite": "AI đang viết lại. Nút duyệt mở khi trạng thái là Chờ duyệt.",
+    "unsafeSourceUrl": "URL nguồn không khả dụng",
+    "approveConfirmTitle": "Xuất bản bài này?",
+    "approveConfirm": "Bản viết lại sẽ được đăng công khai lên feed dưới tài khoản của bạn.",
+    "rejectConfirmTitle": "Từ chối bài này?",
+    "rejectConfirm": "Bài sẽ bị đánh dấu từ chối và không lên feed.",
+    "deleteConfirmTitle": "Xóa vĩnh viễn bài này?",
+    "deleteConfirm": "Không hoàn tác được. Bản ghi pipeline sẽ bị xóa."
   },
   "common": {
     "close": "Đóng",

@@ -2,12 +2,14 @@
 import {
   ArticleStatus,
   ARTICLE_STATUS_I18N_KEYS,
+  PIPELINE_CATEGORY_SLUGS,
   type PendingArticle,
 } from "~/types/article";
 import type { PostCategory } from "~/types/post";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { apiErrorMessage } from "~/utils/apiErrorMessage";
 import { renderPostBody } from "~/utils/renderPostBody";
+import { isSafeHttpUrl } from "~/utils/articleUrl";
 
 const { t, te } = useI18n();
 const route = useRoute();
@@ -47,6 +49,8 @@ const categoryId = ref<string>("");
 const previewHtml = ref("");
 const showPreview = ref(true);
 const busy = ref<string | null>(null);
+const confirmAction = ref<"approve" | "reject" | "delete" | null>(null);
+const pollStop = ref(false);
 
 watch(
   data,
@@ -59,14 +63,14 @@ watch(
   { immediate: true },
 );
 
-watch(
-  rewrittenContent,
-  async (body) => {
-    if (!showPreview.value) return;
+let previewTimer: ReturnType<typeof setTimeout> | null = null;
+watch(rewrittenContent, (body) => {
+  if (!showPreview.value) return;
+  if (previewTimer) clearTimeout(previewTimer);
+  previewTimer = setTimeout(async () => {
     previewHtml.value = body ? await renderPostBody(body) : "";
-  },
-  { immediate: true },
-);
+  }, 400);
+});
 
 watch(showPreview, async (on) => {
   if (on && rewrittenContent.value) {
@@ -74,27 +78,33 @@ watch(showPreview, async (on) => {
   }
 });
 
+onBeforeUnmount(() => {
+  pollStop.value = true;
+  if (previewTimer) clearTimeout(previewTimer);
+});
+
 const pipelineCategories = computed(() =>
   (categories.value || []).filter((c) =>
-    [
-      "electronics",
-      "mechanical-engineering",
-      "information-technology",
-      "iot",
-      "math",
-      "docs",
-      "ideas",
-    ].includes(c.slug),
+    (PIPELINE_CATEGORY_SLUGS as readonly string[]).includes(c.slug),
   ),
 );
 
-const canMutate = computed(() => {
+const canEdit = computed(() => {
   const s = data.value?.status;
   return (
     s === ArticleStatus.Draft ||
     s === ArticleStatus.PendingApproval ||
     s === ArticleStatus.Rejected
   );
+});
+
+const canApprove = computed(
+  () => data.value?.status === ArticleStatus.PendingApproval,
+);
+
+const safeSourceUrl = computed(() => {
+  const url = data.value?.originalUrl;
+  return url && isSafeHttpUrl(url) ? url : null;
 });
 
 function statusLabel(status: number): string {
@@ -108,7 +118,7 @@ function categoryOptionLabel(cat: PostCategory): string {
 }
 
 async function saveEdits() {
-  if (!canMutate.value) return;
+  if (!canEdit.value) return;
   busy.value = "save";
   try {
     const res = await apiFetch<{ article: PendingArticle }>(
@@ -134,8 +144,9 @@ async function saveEdits() {
 }
 
 async function approve() {
-  if (!canMutate.value) return;
+  if (!canApprove.value) return;
   busy.value = "approve";
+  confirmAction.value = null;
   try {
     const res = await apiFetch<{
       ok: true;
@@ -162,8 +173,9 @@ async function approve() {
 }
 
 async function reject(deleteRow = false) {
-  if (!canMutate.value) return;
+  if (!canEdit.value) return;
   busy.value = deleteRow ? "delete" : "reject";
+  confirmAction.value = null;
   try {
     await apiFetch(`/api/admin/articles/pending/${id.value}/reject`, {
       method: "POST",
@@ -184,8 +196,9 @@ async function reject(deleteRow = false) {
 }
 
 async function regenerate() {
-  if (!canMutate.value) return;
+  if (!canEdit.value) return;
   busy.value = "regen";
+  pollStop.value = false;
   try {
     const res = await apiFetch<{ ok: true; article: PendingArticle }>(
       `/api/admin/articles/pending/${id.value}/regenerate`,
@@ -193,16 +206,22 @@ async function regenerate() {
     );
     data.value = res.article;
     pushToast(t("adminArticles.regenQueued"), { tone: "success" });
-    // Poll briefly for rewrite completion.
-    for (let i = 0; i < 12; i++) {
+    let finished = false;
+    for (let i = 0; i < 16; i++) {
+      if (pollStop.value) break;
       await new Promise((r) => setTimeout(r, 2500));
+      if (pollStop.value) break;
       await refresh();
       if (data.value?.status === ArticleStatus.PendingApproval) {
         rewrittenTitle.value = data.value.rewrittenTitle || "";
         rewrittenContent.value = data.value.rewrittenContent || "";
         pushToast(t("adminArticles.regenDone"), { tone: "success" });
+        finished = true;
         break;
       }
+    }
+    if (!finished && !pollStop.value) {
+      pushToast(t("adminArticles.regenStillRunning"), { tone: "info" });
     }
   } catch (err: unknown) {
     pushToast(apiErrorMessage(err, t("adminArticles.regenFailed")), {
@@ -211,6 +230,12 @@ async function regenerate() {
   } finally {
     busy.value = null;
   }
+}
+
+function onConfirm() {
+  if (confirmAction.value === "approve") void approve();
+  else if (confirmAction.value === "reject") void reject(false);
+  else if (confirmAction.value === "delete") void reject(true);
 }
 </script>
 
@@ -238,43 +263,60 @@ async function regenerate() {
           {{ statusLabel(data.status) }} · {{ data.sourceName }}
         </p>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2" :aria-busy="!!busy">
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="!!busy || !canMutate"
+          :disabled="!!busy || !canEdit"
           @click="saveEdits"
         >
-          {{ $t("adminArticles.save") }}
+          {{ busy === "save" ? $t("common.saving") : $t("adminArticles.save") }}
         </button>
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="!!busy || !canMutate"
+          :disabled="!!busy || !canEdit"
           @click="regenerate"
         >
-          {{ $t("adminArticles.regenerate") }}
+          {{
+            busy === "regen"
+              ? $t("adminArticles.regenerating")
+              : $t("adminArticles.regenerate")
+          }}
         </button>
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 disabled:opacity-50"
-          :disabled="!!busy || !canMutate"
-          @click="reject(false)"
+          :disabled="!!busy || !canEdit"
+          @click="confirmAction = 'reject'"
         >
-          {{ $t("adminArticles.reject") }}
+          {{
+            busy === "reject"
+              ? $t("adminArticles.rejecting")
+              : $t("adminArticles.reject")
+          }}
         </button>
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-          :disabled="!!busy || !canMutate"
-          @click="approve"
+          :disabled="!!busy || !canApprove"
+          :title="
+            data?.status === ArticleStatus.Draft
+              ? $t('adminArticles.waitForRewrite')
+              : undefined
+          "
+          @click="confirmAction = 'approve'"
         >
-          {{ $t("adminArticles.approvePublish") }}
+          {{
+            busy === "approve"
+              ? $t("adminArticles.approving")
+              : $t("adminArticles.approvePublish")
+          }}
         </button>
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 md:pb-6">
       <p
         v-if="loadError"
         class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2"
@@ -286,6 +328,13 @@ async function regenerate() {
       </p>
 
       <template v-else-if="data">
+        <p
+          v-if="data.status === ArticleStatus.Draft"
+          class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
+        >
+          {{ $t("adminArticles.waitForRewrite") }}
+        </p>
+
         <div
           class="bg-white border border-slate-200 rounded-xl p-4 flex flex-wrap gap-4 items-end"
         >
@@ -296,7 +345,7 @@ async function regenerate() {
             <select
               v-model="categoryId"
               class="border border-slate-300 rounded-md px-2 py-1.5 bg-white"
-              :disabled="!canMutate"
+              :disabled="!canEdit"
             >
               <option value="">{{ $t("adminArticles.uncategorized") }}</option>
               <option
@@ -309,19 +358,23 @@ async function regenerate() {
             </select>
           </label>
           <a
-            :href="data.originalUrl"
+            v-if="safeSourceUrl"
+            :href="safeSourceUrl"
             target="_blank"
             rel="noopener noreferrer"
             class="text-xs text-sky-700 hover:underline"
           >
             {{ $t("adminArticles.openSource") }}
           </a>
+          <span v-else class="text-xs text-slate-400">{{
+            $t("adminArticles.unsafeSourceUrl")
+          }}</span>
           <button
-            v-if="canMutate"
+            v-if="canEdit"
             type="button"
             class="text-xs text-rose-600 hover:underline"
             :disabled="!!busy"
-            @click="reject(true)"
+            @click="confirmAction = 'delete'"
           >
             {{ $t("adminArticles.deleteForever") }}
           </button>
@@ -363,7 +416,7 @@ async function regenerate() {
                 type="text"
                 maxlength="160"
                 class="border border-slate-300 rounded-md px-2 py-1.5 text-sm"
-                :disabled="!canMutate"
+                :disabled="!canEdit"
               />
             </label>
             <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1">
@@ -371,17 +424,47 @@ async function regenerate() {
               <textarea
                 v-model="rewrittenContent"
                 class="flex-1 min-h-[16rem] border border-slate-300 rounded-md px-3 py-2 text-sm font-mono leading-relaxed"
-                :disabled="!canMutate"
+                :disabled="!canEdit"
               />
             </label>
             <div
               v-if="showPreview"
               class="border border-slate-100 rounded-lg p-3 bg-slate-50 max-h-64 overflow-y-auto prose prose-sm max-w-none"
+              aria-live="polite"
               v-html="previewHtml"
             />
           </section>
         </div>
       </template>
     </div>
+
+    <ConfirmDialog
+      :open="confirmAction === 'approve'"
+      :title="$t('adminArticles.approveConfirmTitle')"
+      :description="$t('adminArticles.approveConfirm')"
+      :busy="busy === 'approve'"
+      :destructive="false"
+      :confirm-label="$t('adminArticles.approvePublish')"
+      @cancel="confirmAction = null"
+      @confirm="onConfirm"
+    />
+    <ConfirmDialog
+      :open="confirmAction === 'reject'"
+      :title="$t('adminArticles.rejectConfirmTitle')"
+      :description="$t('adminArticles.rejectConfirm')"
+      :busy="busy === 'reject'"
+      :confirm-label="$t('adminArticles.reject')"
+      @cancel="confirmAction = null"
+      @confirm="onConfirm"
+    />
+    <ConfirmDialog
+      :open="confirmAction === 'delete'"
+      :title="$t('adminArticles.deleteConfirmTitle')"
+      :description="$t('adminArticles.deleteConfirm')"
+      :busy="busy === 'delete'"
+      :confirm-label="$t('adminArticles.deleteForever')"
+      @cancel="confirmAction = null"
+      @confirm="onConfirm"
+    />
   </div>
 </template>

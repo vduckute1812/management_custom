@@ -21,16 +21,18 @@ See [`auth.md`](./auth.md) for the token model and client route guard; see [`dat
 
 Credential endpoints (`login`, `signup`, `forgot-password`, `account`) also enforce a **per-email** bucket inside the handler (`assertAccountRateLimit`). A distributed stuffing run that rotates source IPs still exhausts the account budget.
 
-| Scope                            | Limit                          | Window |
-| -------------------------------- | ------------------------------ | ------ |
-| Global (all other `/api/*`)      | 120 requests                   | 60 s   |
-| `POST /api/auth/login`           | 10 per IP **and** 10 per email | 60 s   |
-| `POST /api/auth/signup`          | 5 per IP **and** 5 per email   | 60 s   |
-| `POST /api/auth/refresh`         | 30                             | 60 s   |
-| `POST /api/auth/forgot-password` | 5 per IP **and** 5 per email   | 60 s   |
-| `POST /api/auth/reset-password`  | 10                             | 60 s   |
-| `DELETE /api/auth/account`       | 5 per IP **and** 5 per email   | 60 s   |
-| `/api/uploads` (any method)      | 30                             | 60 s   |
+| Scope                               | Limit                          | Window |
+| ----------------------------------- | ------------------------------ | ------ |
+| Global (all other `/api/*`)         | 120 requests                   | 60 s   |
+| `POST /api/auth/login`              | 10 per IP **and** 10 per email | 60 s   |
+| `POST /api/auth/signup`             | 5 per IP **and** 5 per email   | 60 s   |
+| `POST /api/auth/refresh`            | 30                             | 60 s   |
+| `POST /api/auth/forgot-password`    | 5 per IP **and** 5 per email   | 60 s   |
+| `POST /api/auth/reset-password`     | 10                             | 60 s   |
+| `DELETE /api/auth/account`          | 5 per IP **and** 5 per email   | 60 s   |
+| `/api/uploads` (any method)         | 30                             | 60 s   |
+| `/api/admin/articles/pending/fetch` | 2                              | 60 s   |
+| `/api/admin/articles/pending/*`     | 20                             | 60 s   |
 
 When exceeded, the server responds with **`429 Too Many Requests`**, a `Retry-After` header (seconds), and `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` headers.
 

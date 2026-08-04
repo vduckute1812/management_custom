@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import {
   ArticleStatus,
   ARTICLE_STATUS_I18N_KEYS,
+  PIPELINE_CATEGORY_SLUGS,
   type PendingArticleListItem,
 } from "~/types/article";
 import type { PostCategory } from "~/types/post";
@@ -55,15 +56,7 @@ await refreshCategories();
 
 const pipelineCategories = computed(() =>
   (categories.value || []).filter((c) =>
-    [
-      "electronics",
-      "mechanical-engineering",
-      "information-technology",
-      "iot",
-      "math",
-      "docs",
-      "ideas",
-    ].includes(c.slug),
+    (PIPELINE_CATEGORY_SLUGS as readonly string[]).includes(c.slug),
   ),
 );
 
@@ -85,7 +78,7 @@ function catLabel(article: PendingArticleListItem): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return t("common.emDash");
   return dayjs(iso).format("MMM D, YYYY · HH:mm");
 }
 
@@ -285,7 +278,7 @@ function categoryOptionLabel(cat: PostCategory): string {
                 </td>
                 <td class="px-4 py-3 align-top max-w-[14rem]">
                   <p class="text-slate-700 line-clamp-2">
-                    {{ article.rewrittenTitle || "—" }}
+                    {{ article.rewrittenTitle || $t("common.emDash") }}
                   </p>
                 </td>
                 <td class="px-4 py-3 align-top whitespace-nowrap text-xs">

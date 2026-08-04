@@ -10,7 +10,9 @@ import {
   deletePendingArticle,
   listPendingArticles,
   hasActiveFetchJob,
+  hasActiveRewriteJob,
   hasCompletedFetchOnUtcDay,
+  markArticleApprovedIfClaimable,
 } from "~/server/db/pendingArticles";
 import { getCategoryById, getCategoryBySlug } from "~/server/db/categories";
 import { createPost } from "~/server/db/posts";
@@ -29,24 +31,30 @@ import {
   rewriteArticle,
 } from "~/server/services/articleRewriter";
 import { JobTypes } from "~/server/utils/queue";
+import { isSafeHttpUrl } from "~/utils/articleUrl";
 
 export async function enqueueArticleRewrite(
   articleId: string,
   opts?: { delaySeconds?: number },
-): Promise<void> {
+): Promise<{ enqueued: boolean }> {
+  if (await hasActiveRewriteJob(articleId)) {
+    return { enqueued: false };
+  }
   await enqueueJob({
     type: JobTypes.ArticlesRewrite,
     payload: { articleId },
     delaySeconds: opts?.delaySeconds ?? 0,
     maxAttempts: 4,
   });
+  return { enqueued: true };
 }
 
 export async function enqueueArticleFetch(opts?: {
   delaySeconds?: number;
   force?: boolean;
 }): Promise<{ enqueued: boolean; reason?: string }> {
-  if (!opts?.force && (await hasActiveFetchJob())) {
+  // Never stack concurrent fetch jobs — force only skips the "already ran today" check.
+  if (await hasActiveFetchJob()) {
     return { enqueued: false, reason: "active_fetch_exists" };
   }
   await enqueueJob({
@@ -119,10 +127,10 @@ export async function runArticleFetchJob(): Promise<{
     }
     inserted += 1;
     if (llmConfigured()) {
-      await enqueueArticleRewrite(article.id, {
+      const queued = await enqueueArticleRewrite(article.id, {
         delaySeconds: rewriteQueued * 2,
       });
-      rewriteQueued += 1;
+      if (queued.enqueued) rewriteQueued += 1;
     } else {
       console.warn(
         "[articles] LLM not configured — leaving article as draft without rewrite",
@@ -236,12 +244,22 @@ export async function approveAndPublishArticle(
   if (article.status === ArticleStatus.Rejected) {
     throw new DomainError(409, "Rejected articles cannot be approved");
   }
+  if (article.status === ArticleStatus.Draft) {
+    throw new DomainError(
+      409,
+      "Wait for AI rewrite to finish before approving",
+    );
+  }
 
   if (
     input?.rewrittenTitle != null ||
     input?.rewrittenContent != null ||
     input?.categoryId !== undefined
   ) {
+    if (input.categoryId) {
+      const cat = await getCategoryById(input.categoryId);
+      if (!cat) throw new DomainError(400, "Invalid category");
+    }
     article = await updatePendingArticle(id, {
       rewrittenTitle: input.rewrittenTitle ?? article.rewrittenTitle,
       rewrittenContent: input.rewrittenContent ?? article.rewrittenContent,
@@ -259,10 +277,14 @@ export async function approveAndPublishArticle(
     );
   }
 
-  const attribution = `\n\n---\n*Adapted from [${article.sourceName}](${article.originalUrl})*`;
-  const manuscriptBody = body.includes(article.originalUrl)
-    ? body
-    : `${body}${attribution}`;
+  const safeUrl = isSafeHttpUrl(article.originalUrl)
+    ? article.originalUrl
+    : null;
+  const attribution = safeUrl
+    ? `\n\n---\n*Adapted from [${article.sourceName}](${safeUrl})*`
+    : `\n\n---\n*Adapted from ${article.sourceName}*`;
+  const manuscriptBody =
+    safeUrl && body.includes(safeUrl) ? body : `${body}${attribution}`;
 
   const post = await createPost(adminUserId, {
     title,
@@ -273,13 +295,15 @@ export async function approveAndPublishArticle(
     contentLocale: "en",
   });
 
-  const updated = await updatePendingArticle(id, {
-    status: ArticleStatus.Approved,
+  const updated = await markArticleApprovedIfClaimable({
+    id,
     publishedPostId: post.id,
-    publishedAt: new Date().toISOString(),
     rewrittenTitle: title,
     rewrittenContent: body,
   });
+  if (!updated) {
+    throw new DomainError(409, "Article already approved");
+  }
 
   return { article: updated, postId: post.id };
 }
@@ -311,6 +335,13 @@ export async function regenerateArticle(id: string): Promise<PendingArticle> {
   }
   if (!llmConfigured()) {
     throw new DomainError(503, "LLM provider is not configured");
+  }
+  if (await hasActiveRewriteJob(id)) {
+    // Already rewriting — surface current draft state without stacking jobs.
+    if (article.status !== ArticleStatus.Draft) {
+      return updatePendingArticle(id, { status: ArticleStatus.Draft });
+    }
+    return article;
   }
   await updatePendingArticle(id, { status: ArticleStatus.Draft });
   await enqueueArticleRewrite(id);

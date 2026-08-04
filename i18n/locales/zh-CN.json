@@ -848,7 +848,19 @@
     "regenerate": "重新生成 AI",
     "regenQueued": "已排队重新改写",
     "regenDone": "新改写已就绪",
-    "regenFailed": "重新生成失败"
+    "regenFailed": "重新生成失败",
+    "regenStillRunning": "仍在改写中 — 请稍后刷新",
+    "regenerating": "正在重新生成…",
+    "rejecting": "正在拒绝…",
+    "approving": "正在发布…",
+    "waitForRewrite": "AI 正在改写。状态变为“待审核”后才能通过。",
+    "unsafeSourceUrl": "来源链接不可用",
+    "approveConfirmTitle": "发布这篇文章？",
+    "approveConfirm": "将以你的账号把改写稿公开发布到动态。",
+    "rejectConfirmTitle": "拒绝这篇文章？",
+    "rejectConfirm": "文章将标记为已拒绝，不会出现在动态中。",
+    "deleteConfirmTitle": "永久删除这篇文章？",
+    "deleteConfirm": "此操作不可撤销，将删除流水线记录。"
   },
   "common": {
     "close": "关闭",

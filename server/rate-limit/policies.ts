@@ -22,6 +22,14 @@ export const ROUTE_POLICIES: Array<{
   { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/reset-password", limit: 10, windowMs: 60_000 },
   { prefix: "/api/uploads", limit: 30, windowMs: 60_000 },
+  // Article pipeline — LLM / outbound feed work is expensive.
+  // Longer prefixes first so fetch gets its own tighter bucket.
+  { prefix: "/api/admin/articles/pending/fetch", limit: 2, windowMs: 60_000 },
+  {
+    prefix: "/api/admin/articles/pending",
+    limit: 20,
+    windowMs: 60_000,
+  },
 ];
 
 /**
@@ -56,13 +64,14 @@ export function resolveAccountPolicy(path: string): RateLimitPolicy | null {
 }
 
 /**
- * Bucket scope for a path: strict routes use the path itself so auth/upload
- * budgets stay isolated; everything else shares `global`.
+ * Bucket scope for a path: strict routes share the matched policy prefix
+ * (so /api/uploads/* and article regenerate routes each share one budget);
+ * everything else shares "global".
  */
 export function rateLimitScope(path: string): string {
   const bare = path.split("?")[0] || path;
-  const isStrict = ROUTE_POLICIES.some((r) => bare.startsWith(r.prefix));
-  return isStrict ? bare : "global";
+  const match = ROUTE_POLICIES.find((r) => bare.startsWith(r.prefix));
+  return match ? match.prefix : "global";
 }
 
 /** Full store key for an IP-scoped bucket: `ip:global` or `ip:/api/auth/login`. */

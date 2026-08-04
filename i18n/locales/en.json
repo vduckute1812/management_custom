@@ -848,7 +848,19 @@
     "regenerate": "Re-generate AI",
     "regenQueued": "Rewrite queued",
     "regenDone": "New rewrite ready",
-    "regenFailed": "Could not regenerate"
+    "regenFailed": "Could not regenerate",
+    "regenStillRunning": "Rewrite is still running — refresh in a moment",
+    "regenerating": "Regenerating…",
+    "rejecting": "Rejecting…",
+    "approving": "Publishing…",
+    "waitForRewrite": "AI rewrite is in progress. Approve unlocks when status is Pending approval.",
+    "unsafeSourceUrl": "Source URL unavailable",
+    "approveConfirmTitle": "Publish this article?",
+    "approveConfirm": "This publishes the rewritten manuscript to the public feed under your account.",
+    "rejectConfirmTitle": "Reject this article?",
+    "rejectConfirm": "The article will be marked rejected and stay out of the feed.",
+    "deleteConfirmTitle": "Delete this article permanently?",
+    "deleteConfirm": "This cannot be undone. The pipeline row will be removed."
   },
   "common": {
     "close": "Close",

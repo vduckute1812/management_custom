@@ -848,7 +848,19 @@
     "regenerate": "重新產生 AI",
     "regenQueued": "已排隊重新改寫",
     "regenDone": "新改寫已就緒",
-    "regenFailed": "重新產生失敗"
+    "regenFailed": "重新產生失敗",
+    "regenStillRunning": "仍在改寫中 — 請稍後重新整理",
+    "regenerating": "正在重新產生…",
+    "rejecting": "正在拒絕…",
+    "approving": "正在發佈…",
+    "waitForRewrite": "AI 正在改寫。狀態變為「待審核」後才能通過。",
+    "unsafeSourceUrl": "來源連結不可用",
+    "approveConfirmTitle": "發佈這篇文章？",
+    "approveConfirm": "將以你的帳號把改寫稿公開發佈到動態。",
+    "rejectConfirmTitle": "拒絕這篇文章？",
+    "rejectConfirm": "文章將標記為已拒絕，不會出現在動態中。",
+    "deleteConfirmTitle": "永久刪除這篇文章？",
+    "deleteConfirm": "此操作無法復原，將刪除流水線記錄。"
   },
   "common": {
     "close": "關閉",

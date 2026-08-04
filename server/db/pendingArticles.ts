@@ -7,13 +7,17 @@ import {
   type PendingArticleListItem,
 } from "../../types/article";
 import { DomainError } from "~/server/utils/http";
-import { hashArticleUrl, normalizeArticleUrl } from "~/utils/articleUrl";
+import {
+  hashArticleUrl,
+  normalizeArticleUrl,
+  isSafeHttpUrl,
+} from "~/utils/articleUrl";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 
 export type { ArticleStatusValue as ArticleStatus };
-export { hashArticleUrl, normalizeArticleUrl };
+export { hashArticleUrl, normalizeArticleUrl, isSafeHttpUrl };
 
 interface PendingArticleRow extends RowDataPacket {
   id: string;
@@ -84,6 +88,13 @@ const SELECT_FULL = `
   a.created_at, a.updated_at, a.published_at
 `;
 
+/** List endpoints must not pull MEDIUMTEXT bodies. */
+const SELECT_LIST = `
+  a.id, a.original_title, a.original_url, a.source_name, a.category_id,
+  c.slug AS category_slug, c.name AS category_name,
+  a.rewritten_title, a.status, a.source_published_at, a.created_at
+`;
+
 export async function urlHashExists(urlHash: string): Promise<boolean> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
@@ -106,6 +117,9 @@ export async function createPendingArticle(args: {
   const id = generateId("art");
   const now = nowISO();
   const url = normalizeArticleUrl(args.originalUrl);
+  if (!isSafeHttpUrl(url)) {
+    throw new DomainError(400, "Article URL must be http(s)");
+  }
   const urlHash = hashArticleUrl(url);
   const title = args.originalTitle.trim().slice(0, 512);
   const raw = args.rawContent.trim();
@@ -205,7 +219,7 @@ export async function listPendingArticles(args: {
   const total = Number(countRows[0]?.total ?? 0);
 
   const [rows] = await pool.query<PendingArticleRow[]>(
-    `SELECT ${SELECT_FULL}
+    `SELECT ${SELECT_LIST}
      FROM pending_articles a
      LEFT JOIN post_categories c ON c.id = a.category_id
      ${whereSql}
@@ -318,4 +332,55 @@ export async function hasActiveFetchJob(): Promise<boolean> {
      LIMIT 1`,
   );
   return rows.length > 0;
+}
+
+/** True when a rewrite job for this article is already pending/processing. */
+export async function hasActiveRewriteJob(articleId: string): Promise<boolean> {
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok FROM jobs
+     WHERE type = 'articles.rewrite'
+       AND status IN (0, 1)
+       AND JSON_UNQUOTE(JSON_EXTRACT(payload, '$.articleId')) = ?
+     LIMIT 1`,
+    [articleId],
+  );
+  return rows.length > 0;
+}
+
+/**
+ * Conditionally mark approved after a post was created.
+ * Returns false if another admin already approved/rejected (race).
+ */
+export async function markArticleApprovedIfClaimable(args: {
+  id: string;
+  publishedPostId: string;
+  rewrittenTitle: string;
+  rewrittenContent: string;
+}): Promise<PendingArticle | null> {
+  const pool = getPool();
+  const now = nowISO();
+  const [result] = await pool.query<ResultSetHeader>(
+    `UPDATE pending_articles
+     SET status = ?,
+         published_post_id = ?,
+         published_at = ?,
+         rewritten_title = ?,
+         rewritten_content = ?,
+         updated_at = ?
+     WHERE id = ? AND status IN (?, ?)`,
+    [
+      ArticleStatus.Approved,
+      args.publishedPostId,
+      isoToDB(now),
+      args.rewrittenTitle.slice(0, 512),
+      args.rewrittenContent,
+      isoToDB(now),
+      args.id,
+      ArticleStatus.Draft,
+      ArticleStatus.PendingApproval,
+    ],
+  );
+  if ((result.affectedRows ?? 0) === 0) return null;
+  return getPendingArticleById(args.id);
 }
