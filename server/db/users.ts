@@ -425,7 +425,7 @@ export async function deleteUser(id: string): Promise<boolean> {
   const { listStorageKeysForUser, purgeR2StorageKeys } =
     await import("./uploads");
   const { listStoryStorageKeysForUser } = await import("./stories");
-  const { recountCommentCounts } = await import("./posts");
+  const { recountCommentCounts } = await import("./postComments");
   const { deleteJobsForRecipientEmail } = await import("./jobs");
   const { invalidatePublicFeedCaches } =
     await import("~/server/utils/cacheInvalidate");

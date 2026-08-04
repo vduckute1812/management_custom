@@ -27,7 +27,9 @@
  *   - refresh-tokens.ts        — Refresh-token lifecycle
  *   - email-verifications.ts   — Email-verification lifecycle
  *   - admin.ts                 — Cross-user aggregations (UNSCOPED)
- *   - posts.ts                 — Shared social feed (posts / reactions / comments)
+ *   - posts.ts                 — Shared social feed (post list / CRUD / helpers)
+ *   - postReactions.ts         — Post reaction set / clear
+ *   - postComments.ts          — Post comments list / CRUD + comment_count recount
  *   - uploads.ts               — Cloudflare R2 uploads for posts/stories
  *   - stories.ts               — 24h ephemeral stories
  *   - jobs.ts                  — Durable background job queue (email, cache bust)
@@ -56,6 +58,8 @@ export * from "../db/email-verifications";
 export * from "../db/password-resets";
 export * from "../db/admin";
 export * from "../db/posts";
+export * from "../db/postReactions";
+export * from "../db/postComments";
 export * from "../db/categories";
 export * from "../db/uploads";
 export * from "../db/stories";

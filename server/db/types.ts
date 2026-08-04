@@ -4,9 +4,8 @@
  * expose at runtime).
  *
  * Every enum is encoded as a small integer end-to-end (TS, JSON wire format,
- * MySQL `TINYINT UNSIGNED`). See `~/types/task.ts` for the rationale and
- * the canonical definitions of `TaskStatus`, `TaskPriority`, `RecurrenceRule`,
- * and `UserRole`. The mapping (kept identical to the client constants):
+ * MySQL `TINYINT UNSIGNED`). See `~/types/task.ts` for task/epic enums and
+ * `~/types/auth.ts` for `UserRole` / account shapes. The mapping:
  *
  *   TaskStatus      Todo=0       InProgress=1   Done=2
  *   TaskPriority    Low=0        Normal=1       High=2     (higher = more important)
@@ -22,13 +21,9 @@ export {
   TaskStatus,
   TaskPriority,
   RecurrenceRule,
-  UserRole,
   TASK_STATUSES,
   TASK_PRIORITIES,
   RECURRENCE_RULES,
-  USER_ROLES,
-  ASSIGNABLE_USER_ROLES,
-  isAdminRole,
   describeRecurrence,
   EPIC_COLORS,
   EPIC_COLOR_CLASSES,
@@ -41,17 +36,24 @@ export {
   PRIORITY_LABELS,
   PRIORITY_BADGE,
   PRIORITY_RANK,
-  ROLE_LABELS,
   type ChecklistItem,
   type RunningTimer,
   type Recurrence,
   type TimeBlock,
   type EpicColor,
   type EpicColorClasses,
-  type AuthUser,
-  type AdminUserSummary,
   type CalendarView,
 } from "../../types/task";
+
+export {
+  UserRole,
+  USER_ROLES,
+  ASSIGNABLE_USER_ROLES,
+  isAdminRole,
+  ROLE_LABELS,
+  type AuthUser,
+  type AdminUserSummary,
+} from "../../types/auth";
 
 import type {
   Task as _SharedTask,
@@ -98,7 +100,7 @@ export const VALID_COLORS: string[] = [
 export { TASK_PRIORITIES as VALID_PRIORITIES } from "../../types/task";
 export { TASK_STATUSES as VALID_STATUSES } from "../../types/task";
 export { RECURRENCE_RULES as VALID_RECURRENCE_RULES } from "../../types/task";
-export { USER_ROLES as VALID_USER_ROLES } from "../../types/task";
+export { USER_ROLES as VALID_USER_ROLES } from "../../types/auth";
 
 // -------------------------------------------------------------------------
 // View-side / API-shape decorations (computed; never persisted)
@@ -120,7 +122,7 @@ export interface EpicView extends _SharedEpic {
 // Server-only auth shapes
 // -------------------------------------------------------------------------
 
-import type { AuthUser as _AuthUser } from "../../types/task";
+import type { AuthUser as _AuthUser } from "../../types/auth";
 
 /** Same as AuthUser but with the password hash — server-internal only. */
 export interface UserRecord extends _AuthUser {

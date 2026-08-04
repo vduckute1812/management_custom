@@ -175,7 +175,7 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 
 **`PATCH /api/posts/:id` body:** send the full editable state (`body` required; `title`, numeric `visibility` defaulting to `0` public if omitted, `audienceUserIds`, `attachmentIds`, `categoryId`, `fontFamily`, `textColor`). Does **not** accept `format`, `contentLocale`, or `translationGroupId`.
 
-DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts`.  
+DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts` (list/CRUD), `postReactions.ts`, `postComments.ts`.  
 `GET /api/feed` is the Feed page first-paint call. Later pages / infinite scroll use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
