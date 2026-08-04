@@ -4,8 +4,9 @@
  * Body (all optional): { name?, avatarUploadId?, title?, job?, location? }
  * Reply: { user: AuthUser }
  *
- * Empty string or `null` clears a field. `avatarUploadId` must reference an
- * image upload owned by the caller (from POST /api/uploads).
+ * Empty string / `null` clears title, job, location, or avatar. `name` is
+ * required when provided (cannot be cleared). `avatarUploadId` must reference
+ * an image upload owned by the caller (from POST /api/uploads).
  */
 import {
   purgeOrphanedUploads,

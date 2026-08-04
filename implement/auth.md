@@ -119,10 +119,10 @@ The verification URL prefers **`APP_BASE_URL`** when set (reverse proxy / Cloudf
 
 Authenticated users update display fields via `PATCH /api/auth/profile` (`useAuth.updateProfile` on the client; UI on `/profile`). Editable fields:
 
-| Field                        | Storage                               | Notes                                                                                                       |
-| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `name`                       | `users.name`                          | Optional display name; app max 120 chars (column is `VARCHAR(255)`).                                        |
-| `avatarUrl`                  | derived from `users.avatar_upload_id` | Upload bytes first with `POST /api/uploads`, then pass the upload id. Must be an image owned by the caller. |
-| `title` / `job` / `location` | `VARCHAR(120)` each                   | Free-form; empty/`null` clears.                                                                             |
+| Field                        | Storage                               | Notes                                                                                                                         |
+| ---------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `name`                       | `users.name`                          | Required display name (1–120 chars on signup/profile). Legacy empty rows backfilled from email local-part (migration `0029`). |
+| `avatarUrl`                  | derived from `users.avatar_upload_id` | Upload bytes first with `POST /api/uploads`, then pass the upload id. Must be an image owned by the caller.                   |
+| `title` / `job` / `location` | `VARCHAR(120)` each                   | Free-form; empty/`null` clears.                                                                                               |
 
 Role, email, and email-verification state are **not** editable here. JWT claims stay `{ sub, email, role }` — profile fields come from the refresh/login/`PATCH /api/auth/profile` reply (or an explicit `GET /api/auth/me` on the profile page) and are cached in `useAuth`. Feed/story author payloads (`PostAuthor`) include the same optional fields so avatars and titles show on public surfaces.

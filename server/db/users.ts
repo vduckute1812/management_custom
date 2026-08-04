@@ -12,6 +12,7 @@ import {
   type AppLocale,
 } from "../../types/locale";
 import { isMoneyCurrency, type MoneyCurrency } from "../../types/money";
+import { resolveDisplayName } from "../../utils/displayName";
 
 // -------------------------------------------------------------------------
 // Reads
@@ -63,6 +64,7 @@ export interface CreateUserInput {
   email: string;
   /** Null for OAuth-only accounts. */
   passwordHash: string | null;
+  /** Display name; when omitted, derived from the email local-part. */
   name?: string;
   role?: UserRole;
   emailVerified?: boolean;
@@ -78,13 +80,15 @@ export interface CreateUserInput {
 function resolveCreatePrefs(input: CreateUserInput): {
   locale: AppLocale;
   moneyCurrency: MoneyCurrency;
+  name: string;
 } {
   const locale = isAppLocale(input.locale) ? input.locale : "en";
   const moneyCurrency =
     input.moneyCurrency !== undefined && isMoneyCurrency(input.moneyCurrency)
       ? input.moneyCurrency
       : defaultMoneyCurrencyForLocale(locale);
-  return { locale, moneyCurrency };
+  const name = resolveDisplayName(input.name, input.email);
+  return { locale, moneyCurrency, name };
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
@@ -93,7 +97,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
   const now = nowISO();
   const role = input.role ?? UserRole.Normal;
   const verified = input.emailVerified ? 1 : 0;
-  const { locale, moneyCurrency } = resolveCreatePrefs(input);
+  const { locale, moneyCurrency, name } = resolveCreatePrefs(input);
   await pool.query(
     `INSERT INTO users
       (id, email, password_hash, name, role, email_verified, locale, money_currency, created_at, updated_at)
@@ -102,7 +106,7 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
       id,
       input.email.toLowerCase(),
       input.passwordHash,
-      input.name ?? null,
+      name,
       role,
       verified,
       locale,
@@ -134,7 +138,7 @@ export async function createUserWithEmailVerification(input: {
   const now = nowISO();
   const role = input.user.role ?? UserRole.Normal;
   const verified = input.user.emailVerified ? 1 : 0;
-  const { locale, moneyCurrency } = resolveCreatePrefs(input.user);
+  const { locale, moneyCurrency, name } = resolveCreatePrefs(input.user);
   try {
     await conn.beginTransaction();
     await conn.query(
@@ -145,7 +149,7 @@ export async function createUserWithEmailVerification(input: {
         id,
         input.user.email.toLowerCase(),
         input.user.passwordHash,
-        input.user.name ?? null,
+        name,
         role,
         verified,
         locale,
@@ -210,7 +214,7 @@ export async function markUserEmailVerified(id: string): Promise<void> {
 // connections.
 
 export interface UpdateUserProfileInput {
-  /** Pass `undefined` to leave unchanged; empty/null clears. */
+  /** Pass `undefined` to leave unchanged. Empty/null is rejected (name required). */
   name?: string | null;
   /** Upload id owned by the user; empty/null clears the avatar. */
   avatarUploadId?: string | null;
@@ -252,7 +256,15 @@ export async function updateUserProfile(
   }
   const previousAvatarUploadId = existing.avatar_upload_id ?? null;
 
-  const name = normalizeOptionalText(input.name, 120);
+  let name: string | undefined = undefined;
+  if (input.name !== undefined) {
+    const normalized = normalizeOptionalText(input.name, 120);
+    // Display name is required — empty / null clears are rejected.
+    if (normalized === null || normalized === undefined) {
+      throw new DomainError(400, "Name is required");
+    }
+    name = normalized;
+  }
   const title = normalizeOptionalText(input.title, 120);
   const job = normalizeOptionalText(input.job, 120);
   const location = normalizeOptionalText(input.location, 120);
@@ -488,7 +500,10 @@ export async function searchUserDirectory(
   );
   return rows.map((r) => ({
     id: String(r.id),
-    name: (r.name as string | null) ?? null,
+    name: resolveDisplayName(
+      (r.name as string | null) ?? null,
+      String(r.email),
+    ),
     email: String(r.email),
     avatarUrl:
       avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
@@ -514,7 +529,10 @@ export async function getAuthorsByIds(
   for (const r of rows) {
     byId.set(String(r.id), {
       id: String(r.id),
-      name: (r.name as string | null) ?? null,
+      name: resolveDisplayName(
+        (r.name as string | null) ?? null,
+        String(r.email),
+      ),
       email: String(r.email),
       avatarUrl:
         avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??

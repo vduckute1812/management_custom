@@ -100,17 +100,21 @@ function clearAvatar() {
 
 async function onSave() {
   if (busy.value || !user.value) return;
+  if (!form.name.trim()) {
+    error.value = t("auth.nameRequired");
+    return;
+  }
   busy.value = true;
   error.value = null;
   try {
     const payload: {
-      name: string | null;
+      name: string;
       title: string | null;
       job: string | null;
       location: string | null;
       avatarUploadId?: string | null;
     } = {
-      name: form.name.trim() || null,
+      name: form.name.trim(),
       title: form.title.trim() || null,
       job: form.job.trim() || null,
       location: form.location.trim() || null,
@@ -227,6 +231,7 @@ onMounted(async () => {
                 id="profile-name"
                 v-model="form.name"
                 type="text"
+                required
                 maxlength="120"
                 autocomplete="name"
                 class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"

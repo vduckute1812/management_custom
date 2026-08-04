@@ -3,6 +3,7 @@ import { roundHours } from "./compute";
 import { dbToISO } from "./datetime";
 import { getPool } from "./pool";
 import { TaskStatus, type UserRole } from "./types";
+import { resolveDisplayName } from "../../utils/displayName";
 
 // `TaskStatus` is simultaneously a runtime const object (`TaskStatus.Done === 2`)
 // and a numeric union type (`0 | 1 | 2`). The single import above brings both
@@ -22,7 +23,7 @@ import { TaskStatus, type UserRole } from "./types";
 export interface AdminUserSummaryRow {
   id: string;
   email: string;
-  name: string | null;
+  name: string;
   role: UserRole;
   emailVerified: boolean;
   createdAt: string;
@@ -70,7 +71,10 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
   return rows.map((r) => ({
     id: String(r.id),
     email: String(r.email),
-    name: r.name == null ? null : String(r.name),
+    name: resolveDisplayName(
+      r.name == null ? null : String(r.name),
+      String(r.email),
+    ),
     role: coerceRole(Number(r.role)),
     emailVerified: Number(r.email_verified) === 1,
     createdAt: dbToISO(String(r.created_at)),

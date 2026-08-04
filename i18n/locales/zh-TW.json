@@ -56,7 +56,7 @@
     "loginFailed": "登入失敗",
     "signupTitle": "建立帳戶",
     "signupSubtitle": "只需一分鐘",
-    "nameOptional": "姓名（選填）",
+    "nameOptional": "姓名",
     "confirmPassword": "確認密碼",
     "passwordHint": "至少 8 個字元，需包含大小寫字母、數字和特殊符號。",
     "passwordRequirements": "密碼要求",
@@ -117,7 +117,9 @@
     "googleAccountUseGoogle": "此帳戶使用 Google 登入。請改用「使用 Google 繼續」。",
     "signupConsent": "建立帳號即表示你同意{terms}與{privacy}。",
     "termsLink": "服務條款",
-    "privacyLink": "隱私政策"
+    "privacyLink": "隱私政策",
+    "name": "姓名",
+    "nameRequired": "請輸入姓名。"
   },
   "settings": {
     "title": "設定",

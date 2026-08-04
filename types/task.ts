@@ -310,7 +310,8 @@ export type CalendarView = "daily" | "weekly" | "monthly";
 export interface AuthUser {
   id: string;
   email: string;
-  name?: string;
+  /** Display name — always set (signup required; legacy rows derived from email). */
+  name: string;
   /** Proxied upload URL (`/api/uploads/…`) when the user set an avatar. */
   avatarUrl?: string;
   /** Short professional headline (e.g. "Staff engineer"). */
