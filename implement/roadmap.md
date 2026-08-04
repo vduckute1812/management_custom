@@ -415,6 +415,13 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] M2 (partial): MySQL/Redis stay on `${LAN_IP}` publish — loopback-only + `host.containers.internal` cannot reach `127.0.0.1` binds from Linux Podman bridge (reverted after deploy hang). True isolation needs compose DNS / shared network.
 - [x] Zod for comment create + admin role body; drop `?access_token=` query auth
 
+## Phase 26 — Sprint C (performance / client)
+
+- [x] Lazy mount: `LazyMoneyCharts`, money modals, `LazyCommandPalette` / `LazyShortcutsHelp`
+- [x] MoneyCharts: fingerprint watch + `chart.update()` (no `deep: true` destroy/recreate)
+- [x] Money save/delete patches local list + `computeMonthTotals` (no full `fetchMonth()`)
+- [x] Dayjs: load only the active locale pack on demand
+
 ### Later
 
 - Chat message deletion (still named as missing in the privacy policy)

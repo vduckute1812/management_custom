@@ -1,5 +1,10 @@
-import type { MoneyMonthTotals, MoneyTransaction } from "~/types/money";
-import { toYearMonth } from "~/utils/money";
+import { type MoneyMonthTotals, type MoneyTransaction } from "~/types/money";
+import {
+  computeMonthTotals,
+  toYearMonth,
+  upsertTransactionInMonth,
+  yearMonthFromOccurredOn,
+} from "~/utils/money";
 
 interface ListResponse {
   transactions: MoneyTransaction[];
@@ -41,6 +46,11 @@ export const useMoney = () => {
     }
   }
 
+  function applyLocalList(next: MoneyTransaction[]) {
+    transactions.value = next;
+    totals.value = computeMonthTotals(next, yearMonth.value);
+  }
+
   async function saveTransaction(
     payload: Partial<MoneyTransaction> & {
       occurredOn: string;
@@ -62,13 +72,26 @@ export const useMoney = () => {
         note: payload.note ?? null,
       },
     });
-    await fetchMonth(yearMonth.value);
-    return data.transaction;
+    const tx = data.transaction;
+    const txYm = yearMonthFromOccurredOn(tx.occurredOn);
+    const viewing = yearMonth.value;
+    const without = transactions.value.filter((row) => row.id !== tx.id);
+
+    if (txYm === viewing) {
+      applyLocalList(upsertTransactionInMonth(without, tx));
+    } else if (without.length !== transactions.value.length) {
+      // Edited out of the current month — drop from the open list.
+      applyLocalList(without);
+    }
+    return tx;
   }
 
   async function deleteTransaction(id: string) {
     await apiFetch(`/api/money/transactions/${id}`, { method: "DELETE" });
-    await fetchMonth(yearMonth.value);
+    const next = transactions.value.filter((row) => row.id !== id);
+    if (next.length !== transactions.value.length) {
+      applyLocalList(next);
+    }
   }
 
   function shiftMonth(delta: number) {

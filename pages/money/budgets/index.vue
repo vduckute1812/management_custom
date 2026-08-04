@@ -307,7 +307,7 @@ function onExportJson() {
       </div>
     </div>
 
-    <MoneyBudgetModal
+    <LazyMoneyBudgetModal
       :open="modalOpen"
       :budget="editing"
       :year-month="yearMonth"

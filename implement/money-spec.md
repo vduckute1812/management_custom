@@ -120,6 +120,12 @@ Harden — client export + tests (no new tables/API):
 - Vitest coverage for export builders alongside schemas/helpers in `tests/money.test.ts`
 - i18n: `money.export.*`, `toasts.moneyExported` (en / vi / zh-CN / zh-TW)
 
+## Client performance (Sprint C)
+
+- `LazyMoneyCharts` + lazy money modals; layout uses `LazyCommandPalette` / `LazyShortcutsHelp`
+- Charts: fingerprint watch + `chart.update()` (no deep destroy/recreate)
+- `saveTransaction` / `deleteTransaction` patch the in-memory month list via `computeMonthTotals` / `upsertTransactionInMonth` (no full `fetchMonth()` after each edit)
+
 ## Custom categories + dropdown (as-built)
 
 - Built-ins keep `MoneyCategory` ints + UI emoji map (`MONEY_CATEGORY_EMOJI`, e.g. Transport ⛽)

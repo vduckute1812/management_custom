@@ -462,9 +462,9 @@ useModal(mobileMoreOpen, {
     </div>
 
     <ToastStack />
-    <CommandPalette />
+    <LazyCommandPalette />
     <QuickCapture v-if="showTaskChrome" />
-    <ShortcutsHelp />
+    <LazyShortcutsHelp />
     <TimerPill v-if="showTaskChrome" />
   </div>
 </template>

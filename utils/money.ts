@@ -16,6 +16,7 @@ import {
   type MoneyCategory,
   type MoneyCategoryPick,
   type MoneyCurrency as MoneyCurrencyT,
+  type MoneyMonthTotals,
   type MoneyTransaction,
 } from "~/types/money";
 
@@ -275,4 +276,46 @@ export function sumDaily(
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([day, v]) => ({ day, ...v }));
+}
+
+/** Recompute month totals from an in-memory list (after local patch). */
+export function computeMonthTotals(
+  transactions: MoneyTransaction[],
+  yearMonth: string,
+): MoneyMonthTotals {
+  let inMinor = 0;
+  let outMinor = 0;
+  for (const tx of transactions) {
+    if (tx.direction === MoneyDirection.In) inMinor += tx.amountMinor;
+    else outMinor += tx.amountMinor;
+  }
+  return {
+    yearMonth,
+    inMinor,
+    outMinor,
+    netMinor: inMinor - outMinor,
+  };
+}
+
+/** `YYYY-MM` from an ISO calendar date `YYYY-MM-DD`. */
+export function yearMonthFromOccurredOn(occurredOn: string): string {
+  return occurredOn.slice(0, 7);
+}
+
+/**
+ * Insert or replace a transaction in a month list, sorted by occurredOn desc
+ * then id. Returns a new array (does not mutate).
+ */
+export function upsertTransactionInMonth(
+  list: MoneyTransaction[],
+  tx: MoneyTransaction,
+): MoneyTransaction[] {
+  const next = list.filter((row) => row.id !== tx.id);
+  next.push(tx);
+  next.sort((a, b) => {
+    const byDate = b.occurredOn.localeCompare(a.occurredOn);
+    if (byDate !== 0) return byDate;
+    return b.id.localeCompare(a.id);
+  });
+  return next;
 }

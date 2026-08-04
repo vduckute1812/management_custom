@@ -1,7 +1,4 @@
 import dayjs from "dayjs";
-import "dayjs/locale/vi";
-import "dayjs/locale/zh-cn";
-import "dayjs/locale/zh-tw";
 import {
   DAYJS_LOCALE,
   INTL_LOCALE,
@@ -11,8 +8,34 @@ import {
   type AppLocale,
 } from "~/types/locale";
 
-function applyLocaleSideEffects(code: AppLocale) {
-  dayjs.locale(DAYJS_LOCALE[code]);
+const loadedDayjsLocales = new Set<string>(["en"]);
+
+async function ensureDayjsLocale(code: AppLocale): Promise<void> {
+  const pack = DAYJS_LOCALE[code];
+  if (loadedDayjsLocales.has(pack)) {
+    dayjs.locale(pack);
+    return;
+  }
+  switch (code) {
+    case "vi":
+      await import("dayjs/locale/vi");
+      break;
+    case "zh-CN":
+      await import("dayjs/locale/zh-cn");
+      break;
+    case "zh-TW":
+      await import("dayjs/locale/zh-tw");
+      break;
+    case "en":
+    default:
+      break;
+  }
+  loadedDayjsLocales.add(pack);
+  dayjs.locale(pack);
+}
+
+async function applyLocaleSideEffects(code: AppLocale) {
+  await ensureDayjsLocale(code);
   if (import.meta.client) {
     document.documentElement.lang = INTL_LOCALE[code];
   }
@@ -57,7 +80,7 @@ export default defineNuxtPlugin(() => {
     if (locale.value !== preferred) {
       await setLocale(preferred);
     }
-    applyLocaleSideEffects(preferred);
+    await applyLocaleSideEffects(preferred);
   }
 
   async function initializeLocale() {
@@ -90,14 +113,14 @@ export default defineNuxtPlugin(() => {
       if (locale.value !== next) {
         void setLocale(next).then(() => applyLocaleSideEffects(next));
       } else {
-        applyLocaleSideEffects(next);
+        void applyLocaleSideEffects(next);
       }
     },
   );
 
   watch(locale, (next) => {
     if (!isAppLocale(next)) return;
-    applyLocaleSideEffects(next);
+    void applyLocaleSideEffects(next);
     if (settings.value.locale !== next) {
       update("locale", next);
     }
