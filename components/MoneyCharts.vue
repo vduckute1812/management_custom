@@ -293,7 +293,7 @@ function pickCategory(pick: MoneyCategoryPick) {
                 class="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition"
                 :class="
                   activeKey === slice.key
-                    ? 'bg-slate-900 text-white'
+                    ? 'money-chip--active'
                     : 'hover:bg-slate-50'
                 "
                 :aria-pressed="activeKey === slice.key"
@@ -306,7 +306,7 @@ function pickCategory(pick: MoneyCategoryPick) {
                   class="h-2.5 w-2.5 shrink-0 rounded-full ring-2"
                   :class="
                     activeKey === slice.key
-                      ? 'ring-white/40'
+                      ? 'money-chip-swatch ring-white/40'
                       : 'ring-transparent'
                   "
                   :style="{ backgroundColor: slice.color }"
@@ -314,25 +314,21 @@ function pickCategory(pick: MoneyCategoryPick) {
                 />
                 <span
                   class="min-w-0 flex-1 truncate"
-                  :class="
-                    activeKey === slice.key ? 'text-white' : 'text-slate-700'
-                  "
+                  :class="activeKey === slice.key ? null : 'text-slate-700'"
                 >
                   {{ slice.label }}
                 </span>
                 <span
                   class="tabular-nums"
                   :class="
-                    activeKey === slice.key ? 'text-white/70' : 'text-slate-500'
+                    activeKey === slice.key ? 'opacity-70' : 'text-slate-500'
                   "
                 >
                   {{ Math.round(slice.share * 100) }}%
                 </span>
                 <span
                   class="shrink-0 tabular-nums font-medium"
-                  :class="
-                    activeKey === slice.key ? 'text-white' : 'text-slate-800'
-                  "
+                  :class="activeKey === slice.key ? null : 'text-slate-800'"
                 >
                   {{ fmt(slice.amountMinor) }}
                 </span>

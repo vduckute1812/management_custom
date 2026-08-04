@@ -70,11 +70,17 @@ html[data-theme="dark"] .bg-slate-50\/40 {
 html[data-theme="dark"] .bg-slate-50\/60 {
   background-color: rgba(15, 23, 42, 0.6) !important;
 }
+html[data-theme="dark"] .bg-white\/70 {
+  background-color: rgba(17, 24, 39, 0.72) !important;
+}
 html[data-theme="dark"] .bg-white\/80 {
   background-color: rgba(17, 24, 39, 0.85) !important;
 }
 html[data-theme="dark"] .bg-white\/85 {
   background-color: rgba(17, 24, 39, 0.9) !important;
+}
+html[data-theme="dark"] .bg-white\/90 {
+  background-color: rgba(17, 24, 39, 0.92) !important;
 }
 html[data-theme="dark"] .bg-white\/95 {
   background-color: rgba(17, 24, 39, 0.95) !important;
@@ -338,6 +344,70 @@ html[data-theme="dark"] .feed-category-chip--active {
   color: #f1f5f9 !important;
 }
 
+/* --- Money / dense UI chips (bg-slate-900 is invisible on dark surfaces) */
+.money-chip--active {
+  background-color: #0f172a;
+  color: #fff;
+  --tw-ring-color: #0f172a;
+}
+
+html[data-theme="dark"] .money-chip--active {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+  --tw-ring-color: #e2e8f0 !important;
+}
+
+html[data-theme="dark"] .money-chip--active .money-chip-swatch {
+  --tw-ring-color: rgba(15, 23, 42, 0.3) !important;
+}
+
+/* Money page shell + stat-card gradients (opacity utilities miss dark map) */
+.money-shell {
+  background:
+    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.14), transparent 55%),
+    linear-gradient(to bottom, #f8fafc, #f1f5f9);
+}
+
+html[data-theme="dark"] .money-shell {
+  background:
+    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.12), transparent 55%),
+    linear-gradient(to bottom, #0b1220, #0f172a);
+}
+
+html[data-theme="dark"] .from-emerald-50 {
+  --tw-gradient-from: rgba(16, 185, 129, 0.16) !important;
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--tw-gradient-to, rgb(16 185 129 / 0));
+}
+html[data-theme="dark"] .from-rose-50 {
+  --tw-gradient-from: rgba(244, 63, 94, 0.16) !important;
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--tw-gradient-to, rgb(244 63 94 / 0));
+}
+html[data-theme="dark"] .from-amber-50 {
+  --tw-gradient-from: rgba(245, 158, 11, 0.16) !important;
+  --tw-gradient-stops:
+    var(--tw-gradient-from), var(--tw-gradient-to, rgb(245 158 11 / 0));
+}
+html[data-theme="dark"] .ring-emerald-100 {
+  --tw-ring-color: rgba(16, 185, 129, 0.28) !important;
+}
+html[data-theme="dark"] .ring-rose-100 {
+  --tw-ring-color: rgba(244, 63, 94, 0.28) !important;
+}
+html[data-theme="dark"] .ring-amber-100 {
+  --tw-ring-color: rgba(245, 158, 11, 0.28) !important;
+}
+html[data-theme="dark"] .text-emerald-900 {
+  color: #a7f3d0 !important;
+}
+html[data-theme="dark"] .text-rose-900 {
+  color: #fecdd3 !important;
+}
+html[data-theme="dark"] .text-amber-950 {
+  color: #fde68a !important;
+}
+
 /* --- Story tray ring offset on dark surfaces --------------------------- */
 html[data-theme="dark"] .story-avatar-ring {
   --tw-ring-offset-color: var(--surface);
@@ -402,8 +472,14 @@ html[data-theme="dark"] .border-slate-100 {
 html[data-theme="dark"] .ring-slate-200 {
   --tw-ring-color: #334155 !important;
 }
+html[data-theme="dark"] .ring-slate-200\/80 {
+  --tw-ring-color: rgba(51, 65, 85, 0.85) !important;
+}
 html[data-theme="dark"] .ring-slate-300 {
   --tw-ring-color: #475569 !important;
+}
+html[data-theme="dark"] .border-slate-200\/80 {
+  border-color: rgba(30, 41, 59, 0.9) !important;
 }
 html[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: #1e293b !important;
@@ -413,6 +489,9 @@ html[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
 html[data-theme="dark"] .hover\:bg-slate-50:hover {
   background-color: #1e293b !important;
 }
+html[data-theme="dark"] .hover\:bg-slate-50\/90:hover {
+  background-color: rgba(30, 41, 59, 0.9) !important;
+}
 html[data-theme="dark"] .hover\:bg-slate-100:hover {
   background-color: #334155 !important;
 }
@@ -421,6 +500,12 @@ html[data-theme="dark"] .hover\:bg-slate-200:hover {
 }
 html[data-theme="dark"] .hover\:bg-slate-800:hover {
   background-color: #475569 !important;
+}
+html[data-theme="dark"] .hover\:bg-white:hover {
+  background-color: #1e293b !important;
+}
+html[data-theme="dark"] .bg-slate-50\/70 {
+  background-color: rgba(15, 23, 42, 0.72) !important;
 }
 
 /* --- Form controls ------------------------------------------------------ */

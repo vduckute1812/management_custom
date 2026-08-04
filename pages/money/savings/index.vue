@@ -137,9 +137,7 @@ function onExportJson() {
 </script>
 
 <template>
-  <div
-    class="relative flex min-h-0 flex-1 flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-brand-50/70 via-slate-50 to-slate-100"
-  >
+  <div class="money-shell relative flex min-h-0 flex-1 flex-col">
     <header
       class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-4 backdrop-blur-md md:px-6"
     >
