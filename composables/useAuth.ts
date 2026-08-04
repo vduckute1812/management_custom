@@ -5,6 +5,7 @@ import {
   type AppLocale,
 } from "~/types/locale";
 import { isMoneyCurrency } from "~/types/money";
+import { nameFromEmail } from "~/utils/displayName";
 
 /**
  * Auth state for the client. Owns:
@@ -36,13 +37,17 @@ const KEYS = {
 
 const CREDENTIALS = { credentials: "include" as const };
 
-/** Normalize legacy cached AuthUser shapes missing locale / moneyCurrency. */
+/** Normalize legacy cached AuthUser shapes missing locale / moneyCurrency / name. */
 function normalizeAuthUser(raw: AuthUser): AuthUser {
   const locale: AppLocale = isAppLocale(raw.locale) ? raw.locale : "en";
   const moneyCurrency = isMoneyCurrency(raw.moneyCurrency)
     ? raw.moneyCurrency
     : defaultMoneyCurrencyForLocale(locale);
-  return { ...raw, locale, moneyCurrency };
+  const name =
+    typeof raw.name === "string" && raw.name.trim()
+      ? raw.name.trim()
+      : nameFromEmail(raw.email);
+  return { ...raw, name, locale, moneyCurrency };
 }
 
 /**
@@ -142,7 +147,7 @@ export const useAuth = () => {
   async function signup(input: {
     email: string;
     password: string;
-    name?: string;
+    name: string;
     locale?: AppLocale;
   }): Promise<{ user: AuthUser; verificationSent: boolean }> {
     return await $fetch("/api/auth/signup", {
@@ -217,7 +222,7 @@ export const useAuth = () => {
   }
 
   async function updateProfile(input: {
-    name?: string | null;
+    name?: string;
     avatarUploadId?: string | null;
     title?: string | null;
     job?: string | null;

@@ -10,7 +10,11 @@ export const loginBodySchema = z.object({
 export const signupBodySchema = z.object({
   email: z.string().trim().email("A valid email is required"),
   password: z.string().min(1),
-  name: z.string().trim().max(120).optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required")
+    .max(120, "Name must be 120 characters or fewer"),
   /** Preferred UI / email language; defaults to `en` server-side when omitted. */
   locale: z
     .string()
@@ -64,9 +68,17 @@ const optionalProfileText = z
   .optional()
   .transform((v) => (v === undefined ? undefined : v));
 
+/** Display name is required on the account — empty / null is rejected. */
+const profileNameField = z
+  .string()
+  .trim()
+  .min(1, "Name is required")
+  .max(120, "Name must be 120 characters or fewer")
+  .optional();
+
 export const profilePatchBodySchema = z
   .object({
-    name: optionalProfileText,
+    name: profileNameField,
     avatarUploadId: optionalProfileText,
     title: optionalProfileText,
     job: optionalProfileText,

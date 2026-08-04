@@ -42,7 +42,11 @@ const passwordsMatch = computed(
     password.value === passwordConfirm.value,
 );
 const canSubmit = computed(
-  () => isPasswordStrong(password.value) && passwordsMatch.value && !busy.value,
+  () =>
+    name.value.trim().length > 0 &&
+    isPasswordStrong(password.value) &&
+    passwordsMatch.value &&
+    !busy.value,
 );
 
 onMounted(async () => {
@@ -58,6 +62,10 @@ async function onSubmit() {
   if (busy.value) return;
   error.value = null;
 
+  if (!name.value.trim()) {
+    error.value = t("auth.nameRequired");
+    return;
+  }
   if (!isPasswordStrong(password.value)) {
     error.value = t("auth.passwordTooWeak");
     return;
@@ -72,7 +80,7 @@ async function onSubmit() {
     const result = await auth.signup({
       email: email.value.trim(),
       password: password.value,
-      name: name.value.trim() || undefined,
+      name: name.value.trim(),
       locale: settings.value.locale,
     });
     success.value = { verificationSent: result.verificationSent };
@@ -147,13 +155,15 @@ async function onSubmit() {
           <label
             for="signup-name"
             class="block text-xs font-medium text-slate-600 mb-1"
-            >{{ $t("auth.nameOptional") }}</label
+            >{{ $t("auth.name") }}</label
           >
           <input
             id="signup-name"
             v-model="name"
             type="text"
             autocomplete="name"
+            required
+            maxlength="120"
             class="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400"
           />
         </div>

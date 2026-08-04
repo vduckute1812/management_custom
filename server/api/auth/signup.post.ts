@@ -1,7 +1,7 @@
 /**
  * POST /api/auth/signup
  *
- * Body:  { email, password, name? }
+ * Body:  { email, password, name, locale? }
  * Reply: { user: AuthUser, verificationSent: boolean }
  *
  * Creates a new account with `role: UserRole.Normal` and dispatches a verification
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, signupBodySchema);
   const email = body.email.trim().toLowerCase();
   const password = body.password;
-  const name = body.name?.trim() || undefined;
+  const name = body.name.trim();
 
   await assertAccountRateLimit(event, email, "/api/auth/signup");
 

@@ -17,6 +17,7 @@ import {
 } from "~/types/chat";
 import { UploadKind, toUploadKind } from "~/types/post";
 import { toReactionType } from "~/types/reaction";
+import { resolveDisplayName } from "../../utils/displayName";
 import { isoToDB, dbToISO } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
@@ -114,7 +115,7 @@ function toPeer(row: {
 }): ChatPeer {
   return {
     id: row.peer_id,
-    name: row.peer_name,
+    name: resolveDisplayName(row.peer_name, row.peer_email),
     email: row.peer_email,
     avatarUrl: avatarUrlFromUploadId(row.peer_avatar_upload_id) ?? null,
   };

@@ -37,13 +37,27 @@ describe("loginBodySchema", () => {
 });
 
 describe("signup / refresh / logout schemas", () => {
-  it("accepts signup with optional name", () => {
-    const parsed = signupBodySchema.safeParse({
-      email: "a@b.com",
-      password: "Secret1!",
-      name: "Ada",
-    });
-    expect(parsed.success).toBe(true);
+  it("requires a non-empty name on signup", () => {
+    expect(
+      signupBodySchema.safeParse({
+        email: "a@b.com",
+        password: "Secret1!",
+      }).success,
+    ).toBe(false);
+    expect(
+      signupBodySchema.safeParse({
+        email: "a@b.com",
+        password: "Secret1!",
+        name: "   ",
+      }).success,
+    ).toBe(false);
+    expect(
+      signupBodySchema.safeParse({
+        email: "a@b.com",
+        password: "Secret1!",
+        name: "Ada",
+      }).success,
+    ).toBe(true);
   });
 
   it("defaults empty refresh/logout bodies", () => {

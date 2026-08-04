@@ -8,6 +8,7 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
+import { resolveDisplayName } from "../../utils/displayName";
 import {
   assertOwnedUploads,
   purgeOrphanedUploads,
@@ -132,7 +133,7 @@ function toAuthor(
 ): PostAuthor {
   return {
     id,
-    name,
+    name: resolveDisplayName(name, email),
     email,
     avatarUrl: avatarUrlFromUploadId(extras?.avatarUploadId) ?? null,
     title: extras?.title ?? null,
