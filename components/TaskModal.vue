@@ -171,36 +171,6 @@ const recurrenceSummary = computed(() => {
 
 const hasSeedBlocks = computed(() => form.value.timeBlocks.length > 0);
 
-// --- Checklist helpers -----------------------------------------------------
-const newChecklistItem = ref("");
-
-function addChecklistItem() {
-  const text = newChecklistItem.value.trim();
-  if (!text) return;
-  form.value.checklist.push({
-    id: newClientId("chk"),
-    text,
-    done: false,
-  });
-  newChecklistItem.value = "";
-}
-
-function toggleChecklistItem(index: number) {
-  const item = form.value.checklist[index];
-  if (item) item.done = !item.done;
-}
-
-function removeChecklistItem(index: number) {
-  form.value.checklist.splice(index, 1);
-}
-
-const checklistSummary = computed(() => {
-  const total = form.value.checklist.length;
-  if (total === 0) return null;
-  const done = form.value.checklist.filter((c) => c.done).length;
-  return { done, total, percent: Math.round((done / total) * 100) };
-});
-
 watch(
   () => [props.open, props.task, props.defaultDate, props.defaultEpicId],
   () => {
@@ -633,100 +603,10 @@ watch(discardConfirmOpen, (open) => {
                 />
               </div>
 
-              <div>
-                <div class="flex items-center justify-between mb-2">
-                  <label
-                    class="text-xs font-medium text-slate-600"
-                    :for="fieldIds.checklistAdd"
-                  >
-                    {{ $t("tasks.modal.checklist") }}
-                  </label>
-                  <p
-                    v-if="checklistSummary"
-                    class="text-[11px] text-slate-500 tabular-nums"
-                  >
-                    {{
-                      $t("tasks.modal.checklistSummary", {
-                        done: checklistSummary.done,
-                        total: checklistSummary.total,
-                        percent: checklistSummary.percent,
-                      })
-                    }}
-                  </p>
-                  <p v-else class="text-[11px] text-slate-500">
-                    {{ $t("tasks.modal.checklistHint") }}
-                  </p>
-                </div>
-
-                <ul
-                  v-if="form.checklist.length"
-                  class="rounded-lg border border-slate-200 divide-y divide-slate-100 mb-2 overflow-hidden"
-                >
-                  <li
-                    v-for="(item, idx) in form.checklist"
-                    :key="item.id"
-                    class="flex items-center gap-2 px-3 py-1.5 group hover:bg-slate-50"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="item.done"
-                      class="accent-brand-600 w-4 h-4 shrink-0"
-                      :aria-label="
-                        $t('tasks.modal.toggleItem', { text: item.text })
-                      "
-                      @change="toggleChecklistItem(idx)"
-                    />
-                    <input
-                      v-model="item.text"
-                      type="text"
-                      class="flex-1 bg-transparent text-sm outline-none border-none px-0 py-0"
-                      :class="
-                        item.done
-                          ? 'line-through text-slate-400'
-                          : 'text-slate-800'
-                      "
-                    />
-                    <button
-                      type="button"
-                      class="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                      :aria-label="
-                        $t('tasks.modal.removeItem', { text: item.text })
-                      "
-                      @click="removeChecklistItem(idx)"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        class="w-3.5 h-3.5"
-                      >
-                        <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                      </svg>
-                    </button>
-                  </li>
-                </ul>
-
-                <div class="flex items-center gap-2">
-                  <input
-                    :id="fieldIds.checklistAdd"
-                    v-model="newChecklistItem"
-                    type="text"
-                    :placeholder="$t('tasks.modal.addSubStep')"
-                    class="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                    @keydown.enter.prevent="addChecklistItem"
-                  />
-                  <button
-                    type="button"
-                    class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 transition disabled:opacity-50"
-                    :disabled="!newChecklistItem.trim()"
-                    @click="addChecklistItem"
-                  >
-                    {{ $t("tasks.modal.add") }}
-                  </button>
-                </div>
-              </div>
+              <TaskModalChecklist
+                v-model="form.checklist"
+                :add-input-id="fieldIds.checklistAdd"
+              />
 
               <div>
                 <div class="flex items-center justify-between mb-2">

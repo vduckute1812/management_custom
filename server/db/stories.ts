@@ -1,7 +1,7 @@
 import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
-import { FriendshipStatus } from "../../types/friendship";
 import { dbToISO, isoToDB } from "./datetime";
+import { listAcceptedFriendIds } from "./friendships";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
@@ -281,23 +281,26 @@ export async function purgeExpiredStories(): Promise<{
   return { stories, uploads };
 }
 
-/** Own story OR accepted friendship with author (Facebook-style). */
-function storyVisibilityClause(alias = "s"): string {
+/** Own story OR accepted friendship with author (friend ids preloaded). */
+function storyVisibilityClause(
+  alias = "s",
+  friendIds: readonly string[] = [],
+): string {
+  const friendsPart =
+    friendIds.length === 0
+      ? "0"
+      : `${alias}.user_id IN (${friendIds.map(() => "?").join(",")})`;
   return `(
     ${alias}.user_id = ?
-    OR EXISTS (
-      SELECT 1 FROM friendships f
-      WHERE f.status = ${FriendshipStatus.Accepted}
-        AND (
-          (f.requester_id = ${alias}.user_id AND f.addressee_id = ?)
-          OR (f.addressee_id = ${alias}.user_id AND f.requester_id = ?)
-        )
-    )
+    OR ${friendsPart}
   )`;
 }
 
-function storyVisibilityParams(viewerId: string): string[] {
-  return [viewerId, viewerId, viewerId];
+function storyVisibilityParams(
+  viewerId: string,
+  friendIds: readonly string[] = [],
+): string[] {
+  return [viewerId, ...friendIds];
 }
 
 /** Shared SELECT for tray + single-story reload (viewer state loaded in batch). */
@@ -332,13 +335,14 @@ export async function getStoryForViewer(
   storyId: string,
 ): Promise<Story | null> {
   const pool = getPool();
+  const friendIds = await listAcceptedFriendIds(viewerId);
   const [rows] = await pool.query<StoryRow[]>(
     `${STORY_SELECT}
      WHERE s.id = ?
        AND s.expires_at > UTC_TIMESTAMP(3)
-       AND ${storyVisibilityClause("s")}
+       AND ${storyVisibilityClause("s", friendIds)}
      LIMIT 1`,
-    [storyId, ...storyVisibilityParams(viewerId)],
+    [storyId, ...storyVisibilityParams(viewerId, friendIds)],
   );
   const row = rows[0];
   if (!row) return null;
@@ -359,12 +363,13 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
   // Expired rows are filtered below (`expires_at > now`). Physical delete +
   // R2 cleanup runs in the job worker (~2 min), not on this read path.
 
+  const friendIds = await listAcceptedFriendIds(viewerId);
   const [rows] = await pool.query<StoryRow[]>(
     `${STORY_SELECT}
      WHERE s.expires_at > UTC_TIMESTAMP(3)
-       AND ${storyVisibilityClause("s")}
+       AND ${storyVisibilityClause("s", friendIds)}
      ORDER BY s.created_at ASC`,
-    [...storyVisibilityParams(viewerId)],
+    [...storyVisibilityParams(viewerId, friendIds)],
   );
 
   const storyIds = rows.map((r) => r.id);
@@ -522,13 +527,14 @@ async function assertVisibleStory(
   storyId: string,
 ): Promise<void> {
   const pool = getPool();
+  const friendIds = await listAcceptedFriendIds(viewerId);
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT s.id FROM stories s
      WHERE s.id = ?
        AND s.expires_at > UTC_TIMESTAMP(3)
-       AND ${storyVisibilityClause("s")}
+       AND ${storyVisibilityClause("s", friendIds)}
      LIMIT 1`,
-    [storyId, ...storyVisibilityParams(viewerId)],
+    [storyId, ...storyVisibilityParams(viewerId, friendIds)],
   );
   if (!rows.length) {
     throw new DomainError(404, "Story not found");

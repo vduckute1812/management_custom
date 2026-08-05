@@ -105,6 +105,20 @@ export async function areFriends(
   );
 }
 
+/** Peer user ids with an Accepted friendship (for feed/story ACL `IN` lists). */
+export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
+  if (!userId) return [];
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT IF(requester_id = ?, addressee_id, requester_id) AS peer_id
+     FROM friendships
+     WHERE status = ?
+       AND (requester_id = ? OR addressee_id = ?)`,
+    [userId, FriendshipStatus.Accepted, userId, userId],
+  );
+  return rows.map((r) => String(r.peer_id));
+}
+
 export async function countIncomingFriendRequests(
   userId: string,
 ): Promise<number> {

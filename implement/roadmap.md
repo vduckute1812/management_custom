@@ -568,8 +568,38 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Docs sync (`architecture` friends / postQuery / migrations through 0033)
 - [x] Zod `tasksListQuerySchema` parses known include tokens → `{ includeBlocks, includeChecklists }`
 
+## Phase 40 — Quality sprints K–O (clear >8.5 on all axes)
+
+### Sprint K — Security
+
+- [x] Mask comment author emails (owner-only on the wire)
+- [x] Chat `getOrCreateDirectConversation` requires Accepted friendship
+- [x] Rate-limit `/api/users/directory` (30/min)
+
+### Sprint L — Structure
+
+- [x] Extract `TaskModalChecklist` from TaskModal
+- [x] Extract `PostCardReactions` from PostCard
+- [x] Extract `ManuscriptStudioToolbar` from ManuscriptStudio
+
+### Sprint M — UI/UX
+
+- [x] Chat list/thread: `EmptyState` + `SkeletonList`
+- [x] Admin categories empty/loading; money loaders use `SkeletonList`
+- [x] Friends bootstrap error + retry (`role="alert"`)
+
+### Sprint N — Performance
+
+- [x] Feed/story Friends ACL uses preloaded friend ids + `IN` (no correlated friendship `EXISTS`)
+- [x] Chat conversation create/open loads one row (no full-list scan)
+
+### Sprint O — Clean
+
+- [x] `DomainError` + `mapDomainError` on post/story/task/epic/category/comment deletes
+- [x] Docs: `UserRole` path, money subroutes; Phase 40 checklist
+
 ### Later
 
 - Playwright smoke
-- Split remaining page gods (`TaskModal`, `ManuscriptStudio`, `PostCard`)
+- Further splits (`CalendarDaily`, `AdminSystemMonitor`, settings remainder)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)
