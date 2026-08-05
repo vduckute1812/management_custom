@@ -80,8 +80,9 @@ Narrative craft:
 6. Keep category focus: ${input.categoryName}.
 7. Do NOT invent facts, citations, or numbers that are not in the source.
 8. Do NOT paste the original title as a heading unless rewritten.
-9. Output language: match the source language when clear; otherwise English.
-10. JSON shape:
+9. Do NOT append a source URL / “Adapted from” footer — the system adds that.
+10. Output language: match the source language when clear; otherwise English.
+11. JSON shape:
 {"rewritten_title":"...","rewritten_content":"...markdown...","excerpt":"...max 280 chars..."}
 
 Source name: ${input.sourceName}
