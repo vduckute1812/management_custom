@@ -20,25 +20,29 @@ import {
   clearAuthCookies,
   readPresentedRefreshToken,
 } from "~/server/utils/refreshCookie";
-import { parseBody } from "~/server/utils/http";
+import { parseBody, mapDomainError } from "~/server/utils/http";
 import { logoutBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  const body = await parseBody(event, logoutBodySchema);
-  const usedCookie = Boolean(getCookie(event, REFRESH_COOKIE)?.trim());
-  assertSameOriginForCookieAuth(event, usedCookie);
+  try {
+    const body = await parseBody(event, logoutBodySchema);
+    const usedCookie = Boolean(getCookie(event, REFRESH_COOKIE)?.trim());
+    assertSameOriginForCookieAuth(event, usedCookie);
 
-  const presented = readPresentedRefreshToken(event, body?.refreshToken);
-  const everywhere = body?.everywhere === true;
-  const user = getOptionalUser(event);
+    const presented = readPresentedRefreshToken(event, body?.refreshToken);
+    const everywhere = body?.everywhere === true;
+    const user = getOptionalUser(event);
 
-  if (presented) {
-    await revokeRefreshToken(hashOpaqueToken(presented));
+    if (presented) {
+      await revokeRefreshToken(hashOpaqueToken(presented));
+    }
+    if (everywhere && user) {
+      await revokeAllRefreshTokensForUser(user.sub);
+    }
+
+    clearAuthCookies(event);
+    return { ok: true };
+  } catch (err) {
+    mapDomainError(err);
   }
-  if (everywhere && user) {
-    await revokeAllRefreshTokensForUser(user.sub);
-  }
-
-  clearAuthCookies(event);
-  return { ok: true };
 });
