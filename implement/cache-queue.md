@@ -132,7 +132,7 @@ cannot double-run the same job.
 | `articles.fetch`      | `{ force?: boolean }`          | RSS/ArXiv fetch → insert `pending_articles` drafts → enqueue rewrites |
 | `articles.rewrite`    | `{ articleId }`                | Gemini/OpenAI storytelling rewrite → `pending_approval`               |
 
-Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleDailyArticleFetch()` after `ARTICLES_FETCH_HOUR_UTC` (default `2`) when no completed fetch exists for the UTC day. Env: `ARTICLES_FETCH_*`, `LLM_PROVIDER`, `GEMINI_*` / `OPENAI_*`.
+Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleDailyArticleFetch()` after `ARTICLES_FETCH_HOUR_UTC` (default `2`) when no completed fetch exists for the UTC day. Fetch prefers longer bodies (`ARTICLES_FETCH_MIN_CHARS`, optional page expand) and LLM rewrite targets ~5–10 minute storytelling (`ARTICLES_READ_MINUTES_*`). Env: `ARTICLES_FETCH_*`, `ARTICLES_EXPAND_*`, `ARTICLES_READ_MINUTES_*`, `LLM_PROVIDER`, `GEMINI_*` / `OPENAI_*`.
 
 Enqueue helpers live in `server/utils/queue.ts`
 (`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
