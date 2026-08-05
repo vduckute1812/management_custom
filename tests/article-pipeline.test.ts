@@ -11,6 +11,7 @@ import {
   hashArticleUrl,
   isSafeHttpUrl,
 } from "../utils/articleUrl";
+import { ensureSourceAttribution } from "../utils/articleAttribution";
 import {
   redactSecrets,
   targetReadingMinutes,
@@ -125,6 +126,41 @@ describe("long-form fetch selection", () => {
 describe("storytelling rewrite targets", () => {
   it("defaults to a 5–10 minute reading window", () => {
     expect(targetReadingMinutes()).toEqual({ min: 5, max: 10 });
+  });
+});
+
+describe("source attribution footer", () => {
+  it("appends a Source markdown link", () => {
+    const out = ensureSourceAttribution(
+      "## Hello\n\nBody text.",
+      "IEEE Spectrum",
+      "https://spectrum.ieee.org/example",
+    );
+    expect(out).toContain("## Hello");
+    expect(out).toContain(
+      "**Source:** [IEEE Spectrum](https://spectrum.ieee.org/example)",
+    );
+  });
+
+  it("replaces an older Adapted-from footer instead of duplicating", () => {
+    const once = ensureSourceAttribution(
+      "Story\n\n---\n*Adapted from [Old](https://example.com/a)*",
+      "Nature",
+      "https://www.nature.com/articles/x",
+    );
+    expect(once.match(/\*\*Source:\*\*/g)?.length).toBe(1);
+    expect(once).toContain("https://www.nature.com/articles/x");
+    expect(once).not.toContain("Adapted from");
+  });
+
+  it("skips unsafe URLs but still names the source", () => {
+    const out = ensureSourceAttribution(
+      "Body",
+      "Local notes",
+      "javascript:alert(1)",
+    );
+    expect(out).toContain("**Source:** Local notes");
+    expect(out).not.toContain("javascript:");
   });
 });
 

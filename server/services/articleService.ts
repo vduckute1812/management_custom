@@ -31,7 +31,7 @@ import {
   rewriteArticle,
 } from "~/server/services/articleRewriter";
 import { JobTypes } from "~/server/utils/queue";
-import { isSafeHttpUrl } from "~/utils/articleUrl";
+import { ensureSourceAttribution } from "~/utils/articleAttribution";
 
 export async function enqueueArticleRewrite(
   articleId: string,
@@ -174,9 +174,15 @@ export async function runArticleRewriteJob(
     sourceName: article.sourceName,
   });
 
+  const rewrittenContent = ensureSourceAttribution(
+    result.rewrittenContent,
+    article.sourceName,
+    article.originalUrl,
+  );
+
   return updatePendingArticle(articleId, {
     rewrittenTitle: result.rewrittenTitle,
-    rewrittenContent: result.rewrittenContent,
+    rewrittenContent,
     excerpt: result.excerpt,
     status: ArticleStatus.PendingApproval,
   });
@@ -275,14 +281,11 @@ export async function approveAndPublishArticle(
     );
   }
 
-  const safeUrl = isSafeHttpUrl(article.originalUrl)
-    ? article.originalUrl
-    : null;
-  const attribution = safeUrl
-    ? `\n\n---\n*Adapted from [${article.sourceName}](${safeUrl})*`
-    : `\n\n---\n*Adapted from ${article.sourceName}*`;
-  const manuscriptBody =
-    safeUrl && body.includes(safeUrl) ? body : `${body}${attribution}`;
+  const manuscriptBody = ensureSourceAttribution(
+    body,
+    article.sourceName,
+    article.originalUrl,
+  );
 
   const post = await createPost(adminUserId, {
     title,
@@ -297,7 +300,7 @@ export async function approveAndPublishArticle(
     id,
     publishedPostId: post.id,
     rewrittenTitle: title,
-    rewrittenContent: body,
+    rewrittenContent: manuscriptBody,
   });
   if (!updated) {
     throw new DomainError(409, "Article already approved");
