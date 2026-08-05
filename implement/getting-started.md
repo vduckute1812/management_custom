@@ -85,11 +85,31 @@ APP_PORT=3000
 # QUEUE_IDLE_MS=4000
 # QUEUE_STALE_SECONDS=300
 # QUEUE_PURGE_DAYS=14
+
+# Article pipeline (optional) — daily fetch + AI rewrite in the Nitro worker.
+# Without GEMINI_API_KEY / OPENAI_API_KEY, fetch inserts Draft rows only.
+# ARTICLES_FETCH_ENABLED=true
+# ARTICLES_FETCH_HOUR_UTC=2
+# ARTICLES_FETCH_MAX_PER_SOURCE=3
+# ARTICLES_FETCH_MIN_CHARS=800
+# ARTICLES_EXPAND_PAGES=true
+# ARTICLES_EXPAND_BELOW_CHARS=1500
+# ARTICLES_READ_MINUTES_MIN=5
+# ARTICLES_READ_MINUTES_MAX=10
+# LLM_PROVIDER=gemini
+# GEMINI_API_KEY=
+# GEMINI_MODEL=gemini-flash-latest
+# GEMINI_MAX_OUTPUT_TOKENS=16384
+# LLM_TIMEOUT_MS=120000
+# OPENAI_API_KEY=
+# OPENAI_MODEL=gpt-4o-mini
+# OPENAI_MAX_TOKENS=8000
 ```
 
 The MySQL driver accepts `DB_PASSWORD` as an alias for `DB_PASS` for anyone whose shop standard prefers the long form.
 
-Cache & queue design notes: [`cache-queue.md`](./cache-queue.md).
+Cache & queue design notes: [`cache-queue.md`](./cache-queue.md).  
+Article pipeline env + Pi Gemini setup: `.env.example` and [`ci-cd.md`](./ci-cd.md#configure-gemini-on-the-pi-configure-geminish).
 
 ## npm scripts (common)
 
