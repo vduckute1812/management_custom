@@ -5,8 +5,10 @@ import {
   pendingArticleApproveBodySchema,
   pendingArticleRejectBodySchema,
   pendingArticleBulkDeleteBodySchema,
+  pendingArticleSettingsPatchBodySchema,
 } from "../server/schemas/article";
 import { ArticleStatus, PIPELINE_CATEGORY_SLUGS } from "../types/article";
+import { AppSettingKey } from "../types/appSettings";
 import {
   normalizeArticleUrl,
   hashArticleUrl,
@@ -18,6 +20,7 @@ import {
   targetReadingMinutes,
 } from "../server/services/articleRewriter";
 import {
+  ARTICLE_FEED_SOURCES,
   extractMainTextFromHtml,
   selectLongestItems,
 } from "../server/services/articleFetcher";
@@ -86,6 +89,23 @@ describe("pending article mutation schemas", () => {
       pendingArticleBulkDeleteBodySchema.safeParse({ ids: [] }).success,
     ).toBe(false);
   });
+
+  it("accepts daily-fetch settings patch", () => {
+    expect(
+      pendingArticleSettingsPatchBodySchema.safeParse({
+        dailyFetchEnabled: true,
+      }).success,
+    ).toBe(true);
+    expect(pendingArticleSettingsPatchBodySchema.safeParse({}).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("app setting keys", () => {
+  it("uses an integer key for daily fetch", () => {
+    expect(AppSettingKey.ArticlesDailyFetchEnabled).toBe(1);
+  });
 });
 
 describe("article URL normalize / hash / safety", () => {
@@ -135,9 +155,23 @@ describe("long-form fetch selection", () => {
   });
 });
 
-describe("storytelling rewrite targets", () => {
-  it("defaults to a 5–10 minute reading window", () => {
-    expect(targetReadingMinutes()).toEqual({ min: 5, max: 10 });
+describe("concise rewrite targets", () => {
+  it("defaults to a ~2–3 minute reading window", () => {
+    expect(targetReadingMinutes()).toEqual({ min: 2, max: 3 });
+  });
+});
+
+describe("reputable feed sources", () => {
+  it("only lists curated institutional/academic sources", () => {
+    const names = ARTICLE_FEED_SOURCES.map((s) => s.name);
+    expect(names).toContain("IEEE Spectrum");
+    expect(names).toContain("MIT Technology Review");
+    expect(names).toContain("Nature");
+    expect(names).toContain("Quanta Magazine");
+    expect(names).toContain("ACM Queue");
+    expect(names).not.toContain("Hacker News");
+    expect(names).not.toContain("TechCrunch");
+    expect(names).not.toContain("Wired Science");
   });
 });
 

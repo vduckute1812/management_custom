@@ -130,9 +130,9 @@ cannot double-run the same job.
 | `cache.invalidate`    | `{ prefixes: string[] }`       | `cacheDelPrefix` each                                                 |
 | `media.purgeExpired`  | `{}`                           | `purgeExpiredStories` (story rows + orphan R2 uploads)                |
 | `articles.fetch`      | `{ force?: boolean }`          | RSS/ArXiv fetch → insert `pending_articles` drafts → enqueue rewrites |
-| `articles.rewrite`    | `{ articleId }`                | Gemini/OpenAI storytelling rewrite → `pending_approval`               |
+| `articles.rewrite`    | `{ articleId }`                | Gemini/OpenAI concise summary rewrite → `pending_approval`            |
 
-Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleDailyArticleFetch()` after `ARTICLES_FETCH_HOUR_UTC` (default `2`) when no completed fetch exists for the UTC day. Fetch prefers longer bodies (`ARTICLES_FETCH_MIN_CHARS`, optional page expand) and LLM rewrite targets ~5–10 minute storytelling (`ARTICLES_READ_MINUTES_*`). Env: `ARTICLES_FETCH_*`, `ARTICLES_EXPAND_*`, `ARTICLES_READ_MINUTES_*`, `LLM_PROVIDER`, `GEMINI_*` / `OPENAI_*`.
+Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleDailyArticleFetch()` after `ARTICLES_FETCH_HOUR_UTC` (default `2`) when no completed fetch exists for the UTC day and the admin daily-fetch toggle is on (`app_settings` key `ArticlesDailyFetchEnabled=1`; env `ARTICLES_FETCH_ENABLED=false` still force-disables). Fetch uses curated reputable sources; LLM rewrite targets a concise ~3 minute summary (`ARTICLES_READ_MINUTES_*`) with a Source link footer. Env: `ARTICLES_FETCH_*`, `ARTICLES_EXPAND_*`, `ARTICLES_READ_MINUTES_*`, `LLM_PROVIDER`, `GEMINI_*` / `OPENAI_*`.
 
 Enqueue helpers live in `server/utils/queue.ts`
 (`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
@@ -222,22 +222,22 @@ See `.env.example` and [`getting-started.md`](./getting-started.md).
 
 ### Article pipeline & LLM
 
-| Env                                 | Default               | Meaning                                                   |
-| ----------------------------------- | --------------------- | --------------------------------------------------------- |
-| `ARTICLES_FETCH_ENABLED`            | `true`                | Disable daily schedule when `0`/`false`                   |
-| `ARTICLES_FETCH_HOUR_UTC`           | `2`                   | UTC hour before `maybeScheduleDailyArticleFetch` enqueues |
-| `ARTICLES_FETCH_MAX_PER_SOURCE`     | `3`                   | Longest bodies kept per feed source                       |
-| `ARTICLES_FETCH_MIN_CHARS`          | `800`                 | Minimum raw body after RSS (+ optional page expand)       |
-| `ARTICLES_EXPAND_PAGES`             | `true`                | Fetch article HTML when RSS body is short                 |
-| `ARTICLES_EXPAND_BELOW_CHARS`       | `1500`                | Page-expand threshold                                     |
-| `ARTICLES_READ_MINUTES_MIN` / `MAX` | `5` / `10`            | Rewrite target (~220 wpm)                                 |
-| `LLM_PROVIDER`                      | `gemini`              | `gemini` or `openai`                                      |
-| `GEMINI_API_KEY`                    | unset                 | Required for Gemini rewrite                               |
-| `GEMINI_MODEL`                      | `gemini-flash-latest` | GenerateContent model id                                  |
-| `GEMINI_MAX_OUTPUT_TOKENS`          | `16384`               | Gemini output cap                                         |
-| `OPENAI_API_KEY` / `OPENAI_MODEL`   | unset / `gpt-4o-mini` | OpenAI path                                               |
-| `OPENAI_MAX_TOKENS`                 | `8000`                | OpenAI output cap                                         |
-| `LLM_TIMEOUT_MS`                    | `120000`              | Shared LLM HTTP timeout                                   |
+| Env                                 | Default               | Meaning                                                                                 |
+| ----------------------------------- | --------------------- | --------------------------------------------------------------------------------------- |
+| `ARTICLES_FETCH_ENABLED`            | `true`                | Force-disable daily schedule when `0`/`false` (DB toggle still applies when env allows) |
+| `ARTICLES_FETCH_HOUR_UTC`           | `2`                   | UTC hour before `maybeScheduleDailyArticleFetch` enqueues                               |
+| `ARTICLES_FETCH_MAX_PER_SOURCE`     | `3`                   | Longest bodies kept per feed source                                                     |
+| `ARTICLES_FETCH_MIN_CHARS`          | `800`                 | Minimum raw body after RSS (+ optional page expand)                                     |
+| `ARTICLES_EXPAND_PAGES`             | `true`                | Fetch article HTML when RSS body is short                                               |
+| `ARTICLES_EXPAND_BELOW_CHARS`       | `1500`                | Page-expand threshold                                                                   |
+| `ARTICLES_READ_MINUTES_MIN` / `MAX` | `2` / `3`             | Concise rewrite target (~220 wpm)                                                       |
+| `LLM_PROVIDER`                      | `gemini`              | `gemini` or `openai`                                                                    |
+| `GEMINI_API_KEY`                    | unset                 | Required for Gemini rewrite                                                             |
+| `GEMINI_MODEL`                      | `gemini-flash-latest` | GenerateContent model id                                                                |
+| `GEMINI_MAX_OUTPUT_TOKENS`          | `4096`                | Gemini output cap                                                                       |
+| `OPENAI_API_KEY` / `OPENAI_MODEL`   | unset / `gpt-4o-mini` | OpenAI path                                                                             |
+| `OPENAI_MAX_TOKENS`                 | `4000`                | OpenAI output cap                                                                       |
+| `LLM_TIMEOUT_MS`                    | `120000`              | Shared LLM HTTP timeout                                                                 |
 
 `enqueueArticleFetch` uses `maxAttempts: 3`; `enqueueArticleRewrite` uses `maxAttempts: 4` and staggers rewrites by 2s per queued row during a fetch run. Without an API key, fetch still inserts Draft rows (`rewriteQueued=0`). Source footer (`**Source:** [name](url)`) is appended server-side on rewrite and approve via `utils/articleAttribution.ts` — not by the LLM. Pi secrets: [`ci-cd.md`](./ci-cd.md#configure-gemini-on-the-pi-configure-geminish).
 

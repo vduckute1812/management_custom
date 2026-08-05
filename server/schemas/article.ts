@@ -72,4 +72,8 @@ export const pendingArticleFetchBodySchema = z.object({
   force: z.boolean().optional().default(false),
 });
 
+export const pendingArticleSettingsPatchBodySchema = z.object({
+  dailyFetchEnabled: z.boolean(),
+});
+
 export { articleStatusSchema };

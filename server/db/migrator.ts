@@ -64,6 +64,7 @@ const KNOWN_TABLES_DROP_ORDER = [
   "post_likes",
   "uploads",
   "pending_articles",
+  "app_settings",
   "posts",
   "post_categories",
   "jobs",

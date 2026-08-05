@@ -33,6 +33,10 @@ import {
 import { JobTypes } from "~/server/utils/queue";
 import { ensureSourceAttribution } from "~/utils/articleAttribution";
 import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import {
+  isArticlesDailyFetchEnabled,
+  setArticlesDailyFetchEnabled,
+} from "~/server/db/appSettings";
 
 export async function enqueueArticleRewrite(
   articleId: string,
@@ -69,11 +73,7 @@ export async function enqueueArticleFetch(opts?: {
 
 /** Schedule daily fetch at ARTICLES_FETCH_HOUR_UTC if not already done today. */
 export async function maybeScheduleDailyArticleFetch(): Promise<void> {
-  if (
-    ["0", "false", "no", "off"].includes(
-      (process.env.ARTICLES_FETCH_ENABLED || "true").trim().toLowerCase(),
-    )
-  ) {
+  if (!(await isArticlesDailyFetchEnabled())) {
     return;
   }
 
@@ -91,6 +91,23 @@ export async function maybeScheduleDailyArticleFetch(): Promise<void> {
 
   await enqueueArticleFetch();
   console.info(`[articles] scheduled daily fetch for ${day} UTC`);
+}
+
+export async function getArticlePipelineSettings(): Promise<{
+  dailyFetchEnabled: boolean;
+}> {
+  return {
+    dailyFetchEnabled: await isArticlesDailyFetchEnabled(),
+  };
+}
+
+export async function updateArticlePipelineSettings(input: {
+  dailyFetchEnabled: boolean;
+}): Promise<{ dailyFetchEnabled: boolean }> {
+  const dailyFetchEnabled = await setArticlesDailyFetchEnabled(
+    input.dailyFetchEnabled,
+  );
+  return { dailyFetchEnabled };
 }
 
 export async function runArticleFetchJob(): Promise<{

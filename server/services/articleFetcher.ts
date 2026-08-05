@@ -1,6 +1,6 @@
 /**
  * RSS / Atom / ArXiv feed sources for the automated article pipeline.
- * Prefers long-form reputable feeds; short link-dumps are excluded.
+ * Curated to well-known, reputable publishers and academic archives only.
  */
 
 import type { PipelineCategorySlug } from "~/types/article";
@@ -23,15 +23,11 @@ export interface FetchedFeedItem {
   categorySlug: PipelineCategorySlug;
 }
 
+/** Reputable institutional / academic / long-standing tech journalism only. */
 export const ARTICLE_FEED_SOURCES: FeedSource[] = [
   {
     name: "IEEE Spectrum",
     url: "https://spectrum.ieee.org/feeds/feed.rss",
-    categorySlug: "electronics",
-  },
-  {
-    name: "Electronics Weekly",
-    url: "https://www.electronicsweekly.com/feed/",
     categorySlug: "electronics",
   },
   {
@@ -45,23 +41,18 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
     categorySlug: "information-technology",
   },
   {
-    name: "Ars Technica",
-    url: "https://feeds.arstechnica.com/arstechnica/technology-lab",
-    categorySlug: "information-technology",
-  },
-  {
     name: "ArXiv cs.NI (IoT/networks)",
-    url: "https://export.arxiv.org/api/query?search_query=all:iot+OR+all:%22internet+of+things%22&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
+    url: "https://export.arxiv.org/api/query?search_query=all:iot+OR+all:%22internet+of+things%22&start=0&max_results=10&sortBy=submittedDate&sortOrder=descending",
     categorySlug: "iot",
-  },
-  {
-    name: "ArXiv math",
-    url: "https://export.arxiv.org/api/query?search_query=cat:math.CO+OR+cat:math.PR+OR+cat:math.OC&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
-    categorySlug: "math",
   },
   {
     name: "Quanta Magazine",
     url: "https://api.quantamagazine.org/feed",
+    categorySlug: "math",
+  },
+  {
+    name: "ArXiv math",
+    url: "https://export.arxiv.org/api/query?search_query=cat:math.CO+OR+cat:math.PR+OR+cat:math.OC&start=0&max_results=10&sortBy=submittedDate&sortOrder=descending",
     categorySlug: "math",
   },
   {
@@ -70,18 +61,13 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
     categorySlug: "docs",
   },
   {
-    name: "ArXiv recent CS",
-    url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
+    name: "ArXiv cs.AI / cs.LG",
+    url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&start=0&max_results=10&sortBy=submittedDate&sortOrder=descending",
     categorySlug: "docs",
   },
   {
     name: "ACM Queue",
     url: "https://queue.acm.org/rss/feeds/queuecontent.xml",
-    categorySlug: "ideas",
-  },
-  {
-    name: "Wired Science",
-    url: "https://www.wired.com/feed/category/science/latest/rss",
     categorySlug: "ideas",
   },
 ];

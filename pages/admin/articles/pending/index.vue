@@ -27,8 +27,10 @@ const createdFrom = ref("");
 const createdTo = ref("");
 const busyFetch = ref(false);
 const busyDelete = ref(false);
+const busyToggle = ref(false);
 const confirmBulkDelete = ref(false);
 const selectedIds = ref<string[]>([]);
+const dailyFetchEnabled = ref(true);
 
 interface ListResponse {
   articles: PendingArticleListItem[];
@@ -54,6 +56,22 @@ const {
     );
   },
   { watch: [statusFilter, categoryId, createdFrom, createdTo] },
+);
+
+const { data: settingsData, refresh: refreshSettings } = await useAsyncData(
+  "admin:pending-articles-settings",
+  async () =>
+    await apiFetch<{ dailyFetchEnabled: boolean }>(
+      "/api/admin/articles/pending/settings",
+    ),
+);
+
+watch(
+  settingsData,
+  (s) => {
+    if (s) dailyFetchEnabled.value = !!s.dailyFetchEnabled;
+  },
+  { immediate: true },
 );
 
 await refreshCategories();
@@ -174,6 +192,34 @@ async function runFetchNow() {
   }
 }
 
+async function toggleDailyFetch() {
+  const next = !dailyFetchEnabled.value;
+  busyToggle.value = true;
+  try {
+    const res = await apiFetch<{
+      ok: true;
+      dailyFetchEnabled: boolean;
+    }>("/api/admin/articles/pending/settings", {
+      method: "PATCH",
+      body: { dailyFetchEnabled: next },
+    });
+    dailyFetchEnabled.value = res.dailyFetchEnabled;
+    await refreshSettings();
+    pushToast(
+      res.dailyFetchEnabled
+        ? t("adminArticles.dailyFetchOn")
+        : t("adminArticles.dailyFetchOff"),
+      { tone: "success" },
+    );
+  } catch (err: unknown) {
+    pushToast(apiErrorMessage(err, t("adminArticles.dailyFetchToggleFailed")), {
+      tone: "danger",
+    });
+  } finally {
+    busyToggle.value = false;
+  }
+}
+
 async function runBulkDelete() {
   if (!selectedIds.value.length) return;
   busyDelete.value = true;
@@ -235,10 +281,31 @@ function categoryOptionLabel(cat: PostCategory): string {
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <button
+          type="button"
+          class="text-xs px-3 py-1.5 rounded-md border disabled:opacity-50"
+          :class="
+            dailyFetchEnabled
+              ? 'border-emerald-300 text-emerald-800 bg-emerald-50 hover:bg-emerald-100'
+              : 'border-slate-300 text-slate-600 bg-white hover:bg-slate-50'
+          "
+          :disabled="busyToggle || busyDelete || busyFetch"
+          :aria-pressed="dailyFetchEnabled"
+          :title="$t('adminArticles.dailyFetchHint')"
+          @click="toggleDailyFetch"
+        >
+          {{
+            busyToggle
+              ? $t("common.saving")
+              : dailyFetchEnabled
+                ? $t("adminArticles.dailyFetchEnabled")
+                : $t("adminArticles.dailyFetchDisabled")
+          }}
+        </button>
+        <button
           v-if="selectedCount > 0"
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 disabled:opacity-50"
-          :disabled="busyDelete || busyFetch"
+          :disabled="busyDelete || busyFetch || busyToggle"
           @click="confirmBulkDelete = true"
         >
           {{
@@ -250,7 +317,7 @@ function categoryOptionLabel(cat: PostCategory): string {
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="busyFetch || busyDelete"
+          :disabled="busyFetch || busyDelete || busyToggle"
           @click="runFetchNow"
         >
           {{
@@ -262,7 +329,7 @@ function categoryOptionLabel(cat: PostCategory): string {
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50"
-          :disabled="loading || busyDelete"
+          :disabled="loading || busyDelete || busyToggle"
           @click="refresh()"
         >
           {{ $t("adminArticles.refresh") }}
