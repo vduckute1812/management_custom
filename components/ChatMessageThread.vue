@@ -408,12 +408,12 @@ defineExpose({ scrollToBottom });
       <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-3/5" />
     </div>
 
-    <p
+    <EmptyState
       v-else-if="!messages.length"
-      class="py-12 text-center text-sm text-slate-500"
-    >
-      {{ t("chat.threadEmpty") }}
-    </p>
+      class="my-6"
+      illustration="spark"
+      :title="t('chat.threadEmpty')"
+    />
 
     <ul v-else class="space-y-3" role="list">
       <li

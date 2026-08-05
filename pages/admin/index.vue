@@ -533,6 +533,12 @@ function formatDateTime(iso?: string): string {
         <div v-if="categoriesLoading && !categories.length" aria-busy="true">
           <SkeletonList :rows="4" />
         </div>
+        <EmptyState
+          v-else-if="!categories.length"
+          class="my-4"
+          illustration="layers"
+          :title="$t('admin.categoryEmpty')"
+        />
         <table v-else class="min-w-full text-sm">
           <thead
             class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500"
@@ -582,18 +588,13 @@ function formatDateTime(iso?: string): string {
                 </div>
               </td>
             </tr>
-            <tr v-if="!categories.length">
-              <td colspan="4" class="px-3 py-3 text-xs italic text-slate-400">
-                {{ $t("admin.categoryEmpty") }}
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
 
-      <p v-if="loading" class="text-xs text-slate-500">
-        {{ $t("admin.loading") }}
-      </p>
+      <div v-if="loading" class="py-2" aria-busy="true">
+        <SkeletonList :rows="2" />
+      </div>
     </div>
 
     <ConfirmDialog

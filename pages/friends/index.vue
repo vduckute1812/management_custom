@@ -28,6 +28,7 @@ const userQuery = ref("");
 const busyId = ref<string | null>(null);
 const pendingUnfriend = ref<FriendshipRow | null>(null);
 const unfriendBusy = ref(false);
+const loadError = ref<string | null>(null);
 
 const knownPeerIds = computed(() => {
   const ids = new Set<string>();
@@ -41,15 +42,24 @@ const searchHits = computed(() =>
   results.value.filter((u) => u.id !== auth.user.value?.id),
 );
 
+async function loadOverview() {
+  loadError.value = null;
+  try {
+    await refresh();
+  } catch {
+    loadError.value = t("friends.loadFailed");
+  }
+}
+
 onMounted(async () => {
   if (!auth.isAuthenticatedUi.value) return;
-  await refresh();
+  await loadOverview();
 });
 
 watch(
   () => auth.isAuthenticatedUi.value,
   async (ok) => {
-    if (ok) await refresh();
+    if (ok) await loadOverview();
   },
 );
 
@@ -133,6 +143,17 @@ async function confirmUnfriend() {
         {{ $t("friends.pageDescription") }}
       </p>
     </header>
+
+    <p v-if="loadError" class="text-sm text-rose-600" role="alert">
+      {{ loadError }}
+      <button
+        type="button"
+        class="ml-2 font-semibold underline"
+        @click="loadOverview"
+      >
+        {{ $t("common.retry") }}
+      </button>
+    </p>
 
     <section class="space-y-3" aria-labelledby="friends-find-heading">
       <h2
