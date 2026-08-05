@@ -65,19 +65,6 @@ cd ~/actions-runner   # or the --dir you chose
 ./svc.sh status
 ```
 
-A deploy that stays **Queued** for hours means no Online runner matches
-`[self-hosted, management]` — GitHub will wait indefinitely. Bring the Pi
-runner online (or cancel the run) before expecting production to update.
-Older queued deploys are cancelled when a newer `master` push starts
-(`concurrency.cancel-in-progress` on `deploy-pi.yml`).
-
-### CI (GitHub-hosted)
-
-`ci.yml` runs format / typecheck / unit tests / Nuxt build / MySQL integration
-on `ubuntu-latest`. It uses `actions/checkout@v5` + `actions/setup-node@v5`
-(Node 24 action runtime). The Pi deploy workflow keeps `checkout@v4` until the
-self-hosted runner is confirmed ≥ **2.327.1**.
-
 ### 3. Local secrets on the Pi (required)
 
 The Actions checkout does **not** include gitignored files. Keep production
