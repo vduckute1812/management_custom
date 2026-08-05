@@ -23,7 +23,8 @@
 #
 # Also triggered by Actions workflow_dispatch or any master push that touches
 # app/docker paths (docs-only pushes are paths-ignored — re-run Deploy if a
-# prior in-progress deploy was cancelled by a newer push).
+# prior in-progress deploy was cancelled by a newer push, or if the
+# self-hosted runner lost communication mid-build).
 #
 # Env knobs: see docker/lib-compose.sh
 
