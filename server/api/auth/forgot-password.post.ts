@@ -19,39 +19,43 @@ import {
   nowPlusSeconds,
 } from "~/server/utils/auth";
 import { enqueuePasswordResetEmail } from "~/server/utils/queue";
-import { parseBody } from "~/server/utils/http";
+import { mapDomainError, parseBody } from "~/server/utils/http";
 import { forgotPasswordBodySchema } from "~/server/schemas";
 import { assertAccountRateLimit } from "~/server/rate-limit";
 
 const RESET_TTL_SECONDS = 3600;
 
 export default defineEventHandler(async (event) => {
-  const body = await parseBody(event, forgotPasswordBodySchema);
-  const email = body.email.trim().toLowerCase();
+  try {
+    const body = await parseBody(event, forgotPasswordBodySchema);
+    const email = body.email.trim().toLowerCase();
 
-  await assertAccountRateLimit(event, email, "/api/auth/forgot-password");
+    await assertAccountRateLimit(event, email, "/api/auth/forgot-password");
 
-  const user = await getUserByEmail(email);
-  if (user?.emailVerified) {
-    const rawToken = generateOpaqueToken();
-    await invalidatePendingPasswordResets(user.id);
-    await createPasswordReset({
-      userId: user.id,
-      tokenHash: hashOpaqueToken(rawToken),
-      expiresAt: nowPlusSeconds(RESET_TTL_SECONDS),
-    });
-
-    try {
-      await enqueuePasswordResetEmail({
-        to: email,
-        token: rawToken,
-        locale: user.locale,
+    const user = await getUserByEmail(email);
+    if (user?.emailVerified) {
+      const rawToken = generateOpaqueToken();
+      await invalidatePendingPasswordResets(user.id);
+      await createPasswordReset({
+        userId: user.id,
+        tokenHash: hashOpaqueToken(rawToken),
+        expiresAt: nowPlusSeconds(RESET_TTL_SECONDS),
       });
-    } catch (err) {
-      // Never log the raw token / reset URL.
-      console.error("[forgot-password] failed to enqueue reset email", err);
-    }
-  }
 
-  return { ok: true };
+      try {
+        await enqueuePasswordResetEmail({
+          to: email,
+          token: rawToken,
+          locale: user.locale,
+        });
+      } catch (err) {
+        // Never log the raw token / reset URL.
+        console.error("[forgot-password] failed to enqueue reset email", err);
+      }
+    }
+
+    return { ok: true };
+  } catch (err) {
+    mapDomainError(err);
+  }
 });

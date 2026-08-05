@@ -626,8 +626,12 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Extract `AdminSystemLogs`, `AdminUsersPanel`, `AdminOverviewSummary`
 - [x] Extract `FeedStoryTray` / category scroller / sidebar; split `storiesRead.ts`
 
+### Sprint U — Structure + Clean (clear >9)
+
+- [x] Extract `CalendarDailyGrid`, `ChatMessageBubble`, `SettingsNotificationsSection`, `MoneyCategoryCreatorPanel`
+- [x] `mapDomainError` on admin user role/delete + auth login/forgot/reset/verify/google-unlink
+
 ### Later
 
 - Playwright smoke
-- Further splits (`CalendarDaily`, settings remainder, `ChatMessageThread`)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)
