@@ -68,6 +68,7 @@ function mapListItem(row: PendingArticleRow): PendingArticleListItem {
     id: row.id,
     originalTitle: row.original_title,
     rewrittenTitle: row.rewritten_title,
+    excerpt: row.excerpt,
     sourceName: row.source_name,
     categoryId: row.category_id,
     categorySlug: row.category_slug,
@@ -88,11 +89,13 @@ const SELECT_FULL = `
   a.created_at, a.updated_at, a.published_at
 `;
 
-/** List endpoints must not pull MEDIUMTEXT bodies. */
+/** List endpoints must not pull full MEDIUMTEXT bodies; preview via excerpt/LEFT. */
 const SELECT_LIST = `
   a.id, a.original_title, a.original_url, a.source_name, a.category_id,
   c.slug AS category_slug, c.name AS category_name,
-  a.rewritten_title, a.status, a.source_published_at, a.created_at
+  a.rewritten_title,
+  COALESCE(NULLIF(TRIM(a.excerpt), ''), LEFT(a.raw_content, 280)) AS excerpt,
+  a.status, a.source_published_at, a.created_at
 `;
 
 export async function urlHashExists(urlHash: string): Promise<boolean> {
@@ -126,13 +129,14 @@ export async function createPendingArticle(args: {
   if (!title || !url || !raw) {
     throw new DomainError(400, "Article title, URL, and content are required");
   }
+  const seedExcerpt = raw.replace(/\s+/g, " ").slice(0, 280);
 
   try {
     await pool.query(
       `INSERT INTO pending_articles
          (id, original_title, original_url, url_hash, source_name, category_id,
-          raw_content, status, source_published_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          raw_content, excerpt, status, source_published_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         title,
@@ -141,6 +145,7 @@ export async function createPendingArticle(args: {
         args.sourceName.trim().slice(0, 255) || "Unknown",
         args.categoryId,
         raw,
+        seedExcerpt,
         args.status ?? ArticleStatus.Draft,
         args.sourcePublishedAt ? isoToDB(args.sourcePublishedAt) : null,
         isoToDB(now),

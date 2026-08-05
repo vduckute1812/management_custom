@@ -79,6 +79,8 @@ export interface PendingArticleListItem {
   id: string;
   originalTitle: string;
   rewrittenTitle: string | null;
+  /** Short preview for list (excerpt or truncated raw). */
+  excerpt: string | null;
   sourceName: string;
   categoryId: string | null;
   categorySlug: string | null;
