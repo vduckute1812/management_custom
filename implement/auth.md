@@ -57,6 +57,19 @@ Token exchange / userinfo failures log **HTTP status only** — response bodies 
 
 Redirect URI: `{APP_BASE_URL}/api/auth/google/callback` (or `GOOGLE_REDIRECT_URI`). Provider enum: `AuthProvider.Google = 0` in `auth_identities.provider`.
 
+### Google Auth Platform branding (consent screen)
+
+Google brand verification rejects logos that are only generic initials (e.g. a plain “TX” badge) with **“Your logo does not uniquely identify your brand and identity.”** Upload a mark that clearly attributes the app to **Da Nang TechX**.
+
+| Field           | Value                                                                                                                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| App name        | `Da Nang TechX` (must match homepage / `site.name` / `application-name` meta)                                                                                                                 |
+| App logo        | `public/branding/google-oauth-logo.png` — **exactly 120×120** PNG, indigo plate with TX seal + readable **DA NANG** / **TechX** wordmark (`google-oauth-logo-master.png` is the 512px source) |
+| Homepage        | `https://dntechx.com` (SSR HTML must show the name **Da Nang TechX** and describe the portal)                                                                                                 |
+| Privacy / Terms | `https://dntechx.com/privacy`, `https://dntechx.com/terms`                                                                                                                                    |
+
+Console: [Google Auth Platform → Branding](https://console.cloud.google.com/auth/branding?project=gen-lang-client-0970758271). After uploading the new logo (and confirming the app name), save draft branding and **resubmit for verification**. The compact `/logo.png` circular TX seal stays for the in-app header/favicon; do not upload that alone to Google.
+
 Both auth cookies are `HttpOnly`, `SameSite=Lax`, `Path=/`. `Secure` defaults to on in production / when `APP_BASE_URL` is `https://`; override with `COOKIE_SECURE=false` for plain `http://localhost` dev.
 
 Login and refresh set both cookies. Logout revokes the refresh hash server-side and clears cookies.

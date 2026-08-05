@@ -54,20 +54,28 @@ function catLabel(cat: { slug: string; name: string }) {
         class="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
       >
         <header>
-          <div
-            class="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white/80 px-3 py-1.5 shadow-sm backdrop-blur"
-          >
-            <span class="relative flex h-2 w-2" aria-hidden="true">
-              <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-60"
-              />
-              <span
-                class="relative inline-flex h-2 w-2 rounded-full bg-brand-600"
-              />
-            </span>
-            <span class="text-xs font-semibold tracking-wide text-brand-700">
-              {{ $t("home.brand") }}
-            </span>
+          <!-- Same brand mark Google Auth Platform reviewers expect on the
+               consent screen — keep the PNG path stable for re-verification. -->
+          <div class="flex items-center gap-3">
+            <img
+              src="/branding/google-oauth-logo.png"
+              width="48"
+              height="48"
+              decoding="async"
+              alt=""
+              aria-hidden="true"
+              class="h-12 w-12 shrink-0 rounded-[0.85rem] shadow-sm ring-1 ring-brand-200/80"
+            />
+            <div class="min-w-0">
+              <p
+                class="text-sm font-bold tracking-tight text-slate-900 sm:text-base"
+              >
+                {{ $t("home.brand") }}
+              </p>
+              <p class="text-xs font-medium tracking-wide text-brand-700">
+                {{ $t("home.brandTagline") }}
+              </p>
+            </div>
           </div>
 
           <h1

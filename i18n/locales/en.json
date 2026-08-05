@@ -1123,7 +1123,7 @@
   "seo": {
     "appTitle": "Personal Task & Analytics Manager",
     "home": "Home",
-    "homeDescription": "Da Nang Tech R&D and Networking Portal — overview of the Feed and Time Management modules.",
+    "homeDescription": "Da Nang TechX — overview of the Feed and Time Management modules.",
     "feed": "Feed",
     "feedDescription": "Share documents, stories, and updates with your team.",
     "profile": "Profile",
@@ -1174,10 +1174,11 @@
     "ideas": "Ideas"
   },
   "home": {
-    "brand": "Da Nang Tech R&D and Networking Portal",
+    "brand": "Da Nang TechX",
+    "brandTagline": "R&D and Networking Portal",
     "welcome": "Welcome",
     "welcomeNamed": "Welcome, {name}",
-    "intro": "This website is a place where we connect and share with tech enthusiasts everywhere.",
+    "intro": "Da Nang TechX is a community portal where we connect and share with tech enthusiasts — a public feed, chat, and private time management.",
     "categoriesTitle": "Main categories",
     "categoriesBody": "Articles are organized into core tech topics. Pick a directory to browse its articles in the Feed.",
     "articleCount": "No articles yet | 1 article | {count} articles",
