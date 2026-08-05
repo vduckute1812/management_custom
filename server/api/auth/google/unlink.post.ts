@@ -9,6 +9,7 @@ import {
   userHasProvider,
 } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { DomainError, mapDomainError } from "~/server/utils/http";
 import {
   ACCESS_COOKIE,
   REFRESH_COOKIE,
@@ -16,30 +17,33 @@ import {
 } from "~/server/utils/refreshCookie";
 
 export default defineEventHandler(async (event) => {
-  const usedCookie = Boolean(
-    getCookie(event, REFRESH_COOKIE)?.trim() ||
-    getCookie(event, ACCESS_COOKIE)?.trim(),
-  );
-  assertSameOriginForCookieAuth(event, usedCookie);
-  const claims = requireUser(event);
-  const user = await getUserById(claims.sub);
-  if (!user) {
-    throw createError({ statusCode: 404, statusMessage: "User not found" });
-  }
+  try {
+    const usedCookie = Boolean(
+      getCookie(event, REFRESH_COOKIE)?.trim() ||
+      getCookie(event, ACCESS_COOKIE)?.trim(),
+    );
+    assertSameOriginForCookieAuth(event, usedCookie);
+    const claims = requireUser(event);
+    const user = await getUserById(claims.sub);
+    if (!user) {
+      throw new DomainError(404, "User not found");
+    }
 
-  const linked = await userHasProvider(user.id, AuthProvider.Google);
-  if (!linked) {
-    return { ok: true, googleLinked: false };
-  }
+    const linked = await userHasProvider(user.id, AuthProvider.Google);
+    if (!linked) {
+      return { ok: true, googleLinked: false };
+    }
 
-  if (!user.passwordHash) {
-    throw createError({
-      statusCode: 400,
-      statusMessage:
+    if (!user.passwordHash) {
+      throw new DomainError(
+        400,
         "Set a password before unlinking Google, or you will be locked out.",
-    });
-  }
+      );
+    }
 
-  await unlinkIdentity(user.id, AuthProvider.Google);
-  return { ok: true, googleLinked: false };
+    await unlinkIdentity(user.id, AuthProvider.Google);
+    return { ok: true, googleLinked: false };
+  } catch (err) {
+    mapDomainError(err);
+  }
 });

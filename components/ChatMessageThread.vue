@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import type { ChatMessage, ChatMessageReactionType } from "~/types/chat";
 import {
-  ChatMessageKind,
   ChatMessageReaction,
   CHAT_REACTION_EMOJI,
   CHAT_REACTION_TYPES,
-  getChatSticker,
 } from "~/types/chat";
 
 const props = defineProps<{
@@ -23,7 +21,7 @@ const emit = defineEmits<{
   delete: [messageId: string];
 }>();
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 const scroller = ref<HTMLElement | null>(null);
 const loadOlderSentinel = ref<HTMLElement | null>(null);
 const stickToBottom = ref(true);
@@ -55,29 +53,6 @@ const REACTION_LABEL = computed<Record<ChatMessageReactionType, string>>(
   }),
 );
 
-function formatTime(iso: string) {
-  try {
-    return new Intl.DateTimeFormat(locale.value, {
-      hour: "numeric",
-      minute: "2-digit",
-    }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
-
-function formatDuration(ms: number | null | undefined) {
-  const total = Math.max(0, Math.round((ms ?? 0) / 1000));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-function stickerEmoji(id: string | null) {
-  if (!id) return "❓";
-  return getChatSticker(id)?.emoji ?? "❓";
-}
-
 function isReadByPeer(msg: ChatMessage): boolean {
   if (!msg.mine) return false;
   if (typeof msg.readByPeer === "boolean") return msg.readByPeer;
@@ -95,25 +70,6 @@ const lastReadMineId = computed(() => {
   }
   return null;
 });
-
-function isMediaBubble(msg: ChatMessage) {
-  return (
-    msg.kind === ChatMessageKind.Sticker ||
-    msg.kind === ChatMessageKind.Emoji ||
-    msg.kind === ChatMessageKind.Image ||
-    msg.kind === ChatMessageKind.Audio
-  );
-}
-
-function topReactions(msg: ChatMessage) {
-  return CHAT_REACTION_TYPES.filter((k) => (msg.reactions?.[k] ?? 0) > 0).map(
-    (k) => ({
-      type: k,
-      count: msg.reactions[k],
-      emoji: CHAT_REACTION_EMOJI[k],
-    }),
-  );
-}
 
 function requestLoadMore() {
   if (!props.hasMore || props.loadingMore) return;
@@ -416,155 +372,19 @@ defineExpose({ scrollToBottom });
     />
 
     <ul v-else class="space-y-3" role="list">
-      <li
+      <ChatMessageBubble
         v-for="msg in messages"
         :key="msg.id"
-        class="flex"
-        :class="msg.mine ? 'justify-end' : 'justify-start'"
-      >
-        <div class="relative max-w-[85%] sm:max-w-[70%]">
-          <div
-            data-chat-bubble
-            class="relative touch-manipulation select-none transition-[filter,box-shadow,background-color,transform] duration-150 [-webkit-touch-callout:none] motion-reduce:transition-none"
-            :class="[
-              isMediaBubble(msg)
-                ? 'rounded-2xl px-0.5 py-0.5'
-                : msg.mine
-                  ? 'rounded-2xl rounded-br-md bg-brand-600 px-3 py-2 text-white'
-                  : 'rounded-2xl rounded-bl-md bg-slate-100 px-3 py-2 text-slate-800',
-              isMessageHighlighted(msg.id)
-                ? isMediaBubble(msg)
-                  ? 'scale-[0.98] bg-brand-100/80 ring-2 ring-brand-400 ring-offset-2 ring-offset-white'
-                  : msg.mine
-                    ? 'scale-[0.98] bg-brand-700 shadow-md ring-2 ring-brand-300 ring-offset-2 ring-offset-white'
-                    : 'scale-[0.98] bg-brand-100 text-slate-900 shadow-md ring-2 ring-brand-400 ring-offset-2 ring-offset-white'
-                : '',
-            ]"
-            @pointerdown="onBubblePointerDown(msg.id, $event)"
-            @pointermove="onBubblePointerMove"
-            @pointerup="onBubblePointerUp"
-            @pointerleave="onBubblePointerLeave"
-            @pointercancel="onBubblePointerCancel"
-            @contextmenu.prevent
-          >
-            <template v-if="msg.kind === ChatMessageKind.Sticker">
-              <span
-                class="inline-block select-none text-5xl leading-none drop-shadow-sm"
-                role="img"
-                :aria-label="t('chat.stickerPreview')"
-              >
-                {{ stickerEmoji(msg.stickerId) }}
-              </span>
-            </template>
-            <template v-else-if="msg.kind === ChatMessageKind.Emoji">
-              <span class="inline-block select-none text-4xl leading-none">
-                {{ msg.body }}
-              </span>
-            </template>
-            <template v-else-if="msg.kind === ChatMessageKind.Image">
-              <a
-                v-if="msg.attachment?.url"
-                :href="msg.attachment.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="block overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
-              >
-                <img
-                  :src="msg.attachment.url"
-                  :alt="msg.attachment.fileName || t('chat.imagePreview')"
-                  class="max-h-72 w-full object-contain"
-                  loading="lazy"
-                />
-              </a>
-              <p v-else class="text-sm text-slate-500">
-                {{ t("chat.imageUnavailable") }}
-              </p>
-            </template>
-            <template v-else-if="msg.kind === ChatMessageKind.Audio">
-              <div
-                class="min-w-[12rem] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2"
-                :class="msg.mine ? 'border-brand-200 bg-brand-50' : ''"
-              >
-                <p class="mb-1 text-[11px] font-medium text-slate-500">
-                  {{ t("chat.voiceNote") }}
-                  <span v-if="msg.durationMs" class="tabular-nums">
-                    · {{ formatDuration(msg.durationMs) }}
-                  </span>
-                </p>
-                <audio
-                  v-if="msg.attachment?.url"
-                  controls
-                  preload="metadata"
-                  class="w-full max-w-xs"
-                  :src="msg.attachment.url"
-                >
-                  {{ t("chat.audioUnsupported") }}
-                </audio>
-                <p v-else class="text-sm text-slate-500">
-                  {{ t("chat.audioUnavailable") }}
-                </p>
-              </div>
-            </template>
-            <template v-else>
-              <p
-                class="whitespace-pre-wrap break-words text-sm leading-relaxed"
-              >
-                {{ msg.body }}
-              </p>
-            </template>
-            <div
-              class="mt-1 flex items-center gap-1.5 text-[10px]"
-              :class="
-                msg.mine && msg.kind === ChatMessageKind.Text
-                  ? 'justify-end text-brand-100'
-                  : msg.mine
-                    ? 'justify-end text-slate-400'
-                    : 'text-slate-400'
-              "
-            >
-              <span>{{ formatTime(msg.createdAt) }}</span>
-              <span
-                v-if="msg.mine && msg.id === lastReadMineId"
-                class="font-medium"
-                :class="
-                  msg.kind === ChatMessageKind.Text
-                    ? 'text-brand-50'
-                    : 'text-brand-600'
-                "
-              >
-                · {{ t("chat.readReceipt") }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Existing reaction chips only (no always-on React button) -->
-          <div
-            v-if="topReactions(msg).length"
-            data-chat-react
-            class="mt-1 flex flex-wrap items-center gap-1"
-            :class="msg.mine ? 'justify-end' : 'justify-start'"
-          >
-            <button
-              v-for="r in topReactions(msg)"
-              :key="r.type"
-              type="button"
-              class="inline-flex items-center gap-0.5 rounded-full border px-1.5 py-0.5 text-[11px] leading-none transition"
-              :class="
-                msg.myReaction === r.type
-                  ? 'border-brand-300 bg-brand-50 text-brand-800'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              "
-              :title="REACTION_LABEL[r.type]"
-              :aria-label="REACTION_LABEL[r.type]"
-              :aria-pressed="msg.myReaction === r.type"
-              @click="onReactionChipClick(msg.id, r.type)"
-            >
-              <span aria-hidden="true">{{ r.emoji }}</span>
-              <span v-if="r.count > 1" class="tabular-nums">{{ r.count }}</span>
-            </button>
-          </div>
-        </div>
-      </li>
+        :message="msg"
+        :highlighted="isMessageHighlighted(msg.id)"
+        :show-read-receipt="msg.id === lastReadMineId"
+        @bubble-pointerdown="onBubblePointerDown"
+        @bubble-pointermove="onBubblePointerMove"
+        @bubble-pointerup="onBubblePointerUp"
+        @bubble-pointerleave="onBubblePointerLeave"
+        @bubble-pointercancel="onBubblePointerCancel"
+        @reaction-click="onReactionChipClick"
+      />
     </ul>
 
     <!-- Fixed / teleported so the scroller overflow can't clip the bar -->

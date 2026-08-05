@@ -9,37 +9,36 @@
  */
 import { UserRole, deleteUser, getUserById } from "~/server/utils/db";
 import { requireSuperAdmin } from "~/server/utils/authContext";
+import { DomainError, mapDomainError } from "~/server/utils/http";
 
 export default defineEventHandler(async (event) => {
-  const actor = await requireSuperAdmin(event);
-  const id = getRouterParam(event, "id");
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: "Missing user id" });
-  }
+  try {
+    const actor = await requireSuperAdmin(event);
+    const id = getRouterParam(event, "id");
+    if (!id) {
+      throw new DomainError(400, "Missing user id");
+    }
 
-  if (id === actor.sub) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "You cannot delete your own account.",
-    });
-  }
+    if (id === actor.sub) {
+      throw new DomainError(400, "You cannot delete your own account.");
+    }
 
-  const target = await getUserById(id);
-  if (!target) {
-    throw createError({ statusCode: 404, statusMessage: "User not found" });
-  }
+    const target = await getUserById(id);
+    if (!target) {
+      throw new DomainError(404, "User not found");
+    }
 
-  if (target.role === UserRole.Superadmin) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: "The superadmin account cannot be deleted.",
-    });
-  }
+    if (target.role === UserRole.Superadmin) {
+      throw new DomainError(400, "The superadmin account cannot be deleted.");
+    }
 
-  const removed = await deleteUser(id);
-  if (!removed) {
-    throw createError({ statusCode: 404, statusMessage: "User not found" });
-  }
+    const removed = await deleteUser(id);
+    if (!removed) {
+      throw new DomainError(404, "User not found");
+    }
 
-  return { ok: true };
+    return { ok: true };
+  } catch (err) {
+    mapDomainError(err);
+  }
 });
