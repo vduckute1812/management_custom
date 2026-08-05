@@ -51,14 +51,26 @@ const showPreview = ref(true);
 const busy = ref<string | null>(null);
 const confirmAction = ref<"approve" | "reject" | "delete" | null>(null);
 const pollStop = ref(false);
+/** Avoid clobbering in-progress edits when a poll refresh returns the same row. */
+const editorSeededForId = ref<string | null>(null);
 
 watch(
   data,
   (article) => {
     if (!article) return;
-    rewrittenTitle.value = article.rewrittenTitle || "";
-    rewrittenContent.value = article.rewrittenContent || "";
     categoryId.value = article.categoryId || "";
+    const sameRow = editorSeededForId.value === article.id;
+    const serverRewrite = (article.rewrittenContent || "").trim();
+    const serverTitle = (article.rewrittenTitle || "").trim();
+    // Re-seed when opening a new article, or when AI rewrite just arrived.
+    if (
+      !sameRow ||
+      (serverRewrite && serverRewrite !== rewrittenContent.value)
+    ) {
+      rewrittenTitle.value = serverTitle || article.originalTitle || "";
+      rewrittenContent.value = serverRewrite || article.rawContent || "";
+      editorSeededForId.value = article.id;
+    }
   },
   { immediate: true },
 );
@@ -98,9 +110,26 @@ const canEdit = computed(() => {
   );
 });
 
-const canApprove = computed(
-  () => data.value?.status === ArticleStatus.PendingApproval,
-);
+const hasPublishableContent = computed(() => {
+  return (
+    rewrittenTitle.value.trim().length > 0 &&
+    rewrittenContent.value.trim().length > 0
+  );
+});
+
+const canApprove = computed(() => {
+  const s = data.value?.status;
+  if (s !== ArticleStatus.Draft && s !== ArticleStatus.PendingApproval) {
+    return false;
+  }
+  return hasPublishableContent.value;
+});
+
+const isDraftWithoutAi = computed(() => {
+  const a = data.value;
+  if (!a || a.status !== ArticleStatus.Draft) return false;
+  return !(a.rewrittenContent || "").trim();
+});
 
 const safeSourceUrl = computed(() => {
   const url = data.value?.originalUrl;
@@ -115,6 +144,12 @@ function statusLabel(status: number): string {
 
 function categoryOptionLabel(cat: PostCategory): string {
   return categoryDisplayName(cat, t, te);
+}
+
+function useOriginalInEditor() {
+  if (!data.value || !canEdit.value) return;
+  rewrittenTitle.value = data.value.originalTitle || rewrittenTitle.value;
+  rewrittenContent.value = data.value.rawContent || "";
 }
 
 async function saveEdits() {
@@ -242,7 +277,7 @@ function onConfirm() {
 <template>
   <div class="flex flex-col h-screen overflow-hidden">
     <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
+      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3 shrink-0"
     >
       <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -301,8 +336,8 @@ function onConfirm() {
           class="text-xs px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
           :disabled="!!busy || !canApprove"
           :title="
-            data?.status === ArticleStatus.Draft
-              ? $t('adminArticles.waitForRewrite')
+            !hasPublishableContent
+              ? $t('adminArticles.needContentToApprove')
               : undefined
           "
           @click="confirmAction = 'approve'"
@@ -316,7 +351,9 @@ function onConfirm() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 md:pb-6">
+    <div
+      class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 md:pb-6"
+    >
       <p
         v-if="loadError"
         class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2"
@@ -329,10 +366,10 @@ function onConfirm() {
 
       <template v-else-if="data">
         <p
-          v-if="data.status === ArticleStatus.Draft"
+          v-if="isDraftWithoutAi"
           class="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
         >
-          {{ $t("adminArticles.waitForRewrite") }}
+          {{ $t("adminArticles.draftNoRewriteHint") }}
         </p>
 
         <div
@@ -372,6 +409,15 @@ function onConfirm() {
           <button
             v-if="canEdit"
             type="button"
+            class="text-xs text-slate-600 hover:underline"
+            :disabled="!!busy"
+            @click="useOriginalInEditor"
+          >
+            {{ $t("adminArticles.useOriginal") }}
+          </button>
+          <button
+            v-if="canEdit"
+            type="button"
             class="text-xs text-rose-600 hover:underline"
             :disabled="!!busy"
             @click="confirmAction = 'delete'"
@@ -380,27 +426,33 @@ function onConfirm() {
           </button>
         </div>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-[28rem]">
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
           <section
-            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-h-[24rem]"
+            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[min(70vh,36rem)]"
           >
-            <h2 class="text-sm font-semibold text-slate-800 mb-2">
+            <h2 class="text-sm font-semibold text-slate-800 mb-2 shrink-0">
               {{ $t("adminArticles.originalPanel") }}
             </h2>
-            <p class="text-base font-medium text-slate-900 mb-3">
+            <p class="text-base font-medium text-slate-900 mb-3 shrink-0">
               {{ data.originalTitle }}
             </p>
             <div
-              class="flex-1 overflow-y-auto text-sm text-slate-700 whitespace-pre-wrap leading-relaxed border border-slate-100 rounded-lg p-3 bg-slate-50"
+              class="flex-1 min-h-0 overflow-y-auto text-sm text-slate-700 whitespace-pre-wrap leading-relaxed border border-slate-100 rounded-lg p-3 bg-slate-50"
             >
-              {{ data.rawContent }}
+              <p
+                v-if="!(data.rawContent || '').trim()"
+                class="text-slate-400 italic"
+              >
+                {{ $t("adminArticles.noOriginalBody") }}
+              </p>
+              <template v-else>{{ data.rawContent }}</template>
             </div>
           </section>
 
           <section
-            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col min-h-[24rem] gap-3"
+            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[min(70vh,36rem)] gap-3"
           >
-            <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center justify-between gap-2 shrink-0">
               <h2 class="text-sm font-semibold text-slate-800">
                 {{ $t("adminArticles.rewritePanel") }}
               </h2>
@@ -409,7 +461,7 @@ function onConfirm() {
                 {{ $t("adminArticles.showPreview") }}
               </label>
             </div>
-            <label class="flex flex-col gap-1 text-xs text-slate-600">
+            <label class="flex flex-col gap-1 text-xs text-slate-600 shrink-0">
               <span>{{ $t("adminArticles.rewrittenTitle") }}</span>
               <input
                 v-model="rewrittenTitle"
@@ -419,17 +471,22 @@ function onConfirm() {
                 :disabled="!canEdit"
               />
             </label>
-            <label class="flex flex-col gap-1 text-xs text-slate-600 flex-1">
-              <span>{{ $t("adminArticles.rewrittenBody") }}</span>
+            <label
+              class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-h-0"
+            >
+              <span class="shrink-0">{{
+                $t("adminArticles.rewrittenBody")
+              }}</span>
               <textarea
                 v-model="rewrittenContent"
-                class="flex-1 min-h-[16rem] border border-slate-300 rounded-md px-3 py-2 text-sm font-mono leading-relaxed"
+                class="flex-1 min-h-0 w-full border border-slate-300 rounded-md px-3 py-2 text-sm font-mono leading-relaxed resize-none"
                 :disabled="!canEdit"
+                :placeholder="$t('adminArticles.rewritePlaceholder')"
               />
             </label>
             <div
               v-if="showPreview"
-              class="border border-slate-100 rounded-lg p-3 bg-slate-50 max-h-64 overflow-y-auto prose prose-sm max-w-none"
+              class="border border-slate-100 rounded-lg p-3 bg-slate-50 max-h-40 overflow-y-auto prose prose-sm max-w-none shrink-0"
               aria-live="polite"
               v-html="previewHtml"
             />

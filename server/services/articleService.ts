@@ -244,12 +244,8 @@ export async function approveAndPublishArticle(
   if (article.status === ArticleStatus.Rejected) {
     throw new DomainError(409, "Rejected articles cannot be approved");
   }
-  if (article.status === ArticleStatus.Draft) {
-    throw new DomainError(
-      409,
-      "Wait for AI rewrite to finish before approving",
-    );
-  }
+  // Draft is OK when the admin (or a finished rewrite) already filled content.
+  // Only block Draft when there is still nothing to publish.
 
   if (
     input?.rewrittenTitle != null ||
@@ -268,12 +264,14 @@ export async function approveAndPublishArticle(
     });
   }
 
+  // Prefer the editable rewrite; fall back to original so admins can publish
+  // even when the LLM never ran (Draft with raw RSS/ArXiv body only).
   const title = (article.rewrittenTitle || article.originalTitle).trim();
-  const body = (article.rewrittenContent || "").trim();
+  const body = (article.rewrittenContent || article.rawContent || "").trim();
   if (!title || !body) {
     throw new DomainError(
       400,
-      "Rewritten title and content are required before publishing",
+      "Title and content are required before publishing",
     );
   }
 

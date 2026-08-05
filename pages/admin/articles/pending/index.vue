@@ -11,6 +11,7 @@ import { categoryDisplayName } from "~/utils/categoryLabel";
 import { apiErrorMessage } from "~/utils/apiErrorMessage";
 
 const { t, te } = useI18n();
+const router = useRouter();
 const { apiFetch } = useApi();
 const { pushToast } = useToasts();
 const { categories, refresh: refreshCategories } = useCategories();
@@ -82,6 +83,16 @@ function formatDate(iso: string | null): string {
   return dayjs(iso).format("MMM D, YYYY · HH:mm");
 }
 
+function previewText(article: PendingArticleListItem): string {
+  const text = (article.excerpt || "").trim();
+  if (!text) return "";
+  return text.length > 180 ? `${text.slice(0, 177)}…` : text;
+}
+
+function openReview(articleId: string) {
+  void router.push(`/admin/articles/pending/${articleId}`);
+}
+
 async function runFetchNow() {
   busyFetch.value = true;
   try {
@@ -115,7 +126,7 @@ function categoryOptionLabel(cat: PostCategory): string {
 <template>
   <div class="flex flex-col h-screen overflow-hidden">
     <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
+      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3 shrink-0"
     >
       <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
@@ -156,7 +167,7 @@ function categoryOptionLabel(cat: PostCategory): string {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+    <div class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4">
       <div
         class="bg-white border border-slate-200 rounded-xl p-3 flex flex-wrap gap-3 items-end"
       >
@@ -235,10 +246,7 @@ function categoryOptionLabel(cat: PostCategory): string {
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
                 <th class="px-4 py-2 font-medium">
-                  {{ $t("adminArticles.colOriginal") }}
-                </th>
-                <th class="px-4 py-2 font-medium">
-                  {{ $t("adminArticles.colRewritten") }}
+                  {{ $t("adminArticles.colArticle") }}
                 </th>
                 <th class="px-4 py-2 font-medium">
                   {{ $t("adminArticles.colCategory") }}
@@ -260,25 +268,49 @@ function categoryOptionLabel(cat: PostCategory): string {
             <tbody>
               <tr v-if="!loading && !data?.articles?.length">
                 <td
-                  colspan="7"
-                  class="px-4 py-8 text-center text-slate-400 text-xs"
+                  colspan="6"
+                  class="px-4 py-8 text-center text-slate-400 text-xs space-y-2"
                 >
-                  {{ $t("adminArticles.empty") }}
+                  <p>{{ $t("adminArticles.empty") }}</p>
+                  <p
+                    v-if="statusFilter === ArticleStatus.PendingApproval"
+                    class="text-slate-500"
+                  >
+                    {{ $t("adminArticles.emptyPendingHint") }}
+                  </p>
                 </td>
               </tr>
               <tr
                 v-for="article in data?.articles || []"
                 :key="article.id"
-                class="border-t border-slate-100 hover:bg-slate-50/80"
+                class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer"
+                tabindex="0"
+                role="link"
+                :aria-label="$t('adminArticles.review')"
+                @click="openReview(article.id)"
+                @keydown.enter.prevent="openReview(article.id)"
               >
-                <td class="px-4 py-3 align-top max-w-[14rem]">
-                  <p class="text-slate-800 line-clamp-2">
+                <td class="px-4 py-3 align-top max-w-[28rem]">
+                  <p class="text-slate-900 font-medium line-clamp-2">
+                    {{ article.rewrittenTitle || article.originalTitle }}
+                  </p>
+                  <p
+                    v-if="
+                      article.rewrittenTitle &&
+                      article.rewrittenTitle !== article.originalTitle
+                    "
+                    class="text-xs text-slate-500 mt-0.5 line-clamp-1"
+                  >
                     {{ article.originalTitle }}
                   </p>
-                </td>
-                <td class="px-4 py-3 align-top max-w-[14rem]">
-                  <p class="text-slate-700 line-clamp-2">
-                    {{ article.rewrittenTitle || $t("common.emDash") }}
+                  <p
+                    v-if="previewText(article)"
+                    class="text-xs text-slate-600 mt-1.5 line-clamp-3 leading-relaxed"
+                  >
+                    {{ previewText(article) }}
+                  </p>
+                  <p v-else class="text-xs text-slate-400 mt-1.5 italic">
+                    {{ $t("adminArticles.openToReadBody") }}
                   </p>
                 </td>
                 <td class="px-4 py-3 align-top whitespace-nowrap text-xs">
@@ -293,7 +325,7 @@ function categoryOptionLabel(cat: PostCategory): string {
                 <td class="px-4 py-3 align-top whitespace-nowrap text-xs">
                   {{ statusLabel(article.status) }}
                 </td>
-                <td class="px-4 py-3 align-top">
+                <td class="px-4 py-3 align-top" @click.stop>
                   <NuxtLink
                     :to="`/admin/articles/pending/${article.id}`"
                     class="text-xs text-sky-700 hover:underline"
