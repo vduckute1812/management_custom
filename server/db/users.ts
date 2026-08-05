@@ -531,7 +531,7 @@ export async function getAuthorsByIds(
         (r.name as string | null) ?? null,
         String(r.email),
       ),
-      email: String(r.email),
+      email: "",
       avatarUrl:
         avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
         null,

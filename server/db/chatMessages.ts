@@ -18,7 +18,7 @@ import { getPool } from "./pool";
 import { getUploadById, purgeOrphanedUploads } from "./uploads";
 import type { MessageRow } from "./chatShared";
 import {
-  assertParticipant,
+  assertParticipantAndFriends,
   loadConversationRow,
   loadMessageReactionMaps,
   toAttachment,
@@ -46,7 +46,7 @@ export async function listMessages(
   if (!conv) {
     throw new DomainError(404, "Conversation not found");
   }
-  assertParticipant(conv, userId);
+  await assertParticipantAndFriends(conv, userId);
 
   const peerId = conv.user_a_id === userId ? conv.user_b_id : conv.user_a_id;
   const pool = getPool();
@@ -147,7 +147,7 @@ export async function sendMessage(
   if (!conv) {
     throw new DomainError(404, "Conversation not found");
   }
-  assertParticipant(conv, userId);
+  await assertParticipantAndFriends(conv, userId);
 
   let body: string | null = null;
   let stickerId: string | null = null;
@@ -304,7 +304,7 @@ export async function getChatMessageForParticipant(
   const conv = await loadConversationRow(conversationId);
   if (!conv) return null;
   try {
-    assertParticipant(conv, userId);
+    await assertParticipantAndFriends(conv, userId);
   } catch {
     return null;
   }
@@ -362,7 +362,7 @@ export async function deleteMessage(
   if (!conv) {
     throw new DomainError(404, "Message not found");
   }
-  assertParticipant(conv, userId);
+  await assertParticipantAndFriends(conv, userId);
 
   const pool = getPool();
 
@@ -452,7 +452,7 @@ export async function assertChatMessageAccessible(
     throw new DomainError(404, "Message not found");
   }
   try {
-    assertParticipant(conv, userId);
+    await assertParticipantAndFriends(conv, userId);
   } catch {
     throw new DomainError(404, "Message not found");
   }

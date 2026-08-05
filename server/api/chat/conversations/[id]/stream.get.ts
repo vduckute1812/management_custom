@@ -10,7 +10,7 @@
  * buffering off, and a long read timeout — see `docker/nginx.prod.conf.template`.
  */
 import { createEventStream } from "h3";
-import { getPeerUserId } from "~/server/utils/db";
+import { areFriends, getPeerUserId } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import {
   subscribeChatThread,
@@ -34,6 +34,12 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 404,
       statusMessage: "Conversation not found",
+    });
+  }
+  if (!(await areFriends(user.sub, peerId))) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: "Friends only",
     });
   }
 
