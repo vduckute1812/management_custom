@@ -853,6 +853,17 @@
     "rejectFailed": "Could not reject",
     "deleteForever": "Delete permanently",
     "deleted": "Article deleted",
+    "deleteFailed": "Could not delete",
+    "selectAll": "Select all on this page",
+    "selectRow": "Select article",
+    "selectedCount": "{count} selected",
+    "bulkDelete": "Delete selected ({count})",
+    "bulkDeleted": "Deleted {count} article(s)",
+    "bulkDeletedWithPosts": "Deleted {count} article(s) and {posts} feed post(s)",
+    "bulkDeleteFailed": "Could not delete selected articles",
+    "bulkDeleteConfirmTitle": "Delete selected articles?",
+    "bulkDeleteConfirm": "Permanently remove {count} pipeline article(s). This cannot be undone.",
+    "bulkDeleteConfirmApproved": "Permanently remove {count} approved article(s). Linked feed posts will also be deleted.",
     "regenerate": "Re-generate AI",
     "regenQueued": "Rewrite queued",
     "regenDone": "New rewrite ready",
@@ -868,7 +879,8 @@
     "rejectConfirmTitle": "Reject this article?",
     "rejectConfirm": "The article will be marked rejected and stay out of the feed.",
     "deleteConfirmTitle": "Delete this article permanently?",
-    "deleteConfirm": "This cannot be undone. The pipeline row will be removed."
+    "deleteConfirm": "This cannot be undone. The pipeline row will be removed.",
+    "deleteConfirmApproved": "This cannot be undone. The pipeline row and its published feed post will both be removed."
   },
   "common": {
     "close": "Close",

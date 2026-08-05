@@ -110,6 +110,9 @@ const canEdit = computed(() => {
   );
 });
 
+/** Hard-delete is allowed for every pipeline status, including Approved. */
+const canDelete = computed(() => !!data.value);
+
 const hasPublishableContent = computed(() => {
   return (
     rewrittenTitle.value.trim().length > 0 &&
@@ -208,7 +211,11 @@ async function approve() {
 }
 
 async function reject(deleteRow = false) {
-  if (!canEdit.value) return;
+  if (deleteRow) {
+    if (!canDelete.value) return;
+  } else if (!canEdit.value) {
+    return;
+  }
   busy.value = deleteRow ? "delete" : "reject";
   confirmAction.value = null;
   try {
@@ -222,9 +229,15 @@ async function reject(deleteRow = false) {
     );
     await router.push("/admin/articles/pending");
   } catch (err: unknown) {
-    pushToast(apiErrorMessage(err, t("adminArticles.rejectFailed")), {
-      tone: "danger",
-    });
+    pushToast(
+      apiErrorMessage(
+        err,
+        deleteRow
+          ? t("adminArticles.deleteFailed")
+          : t("adminArticles.rejectFailed"),
+      ),
+      { tone: "danger" },
+    );
   } finally {
     busy.value = null;
   }
@@ -416,7 +429,7 @@ function onConfirm() {
             {{ $t("adminArticles.useOriginal") }}
           </button>
           <button
-            v-if="canEdit"
+            v-if="canDelete"
             type="button"
             class="text-xs text-rose-600 hover:underline"
             :disabled="!!busy"
@@ -517,7 +530,11 @@ function onConfirm() {
     <ConfirmDialog
       :open="confirmAction === 'delete'"
       :title="$t('adminArticles.deleteConfirmTitle')"
-      :description="$t('adminArticles.deleteConfirm')"
+      :description="
+        data?.status === ArticleStatus.Approved
+          ? $t('adminArticles.deleteConfirmApproved')
+          : $t('adminArticles.deleteConfirm')
+      "
       :busy="busy === 'delete'"
       :confirm-label="$t('adminArticles.deleteForever')"
       @cancel="confirmAction = null"

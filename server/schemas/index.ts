@@ -57,5 +57,6 @@ export {
   pendingArticlePatchBodySchema,
   pendingArticleApproveBodySchema,
   pendingArticleRejectBodySchema,
+  pendingArticleBulkDeleteBodySchema,
   pendingArticleFetchBodySchema,
 } from "./article";

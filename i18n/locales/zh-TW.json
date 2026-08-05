@@ -853,6 +853,17 @@
     "rejectFailed": "拒絕失敗",
     "deleteForever": "永久刪除",
     "deleted": "文章已刪除",
+    "deleteFailed": "刪除失敗",
+    "selectAll": "全選本頁",
+    "selectRow": "選擇文章",
+    "selectedCount": "已選 {count} 篇",
+    "bulkDelete": "刪除所選（{count}）",
+    "bulkDeleted": "已刪除 {count} 篇文章",
+    "bulkDeletedWithPosts": "已刪除 {count} 篇文章及 {posts} 篇動態貼文",
+    "bulkDeleteFailed": "無法刪除所選文章",
+    "bulkDeleteConfirmTitle": "刪除所選文章？",
+    "bulkDeleteConfirm": "將永久刪除 {count} 篇流水線文章。此操作無法復原。",
+    "bulkDeleteConfirmApproved": "將永久刪除 {count} 篇已通過文章。關聯的動態貼文也會一併刪除。",
     "regenerate": "重新產生 AI",
     "regenQueued": "已排隊重新改寫",
     "regenDone": "新改寫已就緒",
@@ -868,7 +879,8 @@
     "rejectConfirmTitle": "拒絕這篇文章？",
     "rejectConfirm": "文章將標記為已拒絕，不會出現在動態中。",
     "deleteConfirmTitle": "永久刪除這篇文章？",
-    "deleteConfirm": "此操作無法復原，將刪除流水線記錄。"
+    "deleteConfirm": "此操作無法復原，將刪除流水線記錄。",
+    "deleteConfirmApproved": "此操作無法復原。流水線記錄及其已發佈的動態貼文都將被刪除。"
   },
   "common": {
     "close": "關閉",

@@ -4,6 +4,7 @@ import {
   pendingArticlePatchBodySchema,
   pendingArticleApproveBodySchema,
   pendingArticleRejectBodySchema,
+  pendingArticleBulkDeleteBodySchema,
 } from "../server/schemas/article";
 import { ArticleStatus, PIPELINE_CATEGORY_SLUGS } from "../types/article";
 import {
@@ -73,6 +74,17 @@ describe("pending article mutation schemas", () => {
     expect(
       pendingArticleRejectBodySchema.safeParse({ delete: true }).success,
     ).toBe(true);
+  });
+
+  it("accepts bulk-delete id lists", () => {
+    expect(
+      pendingArticleBulkDeleteBodySchema.safeParse({
+        ids: ["art_1", "art_2"],
+      }).success,
+    ).toBe(true);
+    expect(
+      pendingArticleBulkDeleteBodySchema.safeParse({ ids: [] }).success,
+    ).toBe(false);
   });
 });
 

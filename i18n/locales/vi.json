@@ -853,6 +853,17 @@
     "rejectFailed": "Không từ chối được",
     "deleteForever": "Xóa vĩnh viễn",
     "deleted": "Đã xóa bài",
+    "deleteFailed": "Không xóa được",
+    "selectAll": "Chọn tất cả trên trang này",
+    "selectRow": "Chọn bài",
+    "selectedCount": "Đã chọn {count}",
+    "bulkDelete": "Xóa đã chọn ({count})",
+    "bulkDeleted": "Đã xóa {count} bài",
+    "bulkDeletedWithPosts": "Đã xóa {count} bài và {posts} bài trên feed",
+    "bulkDeleteFailed": "Không xóa được các bài đã chọn",
+    "bulkDeleteConfirmTitle": "Xóa các bài đã chọn?",
+    "bulkDeleteConfirm": "Xóa vĩnh viễn {count} bài trong pipeline. Không hoàn tác được.",
+    "bulkDeleteConfirmApproved": "Xóa vĩnh viễn {count} bài đã duyệt. Bài tương ứng trên feed cũng sẽ bị xóa.",
     "regenerate": "AI viết lại",
     "regenQueued": "Đã xếp hàng viết lại",
     "regenDone": "Bản viết lại mới đã sẵn sàng",
@@ -868,7 +879,8 @@
     "rejectConfirmTitle": "Từ chối bài này?",
     "rejectConfirm": "Bài sẽ bị đánh dấu từ chối và không lên feed.",
     "deleteConfirmTitle": "Xóa vĩnh viễn bài này?",
-    "deleteConfirm": "Không hoàn tác được. Bản ghi pipeline sẽ bị xóa."
+    "deleteConfirm": "Không hoàn tác được. Bản ghi pipeline sẽ bị xóa.",
+    "deleteConfirmApproved": "Không hoàn tác được. Bản ghi pipeline và bài đã đăng trên feed đều sẽ bị xóa."
   },
   "common": {
     "close": "Đóng",

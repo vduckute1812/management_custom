@@ -26,6 +26,9 @@ const categoryId = ref<string>("");
 const createdFrom = ref("");
 const createdTo = ref("");
 const busyFetch = ref(false);
+const busyDelete = ref(false);
+const confirmBulkDelete = ref(false);
+const selectedIds = ref<string[]>([]);
 
 interface ListResponse {
   articles: PendingArticleListItem[];
@@ -55,11 +58,39 @@ const {
 
 await refreshCategories();
 
+watch([statusFilter, categoryId, createdFrom, createdTo], () => {
+  selectedIds.value = [];
+  confirmBulkDelete.value = false;
+});
+
+watch(
+  () => data.value?.articles,
+  (articles) => {
+    const alive = new Set((articles || []).map((a) => a.id));
+    selectedIds.value = selectedIds.value.filter((id) => alive.has(id));
+  },
+);
+
 const pipelineCategories = computed(() =>
   (categories.value || []).filter((c) =>
     (PIPELINE_CATEGORY_SLUGS as readonly string[]).includes(c.slug),
   ),
 );
+
+const pageIds = computed(() => (data.value?.articles || []).map((a) => a.id));
+
+const allPageSelected = computed(() => {
+  const ids = pageIds.value;
+  return ids.length > 0 && ids.every((id) => selectedIds.value.includes(id));
+});
+
+const somePageSelected = computed(() => {
+  const ids = pageIds.value;
+  const n = ids.filter((id) => selectedIds.value.includes(id)).length;
+  return n > 0 && n < ids.length;
+});
+
+const selectedCount = computed(() => selectedIds.value.length);
 
 function statusLabel(status: number): string {
   const key =
@@ -93,6 +124,31 @@ function openReview(articleId: string) {
   void router.push(`/admin/articles/pending/${articleId}`);
 }
 
+function isSelected(id: string): boolean {
+  return selectedIds.value.includes(id);
+}
+
+function toggleOne(id: string, checked: boolean) {
+  if (checked) {
+    if (!selectedIds.value.includes(id)) {
+      selectedIds.value = [...selectedIds.value, id];
+    }
+  } else {
+    selectedIds.value = selectedIds.value.filter((x) => x !== id);
+  }
+}
+
+function toggleAllPage(checked: boolean) {
+  if (checked) {
+    const set = new Set(selectedIds.value);
+    for (const id of pageIds.value) set.add(id);
+    selectedIds.value = [...set];
+  } else {
+    const drop = new Set(pageIds.value);
+    selectedIds.value = selectedIds.value.filter((id) => !drop.has(id));
+  }
+}
+
 async function runFetchNow() {
   busyFetch.value = true;
   try {
@@ -115,6 +171,40 @@ async function runFetchNow() {
     });
   } finally {
     busyFetch.value = false;
+  }
+}
+
+async function runBulkDelete() {
+  if (!selectedIds.value.length) return;
+  busyDelete.value = true;
+  confirmBulkDelete.value = false;
+  try {
+    const res = await apiFetch<{
+      ok: true;
+      deleted: number;
+      removedPosts: number;
+      missing: number;
+    }>("/api/admin/articles/pending/bulk-delete", {
+      method: "POST",
+      body: { ids: selectedIds.value },
+    });
+    selectedIds.value = [];
+    pushToast(
+      res.removedPosts > 0
+        ? t("adminArticles.bulkDeletedWithPosts", {
+            count: res.deleted,
+            posts: res.removedPosts,
+          })
+        : t("adminArticles.bulkDeleted", { count: res.deleted }),
+      { tone: "success" },
+    );
+    await refresh();
+  } catch (err: unknown) {
+    pushToast(apiErrorMessage(err, t("adminArticles.bulkDeleteFailed")), {
+      tone: "danger",
+    });
+  } finally {
+    busyDelete.value = false;
   }
 }
 
@@ -143,11 +233,24 @@ function categoryOptionLabel(cat: PostCategory): string {
           {{ $t("adminArticles.subtitle") }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
+        <button
+          v-if="selectedCount > 0"
+          type="button"
+          class="text-xs px-3 py-1.5 rounded-md border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 disabled:opacity-50"
+          :disabled="busyDelete || busyFetch"
+          @click="confirmBulkDelete = true"
+        >
+          {{
+            busyDelete
+              ? $t("common.deleting")
+              : $t("adminArticles.bulkDelete", { count: selectedCount })
+          }}
+        </button>
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="busyFetch"
+          :disabled="busyFetch || busyDelete"
           @click="runFetchNow"
         >
           {{
@@ -159,7 +262,7 @@ function categoryOptionLabel(cat: PostCategory): string {
         <button
           type="button"
           class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50"
-          :disabled="loading"
+          :disabled="loading || busyDelete"
           @click="refresh()"
         >
           {{ $t("adminArticles.refresh") }}
@@ -234,17 +337,33 @@ function categoryOptionLabel(cat: PostCategory): string {
 
       <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
         <div
-          class="px-4 py-2 border-b border-slate-100 text-xs text-slate-500 flex justify-between"
+          class="px-4 py-2 border-b border-slate-100 text-xs text-slate-500 flex justify-between gap-3 flex-wrap"
         >
           <span>{{
             $t("adminArticles.totalCount", { count: data?.total ?? 0 })
           }}</span>
+          <span v-if="selectedCount > 0" class="text-slate-700">
+            {{ $t("adminArticles.selectedCount", { count: selectedCount }) }}
+          </span>
           <span v-if="loading">{{ $t("admin.loading") }}</span>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
+                <th class="px-3 py-2 w-10">
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300"
+                    :checked="allPageSelected"
+                    :indeterminate.prop="somePageSelected"
+                    :aria-label="$t('adminArticles.selectAll')"
+                    :disabled="!pageIds.length || busyDelete"
+                    @change="
+                      toggleAllPage(($event.target as HTMLInputElement).checked)
+                    "
+                  />
+                </th>
                 <th class="px-4 py-2 font-medium">
                   {{ $t("adminArticles.colArticle") }}
                 </th>
@@ -268,7 +387,7 @@ function categoryOptionLabel(cat: PostCategory): string {
             <tbody>
               <tr v-if="!loading && !data?.articles?.length">
                 <td
-                  colspan="6"
+                  colspan="7"
                   class="px-4 py-8 text-center text-slate-400 text-xs space-y-2"
                 >
                   <p>{{ $t("adminArticles.empty") }}</p>
@@ -284,12 +403,28 @@ function categoryOptionLabel(cat: PostCategory): string {
                 v-for="article in data?.articles || []"
                 :key="article.id"
                 class="border-t border-slate-100 hover:bg-sky-50/60 cursor-pointer"
+                :class="{ 'bg-sky-50/40': isSelected(article.id) }"
                 tabindex="0"
                 role="link"
                 :aria-label="$t('adminArticles.review')"
                 @click="openReview(article.id)"
                 @keydown.enter.prevent="openReview(article.id)"
               >
+                <td class="px-3 py-3 align-top" @click.stop>
+                  <input
+                    type="checkbox"
+                    class="rounded border-slate-300"
+                    :checked="isSelected(article.id)"
+                    :aria-label="$t('adminArticles.selectRow')"
+                    :disabled="busyDelete"
+                    @change="
+                      toggleOne(
+                        article.id,
+                        ($event.target as HTMLInputElement).checked,
+                      )
+                    "
+                  />
+                </td>
                 <td class="px-4 py-3 align-top max-w-[28rem]">
                   <p class="text-slate-900 font-medium line-clamp-2">
                     {{ article.rewrittenTitle || article.originalTitle }}
@@ -339,5 +474,21 @@ function categoryOptionLabel(cat: PostCategory): string {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="confirmBulkDelete"
+      :title="$t('adminArticles.bulkDeleteConfirmTitle')"
+      :description="
+        statusFilter === ArticleStatus.Approved
+          ? $t('adminArticles.bulkDeleteConfirmApproved', {
+              count: selectedCount,
+            })
+          : $t('adminArticles.bulkDeleteConfirm', { count: selectedCount })
+      "
+      :busy="busyDelete"
+      :confirm-label="$t('adminArticles.bulkDelete', { count: selectedCount })"
+      @cancel="confirmBulkDelete = false"
+      @confirm="runBulkDelete"
+    />
   </div>
 </template>
