@@ -157,6 +157,37 @@ bash docker/install-github-runner.sh \
 
 4. Re-run the workflow: Actions → Deploy (Raspberry Pi) → Run workflow.
 
+## Deploy watch (Pi timer — heal runner + re-run failures)
+
+The Actions runner lives **outside** the git checkout (`~/actions-runner` by
+default). Heavy builds sometimes kill the runner process (“lost communication”),
+leaving Deploy **failed** or **Queued** forever.
+
+On the Pi, install a user timer that every ~10 minutes:
+
+1. Ensures `~/actions-runner` (`svc.sh`) is running
+2. If the latest `Deploy (Raspberry Pi)` run on `master` **failed**, re-runs
+   it (`gh run rerun --failed`), at most twice per run id
+3. If a run stays **Queued** too long, restarts the runner so it can pick up
+
+```bash
+# From a live checkout on the Pi (or runner worktree after pull):
+bash docker/install-deploy-watch.sh
+```
+
+Auth for `gh` (pick one):
+
+- `gh auth login` as the Pi user, or
+- Fine-grained PAT with Actions read/write:
+
+```bash
+umask 077
+printf '%s' 'github_pat_…' > ~/.config/management/github.token
+```
+
+Manual once: `bash docker/watch-deploy-actions.sh`  
+Logs: `journalctl --user -u mgmt-deploy-watch -f`
+
 ---
 
 ## GitHub-hosted quality gate (`ci.yml`)
