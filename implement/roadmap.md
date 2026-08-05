@@ -620,8 +620,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Pending article admin pages use `SkeletonList` / `aria-busy`; list empty table uses `EmptyState`
 - [x] `AdminSystemMonitor` uses skeleton loading states for metrics and logs
 
+### Sprint T — Structure
+
+- [x] Extract `TaskModalHeader` / `TaskModalBasics`; `ManuscriptStudioSettings`
+- [x] Extract `AdminSystemLogs`, `AdminUsersPanel`, `AdminOverviewSummary`
+- [x] Extract `FeedStoryTray` / category scroller / sidebar; split `storiesRead.ts`
+
 ### Later
 
 - Playwright smoke
-- Further splits (`CalendarDaily`, `AdminSystemMonitor`, settings remainder)
+- Further splits (`CalendarDaily`, settings remainder, `ChatMessageThread`)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)
