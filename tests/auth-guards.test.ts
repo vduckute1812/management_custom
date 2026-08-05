@@ -93,15 +93,31 @@ describe("auth guards", () => {
     expect(await statusOfAsync(() => requireAdmin(stubH3Event({})))).toBe(401);
   });
 
-  it("requireSuperAdmin only allows superadmin", () => {
-    expect(requireSuperAdmin(stubH3Event({ user: superadmin }))).toEqual(
+  it("requireSuperAdmin only allows superadmin (fresh DB role)", async () => {
+    getUserById.mockResolvedValue({ ...superadmin, id: superadmin.sub });
+    expect(await requireSuperAdmin(stubH3Event({ user: superadmin }))).toEqual(
       superadmin,
     );
+    getUserById.mockResolvedValue({ ...admin, id: admin.sub });
     expect(
-      statusOf(() => requireSuperAdmin(stubH3Event({ user: admin }))),
+      await statusOfAsync(() =>
+        requireSuperAdmin(stubH3Event({ user: admin })),
+      ),
     ).toBe(403);
+    getUserById.mockResolvedValue({ ...normal, id: normal.sub });
     expect(
-      statusOf(() => requireSuperAdmin(stubH3Event({ user: normal }))),
+      await statusOfAsync(() =>
+        requireSuperAdmin(stubH3Event({ user: normal })),
+      ),
+    ).toBe(403);
+  });
+
+  it("requireSuperAdmin → 403 when JWT says superadmin but DB was demoted", async () => {
+    getUserById.mockResolvedValue({ ...admin, id: superadmin.sub });
+    expect(
+      await statusOfAsync(() =>
+        requireSuperAdmin(stubH3Event({ user: superadmin })),
+      ),
     ).toBe(403);
   });
 });

@@ -6,6 +6,6 @@ import { collectSystemSnapshot } from "~/server/utils/systemMetrics";
  * Live ops snapshot: process RAM/CPU, disk, DB/readiness/Redis latency, cache + queue.
  */
 export default defineEventHandler(async (event) => {
-  requireSuperAdmin(event);
+  await requireSuperAdmin(event);
   return await collectSystemSnapshot();
 });

@@ -30,6 +30,7 @@ const stickToBottom = ref(true);
 const pickerForId = ref<string | null>(null);
 /** Message currently pressed (before / while picker is open) — drives hold highlight. */
 const holdingId = ref<string | null>(null);
+const pendingDeleteId = ref<string | null>(null);
 const pickerStyle = ref<Record<string, string>>({});
 const scrollSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(
   null,
@@ -363,8 +364,14 @@ function onReactionChipClick(
 
 function requestDelete(messageId: string) {
   closePicker();
-  if (!window.confirm(t("chat.deleteConfirm"))) return;
-  emit("delete", messageId);
+  pendingDeleteId.value = messageId;
+}
+
+async function confirmDelete() {
+  const id = pendingDeleteId.value;
+  if (!id) return;
+  pendingDeleteId.value = null;
+  emit("delete", id);
 }
 
 defineExpose({ scrollToBottom });
@@ -607,5 +614,14 @@ defineExpose({ scrollToBottom });
         </div>
       </div>
     </Teleport>
+
+    <ConfirmDialog
+      :open="!!pendingDeleteId"
+      :title="t('chat.deleteMessage')"
+      :description="t('chat.deleteConfirm')"
+      :confirm-label="t('chat.deleteMessage')"
+      @cancel="pendingDeleteId = null"
+      @confirm="confirmDelete"
+    />
   </div>
 </template>

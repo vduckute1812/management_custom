@@ -71,7 +71,8 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │             pending_articles (0031),
     │             money_transactions / savings / budgets / user_categories (0024–0027),
     │             chat_conversations, chat_messages, chat_conversation_reads,
-    │             chat_message_reactions
+    │             chat_message_reactions,
+    │             friendships (0033)
     │
     ├── server/plugins/job-worker.ts  →  claims `jobs` → mailer / cache bust / media purge / article pipeline
     │
@@ -79,8 +80,8 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 ```
 
 - **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
-- **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0030+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
-- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `postQueries`, `posts`, `postReactions`, `postComments`, `stories`, `uploads`, `categories`, `jobs`, `money*`, `chat`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0033+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
+- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `postQueries` / `postQuery/*`, `posts`, `postReactions`, `postComments`, `stories`, `friendships`, `uploads`, `categories`, `jobs`, `money*`, `chat`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
 - **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
 - **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction; tokens share a `family_id` so reuse of a revoked hash revokes the whole family (migration **0030**).
 - **CSRF.** Cookie-authenticated mutating `/api/*` requests must present a same-origin `Origin` or `Referer` (production requires one). See `server/middleware/csrf-cookie.ts`.
@@ -99,6 +100,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 | --------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | Hub             | `/`                                                                         | Public (localized category cards → `/feed?category=…`)                                   |
 | Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login          |
+| Friends         | `/friends`                                                                  | Authenticated — requests, accept/decline, unfriend                                       |
 | Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                            |
 | Money           | `/money`                                                                    | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
 | Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account` |
@@ -224,12 +226,13 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── db/                          # SQL domain modules + migrator + pool
 │   │   ├── chat.ts                  # Barrel over chatConversations / Messages / Reactions / Reads
 │   │   ├── friendships.ts           # Friend request / accept / list (0033)
-│   │   ├── postQueries.ts           # Post read helpers (cursors, listFeedPosts, getPostById, hydration)
+│   │   ├── postQueries.ts           # Barrel → postQuery/* (listFeedPosts, getPostById, hydration)
+│   │   ├── postQuery/               # Post read SQL split (select, acl, hydration, cursors, …)
 │   │   ├── posts.ts                 # Post mutations (createPost / updatePost / deletePost)
 │   │   ├── postReactions.ts         # Reaction set / clear
 │   │   ├── postComments.ts          # Comments CRUD + comment_count recount (drift-only when unscoped)
 │   │   ├── pendingArticles.ts       # Article pipeline rows (0031)
-│   │   └── migrations/              # 0001…0031+ SQL files
+│   │   └── migrations/              # 0001…0033 SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
@@ -313,7 +316,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 
 **Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
 
-**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Post SQL is split: read helpers in `server/db/postQueries.ts`, mutations in `posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat.ts`. Chat SSE connection machinery lives in `composables/chatThreadLive.ts`; `useChat.ts` imports from it.
+**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Story tray composer lives in `FeedStoryComposer`; post SQL is split under `server/db/postQuery/` (barrel `postQueries.ts`), mutations in `posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat.ts`. Chat SSE connection machinery lives in `composables/chatThreadLive.ts`; `useChat.ts` imports from it.
 
 **Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). GitHub Actions runs that suite in a dedicated job against an ephemeral MySQL 8 service (`rc_test`). Locally, point `DB_*` at a migrated throwaway database — never prod. Playwright smoke remains a follow-up.
 

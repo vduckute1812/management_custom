@@ -11,7 +11,7 @@ import { UserRole, deleteUser, getUserById } from "~/server/utils/db";
 import { requireSuperAdmin } from "~/server/utils/authContext";
 
 export default defineEventHandler(async (event) => {
-  const actor = requireSuperAdmin(event);
+  const actor = await requireSuperAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing user id" });

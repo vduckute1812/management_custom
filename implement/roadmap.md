@@ -542,8 +542,34 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Article fetcher DNS resolve + private-IP reject (SSRF)
 - [x] R2 signed URL default TTL 300s; `requireAdmin` re-reads DB role
 
+## Phase 39 — Quality sprints F–J (clear >8 on all axes)
+
+### Sprint F — Structure
+
+- [x] Extract `AdminStatsCharts` from admin dashboard
+- [x] Extract `SettingsAppearanceSection` from settings
+
+### Sprint G — Performance
+
+- [x] Batch story `viewed_by_me` / `my_reaction` / `view_count` (drop per-row subqueries)
+
+### Sprint H — UI/UX
+
+- [x] Chat message delete uses `ConfirmDialog` (no `window.confirm`)
+
+### Sprint I — Security
+
+- [x] Directory search is name-only (no `email LIKE`)
+- [x] Mask peer/author emails for non-owners; pending friendship peers blank
+- [x] `requireSuperAdmin` re-reads DB role (same as `requireAdmin`)
+
+### Sprint J — Clean
+
+- [x] Docs sync (`architecture` friends / postQuery / migrations through 0033)
+- [x] Zod `tasksListQuerySchema` parses known include tokens → `{ includeBlocks, includeChecklists }`
+
 ### Later
 
 - Playwright smoke
-- Split remaining page gods (`settings` remainder, `admin` charts, `TaskModal`)
+- Split remaining page gods (`TaskModal`, `ManuscriptStudio`, `PostCard`)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)

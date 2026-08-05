@@ -490,13 +490,10 @@ export async function searchUserDirectory(
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT id, name, email, avatar_upload_id FROM users
      WHERE id <> ?
-       AND (
-         LOWER(email) LIKE ?
-         OR LOWER(COALESCE(name, '')) LIKE ?
-       )
+       AND LOWER(COALESCE(name, '')) LIKE ?
      ORDER BY name IS NULL, name ASC, email ASC
      LIMIT ?`,
-    [viewerId, term, term, Math.min(Math.max(limit, 1), 20)],
+    [viewerId, term, Math.min(Math.max(limit, 1), 20)],
   );
   return rows.map((r) => ({
     id: String(r.id),
