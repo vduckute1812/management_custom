@@ -1,14 +1,13 @@
 import { getAllTasks, toTaskView } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
+import { parseQuery } from "~/server/utils/http";
+import { tasksListQuerySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
+  const query = parseQuery(event, tasksListQuerySchema);
 
-  // Parse ?include=blocks,checklists (also accepts singular "checklist").
-  // Default is light mode: no child arrays, spentHours via SQL aggregate.
-  const query = getQuery(event);
-  const includeStr = typeof query.include === "string" ? query.include : "";
-  const includes = includeStr
+  const includes = query.include
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
@@ -18,8 +17,6 @@ export default defineEventHandler(async (event) => {
 
   const all = await getAllTasks(user.sub, { includeBlocks, includeChecklists });
   const tasks = all.map(toTaskView).sort((a, b) => {
-    // When blocks are present, prefer the first block start as the secondary
-    // sort key (after dueDate) so calendar views order chronologically.
     const aKey =
       a.dueDate ??
       (includeBlocks

@@ -89,7 +89,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 - **Honest math.** Epic/task aggregates (`spentHours`, `progress`, …) are **computed on read**, never persisted.
 - **Auth scoping.** Time-management and Money CRUD are always filtered by the authenticated `userId`. Feed reads may use `getOptionalUser` so anonymous clients see **public** posts; mutations still require a session. See [`auth.md`](./auth.md) and [`api.md`](./api.md).
 - **OAuth.** Google login/link via `GET /api/auth/google` → callback; identity rows in `auth_identities` (migration **0023**). Unverified password accounts are **not** auto-linked (H1). Details: [`auth.md`](./auth.md).
-- **Feed → Tasks seam.** `usePlanPostAsTask` owns "plan this post as a task"; Feed UI components must not call `useTasks` directly for that flow.
+- **Feed / Tasks separation.** Feed cards do not create tasks. Time Management mutations stay in task composables/pages (`useTasks`), not feed presentation components.
 
 ---
 

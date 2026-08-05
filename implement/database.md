@@ -132,7 +132,7 @@ CREATE TABLE users (
   updated_at      DATETIME(3)   NOT NULL,
   last_login_at   DATETIME(3)   NULL,
   UNIQUE KEY uniq_users_email (email),
-  INDEX idx_users_role (role),
+  -- idx_users_role dropped in migration 0022 (unused by query plans)
   CONSTRAINT fk_users_avatar_upload FOREIGN KEY (avatar_upload_id)
     REFERENCES uploads(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

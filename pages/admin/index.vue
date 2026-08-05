@@ -4,11 +4,10 @@ import type { Chart as ChartType } from "chart.js";
 import {
   UserRole,
   ROLE_I18N_KEYS,
-  STATUS_I18N_KEYS,
-  TaskStatus,
   type AdminUserSummary,
   type AuthUser,
-} from "~/types/task";
+} from "~/types/auth";
+import { STATUS_I18N_KEYS, TaskStatus } from "~/types/task";
 
 import type { PostCategory } from "~/types/post";
 

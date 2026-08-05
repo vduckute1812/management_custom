@@ -98,3 +98,8 @@ export const epicUpsertBodySchema = z.object({
 export const timerStartBodySchema = z.object({
   taskId: z.string().min(1, "taskId is required"),
 });
+
+/** `GET /api/tasks?include=blocks,checklists` — light list by default. */
+export const tasksListQuerySchema = z.object({
+  include: z.string().max(64).optional().default(""),
+});

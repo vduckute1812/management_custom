@@ -404,15 +404,6 @@
       "daysAgo": "{count}d",
       "showMore": "Show more",
       "showLess": "Show less",
-      "plan": "Plan",
-      "planTitle": "Add this article to Time Management as a research task",
-      "planUntitled": "Shared article",
-      "planManuscriptOnly": "Only manuscripts can be planned as research tasks",
-      "planTaskTitle": "Research: {title}",
-      "planTaskNotes": "Article by {author} · published {date}\nFeed post id: {id}",
-      "planTaskCreated": "Research task created in Time Management",
-      "planTaskOpen": "Open",
-      "planTaskFailed": "Could not create the task",
       "cannotEdit": "You cannot edit this post"
     },
     "edit": {

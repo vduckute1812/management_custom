@@ -258,7 +258,7 @@ Pi-friendly caching and background work without making Redis mandatory.
 - [x] Shared Zod schemas (`server/schemas`) + `parseBody` / `parseQuery` / `DomainError`
 - [x] Selective services: `taskService`, `timerService`, `postService`
 - [x] Vitest suite (`npm test`) for schemas, password/token helpers, markdown sanitize
-- [x] Feed→Tasks seam via `usePlanPostAsTask`; `PostCommentsPanel` extracted from `PostCard`
+- [x] `PostCommentsPanel` extracted from `PostCard` (plan-as-task seam removed in Phase 38)
 - [x] Docs synced: architecture / api / auth / getting-started
 
 ## Phase 17 — Direct chat (emoji + stickers)
