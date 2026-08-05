@@ -64,6 +64,10 @@ export const pendingArticleRejectBodySchema = z.object({
   delete: z.boolean().optional().default(false),
 });
 
+export const pendingArticleBulkDeleteBodySchema = z.object({
+  ids: z.array(z.string().trim().min(1).max(64)).min(1).max(50),
+});
+
 export const pendingArticleFetchBodySchema = z.object({
   force: z.boolean().optional().default(false),
 });

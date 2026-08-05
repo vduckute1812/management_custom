@@ -419,3 +419,19 @@ export async function deletePost(
   }
   return ok;
 }
+
+/** Admin hard-delete: remove a post by id regardless of author. */
+export async function deletePostById(postId: string): Promise<boolean> {
+  const pool = getPool();
+  const [attRows] = await pool.query<(RowDataPacket & { upload_id: string })[]>(
+    `SELECT upload_id FROM post_attachments WHERE post_id = ?`,
+    [postId],
+  );
+
+  const [result] = await pool.query("DELETE FROM posts WHERE id = ?", [postId]);
+  const ok = ((result as { affectedRows?: number }).affectedRows ?? 0) > 0;
+  if (ok && attRows.length) {
+    await purgeOrphanedUploads(attRows.map((r) => r.upload_id));
+  }
+  return ok;
+}

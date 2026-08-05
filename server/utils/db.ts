@@ -71,7 +71,12 @@ export {
   listFeedPosts,
   getPostById,
 } from "../db/postQueries";
-export { createPost, updatePost, deletePost } from "../db/posts";
+export {
+  createPost,
+  updatePost,
+  deletePost,
+  deletePostById,
+} from "../db/posts";
 export * from "../db/postReactions";
 export * from "../db/postComments";
 export * from "../db/categories";
