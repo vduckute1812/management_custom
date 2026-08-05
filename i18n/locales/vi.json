@@ -44,7 +44,8 @@
     "moneySavings": "Tiết kiệm",
     "moneyBudgets": "Ngân sách",
     "privacy": "Bảo mật",
-    "terms": "Điều khoản"
+    "terms": "Điều khoản",
+    "friends": "Bạn bè"
   },
   "auth": {
     "signInTitle": "Đăng nhập để tiếp tục",
@@ -358,7 +359,8 @@
       "colorBlue": "Xanh dương",
       "colorRose": "Hồng",
       "colorGreen": "Xanh lá",
-      "colorAmber": "Hổ phách"
+      "colorAmber": "Hổ phách",
+      "friends": "Bạn bè"
     },
     "post": {
       "edit": "Sửa",
@@ -410,7 +412,8 @@
       "planTaskCreated": "Đã tạo công việc nghiên cứu trong Quản lý thời gian",
       "planTaskOpen": "Mở",
       "planTaskFailed": "Không thể tạo công việc",
-      "cannotEdit": "Bạn không thể chỉnh sửa bài này"
+      "cannotEdit": "Bạn không thể chỉnh sửa bài này",
+      "friends": "Bạn bè"
     },
     "edit": {
       "kicker": "Sửa bài viết",
@@ -1166,7 +1169,37 @@
     "privacy": "Chính sách bảo mật",
     "privacyDescription": "Da Nang TechX thu thập những gì, ai xử lý dữ liệu, lưu trong bao lâu, và cách yêu cầu xuất hoặc xoá dữ liệu.",
     "terms": "Điều khoản dịch vụ",
-    "termsDescription": "Quy tắc sử dụng Da Nang TechX: điều kiện tham gia, quyền với nội dung, sử dụng hợp lệ, kiểm duyệt và trách nhiệm."
+    "termsDescription": "Quy tắc sử dụng Da Nang TechX: điều kiện tham gia, quyền với nội dung, sử dụng hợp lệ, kiểm duyệt và trách nhiệm.",
+    "friends": "Bạn bè"
+  },
+  "friends": {
+    "title": "Bạn bè",
+    "pageDescription": "Thêm bạn bè để chia sẻ bài viết kiểu Facebook — mặc định chỉ bạn bè xem được.",
+    "findPeople": "Tìm người",
+    "searchLabel": "Tìm kiếm người dùng",
+    "searchPlaceholder": "Tìm theo tên hoặc email…",
+    "searching": "Đang tìm…",
+    "addFriend": "Kết bạn",
+    "alreadyConnected": "Đã kết nối",
+    "incoming": "Lời mời kết bạn",
+    "incomingBadge": "{count} lời mời kết bạn",
+    "outgoing": "Đã gửi lời mời",
+    "yourFriends": "Bạn bè của bạn",
+    "loading": "Đang tải…",
+    "empty": "Chưa có bạn bè — tìm ở trên để gửi lời mời.",
+    "accept": "Đồng ý",
+    "decline": "Từ chối",
+    "cancelRequest": "Hủy",
+    "unfriend": "Hủy kết bạn",
+    "message": "Nhắn tin",
+    "pending": "Đang chờ phản hồi",
+    "requestSent": "Đã gửi lời mời kết bạn",
+    "requestFailed": "Không gửi được lời mời",
+    "accepted": "Đã chấp nhận lời mời",
+    "declined": "Đã từ chối lời mời",
+    "cancelled": "Đã hủy lời mời",
+    "unfriended": "Đã hủy kết bạn",
+    "actionFailed": "Có lỗi xảy ra"
   },
   "categories": {
     "electronics": "Điện tử",

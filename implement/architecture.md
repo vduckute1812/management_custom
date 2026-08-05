@@ -205,11 +205,12 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── uploads/                 # R2 upload + signed GET
 │   │   ├── categories/              # public GET + admin POST/PATCH/DELETE
 │   │   ├── chat/                    # DM conversations, messages, reactions, SSE streams, catalog
+│   │   ├── friends/                 # friend requests / accept / list / unfriend
 │   │   ├── feed/                    # GET /api/feed bootstrap (categories + posts + stories)
 │   │   ├── geo.get.ts               # Public Cloudflare country hint for first-visit locale
-│   │   └── users/directory.get.ts   # people picker for shared visibility + chat
+│   │   └── users/directory.get.ts   # people picker for shared visibility + chat + friends
 │   ├── schemas/
-│   │   └── index.ts                 # Shared Zod request schemas (+ auth.ts, money*, …)
+│   │   └── index.ts                 # Shared Zod request schemas (+ auth.ts, friendship.ts, money*, …)
 │   ├── services/
 │   │   ├── taskService.ts           # Task upsert workflow
 │   │   ├── timerService.ts          # Timer start/stop workflow
@@ -222,6 +223,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   └── articleRewriter.ts       # Gemini/OpenAI storytelling rewrite
 │   ├── db/                          # SQL domain modules + migrator + pool
 │   │   ├── chat.ts                  # Barrel over chatConversations / Messages / Reactions / Reads
+│   │   ├── friendships.ts           # Friend request / accept / list (0033)
 │   │   ├── postQueries.ts           # Post read helpers (cursors, listFeedPosts, getPostById, hydration)
 │   │   ├── posts.ts                 # Post mutations (createPost / updatePost / deletePost)
 │   │   ├── postReactions.ts         # Reaction set / clear

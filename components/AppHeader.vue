@@ -6,6 +6,26 @@ const router = useRouter();
 const auth = useAuth();
 const { t } = useI18n();
 const { unreadTotal } = useChat();
+const { incoming, friends, outgoing, refresh: refreshFriends } = useFriends();
+const friendRequestCount = computed(() => incoming.value.length);
+
+watch(
+  () => auth.isAuthenticatedUi.value,
+  async (ok) => {
+    if (!ok) {
+      friends.value = [];
+      incoming.value = [];
+      outgoing.value = [];
+      return;
+    }
+    try {
+      await refreshFriends();
+    } catch {
+      /* badge is best-effort */
+    }
+  },
+  { immediate: true },
+);
 
 const menuOpen = ref(false);
 const menuRoot = ref<HTMLElement | null>(null);
@@ -144,6 +164,27 @@ watch(
           "
         >
           {{ $t("nav.feed") }}
+        </NuxtLink>
+        <NuxtLink
+          v-if="auth.isAuthenticatedUi.value"
+          to="/friends"
+          class="relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          :class="
+            isMainActive('/friends')
+              ? 'bg-brand-50 text-brand-700'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+          "
+        >
+          {{ $t("nav.friends") }}
+          <span
+            v-if="friendRequestCount > 0"
+            class="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-none text-white"
+            :aria-label="
+              $t('friends.incomingBadge', { count: friendRequestCount })
+            "
+          >
+            {{ friendRequestCount > 99 ? "99+" : friendRequestCount }}
+          </span>
         </NuxtLink>
         <NuxtLink
           v-if="auth.isAuthenticatedUi.value"

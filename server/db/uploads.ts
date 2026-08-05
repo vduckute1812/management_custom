@@ -9,6 +9,7 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 import type { UploadKind, UploadRecord } from "../../types/post";
+import { FriendshipStatus } from "../../types/friendship";
 import {
   PostVisibility,
   UPLOAD_KIND_STORAGE_FOLDER,
@@ -187,9 +188,20 @@ export async function canViewerAccessUpload(
              WHERE a.post_id = p.id AND a.user_id = ?
            )
          )
+         OR (
+           p.visibility = ${PostVisibility.Friends}
+           AND EXISTS (
+             SELECT 1 FROM friendships f
+             WHERE f.status = ${FriendshipStatus.Accepted}
+               AND (
+                 (f.requester_id = p.user_id AND f.addressee_id = ?)
+                 OR (f.addressee_id = p.user_id AND f.requester_id = ?)
+               )
+           )
+         )
        )
      LIMIT 1`,
-    [uploadId, viewerId, viewerId],
+    [uploadId, viewerId, viewerId, viewerId, viewerId],
   );
   if (postRows.length) return true;
 

@@ -4,7 +4,11 @@ import { isoToDB } from "../datetime";
 import { getPool } from "../pool";
 import type { Post } from "../../../types/post";
 import { isContentLocale } from "../../../utils/contentLocale";
-import { visibilityClause, publicOnlyClause } from "./acl";
+import {
+  visibilityClause,
+  visibilityClauseParams,
+  publicOnlyClause,
+} from "./acl";
 import { encodeFeedCursor, parseFeedCursor } from "./cursors";
 import { hydratePosts } from "./hydration";
 import { POST_SELECT } from "./select";
@@ -20,7 +24,7 @@ export async function assertPostVisible(
     `SELECT 1 AS ok FROM posts p
      WHERE p.id = ? AND ${visibilityClause("p")}
      LIMIT 1`,
-    [postId, viewerId, viewerId],
+    [postId, ...visibilityClauseParams(viewerId)],
   );
   if (!rows.length) {
     throw new DomainError(404, "Post not found");
@@ -49,7 +53,7 @@ export async function listFeedPosts(
   let where: string;
   if (viewerId) {
     where = `WHERE ${visibilityClause("p")}`;
-    params.push(viewerId, viewerId);
+    params.push(...visibilityClauseParams(viewerId));
   } else {
     where = `WHERE ${publicOnlyClause("p")}`;
   }
@@ -97,7 +101,7 @@ export async function getPostById(
   const params: unknown[] = [vid, postId];
   const acl = viewerId ? visibilityClause("p") : publicOnlyClause("p");
   if (viewerId) {
-    params.push(viewerId, viewerId);
+    params.push(...visibilityClauseParams(viewerId));
   }
 
   const [rows] = await pool.query<PostRow[]>(

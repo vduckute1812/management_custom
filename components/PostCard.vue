@@ -30,7 +30,6 @@ const { getPost } = usePosts();
 const { pushToast } = useToasts();
 const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
-const { planBusy, planPostAsTask } = usePlanPostAsTask();
 
 /** Active manuscript locale variant shown in this card. */
 const view = ref(props.post);
@@ -199,6 +198,9 @@ const visibilityBadge = computed(() => {
   if (props.post.visibility === PostVisibility.Shared) {
     return t("feed.post.shared");
   }
+  if (props.post.visibility === PostVisibility.Friends) {
+    return t("feed.post.friends");
+  }
   return t("feed.post.public");
 });
 
@@ -277,10 +279,6 @@ function onShareClick() {
     return;
   }
   shareOpen.value = !shareOpen.value;
-}
-
-async function onPlanClick() {
-  await planPostAsTask(props.post);
 }
 </script>
 
@@ -613,8 +611,7 @@ async function onPlanClick() {
 
     <div
       ref="reactRoot"
-      class="relative border-t border-slate-100 bg-slate-50/40 px-1 py-1 grid"
-      :class="isManuscript ? 'grid-cols-4' : 'grid-cols-3'"
+      class="relative grid grid-cols-3 border-t border-slate-100 bg-slate-50/40 px-1 py-1"
     >
       <div
         class="relative"
@@ -713,27 +710,6 @@ async function onPlanClick() {
           <path d="m8.7 10.7 6.6-4.4M8.7 13.3l6.6 4.4" />
         </svg>
         {{ $t("feed.post.share") }}
-      </button>
-      <button
-        v-if="isManuscript"
-        type="button"
-        class="flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold text-slate-600 transition hover:bg-white hover:text-slate-900 hover:shadow-sm disabled:opacity-50 sm:text-sm"
-        :disabled="planBusy"
-        :title="$t('feed.post.planTitle')"
-        @click="onPlanClick"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          class="hidden h-4 w-4 sm:block"
-          aria-hidden="true"
-        >
-          <rect x="4" y="4" width="16" height="16" rx="3" />
-          <path d="M8 2v4M16 2v4M8 11h8M8 15h5" stroke-linecap="round" />
-        </svg>
-        {{ $t("feed.post.plan") }}
       </button>
     </div>
 
