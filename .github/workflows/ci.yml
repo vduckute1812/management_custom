@@ -5,6 +5,8 @@
 # files and `vue-tsc` reported 52 errors while the docs called it "the gate".
 #
 # Deploys still live in deploy-pi.yml; this workflow never touches the Pi.
+# GitHub-hosted jobs use actions/*@v5 (Node 24 runtime) to clear the Node 20
+# deprecation warning on ubuntu-latest.
 
 name: CI
 
@@ -36,13 +38,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
+          # setup-node@v5 auto-caches when packageManager is set; we pin npm
+          # separately below, so keep explicit npm cache only.
+          package-manager-cache: false
 
       # The lockfile is npm 12 format: `npm ci` on npm <= 11 fails with a
       # confusing "Missing: cac@6.7.14 from lock file". Node 26 still ships
@@ -115,13 +120,16 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
+          # setup-node@v5 auto-caches when packageManager is set; we pin npm
+          # separately below, so keep explicit npm cache only.
+          package-manager-cache: false
 
       - name: Pin npm to the version that owns the lockfile
         run: |
