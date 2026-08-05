@@ -67,6 +67,7 @@ export const termsOfService: LegalDocumentSet = {
         ],
         bullets: [
           "Public posts can be read by anyone on the internet, indexed by search engines, and listed in the site sitemap. Treat publishing as permanent even after deletion — third parties may already have copied or cached it.",
+          "Friends posts are visible only to people you have accepted as friends (and to you).",
           "Private posts are visible only to you; shared posts only to the members you name.",
           "Stories are visible to every signed-in member for 24 hours and then deleted.",
           "Chat is between two members and no administrator can read it through the application, but it is not end-to-end encrypted. Do not send passwords, financial details, or other sensitive data through it.",
@@ -226,6 +227,7 @@ export const termsOfService: LegalDocumentSet = {
         ],
         bullets: [
           "Bài công khai ai trên internet cũng đọc được, có thể được công cụ tìm kiếm lập chỉ mục và xuất hiện trong sitemap của site. Hãy coi việc công bố là vĩnh viễn ngay cả sau khi xoá — bên thứ ba có thể đã sao chép hoặc lưu bộ đệm.",
+          "Bài bạn bè chỉ những người bạn đã chấp nhận kết bạn (và chính bạn) thấy được.",
           "Bài riêng tư chỉ bạn thấy; bài chia sẻ chỉ những thành viên bạn nêu tên thấy được.",
           "Story hiển thị với mọi thành viên đã đăng nhập trong 24 giờ rồi bị xoá.",
           "Tin nhắn chỉ giữa hai thành viên và không quản trị viên nào đọc được qua ứng dụng, nhưng tin nhắn không được mã hoá đầu-cuối. Đừng gửi mật khẩu, thông tin tài chính hay dữ liệu nhạy cảm khác qua đó.",

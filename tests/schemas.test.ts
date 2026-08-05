@@ -118,6 +118,24 @@ describe("postCreateBodySchema", () => {
     expect(parsed.success).toBe(true);
   });
 
+  it("defaults omitted visibility to Friends", () => {
+    const parsed = postCreateBodySchema.safeParse({
+      body: "Hello feed",
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.visibility).toBe(PostVisibility.Friends);
+    }
+  });
+
+  it("accepts Friends visibility", () => {
+    const parsed = postCreateBodySchema.safeParse({
+      body: "Hello friends",
+      visibility: PostVisibility.Friends,
+    });
+    expect(parsed.success).toBe(true);
+  });
+
   it("rejects string visibility and format", () => {
     expect(
       postCreateBodySchema.safeParse({

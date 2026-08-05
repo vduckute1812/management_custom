@@ -502,6 +502,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `docker/configure-gemini.sh` for Pi secrets; `docker/watch-deploy-actions.sh` runner heal; `tests/article-pipeline.test.ts`
 - [x] Docs synced: cache-queue env table, api admin routes, architecture module map, `article-spec.md`
 
+## Phase 37 — Facebook-style friends + Friends visibility
+
+- [x] Migration `0033_friendships` + `FriendshipStatus` (`Pending=0`, `Accepted=1`); Normal-user Public posts → Friends; admin Public unchanged
+- [x] `PostVisibility.Friends = 3`; feed ACL + upload ACL; default create/share = Friends
+- [x] API `/api/friends` (list / request / accept / delete) + `/friends` UI + nav badge
+- [x] Remove “Lên kế hoạch” (plan-as-task) from `PostCard`
+- [x] Docs: database / api / architecture / roadmap
+
 ### Later
 
 - Playwright smoke

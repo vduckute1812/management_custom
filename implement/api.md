@@ -53,7 +53,7 @@ Integer wire enums (TS code, JSON, MySQL `TINYINT UNSIGNED`) cover task/epic sta
 | article `status`  | `Draft`  | `PendingApproval` | `Approved`   | `Rejected` |         |         |
 | `ReactionType`    | `Like`   | `Love`            | `Haha`       | `Wow`      | `Sad`   | `Angry` |
 | `ChatMessageKind` | `Text`   | `Emoji`           | `Sticker`    | `Image`    | `Audio` |         |
-| `PostVisibility`  | `Public` | `Private`         | `Shared`     |            |         |         |
+| `PostVisibility`  | `Public` | `Private`         | `Shared`     | `Friends`  |         |         |
 | `PostFormat`      | `Update` | `Manuscript`      |              |            |         |         |
 | `UploadKind`      | `Image`  | `Document`        | `Audio`      |            |         |         |
 
@@ -162,7 +162,7 @@ Used by Pi deploy (`ci-deploy.sh`) after recreating the app container.
 
 ## Posts / feed
 
-Visibility: `0` public \| `1` private \| `2` shared (+ `post_audience` for shared). Guests see public posts only.  
+Visibility: `0` public \| `1` private \| `2` shared (+ `post_audience`) \| `3` friends (accepted friendships). Guests see public posts only. New user posts/shares default to Friends; admin/pipeline publish stays Public.
 Format: `0` update (short) \| `1` manuscript (long-form; requires `title`).  
 Body: GitHub-flavored Markdown + KaTeX (`$…$` / `$$…$$`); client renders via `utils/renderPostBody.ts` (marked → KaTeX → DOMPurify). Inline images (`![alt](/api/uploads/{id})`) are inserted from the manuscript writing desk and must also be listed in `attachmentIds` for ACL.
 
@@ -183,12 +183,27 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 | `DELETE` | `/api/posts/:id/reactions`           | Required | Clear reaction. Same response shape; `myReaction` is `null`.                                                                              |
 | `POST`   | `/api/posts/:id/share`               | Required | Body `{ body?, visibility?, audienceUserIds? }`. `body` defaults to `"Shared a post"` (max 5000). Returns `{ post }`.                     |
 
-**`POST /api/posts` body:** `{ body, title?, format?, visibility?, audienceUserIds?, attachmentIds?, categoryId?, fontFamily?, textColor?, contentLocale?, translationGroupId? }`. `format` is `PostFormat` (`0` update default, `1` manuscript); `visibility` is `PostVisibility` (`0` public default, `1` private, `2` shared). Updates max 5,000 chars; manuscripts max 100,000 and require `title` (max 160). Shared visibility needs at least one non-self audience user. Attachments max 10 (owned uploads). Returns `{ post }`. Duplicate translation locale → `409`; translation group ownership mismatch → `403`.
+**`POST /api/posts` body:** `{ body, title?, format?, visibility?, audienceUserIds?, attachmentIds?, categoryId?, fontFamily?, textColor?, contentLocale?, translationGroupId? }`. `format` is `PostFormat` (`0` update default, `1` manuscript); `visibility` is `PostVisibility` (`0` public, `1` private, `2` shared, `3` friends — **default Friends**). Updates max 5,000 chars; manuscripts max 100,000 and require `title` (max 160). Shared visibility needs at least one non-self audience user. Attachments max 10 (owned uploads). Returns `{ post }`. Duplicate translation locale → `409`; translation group ownership mismatch → `403`.
 
-**`PATCH /api/posts/:id` body:** send the full editable state (`body` required; `title`, numeric `visibility` defaulting to `0` public if omitted, `audienceUserIds`, `attachmentIds`, `categoryId`, `fontFamily`, `textColor`). Does **not** accept `format`, `contentLocale`, or `translationGroupId`.
+**`PATCH /api/posts/:id` body:** send the full editable state (`body` required; `title`, numeric `visibility` defaulting to Friends=`3` if omitted, `audienceUserIds`, `attachmentIds`, `categoryId`, `fontFamily`, `textColor`). Does **not** accept `format`, `contentLocale`, or `translationGroupId`.
 
-DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts` (list/CRUD), `postReactions.ts`, `postComments.ts`.  
+DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts` (mutations), `postQueries.ts` (reads), `postReactions.ts`, `postComments.ts`.  
 `GET /api/feed` is the Feed page first-paint call. Later pages / infinite scroll use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
+
+---
+
+## Friends
+
+Facebook-style request → accept graph. Status: `Pending=0` \| `Accepted=1`. Friends-visibility posts require an Accepted row with the author.
+
+| Method   | Endpoint                  | Auth     | Description                                                                                          |
+| -------- | ------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/friends`            | Required | `{ friends, incoming, outgoing }` — each item is a `FriendshipRow`.                                  |
+| `POST`   | `/api/friends`            | Required | Body `{ userId }`. Sends a request (or auto-accepts a reciprocal pending). Returns `{ friendship }`. |
+| `POST`   | `/api/friends/:id/accept` | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
+| `DELETE` | `/api/friends/:id`        | Required | Cancel / decline / unfriend. Returns `{ ok: true }`.                                                 |
+
+DTO: `~/types/friendship.ts`. Domain: `server/db/friendships.ts`. UI: `/friends`.
 
 ---
 

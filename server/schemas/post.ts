@@ -70,7 +70,7 @@ export const postCreateBodySchema = z
     body: z.string().trim().min(1, "Post body is required"),
     title: z.string().trim().max(POST_TITLE_MAX).optional().nullable(),
     format: postFormatSchema.optional().default(PostFormat.Update),
-    visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
+    visibility: postVisibilitySchema.optional().default(PostVisibility.Friends),
     audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
     attachmentIds: z
       .array(z.string().min(1))
@@ -123,7 +123,7 @@ export const postCreateBodySchema = z
 export const postPatchBodySchema = z.object({
   body: z.string().trim().min(1, "Post body is required"),
   title: z.string().trim().max(POST_TITLE_MAX).optional().nullable(),
-  visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
+  visibility: postVisibilitySchema.optional().default(PostVisibility.Friends),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
   attachmentIds: z
     .array(z.string().min(1))
@@ -143,6 +143,6 @@ export const postPatchBodySchema = z.object({
 
 export const postShareBodySchema = z.object({
   body: z.string().trim().max(5_000).optional().default(""),
-  visibility: postVisibilitySchema.optional().default(PostVisibility.Public),
+  visibility: postVisibilitySchema.optional().default(PostVisibility.Friends),
   audienceUserIds: z.array(z.string().min(1)).max(50).optional().default([]),
 });

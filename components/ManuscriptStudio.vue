@@ -109,7 +109,7 @@ const title = ref(props.initial?.title ?? "");
 const body = ref(props.initial?.body ?? "");
 const contentLocale = ref<ContentLocale>(defaultLocale());
 const visibility = ref<PostVisibility>(
-  props.initial?.visibility ?? PostVisibility.Public,
+  props.initial?.visibility ?? PostVisibility.Friends,
 );
 const categoryId = ref(props.initial?.categoryId || "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "serif");
@@ -239,7 +239,7 @@ function clear() {
   title.value = "";
   body.value = "";
   contentLocale.value = defaultLocale();
-  visibility.value = PostVisibility.Public;
+  visibility.value = PostVisibility.Friends;
   categoryId.value = "";
   fontFamily.value = "serif";
   textColor.value = "default";
@@ -258,6 +258,7 @@ onMounted(() => {
 });
 
 const visibilityOptions = computed(() => [
+  { value: PostVisibility.Friends, label: t("feed.composer.friends") },
   { value: PostVisibility.Public, label: t("feed.composer.public") },
   { value: PostVisibility.Private, label: t("feed.composer.onlyMe") },
   { value: PostVisibility.Shared, label: t("feed.composer.specificPeople") },

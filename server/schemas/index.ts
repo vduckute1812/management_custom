@@ -61,3 +61,5 @@ export {
   pendingArticleFetchBodySchema,
   pendingArticleSettingsPatchBodySchema,
 } from "./article";
+
+export { friendshipRequestBodySchema } from "./friendship";

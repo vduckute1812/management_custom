@@ -58,7 +58,7 @@ function catLabel(cat: PostCategory) {
 
 const body = ref(props.initial?.body ?? "");
 const visibility = ref<PostVisibility>(
-  props.initial?.visibility ?? PostVisibility.Public,
+  props.initial?.visibility ?? PostVisibility.Friends,
 );
 const categoryId = ref(props.initial?.categoryId ?? "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "default");
@@ -137,7 +137,7 @@ function onSubmit() {
 
 function clear() {
   body.value = "";
-  visibility.value = PostVisibility.Public;
+  visibility.value = PostVisibility.Friends;
   categoryId.value = "";
   fontFamily.value = "default";
   textColor.value = "default";
@@ -152,6 +152,7 @@ function focus() {
 defineExpose({ clear, focus });
 
 const visibilityOptions = computed(() => [
+  { value: PostVisibility.Friends, label: t("feed.composer.friends") },
   { value: PostVisibility.Public, label: t("feed.composer.public") },
   { value: PostVisibility.Private, label: t("feed.composer.onlyMe") },
   { value: PostVisibility.Shared, label: t("feed.composer.specificPeople") },

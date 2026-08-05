@@ -8,11 +8,13 @@ import {
   emptyReactions as emptyReactionCounts,
 } from "./reaction";
 
-/** Who can see a post — integer end-to-end (MySQL → API → UI). */
+/** Who can see a post — integer end-to-end (MySQL → API → UI). Facebook-style. */
 export const PostVisibility = {
   Public: 0,
   Private: 1,
   Shared: 2,
+  /** Accepted friends only (author always sees own posts). */
+  Friends: 3,
 } as const;
 export type PostVisibility =
   (typeof PostVisibility)[keyof typeof PostVisibility];
@@ -20,6 +22,7 @@ export const POST_VISIBILITIES = [
   PostVisibility.Public,
   PostVisibility.Private,
   PostVisibility.Shared,
+  PostVisibility.Friends,
 ] as const;
 
 /**
@@ -66,7 +69,7 @@ export function isPostVisibility(value: unknown): value is PostVisibility {
 
 export function toPostVisibility(value: unknown): PostVisibility {
   const n = typeof value === "string" ? Number(value) : value;
-  return isPostVisibility(n) ? n : PostVisibility.Public;
+  return isPostVisibility(n) ? n : PostVisibility.Friends;
 }
 
 export function isPostFormat(value: unknown): value is PostFormat {

@@ -44,7 +44,8 @@
     "moneySavings": "儲蓄",
     "moneyBudgets": "預算",
     "privacy": "隱私",
-    "terms": "條款"
+    "terms": "條款",
+    "friends": "好友"
   },
   "auth": {
     "signInTitle": "登入以繼續",
@@ -358,7 +359,8 @@
       "colorBlue": "藍色",
       "colorRose": "玫瑰",
       "colorGreen": "綠色",
-      "colorAmber": "琥珀"
+      "colorAmber": "琥珀",
+      "friends": "好友"
     },
     "post": {
       "edit": "編輯",
@@ -410,7 +412,8 @@
       "planTaskCreated": "已在時間管理中建立研究任務",
       "planTaskOpen": "開啟",
       "planTaskFailed": "無法建立任務",
-      "cannotEdit": "您無法編輯此貼文"
+      "cannotEdit": "您無法編輯此貼文",
+      "friends": "好友"
     },
     "edit": {
       "kicker": "編輯貼文",
@@ -1166,7 +1169,37 @@
     "privacy": "隱私政策",
     "privacyDescription": "Da Nang TechX 蒐集哪些資料、由誰處理、保存多久，以及如何申請匯出或刪除。",
     "terms": "服務條款",
-    "termsDescription": "使用 Da Nang TechX 的規則：使用資格、內容歸屬、可接受使用、內容管理與責任限制。"
+    "termsDescription": "使用 Da Nang TechX 的規則：使用資格、內容歸屬、可接受使用、內容管理與責任限制。",
+    "friends": "好友"
+  },
+  "friends": {
+    "title": "好友",
+    "pageDescription": "新增好友，像 Facebook 一樣分享動態——預設僅好友可見。",
+    "findPeople": "尋找使用者",
+    "searchLabel": "搜尋使用者",
+    "searchPlaceholder": "依姓名或電子郵件搜尋…",
+    "searching": "搜尋中…",
+    "addFriend": "加好友",
+    "alreadyConnected": "已關聯",
+    "incoming": "好友邀請",
+    "incomingBadge": "{count} 個好友邀請",
+    "outgoing": "已送出邀請",
+    "yourFriends": "你的好友",
+    "loading": "載入中…",
+    "empty": "還沒有好友——在上方搜尋並傳送邀請。",
+    "accept": "接受",
+    "decline": "拒絕",
+    "cancelRequest": "取消",
+    "unfriend": "解除好友",
+    "message": "傳訊",
+    "pending": "邀請待處理",
+    "requestSent": "已傳送好友邀請",
+    "requestFailed": "無法傳送好友邀請",
+    "accepted": "已接受好友邀請",
+    "declined": "已拒絕邀請",
+    "cancelled": "已取消邀請",
+    "unfriended": "已移除好友",
+    "actionFailed": "發生錯誤"
   },
   "categories": {
     "electronics": "電子",

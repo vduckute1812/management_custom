@@ -77,6 +77,7 @@ const KNOWN_TABLES_DROP_ORDER = [
   "money_transactions",
   "money_budgets",
   "money_user_categories",
+  "friendships",
   "users",
   "schema_migrations",
 ];

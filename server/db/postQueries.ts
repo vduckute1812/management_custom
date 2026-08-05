@@ -11,7 +11,11 @@ export {
   normalizeContentLocale,
   normalizeTextColor,
 } from "./postQuery/normalizers";
-export { visibilityClause, publicOnlyClause } from "./postQuery/acl";
+export {
+  visibilityClause,
+  visibilityClauseParams,
+  publicOnlyClause,
+} from "./postQuery/acl";
 export { encodeFeedCursor, parseFeedCursor } from "./postQuery/cursors";
 export { POST_SELECT } from "./postQuery/select";
 export { hydratePosts } from "./postQuery/hydration";
