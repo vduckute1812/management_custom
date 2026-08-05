@@ -6,7 +6,7 @@ import { getRecentLogs, type LogLevel } from "~/server/utils/logBuffer";
  * Recent in-process console lines (this app container only).
  */
 export default defineEventHandler(async (event) => {
-  requireSuperAdmin(event);
+  await requireSuperAdmin(event);
   const q = getQuery(event);
   const limitRaw = Number(q.limit ?? 120);
   const limit = Number.isFinite(limitRaw) ? limitRaw : 120;

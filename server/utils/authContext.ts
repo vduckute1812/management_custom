@@ -85,13 +85,18 @@ export async function requireAdmin(event: H3Event): Promise<AccessTokenClaims> {
  * perform (e.g. anything that could lock the install out, or anything that
  * could escalate privileges).
  */
-export function requireSuperAdmin(event: H3Event): AccessTokenClaims {
+export async function requireSuperAdmin(
+  event: H3Event,
+): Promise<AccessTokenClaims> {
   const user = requireUser(event);
-  if (user.role !== UserRole.Superadmin) {
+  // Re-read role so demotions apply before the access JWT expires (~15m).
+  const { getUserById } = await import("~/server/db/users");
+  const row = await getUserById(user.sub);
+  if (!row || row.role !== UserRole.Superadmin) {
     throw createError({
       statusCode: 403,
       statusMessage: "Superadmin access required",
     });
   }
-  return user;
+  return { ...user, role: row.role };
 }

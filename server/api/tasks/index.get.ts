@@ -7,13 +7,7 @@ export default defineEventHandler(async (event) => {
   const user = requireUser(event);
   const query = parseQuery(event, tasksListQuerySchema);
 
-  const includes = query.include
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-  const includeBlocks = includes.includes("blocks");
-  const includeChecklists =
-    includes.includes("checklists") || includes.includes("checklist");
+  const { includeBlocks, includeChecklists } = query;
 
   const all = await getAllTasks(user.sub, { includeBlocks, includeChecklists });
   const tasks = all.map(toTaskView).sort((a, b) => {

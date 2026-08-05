@@ -42,9 +42,6 @@ interface StoryRow extends RowDataPacket {
   author_title: string | null;
   author_job: string | null;
   author_location: string | null;
-  viewed_by_me: number;
-  my_reaction: PostReactionType | null;
-  view_count: number;
 }
 
 interface ReactionCountRow extends RowDataPacket {
@@ -129,16 +126,85 @@ async function loadStoryReactionMaps(
   return map;
 }
 
+async function loadStoryViewerState(
+  storyIds: string[],
+  viewerId: string,
+): Promise<{
+  viewed: Map<string, boolean>;
+  myReaction: Map<string, PostReactionType | null>;
+  viewCount: Map<string, number>;
+}> {
+  const viewed = new Map<string, boolean>();
+  const myReaction = new Map<string, PostReactionType | null>();
+  const viewCount = new Map<string, number>();
+  for (const id of storyIds) {
+    viewed.set(id, false);
+    myReaction.set(id, null);
+    viewCount.set(id, 0);
+  }
+  if (!storyIds.length) {
+    return { viewed, myReaction, viewCount };
+  }
+
+  const pool = getPool();
+  const placeholders = storyIds.map(() => "?").join(",");
+
+  const [viewRows, reactionRows, countRows] = await Promise.all([
+    pool.query<(RowDataPacket & { story_id: string })[]>(
+      `SELECT story_id FROM story_views
+       WHERE user_id = ? AND story_id IN (${placeholders})`,
+      [viewerId, ...storyIds],
+    ),
+    viewerId
+      ? pool.query<(RowDataPacket & { story_id: string; reaction: number })[]>(
+          `SELECT story_id, reaction FROM story_reactions
+           WHERE user_id = ? AND story_id IN (${placeholders})`,
+          [viewerId, ...storyIds],
+        )
+      : Promise.resolve([[]] as unknown as [
+          (RowDataPacket & { story_id: string; reaction: number })[],
+        ]),
+    pool.query<(RowDataPacket & { story_id: string; cnt: number })[]>(
+      `SELECT story_id, COUNT(*) AS cnt FROM story_views
+       WHERE story_id IN (${placeholders})
+       GROUP BY story_id`,
+      storyIds,
+    ),
+  ]);
+
+  for (const row of viewRows[0]) viewed.set(row.story_id, true);
+  for (const row of reactionRows[0]) {
+    myReaction.set(row.story_id, toReactionType(row.reaction));
+  }
+  for (const row of countRows[0]) {
+    viewCount.set(row.story_id, Number(row.cnt ?? 0));
+  }
+  return { viewed, myReaction, viewCount };
+}
+
 function rowToStory(
   row: StoryRow,
   viewerId: string,
   reactions: Record<PostReactionType, number>,
+  viewerState: {
+    viewedByMe: boolean;
+    myReaction: PostReactionType | null;
+    viewCount: number;
+  },
 ): Story {
   const reactionCount = POST_REACTION_TYPES.reduce(
     (sum: number, key) => sum + (reactions[key] ?? 0),
     0,
   );
   const isOwner = row.user_id === viewerId;
+  const author = toAuthor(row.user_id, row.author_name, row.author_email, {
+    avatarUploadId: row.author_avatar_upload_id,
+    title: row.author_title,
+    job: row.author_job,
+    location: row.author_location,
+  });
+  // Only the story owner sees their own email on the wire.
+  author.email = isOwner ? row.author_email : "";
   return {
     id: row.id,
     body: row.body,
@@ -146,18 +212,13 @@ function rowToStory(
     mediaUrl: row.upload_id ? `/api/uploads/${row.upload_id}` : null,
     createdAt: dbToISO(row.created_at),
     expiresAt: dbToISO(row.expires_at),
-    author: toAuthor(row.user_id, row.author_name, row.author_email, {
-      avatarUploadId: row.author_avatar_upload_id,
-      title: row.author_title,
-      job: row.author_job,
-      location: row.author_location,
-    }),
-    viewedByMe: Number(row.viewed_by_me ?? 0) > 0,
+    author,
+    viewedByMe: viewerState.viewedByMe,
     canDelete: isOwner,
     reactions,
     reactionCount,
-    myReaction: toReactionType(row.my_reaction),
-    viewCount: isOwner ? Number(row.view_count ?? 0) : 0,
+    myReaction: viewerState.myReaction,
+    viewCount: isOwner ? viewerState.viewCount : 0,
   };
 }
 
@@ -239,7 +300,7 @@ function storyVisibilityParams(viewerId: string): string[] {
   return [viewerId, viewerId, viewerId];
 }
 
-/** Shared SELECT for tray + single-story reload (viewer-scoped subqueries). */
+/** Shared SELECT for tray + single-story reload (viewer state loaded in batch). */
 const STORY_SELECT = `SELECT
        s.id, s.user_id, s.body, s.upload_id, s.media_storage_key, s.mime,
        s.created_at, s.expires_at,
@@ -247,15 +308,20 @@ const STORY_SELECT = `SELECT
        u.avatar_upload_id AS author_avatar_upload_id,
        u.title AS author_title,
        u.job AS author_job,
-       u.location AS author_location,
-       (SELECT COUNT(*) FROM story_views sv
-         WHERE sv.story_id = s.id AND sv.user_id = ?) AS viewed_by_me,
-       (SELECT sr.reaction FROM story_reactions sr
-         WHERE sr.story_id = s.id AND sr.user_id = ? LIMIT 1) AS my_reaction,
-       (SELECT COUNT(*) FROM story_views sv2
-         WHERE sv2.story_id = s.id) AS view_count
+       u.location AS author_location
      FROM stories s
      INNER JOIN users u ON u.id = s.user_id`;
+
+function viewerStateFor(
+  storyId: string,
+  state: Awaited<ReturnType<typeof loadStoryViewerState>>,
+) {
+  return {
+    viewedByMe: state.viewed.get(storyId) ?? false,
+    myReaction: state.myReaction.get(storyId) ?? null,
+    viewCount: state.viewCount.get(storyId) ?? 0,
+  };
+}
 
 /**
  * Load one non-expired story as the viewer would see it in the tray.
@@ -272,15 +338,19 @@ export async function getStoryForViewer(
        AND s.expires_at > UTC_TIMESTAMP(3)
        AND ${storyVisibilityClause("s")}
      LIMIT 1`,
-    [viewerId, viewerId, storyId, ...storyVisibilityParams(viewerId)],
+    [storyId, ...storyVisibilityParams(viewerId)],
   );
   const row = rows[0];
   if (!row) return null;
-  const reactionMaps = await loadStoryReactionMaps([row.id]);
+  const [reactionMaps, viewerState] = await Promise.all([
+    loadStoryReactionMaps([row.id]),
+    loadStoryViewerState([row.id], viewerId),
+  ]);
   return rowToStory(
     row,
     viewerId,
     reactionMaps.get(row.id) ?? emptyReactions(),
+    viewerStateFor(row.id, viewerState),
   );
 }
 
@@ -294,10 +364,14 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
      WHERE s.expires_at > UTC_TIMESTAMP(3)
        AND ${storyVisibilityClause("s")}
      ORDER BY s.created_at ASC`,
-    [viewerId, viewerId, ...storyVisibilityParams(viewerId)],
+    [...storyVisibilityParams(viewerId)],
   );
 
-  const reactionMaps = await loadStoryReactionMaps(rows.map((r) => r.id));
+  const storyIds = rows.map((r) => r.id);
+  const [reactionMaps, viewerState] = await Promise.all([
+    loadStoryReactionMaps(storyIds),
+    loadStoryViewerState(storyIds, viewerId),
+  ]);
 
   const byAuthor = new Map<string, StoryAuthorGroup>();
   for (const row of rows) {
@@ -305,6 +379,7 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
       row,
       viewerId,
       reactionMaps.get(row.id) ?? emptyReactions(),
+      viewerStateFor(row.id, viewerState),
     );
     let group = byAuthor.get(story.author.id);
     if (!group) {
@@ -480,16 +555,20 @@ export async function getStoryInsights(
     [storyId],
   );
 
-  const viewers: StoryViewerEntry[] = viewerRows.map((r) => ({
-    user: toAuthor(r.user_id, r.name, r.email, {
+  const viewers: StoryViewerEntry[] = viewerRows.map((r) => {
+    const user = toAuthor(r.user_id, r.name, r.email, {
       avatarUploadId: r.avatar_upload_id,
       title: r.title,
       job: r.job,
       location: r.location,
-    }),
-    viewedAt: dbToISO(r.viewed_at),
-    reaction: toReactionType(r.reaction),
-  }));
+    });
+    user.email = "";
+    return {
+      user,
+      viewedAt: dbToISO(r.viewed_at),
+      reaction: toReactionType(r.reaction),
+    };
+  });
 
   const [reactionRows] = await pool.query<ReactionCountRow[]>(
     `SELECT story_id, reaction, COUNT(*) AS cnt
@@ -528,14 +607,16 @@ export async function getStoryInsights(
     reactionUsers: reactionUsers.flatMap((r) => {
       const reaction = toReactionType(r.reaction);
       if (reaction == null) return [];
+      const user = toAuthor(r.user_id, r.name, r.email, {
+        avatarUploadId: r.avatar_upload_id,
+        title: r.title,
+        job: r.job,
+        location: r.location,
+      });
+      user.email = "";
       return [
         {
-          user: toAuthor(r.user_id, r.name, r.email, {
-            avatarUploadId: r.avatar_upload_id,
-            title: r.title,
-            job: r.job,
-            location: r.location,
-          }),
+          user,
           reaction,
           createdAt: dbToISO(r.created_at),
         },

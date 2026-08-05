@@ -28,21 +28,28 @@ interface FriendshipPeerRow extends RowDataPacket {
   peer_avatar_upload_id: string | null;
 }
 
-function toPeer(row: {
-  peer_id: string;
-  peer_name: string | null;
-  peer_email: string;
-  peer_avatar_upload_id: string | null;
-}): FriendshipUser {
+function toPeer(
+  row: {
+    peer_id: string;
+    peer_name: string | null;
+    peer_email: string;
+    peer_avatar_upload_id: string | null;
+  },
+  opts?: { wireEmail?: boolean },
+): FriendshipUser {
   return {
     id: row.peer_id,
     name: resolveDisplayName(row.peer_name, row.peer_email),
-    email: row.peer_email,
+    // Accepted friends may see email (chat/compose); pending peers stay masked.
+    email: opts?.wireEmail ? row.peer_email : "",
     avatarUrl: avatarUrlFromUploadId(row.peer_avatar_upload_id) ?? null,
   };
 }
 
-function toFriendship(row: FriendshipPeerRow): FriendshipRow {
+function toFriendship(
+  row: FriendshipPeerRow,
+  opts?: { wireEmail?: boolean },
+): FriendshipRow {
   return {
     id: row.id,
     requesterId: row.requester_id,
@@ -50,7 +57,7 @@ function toFriendship(row: FriendshipPeerRow): FriendshipRow {
     status: toFriendshipStatus(row.status),
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
-    peer: toPeer(row),
+    peer: toPeer(row, opts),
   };
 }
 
@@ -120,7 +127,7 @@ export async function listFriends(userId: string): Promise<FriendshipRow[]> {
      ORDER BY peer.name ASC, peer.email ASC`,
     [userId, FriendshipStatus.Accepted, userId, userId],
   );
-  return rows.map(toFriendship);
+  return rows.map((row) => toFriendship(row, { wireEmail: true }));
 }
 
 export async function listIncomingFriendRequests(
@@ -134,7 +141,7 @@ export async function listIncomingFriendRequests(
      ORDER BY f.created_at DESC`,
     [userId, FriendshipStatus.Pending, userId],
   );
-  return rows.map(toFriendship);
+  return rows.map((row) => toFriendship(row));
 }
 
 export async function listOutgoingFriendRequests(
@@ -148,7 +155,7 @@ export async function listOutgoingFriendRequests(
      ORDER BY f.created_at DESC`,
     [userId, FriendshipStatus.Pending, userId],
   );
-  return rows.map(toFriendship);
+  return rows.map((row) => toFriendship(row));
 }
 
 export async function listFriendshipOverview(userId: string): Promise<{
@@ -180,7 +187,8 @@ async function loadFriendshipForUser(
   if (!row) {
     throw new DomainError(404, "Friendship not found");
   }
-  return toFriendship(row);
+  const accepted = toFriendshipStatus(row.status) === FriendshipStatus.Accepted;
+  return toFriendship(row, { wireEmail: accepted });
 }
 
 export async function requestFriendship(

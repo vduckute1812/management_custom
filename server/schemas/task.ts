@@ -100,6 +100,29 @@ export const timerStartBodySchema = z.object({
 });
 
 /** `GET /api/tasks?include=blocks,checklists` — light list by default. */
-export const tasksListQuerySchema = z.object({
-  include: z.string().max(64).optional().default(""),
-});
+export const tasksListQuerySchema = z
+  .object({
+    include: z.string().max(64).optional().default(""),
+  })
+  .transform((q, ctx) => {
+    const tokens = q.include
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    const unknown = tokens.filter(
+      (t) => t !== "blocks" && t !== "checklists" && t !== "checklist",
+    );
+    if (unknown.length) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["include"],
+        message: `Unknown include token(s): ${unknown.join(", ")}`,
+      });
+      return z.NEVER;
+    }
+    return {
+      includeBlocks: tokens.includes("blocks"),
+      includeChecklists:
+        tokens.includes("checklists") || tokens.includes("checklist"),
+    };
+  });

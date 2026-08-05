@@ -240,6 +240,21 @@ function rowToPost(
     0,
   );
 
+  const author = toAuthor(row.user_id, row.author_name, row.author_email, {
+    avatarUploadId: row.author_avatar_upload_id,
+    title: row.author_title,
+    job: row.author_job,
+    location: row.author_location,
+  });
+  // Only the post owner sees their own email on the wire.
+  if (!viewerId || row.user_id !== viewerId) {
+    author.email = "";
+  }
+
+  if (sharedPost && (!viewerId || row.shared_author_id !== viewerId)) {
+    sharedPost.author.email = "";
+  }
+
   return {
     id: row.id,
     format: toPostFormat(row.format),
@@ -254,12 +269,7 @@ function rowToPost(
     translations: [],
     createdAt: dbToISO(row.created_at),
     updatedAt: dbToISO(row.updated_at),
-    author: toAuthor(row.user_id, row.author_name, row.author_email, {
-      avatarUploadId: row.author_avatar_upload_id,
-      title: row.author_title,
-      job: row.author_job,
-      location: row.author_location,
-    }),
+    author,
     reactions,
     reactionCount,
     myReaction,
