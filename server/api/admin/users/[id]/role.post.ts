@@ -25,7 +25,7 @@ import { parseBody } from "~/server/utils/http";
 import { adminUserRoleBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing user id" });

@@ -1,9 +1,5 @@
 import type { RowDataPacket } from "mysql2/promise";
-import type {
-  PostFormat,
-  PostReactionType,
-  PostVisibility,
-} from "../../../types/post";
+import type { PostFormat, PostVisibility } from "../../../types/post";
 
 export interface PostRow extends RowDataPacket {
   id: string;
@@ -27,7 +23,6 @@ export interface PostRow extends RowDataPacket {
   author_job: string | null;
   author_location: string | null;
   comment_count: number;
-  my_reaction: PostReactionType | null;
   category_slug: string | null;
   category_name: string | null;
   category_sort_order: number | null;

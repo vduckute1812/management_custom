@@ -65,15 +65,18 @@ export function requireUser(event: H3Event): AccessTokenClaims {
   return user;
 }
 
-export function requireAdmin(event: H3Event): AccessTokenClaims {
+export async function requireAdmin(event: H3Event): Promise<AccessTokenClaims> {
   const user = requireUser(event);
-  if (!isAdminRole(user.role)) {
+  // Re-read role so demotions apply before the access JWT expires (~15m).
+  const { getUserById } = await import("~/server/db/users");
+  const row = await getUserById(user.sub);
+  if (!row || !isAdminRole(row.role)) {
     throw createError({
       statusCode: 403,
       statusMessage: "Admin access required",
     });
   }
-  return user;
+  return { ...user, role: row.role };
 }
 
 /**

@@ -125,6 +125,30 @@ async function loadReactionMaps(
   return map;
 }
 
+async function loadMyReactions(
+  postIds: string[],
+  viewerId: string,
+): Promise<Map<string, PostReactionType | null>> {
+  const map = new Map<string, PostReactionType | null>();
+  for (const id of postIds) map.set(id, null);
+  if (!postIds.length || !viewerId) return map;
+
+  const pool = getPool();
+  const placeholders = postIds.map(() => "?").join(",");
+  const [rows] = await pool.query<
+    (RowDataPacket & { post_id: string; reaction: number })[]
+  >(
+    `SELECT post_id, reaction
+     FROM post_reactions
+     WHERE user_id = ? AND post_id IN (${placeholders})`,
+    [viewerId, ...postIds],
+  );
+  for (const row of rows) {
+    map.set(row.post_id, toReactionType(row.reaction));
+  }
+  return map;
+}
+
 async function loadAttachments(
   postIds: string[],
 ): Promise<Map<string, PostAttachment[]>> {
@@ -182,6 +206,7 @@ function rowToPost(
   reactions: Record<PostReactionType, number>,
   attachments: PostAttachment[],
   audienceUserIds: string[],
+  myReaction: PostReactionType | null,
 ): Post {
   let sharedPost: SharedPostPreview | null = null;
   if (
@@ -214,7 +239,6 @@ function rowToPost(
     (sum: number, key) => sum + (reactions[key] ?? 0),
     0,
   );
-  const myReaction = toReactionType(row.my_reaction);
 
   return {
     id: row.id,
@@ -342,12 +366,14 @@ export async function hydratePosts(
   const groupIds = rows
     .map((r) => r.translation_group_id)
     .filter((id): id is string => Boolean(id));
-  const [reactions, attachments, audience, translations] = await Promise.all([
-    loadReactionMaps(ids),
-    loadAttachments(ids),
-    loadAudience(ids),
-    loadTranslationMaps(groupIds),
-  ]);
+  const [reactions, myReactions, attachments, audience, translations] =
+    await Promise.all([
+      loadReactionMaps(ids),
+      loadMyReactions(ids, viewerId),
+      loadAttachments(ids),
+      loadAudience(ids),
+      loadTranslationMaps(groupIds),
+    ]);
   const posts = rows.map((r) =>
     rowToPost(
       r,
@@ -355,6 +381,7 @@ export async function hydratePosts(
       reactions.get(r.id) ?? emptyReactions(),
       attachments.get(r.id) ?? [],
       audience.get(r.id) ?? [],
+      myReactions.get(r.id) ?? null,
     ),
   );
   return preferLocaleVariants(posts, preferredLocale, translations);

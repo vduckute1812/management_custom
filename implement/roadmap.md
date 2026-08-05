@@ -510,8 +510,40 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Remove “Lên kế hoạch” (plan-as-task) from `PostCard`
 - [x] Docs: database / api / architecture / roadmap
 
+## Phase 38 — Quality sprints (structure / perf / UX / clean / security)
+
+### Sprint A — Clean code
+
+- [x] Remove dead `usePlanPostAsTask` + orphan i18n; sync docs/rules
+- [x] Zod `tasksListQuerySchema` for `GET /api/tasks?include=`
+- [x] Admin imports auth types from `types/auth`; `database.md` index drift
+
+### Sprint B — Performance
+
+- [x] Batch `my_reaction` in post hydration (drop correlated subquery)
+- [x] Lightweight `GET /api/friends/incoming-count` for header badge
+- [x] Lazy `PostCard` / `StoryViewer` / `ManuscriptStudio`
+
+### Sprint C — UI/UX
+
+- [x] Friends: EmptyState / SkeletonList / unfriend confirm; avatar lazy
+- [x] Header: hide Money on xs (bottom nav covers it)
+- [x] robots/sitemap exclude `/friends` `/money`; money pages `noindex`
+
+### Sprint D — Structure
+
+- [x] Extract `FeedStoryComposer` from feed page
+
+### Sprint E — Security
+
+- [x] Stories + story uploads gated by Accepted friendship (Facebook-style)
+- [x] Rate limits: friends / chat / money / posts / stories
+- [x] Directory search no longer returns emails
+- [x] Article fetcher DNS resolve + private-IP reject (SSRF)
+- [x] R2 signed URL default TTL 300s; `requireAdmin` re-reads DB role
+
 ### Later
 
 - Playwright smoke
-- Split remaining page gods (`settings` remainder, `feed`)
+- Split remaining page gods (`settings` remainder, `admin` charts, `TaskModal`)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)

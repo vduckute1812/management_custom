@@ -504,7 +504,8 @@ export async function searchUserDirectory(
       (r.name as string | null) ?? null,
       String(r.email),
     ),
-    email: String(r.email),
+    // Do not expose emails in directory search (enumeration risk).
+    email: "",
     avatarUrl:
       avatarUrlFromUploadId((r.avatar_upload_id as string | null) ?? null) ??
       null,

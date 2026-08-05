@@ -42,6 +42,7 @@ await useAsyncData("money:initial", async () => {
 useSeoMeta({
   title: () => t("seo.money"),
   description: () => t("seo.moneyDescription"),
+  robots: "noindex, nofollow",
 });
 
 usePageShortcuts([{ key: "n", handler: () => openCreate() }]);

@@ -288,7 +288,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── useMoney.ts, useMoneyBudgets.ts, useMoneySavings.ts, …
 │   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
 │   ├── useChat.ts                   # DM list / thread / module-scoped SSE singleton / send
-│   ├── usePlanPostAsTask.ts         # Feed → Time Management seam
+│   ├── useFriends.ts                # Friend requests / list / badge count
 │   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
 │   ├── useLegalDocument.ts          # Privacy / terms text for the active locale
 ├── middleware/auth.global.ts

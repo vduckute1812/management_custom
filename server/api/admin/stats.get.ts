@@ -15,7 +15,7 @@ import {
 import { requireAdmin } from "~/server/utils/authContext";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const query = getQuery(event);
   const days = Math.min(365, Math.max(1, Number(query.days ?? 30) || 30));
 

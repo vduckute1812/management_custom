@@ -21,8 +21,6 @@ export const POST_SELECT = `
     u.job AS author_job,
     u.location AS author_location,
     p.comment_count AS comment_count,
-    (SELECT pr.reaction FROM post_reactions pr
-      WHERE pr.post_id = p.id AND pr.user_id = ? LIMIT 1) AS my_reaction,
     c.slug AS category_slug,
     c.name AS category_name,
     c.sort_order AS category_sort_order,

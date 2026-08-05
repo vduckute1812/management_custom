@@ -43,17 +43,22 @@ describe("checkRateLimit", () => {
 describe("rateLimitScope / rateLimitKey", () => {
   it("shares a global bucket for ordinary APIs", () => {
     expect(rateLimitScope("/api/tasks")).toBe("global");
-    expect(rateLimitScope("/api/posts/post_abc")).toBe("global");
+    expect(rateLimitScope("/api/epics")).toBe("global");
     expect(rateLimitKey("1.2.3.4", "/api/tasks")).toBe("1.2.3.4:global");
   });
 
-  it("isolates strict auth/upload paths", () => {
+  it("isolates strict auth/upload/social paths", () => {
     expect(rateLimitScope("/api/auth/login")).toBe("/api/auth/login");
     expect(rateLimitKey("1.2.3.4", "/api/auth/signup")).toBe(
       "1.2.3.4:/api/auth/signup",
     );
     expect(rateLimitScope("/api/uploads")).toBe("/api/uploads");
     expect(rateLimitScope("/api/uploads/upl_abc")).toBe("/api/uploads");
+    expect(rateLimitScope("/api/friends")).toBe("/api/friends");
+    expect(rateLimitScope("/api/chat/conversations")).toBe("/api/chat");
+    expect(rateLimitScope("/api/money/transactions")).toBe("/api/money");
+    expect(rateLimitScope("/api/posts")).toBe("/api/posts");
+    expect(rateLimitScope("/api/stories")).toBe("/api/stories");
   });
 
   it("builds a separate account-scoped key", () => {
@@ -84,6 +89,14 @@ describe("resolvePolicy", () => {
       limit: 120,
       windowMs: 60_000,
     });
+  });
+
+  it("applies tighter social/money write budgets", () => {
+    expect(resolvePolicy("/api/friends").limit).toBe(30);
+    expect(resolvePolicy("/api/chat/conversations").limit).toBe(90);
+    expect(resolvePolicy("/api/money/transactions").limit).toBe(60);
+    expect(resolvePolicy("/api/posts").limit).toBe(40);
+    expect(resolvePolicy("/api/stories").limit).toBe(40);
   });
 
   it("exposes matching account policies for credential endpoints", () => {

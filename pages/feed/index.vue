@@ -4,12 +4,7 @@ import type {
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
-import { PostFormat, UploadKind } from "~/types/post";
-import {
-  UPLOAD_ACCEPT_IMAGES_ATTR,
-  UPLOAD_ALLOWED_IMAGE_EXTENSIONS,
-  resolveUploadRule,
-} from "~/utils/uploadPolicy";
+import { PostFormat } from "~/types/post";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 
 const { t, te } = useI18n();
@@ -35,45 +30,19 @@ const {
   sharePost,
 } = usePosts();
 
-const {
-  tray,
-  loading: storiesLoading,
-  refresh: refreshStories,
-  createStory,
-} = useStories();
+const { tray, loading: storiesLoading, refresh: refreshStories } = useStories();
 
 const { categories, loading: categoriesLoading } = useCategories();
-
-const { uploadFile } = useUploads();
 
 const composerRef = ref<{ clear: () => void; focus: () => void } | null>(null);
 const submitting = ref(false);
 const viewerOpen = ref(false);
 const viewerGroupIndex = ref(0);
 const storyComposerOpen = ref(false);
-const storyBody = ref("");
-const storyUploading = ref(false);
-const storySubmitting = ref(false);
-const storyFileInput = ref<HTMLInputElement | null>(null);
-const storyUploadId = ref<string | null>(null);
-const storyFileName = ref("");
-const storyComposerRoot = ref<HTMLElement | null>(null);
-const storyBodyInput = ref<HTMLTextAreaElement | null>(null);
 const pendingDeletePostId = ref<string | null>(null);
 const deletePostBusy = ref(false);
 /** Sentinel at list bottom — IntersectionObserver loads the next page. */
 const loadMoreSentinel = ref<HTMLElement | null>(null);
-
-const storyComposerVisible = computed(
-  () => storyComposerOpen.value && auth.isAuthenticatedUi.value,
-);
-useModal(storyComposerVisible, {
-  container: storyComposerRoot,
-  initialFocus: storyBodyInput,
-  onClose: () => {
-    if (!storySubmitting.value) storyComposerOpen.value = false;
-  },
-});
 
 useSeoMeta({
   title: () => t("seo.feed"),
@@ -272,56 +241,6 @@ async function confirmDeletePost() {
 function openViewer(groupIndex: number) {
   viewerGroupIndex.value = groupIndex;
   viewerOpen.value = true;
-}
-
-async function onStoryFile(e: Event) {
-  const input = e.target as HTMLInputElement;
-  const file = input.files?.[0];
-  input.value = "";
-  if (!file) return;
-
-  // Stories render as media, so narrow the shared allowlist to images here.
-  const rule = resolveUploadRule(file.name, file.type);
-  if (!rule || rule.kind !== UploadKind.Image) {
-    pushToast(
-      t("uploads.errors.imageOnly", {
-        allowed: UPLOAD_ALLOWED_IMAGE_EXTENSIONS.join(", "),
-      }),
-      { tone: "danger" },
-    );
-    return;
-  }
-
-  storyUploading.value = true;
-  try {
-    const up = await uploadFile(file);
-    storyUploadId.value = up.id;
-    storyFileName.value = up.fileName;
-  } catch {
-    // uploadFile already surfaced a toast.
-  } finally {
-    storyUploading.value = false;
-  }
-}
-
-async function submitStory() {
-  if (storySubmitting.value) return;
-  if (!storyBody.value.trim() && !storyUploadId.value) return;
-  storySubmitting.value = true;
-  try {
-    await createStory({
-      body: storyBody.value.trim() || null,
-      uploadId: storyUploadId.value,
-    });
-    storyBody.value = "";
-    storyUploadId.value = null;
-    storyFileName.value = "";
-    storyComposerOpen.value = false;
-  } catch {
-    // toast
-  } finally {
-    storySubmitting.value = false;
-  }
 }
 </script>
 
@@ -567,7 +486,7 @@ async function submitStory() {
           />
 
           <div v-else class="space-y-5">
-            <PostCard
+            <LazyPostCard
               v-for="post in posts"
               :key="post.id"
               :post="post"
@@ -735,7 +654,7 @@ async function submitStory() {
       </div>
     </div>
 
-    <StoryViewer
+    <LazyStoryViewer
       v-if="viewerOpen && tray.groups.length"
       :groups="tray.groups"
       :start-group-index="viewerGroupIndex"
@@ -751,83 +670,10 @@ async function submitStory() {
       @confirm="confirmDeletePost"
     />
 
-    <div
-      v-if="storyComposerOpen && auth.isAuthenticatedUi.value"
-      ref="storyComposerRoot"
-      class="fixed inset-0 z-40 flex items-end sm:items-center justify-center bg-slate-900/50 p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="story-composer-title"
-      @click.self="storyComposerOpen = false"
-    >
-      <form
-        class="w-full max-w-md rounded-2xl bg-white p-5 space-y-3 shadow-xl"
-        @submit.prevent="submitStory"
-      >
-        <h2
-          id="story-composer-title"
-          class="text-base font-semibold text-slate-900"
-        >
-          {{ $t("feed.stories.newStory") }}
-        </h2>
-        <p class="text-xs text-slate-500">
-          {{ $t("feed.stories.visible24h") }}
-        </p>
-        <label class="sr-only" for="story-body">{{
-          $t("feed.stories.storyText")
-        }}</label>
-        <textarea
-          id="story-body"
-          ref="storyBodyInput"
-          v-model="storyBody"
-          rows="3"
-          maxlength="500"
-          class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-          :placeholder="$t('feed.stories.placeholder')"
-        />
-        <div class="flex items-center gap-2">
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            :disabled="storyUploading"
-            @click="storyFileInput?.click()"
-          >
-            {{
-              storyUploading
-                ? $t("feed.stories.uploading")
-                : storyFileName || $t("feed.stories.addPhoto")
-            }}
-          </button>
-          <input
-            ref="storyFileInput"
-            type="file"
-            class="hidden"
-            :accept="UPLOAD_ACCEPT_IMAGES_ATTR"
-            @change="onStoryFile"
-          />
-        </div>
-        <div class="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            class="text-sm text-slate-500 px-3 py-2"
-            @click="storyComposerOpen = false"
-          >
-            {{ $t("feed.stories.cancel") }}
-          </button>
-          <button
-            type="submit"
-            class="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-            :disabled="
-              storySubmitting ||
-              storyUploading ||
-              (!storyBody.trim() && !storyUploadId)
-            "
-          >
-            {{ $t("feed.stories.shareStory") }}
-          </button>
-        </div>
-      </form>
-    </div>
+    <FeedStoryComposer
+      v-if="auth.isAuthenticatedUi.value"
+      v-model:open="storyComposerOpen"
+    />
   </div>
 </template>
 

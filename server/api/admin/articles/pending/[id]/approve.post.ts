@@ -8,7 +8,7 @@ import { approveAndPublishArticle } from "~/server/services/articleService";
  * Approve & publish as a public manuscript in the feed.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const user = requireUser(event);
   const id = getRouterParam(event, "id");
   if (!id) {

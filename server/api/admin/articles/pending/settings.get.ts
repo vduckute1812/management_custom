@@ -6,7 +6,7 @@ import { getArticlePipelineSettings } from "~/server/services/articleService";
  * GET /api/admin/articles/pending/settings
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     return await getArticlePipelineSettings();
   } catch (err) {

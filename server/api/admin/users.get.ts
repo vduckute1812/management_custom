@@ -9,7 +9,7 @@ import { getAdminUserSummaries } from "~/server/utils/db";
 import { requireAdmin } from "~/server/utils/authContext";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const users = await getAdminUserSummaries();
   return { users };
 });

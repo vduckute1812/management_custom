@@ -7,7 +7,7 @@ import { regenerateArticle } from "~/server/services/articleService";
  * Re-queue AI rewrite for this article.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing id" });

@@ -32,6 +32,8 @@ export default defineNuxtConfig({
       "/feed/write",
       "/feed/edit",
       "/chat",
+      "/friends",
+      "/money",
     ],
   },
   // Dynamic OG image rendering needs a native renderer (@takumi-rs/core) that
@@ -55,6 +57,10 @@ export default defineNuxtConfig({
       "/feed/edit/**",
       "/chat",
       "/chat/**",
+      "/friends",
+      "/friends/**",
+      "/money",
+      "/money/**",
     ],
   },
   // Hybrid rendering. Refresh/access secrets are HttpOnly cookies; private

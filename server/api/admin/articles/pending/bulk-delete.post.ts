@@ -9,7 +9,7 @@ import { deleteArticles } from "~/server/services/articleService";
  * published feed post when `published_post_id` is set.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     const body = await parseBody(event, pendingArticleBulkDeleteBodySchema);
     const result = await deleteArticles(body.ids);

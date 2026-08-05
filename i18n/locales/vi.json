@@ -295,7 +295,7 @@
       "addYours": "Thêm của bạn",
       "you": "Bạn",
       "newStory": "Story mới",
-      "visible24h": "Hiển thị trong 24 giờ.",
+      "visible24h": "Bạn bè thấy trong 24 giờ.",
       "storyText": "Nội dung story",
       "placeholder": "Nói gì đó…",
       "addPhoto": "Thêm ảnh",
@@ -1190,7 +1190,10 @@
     "declined": "Đã từ chối lời mời",
     "cancelled": "Đã hủy lời mời",
     "unfriended": "Đã hủy kết bạn",
-    "actionFailed": "Có lỗi xảy ra"
+    "actionFailed": "Có lỗi xảy ra",
+    "unfriendConfirmTitle": "Hủy kết bạn?",
+    "unfriendConfirm": "Hai bạn sẽ không còn thấy bài viết và story chỉ dành cho bạn bè của nhau.",
+    "unfriendConfirmAction": "Hủy kết bạn"
   },
   "categories": {
     "electronics": "Điện tử",

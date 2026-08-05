@@ -5,7 +5,15 @@ export function useFriends() {
   const friends = useState<FriendshipRow[]>("friends:list", () => []);
   const incoming = useState<FriendshipRow[]>("friends:incoming", () => []);
   const outgoing = useState<FriendshipRow[]>("friends:outgoing", () => []);
+  const incomingCount = useState<number>("friends:incomingCount", () => 0);
   const loading = useState<boolean>("friends:loading", () => false);
+
+  async function refreshBadge() {
+    const res = await apiFetch<{ count: number }>(
+      "/api/friends/incoming-count",
+    );
+    incomingCount.value = res.count;
+  }
 
   async function refresh() {
     loading.value = true;
@@ -18,6 +26,7 @@ export function useFriends() {
       friends.value = res.friends;
       incoming.value = res.incoming;
       outgoing.value = res.outgoing;
+      incomingCount.value = res.incoming.length;
     } finally {
       loading.value = false;
     }
@@ -52,8 +61,10 @@ export function useFriends() {
     friends,
     incoming,
     outgoing,
+    incomingCount,
     loading,
     refresh,
+    refreshBadge,
     request,
     accept,
     remove,

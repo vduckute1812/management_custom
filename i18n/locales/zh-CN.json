@@ -295,7 +295,7 @@
       "addYours": "添加你的",
       "you": "你",
       "newStory": "新快拍",
-      "visible24h": "可见 24 小时。",
+      "visible24h": "好友可见，24 小时后消失。",
       "storyText": "快拍文字",
       "placeholder": "说点什么…",
       "addPhoto": "添加照片",
@@ -1190,7 +1190,10 @@
     "declined": "已拒绝请求",
     "cancelled": "已取消请求",
     "unfriended": "已移除好友",
-    "actionFailed": "出错了"
+    "actionFailed": "出错了",
+    "unfriendConfirmTitle": "要解除好友吗？",
+    "unfriendConfirm": "之后将无法看到彼此的仅好友动态和快拍。",
+    "unfriendConfirmAction": "解除好友"
   },
   "categories": {
     "electronics": "电子",

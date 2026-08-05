@@ -49,7 +49,7 @@ export async function listFeedPosts(
     : null;
   const vid = viewerId ?? "";
 
-  const params: unknown[] = [vid];
+  const params: unknown[] = [];
   let where: string;
   if (viewerId) {
     where = `WHERE ${visibilityClause("p")}`;
@@ -98,7 +98,7 @@ export async function getPostById(
 ): Promise<Post | null> {
   const pool = getPool();
   const vid = viewerId ?? "";
-  const params: unknown[] = [vid, postId];
+  const params: unknown[] = [postId];
   const acl = viewerId ? visibilityClause("p") : publicOnlyClause("p");
   if (viewerId) {
     params.push(...visibilityClauseParams(viewerId));

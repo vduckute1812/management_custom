@@ -98,6 +98,19 @@ export async function areFriends(
   );
 }
 
+export async function countIncomingFriendRequests(
+  userId: string,
+): Promise<number> {
+  const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT COUNT(*) AS cnt
+     FROM friendships
+     WHERE addressee_id = ? AND status = ?`,
+    [userId, FriendshipStatus.Pending],
+  );
+  return Number(rows[0]?.cnt ?? 0);
+}
+
 export async function listFriends(userId: string): Promise<FriendshipRow[]> {
   const pool = getPool();
   const [rows] = await pool.query<FriendshipPeerRow[]>(

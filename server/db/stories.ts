@@ -1,5 +1,6 @@
 import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
+import { FriendshipStatus } from "../../types/friendship";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
@@ -219,6 +220,25 @@ export async function purgeExpiredStories(): Promise<{
   return { stories, uploads };
 }
 
+/** Own story OR accepted friendship with author (Facebook-style). */
+function storyVisibilityClause(alias = "s"): string {
+  return `(
+    ${alias}.user_id = ?
+    OR EXISTS (
+      SELECT 1 FROM friendships f
+      WHERE f.status = ${FriendshipStatus.Accepted}
+        AND (
+          (f.requester_id = ${alias}.user_id AND f.addressee_id = ?)
+          OR (f.addressee_id = ${alias}.user_id AND f.requester_id = ?)
+        )
+    )
+  )`;
+}
+
+function storyVisibilityParams(viewerId: string): string[] {
+  return [viewerId, viewerId, viewerId];
+}
+
 /** Shared SELECT for tray + single-story reload (viewer-scoped subqueries). */
 const STORY_SELECT = `SELECT
        s.id, s.user_id, s.body, s.upload_id, s.media_storage_key, s.mime,
@@ -248,9 +268,11 @@ export async function getStoryForViewer(
   const pool = getPool();
   const [rows] = await pool.query<StoryRow[]>(
     `${STORY_SELECT}
-     WHERE s.id = ? AND s.expires_at > UTC_TIMESTAMP(3)
+     WHERE s.id = ?
+       AND s.expires_at > UTC_TIMESTAMP(3)
+       AND ${storyVisibilityClause("s")}
      LIMIT 1`,
-    [viewerId, viewerId, storyId],
+    [viewerId, viewerId, storyId, ...storyVisibilityParams(viewerId)],
   );
   const row = rows[0];
   if (!row) return null;
@@ -270,8 +292,9 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
   const [rows] = await pool.query<StoryRow[]>(
     `${STORY_SELECT}
      WHERE s.expires_at > UTC_TIMESTAMP(3)
+       AND ${storyVisibilityClause("s")}
      ORDER BY s.created_at ASC`,
-    [viewerId, viewerId],
+    [viewerId, viewerId, ...storyVisibilityParams(viewerId)],
   );
 
   const reactionMaps = await loadStoryReactionMaps(rows.map((r) => r.id));
@@ -368,16 +391,8 @@ export async function markStoryViewed(
   userId: string,
   storyId: string,
 ): Promise<void> {
+  await assertVisibleStory(userId, storyId);
   const pool = getPool();
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id FROM stories
-     WHERE id = ? AND expires_at > UTC_TIMESTAMP(3)
-     LIMIT 1`,
-    [storyId],
-  );
-  if (!rows.length) {
-    throw new DomainError(404, "Story not found");
-  }
   await pool.query(
     `INSERT INTO story_views (story_id, user_id, viewed_at)
      VALUES (?, ?, ?)
@@ -427,13 +442,18 @@ async function assertOwnedStory(
   }
 }
 
-async function assertVisibleStory(storyId: string): Promise<void> {
+async function assertVisibleStory(
+  viewerId: string,
+  storyId: string,
+): Promise<void> {
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT id FROM stories
-     WHERE id = ? AND expires_at > UTC_TIMESTAMP(3)
+    `SELECT s.id FROM stories s
+     WHERE s.id = ?
+       AND s.expires_at > UTC_TIMESTAMP(3)
+       AND ${storyVisibilityClause("s")}
      LIMIT 1`,
-    [storyId],
+    [storyId, ...storyVisibilityParams(viewerId)],
   );
   if (!rows.length) {
     throw new DomainError(404, "Story not found");
@@ -529,7 +549,7 @@ export async function setStoryReaction(
   storyId: string,
   reaction: PostReactionType,
 ): Promise<Story> {
-  await assertVisibleStory(storyId);
+  await assertVisibleStory(userId, storyId);
   if (!POST_REACTION_TYPES.includes(reaction)) {
     throw new DomainError(400, "Invalid reaction");
   }
@@ -554,7 +574,7 @@ export async function clearStoryReaction(
   userId: string,
   storyId: string,
 ): Promise<Story> {
-  await assertVisibleStory(storyId);
+  await assertVisibleStory(userId, storyId);
   const pool = getPool();
   await pool.query(
     `DELETE FROM story_reactions WHERE story_id = ? AND user_id = ?`,

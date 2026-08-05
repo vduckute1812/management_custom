@@ -5,7 +5,7 @@ import { parseBody, mapDomainError } from "~/server/utils/http";
 import { categoryPatchBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({

@@ -22,6 +22,12 @@ export const ROUTE_POLICIES: Array<{
   { prefix: "/api/auth/forgot-password", limit: 5, windowMs: 60_000 },
   { prefix: "/api/auth/reset-password", limit: 10, windowMs: 60_000 },
   { prefix: "/api/uploads", limit: 30, windowMs: 60_000 },
+  // Write / social spam surfaces (share default IP budget).
+  { prefix: "/api/friends", limit: 30, windowMs: 60_000 },
+  { prefix: "/api/chat", limit: 90, windowMs: 60_000 },
+  { prefix: "/api/money", limit: 60, windowMs: 60_000 },
+  { prefix: "/api/posts", limit: 40, windowMs: 60_000 },
+  { prefix: "/api/stories", limit: 40, windowMs: 60_000 },
   // Article pipeline — LLM / outbound feed work is expensive.
   // Longer prefixes first so fetch gets its own tighter bucket.
   { prefix: "/api/admin/articles/pending/fetch", limit: 2, windowMs: 60_000 },

@@ -1190,7 +1190,10 @@
     "declined": "Request declined",
     "cancelled": "Request cancelled",
     "unfriended": "Removed from friends",
-    "actionFailed": "Something went wrong"
+    "actionFailed": "Something went wrong",
+    "unfriendConfirmTitle": "Remove this friend?",
+    "unfriendConfirm": "You will no longer see each other’s friends-only posts and stories.",
+    "unfriendConfirmAction": "Unfriend"
   },
   "categories": {
     "electronics": "Electronics",

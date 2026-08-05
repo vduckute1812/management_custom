@@ -3,7 +3,7 @@ import { requireAdmin } from "~/server/utils/authContext";
 import { invalidateCategoryCaches } from "~/server/utils/cacheInvalidate";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({
