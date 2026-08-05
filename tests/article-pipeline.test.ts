@@ -23,6 +23,7 @@ import {
   ARTICLE_FEED_SOURCES,
   extractMainTextFromHtml,
   selectLongestItems,
+  sameRegistrableHint,
 } from "../server/services/articleFetcher";
 import { rateLimitScope, resolvePolicy } from "../server/rate-limit/policies";
 
@@ -172,6 +173,24 @@ describe("reputable feed sources", () => {
     expect(names).not.toContain("Hacker News");
     expect(names).not.toContain("TechCrunch");
     expect(names).not.toContain("Wired Science");
+  });
+
+  it("points Quanta at the canonical www feed URL", () => {
+    const quanta = ARTICLE_FEED_SOURCES.find(
+      (s) => s.name === "Quanta Magazine",
+    );
+    expect(quanta?.url).toBe("https://www.quantamagazine.org/feed/");
+  });
+});
+
+describe("same-site redirect hint", () => {
+  it("allows sibling subdomains of the same registrable domain", () => {
+    expect(
+      sameRegistrableHint("api.quantamagazine.org", "www.quantamagazine.org"),
+    ).toBe(true);
+    expect(sameRegistrableHint("www.example.com", "example.com")).toBe(true);
+    expect(sameRegistrableHint("example.com", "evil.com")).toBe(false);
+    expect(sameRegistrableHint("a.github.io", "b.evil.com")).toBe(false);
   });
 });
 

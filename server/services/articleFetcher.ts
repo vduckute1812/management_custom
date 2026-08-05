@@ -47,7 +47,7 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
   },
   {
     name: "Quanta Magazine",
-    url: "https://api.quantamagazine.org/feed",
+    url: "https://www.quantamagazine.org/feed/",
     categorySlug: "math",
   },
   {
@@ -244,12 +244,32 @@ function isBlockedHostname(hostname: string): boolean {
   return false;
 }
 
-function sameRegistrableHint(a: string, b: string): boolean {
-  const left = a.toLowerCase();
-  const right = b.toLowerCase();
-  return (
-    left === right || left.endsWith(`.${right}`) || right.endsWith(`.${left}`)
-  );
+/** Approximate eTLD+1 for same-site redirect checks (no PSL dependency). */
+function registrableHint(hostname: string): string {
+  const parts = hostname
+    .toLowerCase()
+    .replace(/\.$/, "")
+    .split(".")
+    .filter(Boolean);
+  if (parts.length <= 2) return parts.join(".");
+  return parts.slice(-2).join(".");
+}
+
+/**
+ * True when hosts are the same site family: exact, parent/child subdomain, or
+ * sibling subdomains of the same registrable domain (api.x.org → www.x.org).
+ */
+export function sameRegistrableHint(a: string, b: string): boolean {
+  const left = a.toLowerCase().replace(/\.$/, "");
+  const right = b.toLowerCase().replace(/\.$/, "");
+  if (
+    left === right ||
+    left.endsWith(`.${right}`) ||
+    right.endsWith(`.${left}`)
+  ) {
+    return true;
+  }
+  return registrableHint(left) === registrableHint(right);
 }
 
 async function readBodyCapped(
