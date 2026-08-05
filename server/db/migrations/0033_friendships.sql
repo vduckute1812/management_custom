@@ -20,9 +20,7 @@ CREATE TABLE IF NOT EXISTS friendships (
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_friendships_addressee
     FOREIGN KEY (addressee_id) REFERENCES users (id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT chk_friendships_not_self
-    CHECK (requester_id <> addressee_id)
+    ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Existing user (Normal) Public posts → Friends. Admin/superadmin Public stay Public
