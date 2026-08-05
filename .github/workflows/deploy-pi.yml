@@ -45,8 +45,6 @@ jobs:
 
     steps:
       - name: Checkout
-        # Keep @v4 on the Pi: checkout@v5 needs runner ≥2.327.1 (Node 24).
-        # GitHub-hosted CI uses @v5 in ci.yml.
         uses: actions/checkout@v4
         with:
           # Keep local-only files on the self-hosted workspace between runs
