@@ -196,9 +196,8 @@ export async function canViewerAccessUpload(
          OR p.user_id = ?
          OR (
            p.visibility = ${PostVisibility.Shared}
-           AND EXISTS (
-             SELECT 1 FROM post_audience a
-             WHERE a.post_id = p.id AND a.user_id = ?
+           AND p.id IN (
+             SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
            )
          )
          OR ${friendsPostClause}

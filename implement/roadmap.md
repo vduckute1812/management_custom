@@ -598,6 +598,28 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `DomainError` + `mapDomainError` on post/story/task/epic/category/comment deletes
 - [x] Docs: `UserRole` path, money subroutes; Phase 40 checklist
 
+## Phase 41 — Quality sprints P–S (clear >9 on all axes)
+
+### Sprint P — Security
+
+- [x] Friends-only chat end-to-end (`POST /api/chat/conversations` rejects non-friends with `403`)
+- [x] Mask peer/author emails outside owner-only contexts
+
+### Sprint Q — Clean code
+
+- [x] Wrap remaining post comment, story view/insight/reaction, and upload handlers with `DomainError` / `mapDomainError`
+- [x] Docs sync for blank directory emails and friends-only chat
+
+### Sprint R — Performance
+
+- [x] Shared post ACL uses a semi-join `post_audience` subquery instead of correlated `EXISTS`
+- [x] Upload post-attachment ACL mirrors the same Shared audience pattern
+
+### Sprint S — UI/UX
+
+- [x] Pending article admin pages use `SkeletonList` / `aria-busy`; list empty table uses `EmptyState`
+- [x] `AdminSystemMonitor` uses skeleton loading states for metrics and logs
+
 ### Later
 
 - Playwright smoke
