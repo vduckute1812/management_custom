@@ -6,10 +6,10 @@ import type {
   RowDataPacket,
 } from "mysql2/promise";
 import { dbToISO, isoToDB } from "./datetime";
+import { listAcceptedFriendIds } from "./friendships";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 import type { UploadKind, UploadRecord } from "../../types/post";
-import { FriendshipStatus } from "../../types/friendship";
 import {
   PostVisibility,
   UPLOAD_KIND_STORAGE_FOLDER,
@@ -173,6 +173,19 @@ export async function canViewerAccessUpload(
     return publicRows.length > 0;
   }
 
+  const friendIds = await listAcceptedFriendIds(viewerId);
+  const friendsPostClause =
+    friendIds.length === 0
+      ? "0"
+      : `(
+           p.visibility = ${PostVisibility.Friends}
+           AND p.user_id IN (${friendIds.map(() => "?").join(",")})
+         )`;
+  const friendsStoryClause =
+    friendIds.length === 0
+      ? "0"
+      : `s.user_id IN (${friendIds.map(() => "?").join(",")})`;
+
   const [postRows] = await pool.query<RowDataPacket[]>(
     `SELECT pa.post_id
      FROM post_attachments pa
@@ -188,20 +201,10 @@ export async function canViewerAccessUpload(
              WHERE a.post_id = p.id AND a.user_id = ?
            )
          )
-         OR (
-           p.visibility = ${PostVisibility.Friends}
-           AND EXISTS (
-             SELECT 1 FROM friendships f
-             WHERE f.status = ${FriendshipStatus.Accepted}
-               AND (
-                 (f.requester_id = p.user_id AND f.addressee_id = ?)
-                 OR (f.addressee_id = p.user_id AND f.requester_id = ?)
-               )
-           )
-         )
+         OR ${friendsPostClause}
        )
      LIMIT 1`,
-    [uploadId, viewerId, viewerId, viewerId, viewerId],
+    [uploadId, viewerId, viewerId, ...friendIds],
   );
   if (postRows.length) return true;
 
@@ -211,17 +214,10 @@ export async function canViewerAccessUpload(
        AND s.expires_at > UTC_TIMESTAMP(3)
        AND (
          s.user_id = ?
-         OR EXISTS (
-           SELECT 1 FROM friendships f
-           WHERE f.status = ${FriendshipStatus.Accepted}
-             AND (
-               (f.requester_id = s.user_id AND f.addressee_id = ?)
-               OR (f.addressee_id = s.user_id AND f.requester_id = ?)
-             )
-         )
+         OR ${friendsStoryClause}
        )
      LIMIT 1`,
-    [uploadId, viewerId, viewerId, viewerId],
+    [uploadId, viewerId, ...friendIds],
   );
   if (storyRows.length) return true;
 

@@ -102,7 +102,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 | Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login          |
 | Friends         | `/friends`                                                                  | Authenticated — requests, accept/decline, unfriend                                       |
 | Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                            |
-| Money           | `/money`                                                                    | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
+| Money           | `/money`, `/money/savings`, `/money/budgets`                                | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
 | Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account` |
 | Admin           | `/admin`, `/admin/articles/pending`, `/admin/articles/pending/:id`          | Admin / superadmin — users/queue/system + article pipeline review                        |
 | Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                                       |

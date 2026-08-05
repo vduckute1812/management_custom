@@ -3,28 +3,38 @@ import {
   visibilityClause,
   visibilityClauseParams,
 } from "../server/db/postQuery/acl";
-import { FriendshipStatus } from "../types/friendship";
 import { PostVisibility } from "../types/post";
 
 describe("visibilityClause", () => {
-  it("includes Friends visibility and Accepted friendship status", () => {
-    const sql = visibilityClause("p");
+  it("includes Public / Shared / Friends visibility", () => {
+    const sql = visibilityClause("p", ["friend_1"]);
     expect(sql).toContain(`visibility = ${PostVisibility.Public}`);
     expect(sql).toContain(`visibility = ${PostVisibility.Shared}`);
     expect(sql).toContain(`visibility = ${PostVisibility.Friends}`);
-    expect(sql).toContain(`status = ${FriendshipStatus.Accepted}`);
-    expect(sql).toContain("friendships");
+    expect(sql).toContain("user_id IN (?)");
+    expect(sql).not.toContain("friendships");
   });
 
-  it("binds four viewerId placeholders", () => {
-    const sql = visibilityClause("p");
-    const placeholders = (sql.match(/\?/g) ?? []).length;
-    expect(placeholders).toBe(4);
-    expect(visibilityClauseParams("user_abc")).toEqual([
+  it("uses FALSE when the viewer has no friends", () => {
+    const sql = visibilityClause("p", []);
+    expect(sql).toContain("OR 0");
+    expect(sql).not.toContain(`visibility = ${PostVisibility.Friends}`);
+    expect((sql.match(/\?/g) ?? []).length).toBe(2);
+    expect(visibilityClauseParams("user_abc", [])).toEqual([
       "user_abc",
       "user_abc",
+    ]);
+  });
+
+  it("binds own + audience + friend ids", () => {
+    const friends = ["f1", "f2"];
+    const sql = visibilityClause("p", friends);
+    expect((sql.match(/\?/g) ?? []).length).toBe(4);
+    expect(visibilityClauseParams("user_abc", friends)).toEqual([
       "user_abc",
       "user_abc",
+      "f1",
+      "f2",
     ]);
   });
 });

@@ -27,6 +27,7 @@ export type PostCommentsPage = {
 };
 
 function mapCommentRow(r: CommentRow, viewerId: string | null): PostComment {
+  const isAuthor = !!viewerId && r.user_id === viewerId;
   return {
     id: r.id,
     postId: r.post_id,
@@ -36,13 +37,14 @@ function mapCommentRow(r: CommentRow, viewerId: string | null): PostComment {
     author: {
       id: r.user_id,
       name: resolveDisplayName(r.author_name, r.author_email),
-      email: r.author_email,
+      // Only the comment author sees their own email on the wire.
+      email: isAuthor ? r.author_email : "",
       avatarUrl: null,
       title: null,
       job: null,
       location: null,
     },
-    canDelete: !!viewerId && r.user_id === viewerId,
+    canDelete: isAuthor,
   };
 }
 

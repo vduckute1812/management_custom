@@ -1,6 +1,7 @@
 import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "../datetime";
+import { listAcceptedFriendIds } from "../friendships";
 import { getPool } from "../pool";
 import type { Post } from "../../../types/post";
 import { isContentLocale } from "../../../utils/contentLocale";
@@ -14,17 +15,29 @@ import { hydratePosts } from "./hydration";
 import { POST_SELECT } from "./select";
 import type { PostRow } from "./types";
 
+async function viewerAcl(viewerId: string): Promise<{
+  sql: string;
+  params: string[];
+}> {
+  const friendIds = await listAcceptedFriendIds(viewerId);
+  return {
+    sql: visibilityClause("p", friendIds),
+    params: visibilityClauseParams(viewerId, friendIds),
+  };
+}
+
 /** Cheap ACL check — does not hydrate attachments/reactions/audience. */
 export async function assertPostVisible(
   viewerId: string,
   postId: string,
 ): Promise<void> {
   const pool = getPool();
+  const acl = await viewerAcl(viewerId);
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT 1 AS ok FROM posts p
-     WHERE p.id = ? AND ${visibilityClause("p")}
+     WHERE p.id = ? AND ${acl.sql}
      LIMIT 1`,
-    [postId, ...visibilityClauseParams(viewerId)],
+    [postId, ...acl.params],
   );
   if (!rows.length) {
     throw new DomainError(404, "Post not found");
@@ -52,8 +65,9 @@ export async function listFeedPosts(
   const params: unknown[] = [];
   let where: string;
   if (viewerId) {
-    where = `WHERE ${visibilityClause("p")}`;
-    params.push(...visibilityClauseParams(viewerId));
+    const acl = await viewerAcl(viewerId);
+    where = `WHERE ${acl.sql}`;
+    params.push(...acl.params);
   } else {
     where = `WHERE ${publicOnlyClause("p")}`;
   }
@@ -99,9 +113,13 @@ export async function getPostById(
   const pool = getPool();
   const vid = viewerId ?? "";
   const params: unknown[] = [postId];
-  const acl = viewerId ? visibilityClause("p") : publicOnlyClause("p");
+  let acl: string;
   if (viewerId) {
-    params.push(...visibilityClauseParams(viewerId));
+    const built = await viewerAcl(viewerId);
+    acl = built.sql;
+    params.push(...built.params);
+  } else {
+    acl = publicOnlyClause("p");
   }
 
   const [rows] = await pool.query<PostRow[]>(

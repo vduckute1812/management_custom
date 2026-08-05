@@ -41,21 +41,15 @@ function preview(c: ChatConversation): string {
 
 <template>
   <div class="flex h-full min-h-0 flex-col">
-    <div
-      v-if="loading && !conversations.length"
-      class="space-y-2 p-3"
-      aria-busy="true"
-    >
-      <SkeletonBlock height="h-14" rounded="rounded-lg" />
-      <SkeletonBlock height="h-14" rounded="rounded-lg" />
-      <SkeletonBlock height="h-14" rounded="rounded-lg" />
+    <div v-if="loading && !conversations.length" class="p-1" aria-busy="true">
+      <SkeletonList :rows="5" />
     </div>
-    <p
+    <EmptyState
       v-else-if="!conversations.length"
-      class="px-4 py-8 text-center text-sm text-slate-500"
-    >
-      {{ t("chat.emptyConversations") }}
-    </p>
+      class="m-4"
+      illustration="spark"
+      :title="t('chat.emptyConversations')"
+    />
     <ul v-else class="min-h-0 flex-1 overflow-y-auto" role="list">
       <li v-for="c in conversations" :key="c.id">
         <button

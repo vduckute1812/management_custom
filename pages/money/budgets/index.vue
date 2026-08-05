@@ -232,15 +232,11 @@ function onExportJson() {
         </p>
         <div
           v-else-if="isLoading && !month?.budgets.length"
-          class="space-y-3"
+          class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
           :aria-busy="true"
           :aria-label="$t('money.budgets.loading')"
         >
-          <div
-            v-for="i in 3"
-            :key="i"
-            class="h-24 animate-pulse rounded-2xl bg-white/80 ring-1 ring-slate-200/80"
-          />
+          <SkeletonList :rows="3" variant="card" />
         </div>
         <EmptyState
           v-else-if="!month?.budgets.length"

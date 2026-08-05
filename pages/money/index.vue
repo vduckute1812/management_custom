@@ -360,15 +360,11 @@ const netTone = computed(() => {
         </p>
         <div
           v-else-if="isLoading && !transactions.length"
-          class="space-y-2 rounded-2xl bg-white/70 p-4 ring-1 ring-slate-200/80"
+          class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
           :aria-busy="true"
           :aria-label="$t('money.loading')"
         >
-          <div
-            v-for="i in 4"
-            :key="i"
-            class="h-12 animate-pulse rounded-xl bg-slate-100"
-          />
+          <SkeletonList :rows="4" />
         </div>
         <EmptyState
           v-else-if="!transactions.length"
