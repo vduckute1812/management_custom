@@ -6,7 +6,7 @@ import { getArticleForAdmin } from "~/server/services/articleService";
  * GET /api/admin/articles/pending/:id
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing id" });

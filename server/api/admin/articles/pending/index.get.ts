@@ -9,7 +9,7 @@ import { ArticleStatus } from "~/types/article";
  * List pipeline articles (default: pending_approval).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     const query = parseQuery(event, pendingArticlesQuerySchema);
     const status =

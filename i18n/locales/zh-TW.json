@@ -295,7 +295,7 @@
       "addYours": "新增你的",
       "you": "你",
       "newStory": "新限時動態",
-      "visible24h": "可見 24 小時。",
+      "visible24h": "好友可見，24 小時後消失。",
       "storyText": "限時動態文字",
       "placeholder": "說點什麼…",
       "addPhoto": "新增照片",
@@ -403,15 +403,6 @@
       "daysAgo": "{count} 天",
       "showMore": "展開",
       "showLess": "收合",
-      "plan": "計劃",
-      "planTitle": "將此文章作為研究任務加入時間管理",
-      "planUntitled": "分享的文章",
-      "planManuscriptOnly": "僅手稿類貼文可規劃為研究任務",
-      "planTaskTitle": "研究：{title}",
-      "planTaskNotes": "作者 {author} · 發布於 {date}\n動態文章 ID：{id}",
-      "planTaskCreated": "已在時間管理中建立研究任務",
-      "planTaskOpen": "開啟",
-      "planTaskFailed": "無法建立任務",
       "cannotEdit": "您無法編輯此貼文",
       "friends": "好友"
     },
@@ -1199,7 +1190,10 @@
     "declined": "已拒絕邀請",
     "cancelled": "已取消邀請",
     "unfriended": "已移除好友",
-    "actionFailed": "發生錯誤"
+    "actionFailed": "發生錯誤",
+    "unfriendConfirmTitle": "要解除好友嗎？",
+    "unfriendConfirm": "之後將無法看到彼此僅好友動態與限時動態。",
+    "unfriendConfirmAction": "解除好友"
   },
   "categories": {
     "electronics": "電子",

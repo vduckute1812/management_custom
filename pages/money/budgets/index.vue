@@ -34,6 +34,7 @@ await useAsyncData("money:budgets:initial", async () => {
 useSeoMeta({
   title: () => t("seo.moneyBudgets"),
   description: () => t("seo.moneyBudgetsDescription"),
+  robots: "noindex, nofollow",
 });
 
 usePageShortcuts([{ key: "n", handler: () => openCreate() }]);

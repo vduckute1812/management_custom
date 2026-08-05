@@ -3,6 +3,8 @@
  * Curated to well-known, reputable publishers and academic archives only.
  */
 
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import type { PipelineCategorySlug } from "~/types/article";
 import { PIPELINE_CATEGORY_SLUGS } from "~/types/article";
 import { isSafeHttpUrl } from "~/utils/articleUrl";
@@ -224,15 +226,7 @@ function isBlockedHostname(hostname: string): boolean {
   ) {
     return true;
   }
-  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (m) {
-    const a = Number(m[1]);
-    const b = Number(m[2]);
-    if (a === 10 || a === 127 || a === 0) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-  }
+  if (isBlockedIpLiteral(host)) return true;
   if (
     host === "::1" ||
     host.startsWith("fe80:") ||
@@ -242,6 +236,47 @@ function isBlockedHostname(hostname: string): boolean {
     return true;
   }
   return false;
+}
+
+function isBlockedIpLiteral(host: string): boolean {
+  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
+  if (m) {
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    if (a === 10 || a === 127 || a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    return false;
+  }
+  return false;
+}
+
+/** Resolve DNS and reject private / link-local answers (incl. DNS rebinding). */
+async function assertPublicResolvedHost(hostname: string): Promise<void> {
+  if (isBlockedHostname(hostname)) {
+    throw new Error("Private/metadata host blocked");
+  }
+  if (isIP(hostname)) {
+    if (isBlockedIpLiteral(hostname) || isBlockedHostname(hostname)) {
+      throw new Error("Private IP blocked");
+    }
+    return;
+  }
+  let records: { address: string; family: number }[];
+  try {
+    records = await lookup(hostname, { all: true, verbatim: true });
+  } catch {
+    throw new Error("DNS lookup failed");
+  }
+  if (!records.length) {
+    throw new Error("DNS lookup returned no addresses");
+  }
+  for (const rec of records) {
+    if (isBlockedHostname(rec.address) || isBlockedIpLiteral(rec.address)) {
+      throw new Error("Host resolves to a private address");
+    }
+  }
 }
 
 /** Approximate eTLD+1 for same-site redirect checks (no PSL dependency). */
@@ -338,6 +373,7 @@ async function fetchHttpText(
     if (isBlockedHostname(parsed.hostname)) {
       throw new Error("Redirect to private/metadata host blocked");
     }
+    await assertPublicResolvedHost(parsed.hostname);
     if (!sameRegistrableHint(parsed.hostname, originHost)) {
       throw new Error(
         `Cross-host redirect blocked (${originHost} → ${parsed.hostname})`,

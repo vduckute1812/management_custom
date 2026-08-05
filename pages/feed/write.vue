@@ -147,7 +147,7 @@ function onCancel() {
 <template>
   <div class="manuscript-page min-h-full px-4 py-6 sm:px-6 sm:py-8">
     <div class="mx-auto max-w-[1100px]">
-      <ManuscriptStudio
+      <LazyManuscriptStudio
         v-if="auth.isAuthenticated.value"
         ref="studioRef"
         :submitting="submitting"

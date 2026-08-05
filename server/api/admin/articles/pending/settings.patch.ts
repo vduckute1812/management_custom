@@ -8,7 +8,7 @@ import { updateArticlePipelineSettings } from "~/server/services/articleService"
  * Toggle daily automatic article fetch (persisted in app_settings).
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     const body = await parseBody(event, pendingArticleSettingsPatchBodySchema);
     const settings = await updateArticlePipelineSettings({

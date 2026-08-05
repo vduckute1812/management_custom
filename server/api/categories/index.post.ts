@@ -5,7 +5,7 @@ import { parseBody, mapDomainError } from "~/server/utils/http";
 import { categoryCreateBodySchema } from "~/server/schemas";
 
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     const data = await parseBody(event, categoryCreateBodySchema);
     const category = await createPostCategory(data);

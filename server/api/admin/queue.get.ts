@@ -7,7 +7,7 @@ import { countJobsByStatus } from "~/server/db/jobs";
  * Lightweight ops snapshot for cache driver + job queue depth.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const [cacheDriver, jobs] = await Promise.all([
     cacheDriverName(),
     countJobsByStatus(),

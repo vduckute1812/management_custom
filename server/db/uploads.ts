@@ -209,8 +209,19 @@ export async function canViewerAccessUpload(
     `SELECT s.id FROM stories s
      WHERE s.upload_id = ?
        AND s.expires_at > UTC_TIMESTAMP(3)
+       AND (
+         s.user_id = ?
+         OR EXISTS (
+           SELECT 1 FROM friendships f
+           WHERE f.status = ${FriendshipStatus.Accepted}
+             AND (
+               (f.requester_id = s.user_id AND f.addressee_id = ?)
+               OR (f.addressee_id = s.user_id AND f.requester_id = ?)
+             )
+         )
+       )
      LIMIT 1`,
-    [uploadId],
+    [uploadId, viewerId, viewerId, viewerId],
   );
   if (storyRows.length) return true;
 

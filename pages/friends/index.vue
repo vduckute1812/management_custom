@@ -26,6 +26,8 @@ const {
 const { searchDebounced, results, loading: searching } = useUserDirectory();
 const userQuery = ref("");
 const busyId = ref<string | null>(null);
+const pendingUnfriend = ref<FriendshipRow | null>(null);
+const unfriendBusy = ref(false);
 
 const knownPeerIds = computed(() => {
   const ids = new Set<string>();
@@ -86,22 +88,37 @@ async function onAccept(id: string) {
   }
 }
 
-async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
+async function onRemove(id: string, kind: "decline" | "cancel") {
   busyId.value = id;
   try {
     await remove(id);
     pushToast(
-      kind === "unfriend"
-        ? t("friends.unfriended")
-        : kind === "cancel"
-          ? t("friends.cancelled")
-          : t("friends.declined"),
+      kind === "cancel" ? t("friends.cancelled") : t("friends.declined"),
       { tone: "success" },
     );
   } catch {
     pushToast(t("friends.actionFailed"), { tone: "danger" });
   } finally {
     busyId.value = null;
+  }
+}
+
+function requestUnfriend(row: FriendshipRow) {
+  pendingUnfriend.value = row;
+}
+
+async function confirmUnfriend() {
+  const row = pendingUnfriend.value;
+  if (!row || unfriendBusy.value) return;
+  unfriendBusy.value = true;
+  try {
+    await remove(row.id);
+    pendingUnfriend.value = null;
+    pushToast(t("friends.unfriended"), { tone: "success" });
+  } catch {
+    pushToast(t("friends.actionFailed"), { tone: "danger" });
+  } finally {
+    unfriendBusy.value = false;
   }
 }
 </script>
@@ -136,9 +153,7 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
         :placeholder="$t('friends.searchPlaceholder')"
         @input="onUserQueryInput"
       />
-      <p v-if="searching" class="text-xs text-slate-500">
-        {{ $t("friends.searching") }}
-      </p>
+      <SkeletonList v-if="searching" :rows="3" />
       <ul
         v-else-if="searchHits.length"
         class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
@@ -156,22 +171,22 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
               :src="mediaUrl(user.avatarUrl)"
               alt=""
               class="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
-            <span v-else>{{
-              (user.name || user.email).charAt(0).toUpperCase()
-            }}</span>
+            <span v-else>{{ (user.name || "?").charAt(0).toUpperCase() }}</span>
           </div>
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-semibold text-slate-900">
-              {{ user.name || user.email }}
+              {{ user.name || $t("friends.addFriend") }}
             </p>
-            <p class="truncate text-xs text-slate-500">{{ user.email }}</p>
           </div>
           <button
             v-if="!knownPeerIds.has(user.id)"
             type="button"
             class="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
             :disabled="busyId === user.id"
+            :aria-busy="busyId === user.id"
             @click="onRequest(user.id)"
           >
             {{ $t("friends.addFriend") }}
@@ -201,7 +216,7 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
         <li
           v-for="row in incoming"
           :key="row.id"
-          class="flex items-center gap-3 px-3 py-2.5"
+          class="flex flex-wrap items-center gap-3 px-3 py-2.5"
         >
           <div
             class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 text-xs font-bold text-white"
@@ -211,6 +226,8 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
               :src="mediaUrl(row.peer.avatarUrl)"
               alt=""
               class="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             <span v-else>{{ peerInitial(row) }}</span>
           </div>
@@ -218,7 +235,6 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
             <p class="truncate text-sm font-semibold text-slate-900">
               {{ row.peer.name }}
             </p>
-            <p class="truncate text-xs text-slate-500">{{ row.peer.email }}</p>
           </div>
           <div class="flex shrink-0 gap-2">
             <button
@@ -269,6 +285,8 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
               :src="mediaUrl(row.peer.avatarUrl)"
               alt=""
               class="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             <span v-else>{{ peerInitial(row) }}</span>
           </div>
@@ -302,15 +320,12 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
           >({{ friends.length }})</span
         >
       </h2>
-      <p v-if="loading" class="text-sm text-slate-500">
-        {{ $t("friends.loading") }}
-      </p>
-      <p
+      <SkeletonList v-if="loading" :rows="4" />
+      <EmptyState
         v-else-if="!friends.length"
-        class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500"
-      >
-        {{ $t("friends.empty") }}
-      </p>
+        :title="$t('friends.empty')"
+        illustration="spark"
+      />
       <ul
         v-else
         class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
@@ -318,7 +333,7 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
         <li
           v-for="row in friends"
           :key="row.id"
-          class="flex items-center gap-3 px-3 py-2.5"
+          class="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-3"
         >
           <div
             class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 text-xs font-bold text-white"
@@ -328,14 +343,15 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
               :src="mediaUrl(row.peer.avatarUrl)"
               alt=""
               class="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             <span v-else>{{ peerInitial(row) }}</span>
           </div>
-          <div class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1 basis-32">
             <p class="truncate text-sm font-semibold text-slate-900">
               {{ row.peer.name }}
             </p>
-            <p class="truncate text-xs text-slate-500">{{ row.peer.email }}</p>
           </div>
           <NuxtLink
             :to="{ path: '/chat', query: { with: row.peer.id } }"
@@ -347,12 +363,22 @@ async function onRemove(id: string, kind: "decline" | "cancel" | "unfriend") {
             type="button"
             class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
             :disabled="busyId === row.id"
-            @click="onRemove(row.id, 'unfriend')"
+            @click="requestUnfriend(row)"
           >
             {{ $t("friends.unfriend") }}
           </button>
         </li>
       </ul>
     </section>
+
+    <ConfirmDialog
+      :open="!!pendingUnfriend"
+      :title="$t('friends.unfriendConfirmTitle')"
+      :description="$t('friends.unfriendConfirm')"
+      :confirm-label="$t('friends.unfriendConfirmAction')"
+      :busy="unfriendBusy"
+      @cancel="pendingUnfriend = null"
+      @confirm="confirmUnfriend"
+    />
   </div>
 </template>

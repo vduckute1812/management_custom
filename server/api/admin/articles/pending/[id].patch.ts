@@ -8,7 +8,7 @@ import { updateArticleForAdmin } from "~/server/services/articleService";
  * Edit rewritten fields / category before approval.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing id" });

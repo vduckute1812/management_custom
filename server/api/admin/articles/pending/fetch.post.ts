@@ -8,7 +8,7 @@ import { enqueueArticleFetch } from "~/server/services/articleService";
  * Manually enqueue a content-fetch job.
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   try {
     const raw = await readBody(event).catch(() => undefined);
     const parsed = pendingArticleFetchBodySchema.safeParse(raw ?? {});

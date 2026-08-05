@@ -31,8 +31,8 @@ General principles — they apply to any dependency, not just today's versions:
 * **`server/services/`**: Multi-step workflows only (task save, timer start/stop, post create/update/share, auth signup/refresh/reset, chat send, admin role policy, upload persist after multipart parse) — not every CRUD route.
 * **`server/db/`**: SQL / persistence (barrel via `server/utils/db.ts`). Keep business orchestration out of DB modules when a service already owns the workflow. Prefer splitting a DB module before it exceeds ~500 lines (e.g. read / write / social).
 * **`server/utils/`**: auth, cookies, http helpers, mailer, R2, cache, queue — not a second home for domain SQL.
-* **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/chat.ts`, `types/locale.ts`).
-* **Feed → Tasks:** use `usePlanPostAsTask` — do not call `useTasks` directly from feed presentation components for "plan as task".
+* **`types/`**: Shared DTOs used by both client and server (`types/task.ts`, `types/post.ts`, `types/story.ts`, `types/chat.ts`, `types/friendship.ts`, `types/locale.ts`).
+* Do not call `useTasks` from feed presentation components for ad-hoc “plan as task” flows — keep Time Management mutations inside task composables/pages.
 
 ### File size / decomposition triggers
 

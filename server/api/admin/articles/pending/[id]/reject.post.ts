@@ -7,7 +7,7 @@ import { rejectArticle } from "~/server/services/articleService";
  * POST /api/admin/articles/pending/:id/reject
  */
 export default defineEventHandler(async (event) => {
-  requireAdmin(event);
+  await requireAdmin(event);
   const id = getRouterParam(event, "id");
   if (!id) {
     throw createError({ statusCode: 400, statusMessage: "Missing id" });

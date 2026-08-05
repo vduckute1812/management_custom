@@ -6,8 +6,9 @@ const router = useRouter();
 const auth = useAuth();
 const { t } = useI18n();
 const { unreadTotal } = useChat();
-const { incoming, friends, outgoing, refresh: refreshFriends } = useFriends();
-const friendRequestCount = computed(() => incoming.value.length);
+const { incomingCount, friends, incoming, outgoing, refreshBadge } =
+  useFriends();
+const friendRequestCount = computed(() => incomingCount.value);
 
 watch(
   () => auth.isAuthenticatedUi.value,
@@ -16,10 +17,11 @@ watch(
       friends.value = [];
       incoming.value = [];
       outgoing.value = [];
+      incomingCount.value = 0;
       return;
     }
     try {
-      await refreshFriends();
+      await refreshBadge();
     } catch {
       /* badge is best-effort */
     }
@@ -208,7 +210,7 @@ watch(
         <NuxtLink
           v-if="auth.isAuthenticatedUi.value"
           to="/money"
-          class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          class="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:inline-flex sm:px-3 sm:text-sm"
           :class="
             isMainActive('/money')
               ? 'bg-brand-50 text-brand-700'

@@ -196,12 +196,13 @@ DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `ser
 
 Facebook-style request → accept graph. Status: `Pending=0` \| `Accepted=1`. Friends-visibility posts require an Accepted row with the author.
 
-| Method   | Endpoint                  | Auth     | Description                                                                                          |
-| -------- | ------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/friends`            | Required | `{ friends, incoming, outgoing }` — each item is a `FriendshipRow`.                                  |
-| `POST`   | `/api/friends`            | Required | Body `{ userId }`. Sends a request (or auto-accepts a reciprocal pending). Returns `{ friendship }`. |
-| `POST`   | `/api/friends/:id/accept` | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
-| `DELETE` | `/api/friends/:id`        | Required | Cancel / decline / unfriend. Returns `{ ok: true }`.                                                 |
+| Method   | Endpoint                      | Auth     | Description                                                                                          |
+| -------- | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/friends`                | Required | `{ friends, incoming, outgoing }` — each item is a `FriendshipRow`.                                  |
+| `GET`    | `/api/friends/incoming-count` | Required | Badge helper `{ count }` of pending incoming requests.                                               |
+| `POST`   | `/api/friends`                | Required | Body `{ userId }`. Sends a request (or auto-accepts a reciprocal pending). Returns `{ friendship }`. |
+| `POST`   | `/api/friends/:id/accept`     | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
+| `DELETE` | `/api/friends/:id`            | Required | Cancel / decline / unfriend. Returns `{ ok: true }`.                                                 |
 
 DTO: `~/types/friendship.ts`. Domain: `server/db/friendships.ts`. UI: `/friends`.
 
@@ -210,6 +211,7 @@ DTO: `~/types/friendship.ts`. Domain: `server/db/friendships.ts`. UI: `/friends`
 ## Stories
 
 24-hour ephemeral stories with views / reactions / owner insights.
+**Visibility:** own stories + Accepted friends only (same friendship graph as Friends posts). Story media uploads follow the same ACL.
 
 | Method   | Endpoint                     | Auth     | Description                                                                                                                  |
 | -------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------- |

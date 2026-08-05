@@ -295,7 +295,7 @@
       "addYours": "添加你的",
       "you": "你",
       "newStory": "新快拍",
-      "visible24h": "可见 24 小时。",
+      "visible24h": "好友可见，24 小时后消失。",
       "storyText": "快拍文字",
       "placeholder": "说点什么…",
       "addPhoto": "添加照片",
@@ -403,15 +403,6 @@
       "daysAgo": "{count} 天",
       "showMore": "展开",
       "showLess": "收起",
-      "plan": "计划",
-      "planTitle": "将此文章作为研究任务加入时间管理",
-      "planUntitled": "分享的文章",
-      "planManuscriptOnly": "仅手稿类帖子可规划为研究任务",
-      "planTaskTitle": "研究：{title}",
-      "planTaskNotes": "作者 {author} · 发布于 {date}\n动态文章 ID：{id}",
-      "planTaskCreated": "已在时间管理中创建研究任务",
-      "planTaskOpen": "打开",
-      "planTaskFailed": "无法创建任务",
       "cannotEdit": "您无法编辑此帖子",
       "friends": "好友"
     },
@@ -1199,7 +1190,10 @@
     "declined": "已拒绝请求",
     "cancelled": "已取消请求",
     "unfriended": "已移除好友",
-    "actionFailed": "出错了"
+    "actionFailed": "出错了",
+    "unfriendConfirmTitle": "要解除好友吗？",
+    "unfriendConfirm": "之后将无法看到彼此的仅好友动态和快拍。",
+    "unfriendConfirmAction": "解除好友"
   },
   "categories": {
     "electronics": "电子",
