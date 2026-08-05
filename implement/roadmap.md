@@ -491,8 +491,19 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] `pages/feed/index.vue`: replace hardcoded `"Da Nang TechX"` with `$t("home.brand")`
 - [x] `pages/money/index.vue`: charts toggle collapsed below `xl` breakpoint (was `lg`) — MD desktop no longer hides charts behind a manual expand
 
+## Phase 36 — Article content pipeline (RSS → AI rewrite → admin publish)
+
+- [x] Migration `0031_pending_articles` + `types/article.ts` integer `ArticleStatus`
+- [x] `articleFetcher.ts` — long-form RSS/ArXiv sources across 7 `PIPELINE_CATEGORY_SLUGS`; length ranking; optional page expand (`ARTICLES_EXPAND_*`); SSRF-safe fetch
+- [x] `articleRewriter.ts` — Gemini default (`gemini-flash-latest`) or OpenAI; ~5–10 min narrator storytelling; JSON response; `redactSecrets`
+- [x] `utils/articleAttribution.ts` — idempotent `**Source:**` footer on rewrite + publish
+- [x] `articleService.ts` + job types `articles.fetch` / `articles.rewrite`; daily schedule `ARTICLES_FETCH_HOUR_UTC`
+- [x] Admin API `/api/admin/articles/pending/*` + UI `/admin/articles/pending` (list + side-by-side review)
+- [x] `docker/configure-gemini.sh` for Pi secrets; `docker/watch-deploy-actions.sh` runner heal; `tests/article-pipeline.test.ts`
+- [x] Docs synced: cache-queue env table, api admin routes, architecture module map, `article-spec.md`
+
 ### Later
 
 - Playwright smoke
 - Split remaining page gods (`settings` remainder, `feed`)
-- True parallel worker concurrency / dedicated article queue (priority tier ships in Phase 35)
+- True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)

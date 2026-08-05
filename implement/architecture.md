@@ -60,7 +60,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │
     ├── server/services/*      →  selective workflow orchestration
     │     (task save, timer, post create, chat send/read, money CRUD,
-    │      auth signup/refresh/delete/Google callback, …)
+    │      auth signup/refresh/delete/Google callback, article pipeline, …)
     │
     ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
     │     tables: users (+ locale / money_currency / profile via 0010+0028),
@@ -68,6 +68,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │             epics, tasks, time_blocks, checklist_items, active_timer,
     │             posts, post_* (reactions/comments modules), uploads, stories,
     │             post_categories, jobs, schema_migrations,
+    │             pending_articles (0031),
     │             money_transactions / savings / budgets / user_categories (0024–0027),
     │             chat_conversations, chat_messages, chat_conversation_reads,
     │             chat_message_reactions
@@ -101,7 +102,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 | Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                            |
 | Money           | `/money`                                                                    | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
 | Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account` |
-| Admin           | `/admin`                                                                    | Admin / superadmin                                                                       |
+| Admin           | `/admin`, `/admin/articles/pending`, `/admin/articles/pending/:id`          | Admin / superadmin — users/queue/system + article pipeline review                        |
 | Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                                       |
 | Chat            | `/chat`                                                                     | Authenticated                                                                            |
 | Legal           | `/privacy`, `/terms`                                                        | Public, SSR'd and indexable                                                              |
@@ -127,14 +128,15 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 
 **Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
 
-| Service                     | Responsibility                                                                |
-| --------------------------- | ----------------------------------------------------------------------------- |
-| `taskService`               | `saveTaskForUser` — ownership guards + upsert                                 |
-| `timerService`              | `startTimerForUser` / `stopTimerForUser`                                      |
-| `postService`               | `createPostForUser` + public-feed cache invalidate                            |
-| `chatService`               | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out            |
-| `moneyService` (+ siblings) | Money ledger / budgets / savings / user-categories workflows                  |
-| `authService`               | Signup, refresh rotation, account delete, Google OAuth callback orchestration |
+| Service                     | Responsibility                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `taskService`               | `saveTaskForUser` — ownership guards + upsert                                                        |
+| `timerService`              | `startTimerForUser` / `stopTimerForUser`                                                             |
+| `postService`               | `createPostForUser` + public-feed cache invalidate                                                   |
+| `chatService`               | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out                                   |
+| `moneyService` (+ siblings) | Money ledger / budgets / savings / user-categories workflows                                         |
+| `authService`               | Signup, refresh rotation, account delete, Google OAuth callback orchestration                        |
+| `articleService`            | Daily/manual fetch enqueue, rewrite enqueue, admin CRUD, approve → public manuscript + source footer |
 
 Password-reset / verify-email and admin role policy remain mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
 
@@ -145,6 +147,12 @@ Add new services only for workflows that span several DB calls or need shared tr
 ## Money module
 
 Per-user personal expense ledger (not shared with Feed). Amounts are **minor units** (`BIGINT`); display currency is `users.money_currency` (`MoneyCurrency` TINYINT — VND/USD/CNY/TWD). Schema: migrations **0024–0027** (+ **0028** locale/currency on users). Domain SQL: `server/db/money.ts`, `moneySavings.ts`, `moneyBudgets.ts`, plus user-categories helpers. Client: `/money`, `composables/useMoney*`, Chart.js via lazy `MoneyCharts`. Details: [`database.md`](./database.md#money-migration-0024), [`api.md`](./api.md).
+
+---
+
+## Article content pipeline
+
+Automated long-form ingest: `articleFetcher.ts` pulls reputable RSS/ArXiv feeds (length-ranked, optional page expand for short RSS bodies), inserts `pending_articles` drafts, and enqueues `articles.rewrite` when an LLM key is configured. `articleRewriter.ts` calls Gemini (default `gemini-flash-latest`) or OpenAI for ~5–10 minute narrator-style Markdown. Admins review at `/admin/articles/pending`; approve publishes a public manuscript with an idempotent `**Source:**` footer (`utils/articleAttribution.ts`). Jobs: [`cache-queue.md`](./cache-queue.md); API: [`api.md`](./api.md); as-built spec: [`article-spec.md`](./article-spec.md). Pi secrets: `docker/configure-gemini.sh`.
 
 ---
 
@@ -187,7 +195,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── server/
 │   ├── api/
 │   │   ├── auth/                    # signup, login, refresh, logout, account delete, verify-email, me, profile, google/*
-│   │   ├── admin/                   # users, stats, queue, role, DELETE user (superadmin)
+│   │   ├── admin/                   # users, stats, queue, articles/pending, role, DELETE user (superadmin)
 │   │   ├── epics/                   # caller-scoped
 │   │   ├── tasks/                   # caller-scoped
 │   │   ├── timer/                   # per-user active timer
@@ -208,14 +216,18 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── postService.ts           # Post create + cache bust
 │   │   ├── chatService.ts           # Chat send/read + inbox SSE push
 │   │   ├── moneyService.ts          # Money ledger (+ budgets/savings/categories siblings)
-│   │   └── authService.ts           # Signup / refresh / account delete / Google callback
+│   │   ├── authService.ts           # Signup / refresh / account delete / Google callback
+│   │   ├── articleService.ts        # Article pipeline orchestration
+│   │   ├── articleFetcher.ts        # RSS/ArXiv fetch, length ranking, page expand
+│   │   └── articleRewriter.ts       # Gemini/OpenAI storytelling rewrite
 │   ├── db/                          # SQL domain modules + migrator + pool
 │   │   ├── chat.ts                  # Barrel over chatConversations / Messages / Reactions / Reads
 │   │   ├── postQueries.ts           # Post read helpers (cursors, listFeedPosts, getPostById, hydration)
 │   │   ├── posts.ts                 # Post mutations (createPost / updatePost / deletePost)
 │   │   ├── postReactions.ts         # Reaction set / clear
 │   │   ├── postComments.ts          # Comments CRUD + comment_count recount (drift-only when unscoped)
-│   │   └── migrations/              # 0001…0030+ SQL files
+│   │   ├── pendingArticles.ts       # Article pipeline rows (0031)
+│   │   └── migrations/              # 0001…0031+ SQL files
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
@@ -234,7 +246,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │       ├── auth.ts / authContext.ts # JWT, bcrypt, requireUser / requireAdmin / requireSuperAdmin
 │       ├── googleOAuth*.ts          # Google OAuth config, state, profile → user
 │       ├── mailer.ts                # SMTP + console dry-run; APP_BASE_URL preferred
-│       ├── queue.ts                 # Enqueue helpers (email.*, cache.invalidate, media.purgeExpired)
+│       ├── queue.ts                 # Enqueue helpers + processJob (email.*, cache.invalidate, media.purgeExpired, articles.*)
 │       ├── r2.ts                    # S3-compatible Cloudflare R2 client
 │       └── fileSignature.ts         # Magic-byte sniff for uploads
 ├── tests/                           # Vitest unit tests (`npm test`) — DB-free
@@ -255,6 +267,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── chat/index.vue               # Direct messages (auth required)
 │   ├── tasks/index.vue              # Calendar dashboard (Time Management)
 │   ├── money/index.vue              # Personal expense ledger
+│   ├── admin/articles/pending/      # Pipeline list + side-by-side review UI
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
 │   ├── privacy.vue, terms.vue          # Public legal pages (SSR'd, indexable)
 │   └── login.vue, signup.vue, verify-email.vue, forgot-password, reset-password
@@ -285,8 +298,8 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── chat-inbox.client.ts         # Unread badge / toast via SSE inbox stream
 │   └── notifications.client.ts
 ├── i18n/locales/                    # en, vi, zh-CN, zh-TW
-├── types/                           # auth.ts, task.ts, post.ts, story.ts, chat.ts, money.ts, reaction.ts, locale.ts, legal.ts
-├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, money helpers, …
+├── types/                           # auth.ts, task.ts, post.ts, story.ts, chat.ts, money.ts, article.ts, reaction.ts, locale.ts, legal.ts
+├── utils/                           # parseQuickCapture, renderPostBody, uploadPolicy, money helpers, articleAttribution, articleUrl, …
 │   └── legal/                       # privacy.ts + terms.ts document text (en/vi) + registry
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts

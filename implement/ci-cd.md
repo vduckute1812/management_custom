@@ -159,21 +159,25 @@ bash docker/install-github-runner.sh \
 
 ## Deploy watch (Pi timer — heal runner + re-run failures)
 
-The Actions runner lives **outside** the git checkout (`~/actions-runner` by
-default). Heavy builds sometimes kill the runner process (“lost communication”),
-leaving Deploy **failed** or **Queued** forever.
+The Actions runner lives **outside** the git checkout (`~/actions-runner`
+sibling of `management_custom`). Heavy builds sometimes kill the runner
+(“lost communication”), leaving Deploy **failed** or **Queued** forever.
 
 On the Pi, install a user timer that every ~10 minutes:
 
-1. Ensures `~/actions-runner` (`svc.sh`) is running
+1. Ensures the systemd unit `actions.runner.*.service` is active (passwordless
+   `systemctl start/stop/restart/is-active` via `/etc/sudoers.d/mgmt-actions-runner`)
 2. If the latest `Deploy (Raspberry Pi)` run on `master` **failed**, re-runs
    it (`gh run rerun --failed`), at most twice per run id
-3. If a run stays **Queued** too long, restarts the runner so it can pick up
+3. If a run stays **Queued** too long (~20 min), restarts the runner so it can pick up
 
 ```bash
-# From a live checkout on the Pi (or runner worktree after pull):
+# From a live checkout on the Pi (or copy scripts into place):
 bash docker/install-deploy-watch.sh
 ```
+
+The install copies `watch-deploy-actions.sh` to `~/.config/management/bin/` so the
+timer does not depend on a stale clone.
 
 Auth for `gh` (pick one):
 
@@ -185,8 +189,33 @@ umask 077
 printf '%s' 'github_pat_…' > ~/.config/management/github.token
 ```
 
-Manual once: `bash docker/watch-deploy-actions.sh`  
+Without auth, the timer still **heals the runner**; it cannot call the Actions API.
+
+Manual once: `~/.config/management/bin/watch-deploy-actions.sh`  
 Logs: `journalctl --user -u mgmt-deploy-watch -f`
+
+---
+
+## Configure Gemini on the Pi (`configure-gemini.sh`)
+
+After deploy, set the LLM API key in the **secrets tree** (not the git checkout):
+
+```bash
+# On the Pi, with ~/.config/management/.env.prod already present:
+GEMINI_API_KEY='…' bash docker/configure-gemini.sh
+```
+
+Optional env: `LLM_PROVIDER=gemini` (default), `GEMINI_MODEL=gemini-flash-latest`,
+`SKIP_RECREATE=1` (write env only — next `ci-deploy` recreates the app).
+
+The script upserts `LLM_PROVIDER`, `GEMINI_API_KEY`, and `GEMINI_MODEL` into
+`~/.config/management/.env.prod`, runs `docker/link-secrets.sh`, verifies keys in
+`docker/.env.prod`, then `mgmt_compose up -d --no-deps --force-recreate app` and
+waits on `http://127.0.0.1:3000/api/health`. Without a key, fetch still runs but
+drafts stay Draft until an admin uses Re-generate AI or approves raw content.
+
+Pi production health probes in `ci-deploy.sh` use `http://${LAN_IP}:3000/api/health`;
+`configure-gemini.sh` uses loopback — both should succeed when the app is up.
 
 ---
 

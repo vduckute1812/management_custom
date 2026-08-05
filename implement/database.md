@@ -322,6 +322,14 @@ Automated content pipeline rows awaiting admin review before publish.
 | `published_post_id`                                 | FK → `posts`           | Set on approve                                             |
 | `source_published_at` / `published_at`              | `DATETIME(3)`          | Source date + approve time                                 |
 
+Fetch sources and category mapping live in `server/services/articleFetcher.ts`
+(`ARTICLE_FEED_SOURCES` — IEEE Spectrum, Electronics Weekly, ScienceDaily
+Engineering, MIT Technology Review, Ars Technica, ArXiv queries, Quanta,
+Nature, ACM Queue, Wired Science). URL dedupe uses `url_hash` (SHA-256 of
+normalized URL). New URLs per run are ranked by `raw_content` length after
+optional full-page expand. Publish appends an idempotent
+`**Source:** [sourceName](originalUrl)` footer (`utils/articleAttribution.ts`).
+
 ---
 
 ## Timestamps and timezones
