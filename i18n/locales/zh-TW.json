@@ -1123,7 +1123,7 @@
   "seo": {
     "appTitle": "個人任務與分析管理器",
     "home": "首頁",
-    "homeDescription": "Da Nang Tech R&D and Networking Portal — 動態與時間管理模組總覽。",
+    "homeDescription": "Da Nang TechX — 動態與時間管理模組總覽。",
     "feed": "動態",
     "feedDescription": "與團隊分享文件、限時動態與動態。",
     "profile": "個人資料",
@@ -1174,10 +1174,11 @@
     "ideas": "想法"
   },
   "home": {
-    "brand": "Da Nang Tech R&D and Networking Portal",
+    "brand": "Da Nang TechX",
+    "brandTagline": "研發與社交入口",
     "welcome": "歡迎",
     "welcomeNamed": "歡迎，{name}",
-    "intro": "這個網站是我們與世界各地科技愛好者連結和分享的地方。",
+    "intro": "Da Nang TechX 是連接並分享科技熱情的社群入口——公開動態、聊天與私人時間管理。",
     "categoriesTitle": "主要欄目",
     "categoriesBody": "文章按核心科技主題分類整理。選擇一個欄目即可在動態中瀏覽其文章。",
     "articleCount": "尚無文章 | {count} 篇文章 | {count} 篇文章",

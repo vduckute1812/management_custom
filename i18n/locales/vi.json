@@ -1123,7 +1123,7 @@
   "seo": {
     "appTitle": "Quản lý công việc & phân tích cá nhân",
     "home": "Trang chủ",
-    "homeDescription": "Da Nang Tech R&D and Networking Portal — tổng quan các mô-đun Bảng tin và Quản lý thời gian.",
+    "homeDescription": "Da Nang TechX — tổng quan các mô-đun Bảng tin và Quản lý thời gian.",
     "feed": "Bảng tin",
     "feedDescription": "Chia sẻ tài liệu, story và cập nhật với nhóm của bạn.",
     "profile": "Hồ sơ",
@@ -1174,10 +1174,11 @@
     "ideas": "Ý tưởng"
   },
   "home": {
-    "brand": "Da Nang Tech R&D and Networking Portal",
+    "brand": "Da Nang TechX",
+    "brandTagline": "Cổng R&D và Kết nối",
     "welcome": "Chào mừng",
     "welcomeNamed": "Chào mừng, {name}",
-    "intro": "Website này là nơi chúng ta kết nối và chia sẻ với những người đam mê công nghệ ở khắp mọi nơi.",
+    "intro": "Da Nang TechX là cổng cộng đồng nơi chúng ta kết nối và chia sẻ với những người đam mê công nghệ — bảng tin công khai, chat và quản lý thời gian riêng tư.",
     "categoriesTitle": "Chuyên mục chính",
     "categoriesBody": "Bài viết được sắp xếp theo các chủ đề công nghệ cốt lõi. Chọn một chuyên mục để xem các bài viết trong Bảng tin.",
     "articleCount": "Chưa có bài viết | {count} bài viết | {count} bài viết",

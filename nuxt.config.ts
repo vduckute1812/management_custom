@@ -10,7 +10,7 @@ export default defineNuxtConfig({
     url: "https://dntechx.com",
     name: "Da Nang TechX",
     description:
-      "Da Nang Tech R&D and Networking Portal — feed and time management.",
+      "Da Nang TechX — Da Nang Tech R&D and Networking Portal: feed and time management.",
     defaultLocale: "en",
   },
   // Only the public hub, feed, and legal pages should be indexed; app/admin
@@ -120,8 +120,11 @@ export default defineNuxtConfig({
         {
           name: "description",
           content:
-            "Da Nang Tech R&D and Networking Portal — feed and time management.",
+            "Da Nang TechX — Da Nang Tech R&D and Networking Portal: feed and time management.",
         },
+        // Must match Google Auth Platform app name for brand verification.
+        { name: "application-name", content: "Da Nang TechX" },
+        { name: "apple-mobile-web-app-title", content: "Da Nang TechX" },
         // Render with a sensible color scheme even on first paint, before the
         // theme plugin has run.
         { name: "color-scheme", content: "light dark" },
