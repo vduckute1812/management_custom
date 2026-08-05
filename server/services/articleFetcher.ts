@@ -1,6 +1,6 @@
 /**
  * RSS / Atom / ArXiv feed sources for the automated article pipeline.
- * Maps each of the 7 core directories to reputable public feeds.
+ * Prefers long-form reputable feeds; short link-dumps are excluded.
  */
 
 import type { PipelineCategorySlug } from "~/types/article";
@@ -30,6 +30,11 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
     categorySlug: "electronics",
   },
   {
+    name: "Electronics Weekly",
+    url: "https://www.electronicsweekly.com/feed/",
+    categorySlug: "electronics",
+  },
+  {
     name: "ScienceDaily Engineering",
     url: "https://www.sciencedaily.com/rss/matter_energy/engineering.xml",
     categorySlug: "mechanical-engineering",
@@ -40,18 +45,23 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
     categorySlug: "information-technology",
   },
   {
-    name: "Hacker News",
-    url: "https://hnrss.org/frontpage",
+    name: "Ars Technica",
+    url: "https://feeds.arstechnica.com/arstechnica/technology-lab",
     categorySlug: "information-technology",
   },
   {
     name: "ArXiv cs.NI (IoT/networks)",
-    url: "https://export.arxiv.org/api/query?search_query=all:iot+OR+all:%22internet+of+things%22&start=0&max_results=8&sortBy=submittedDate&sortOrder=descending",
+    url: "https://export.arxiv.org/api/query?search_query=all:iot+OR+all:%22internet+of+things%22&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
     categorySlug: "iot",
   },
   {
     name: "ArXiv math",
-    url: "https://export.arxiv.org/api/query?search_query=cat:math*&start=0&max_results=8&sortBy=submittedDate&sortOrder=descending",
+    url: "https://export.arxiv.org/api/query?search_query=cat:math.CO+OR+cat:math.PR+OR+cat:math.OC&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
+    categorySlug: "math",
+  },
+  {
+    name: "Quanta Magazine",
+    url: "https://api.quantamagazine.org/feed",
     categorySlug: "math",
   },
   {
@@ -61,20 +71,30 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
   },
   {
     name: "ArXiv recent CS",
-    url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&start=0&max_results=8&sortBy=submittedDate&sortOrder=descending",
+    url: "https://export.arxiv.org/api/query?search_query=cat:cs.AI+OR+cat:cs.LG&start=0&max_results=12&sortBy=submittedDate&sortOrder=descending",
     categorySlug: "docs",
   },
   {
-    name: "TechCrunch",
-    url: "https://techcrunch.com/feed/",
+    name: "ACM Queue",
+    url: "https://queue.acm.org/rss/feeds/queuecontent.xml",
+    categorySlug: "ideas",
+  },
+  {
+    name: "Wired Science",
+    url: "https://www.wired.com/feed/category/science/latest/rss",
     categorySlug: "ideas",
   },
 ];
 
 const FETCH_TIMEOUT_MS = 25_000;
+const PAGE_FETCH_TIMEOUT_MS = 20_000;
 const MAX_FEED_BYTES = 2_500_000;
+const MAX_PAGE_BYTES = 1_500_000;
 const MAX_REDIRECTS = 3;
 const FETCH_CONCURRENCY = 4;
+const PAGE_EXPAND_CONCURRENCY = 2;
+/** How many feed entries to consider before length-ranking. */
+const CANDIDATES_PER_SOURCE = 16;
 const USER_AGENT =
   "DNTechX-ArticlePipeline/1.0 (+https://dntechx.com; content aggregator)";
 
@@ -96,9 +116,22 @@ function stripHtml(html: string): string {
   return decodeXmlEntities(html)
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** Prefer `<article>` / `<main>` text when expanding a full page. */
+export function extractMainTextFromHtml(html: string): string {
+  const article =
+    /<article\b[^>]*>([\s\S]*?)<\/article>/i.exec(html)?.[1] ||
+    /<main\b[^>]*>([\s\S]*?)<\/main>/i.exec(html)?.[1] ||
+    /<div[^>]+(?:class|id)=["'][^"']*(?:article|post|entry|content|story)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i.exec(
+      html,
+    )?.[1] ||
+    html;
+  return stripHtml(article).slice(0, 50_000);
 }
 
 function tagContent(block: string, tag: string): string | null {
@@ -175,7 +208,8 @@ function parseItems(xml: string): Array<{
       tagContent(block, "arxiv:abstract") ||
       title;
     const content = stripHtml(contentRaw).slice(0, 50_000);
-    if (content.length < 40) continue;
+    // Soft floor while parsing; hard floor applied after optional page expand.
+    if (content.length < 80) continue;
 
     const pubRaw =
       tagContent(block, "pubDate") ||
@@ -204,7 +238,6 @@ function isBlockedHostname(hostname: string): boolean {
   ) {
     return true;
   }
-  // IPv4 literals
   const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
   if (m) {
     const a = Number(m[1]);
@@ -214,7 +247,6 @@ function isBlockedHostname(hostname: string): boolean {
     if (a === 172 && b >= 16 && b <= 31) return true;
     if (a === 192 && b === 168) return true;
   }
-  // IPv6 loopback / link-local (common forms)
   if (
     host === "::1" ||
     host.startsWith("fe80:") ||
@@ -227,7 +259,6 @@ function isBlockedHostname(hostname: string): boolean {
 }
 
 function sameRegistrableHint(a: string, b: string): boolean {
-  // Lightweight same-site check: exact host or subdomain of the original.
   const left = a.toLowerCase();
   const right = b.toLowerCase();
   return (
@@ -241,12 +272,12 @@ async function readBodyCapped(
 ): Promise<string> {
   const len = Number(res.headers.get("content-length") || 0);
   if (len > maxBytes) {
-    throw new Error(`Feed body too large (${len} bytes)`);
+    throw new Error(`Body too large (${len} bytes)`);
   }
   if (!res.body) {
     const text = await res.text();
     if (text.length > maxBytes) {
-      throw new Error(`Feed body too large (${text.length} bytes)`);
+      throw new Error(`Body too large (${text.length} bytes)`);
     }
     return text;
   }
@@ -264,7 +295,7 @@ async function readBodyCapped(
       } catch {
         /* ignore */
       }
-      throw new Error(`Feed body too large (>${maxBytes} bytes)`);
+      throw new Error(`Body too large (>${maxBytes} bytes)`);
     }
     chunks.push(value);
   }
@@ -277,11 +308,20 @@ async function readBodyCapped(
   return new TextDecoder("utf-8", { fatal: false }).decode(merged);
 }
 
-async function fetchFeedXml(url: string): Promise<string> {
+async function fetchHttpText(
+  url: string,
+  opts: {
+    accept: string;
+    maxBytes: number;
+    timeoutMs: number;
+    /** When set, redirects must stay on this host family. */
+    lockHost?: string;
+  },
+): Promise<string> {
   if (!isSafeHttpUrl(url)) {
-    throw new Error("Feed URL must be http(s)");
+    throw new Error("URL must be http(s)");
   }
-  const originHost = new URL(url).hostname;
+  const originHost = opts.lockHost || new URL(url).hostname;
   let current = url;
 
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
@@ -292,7 +332,6 @@ async function fetchFeedXml(url: string): Promise<string> {
     if (isBlockedHostname(parsed.hostname)) {
       throw new Error("Redirect to private/metadata host blocked");
     }
-    // Keep redirects on the same site family as the configured feed.
     if (!sameRegistrableHint(parsed.hostname, originHost)) {
       throw new Error(
         `Cross-host redirect blocked (${originHost} → ${parsed.hostname})`,
@@ -300,13 +339,12 @@ async function fetchFeedXml(url: string): Promise<string> {
     }
 
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+    const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs);
     try {
       const res = await fetch(current, {
         signal: ctrl.signal,
         headers: {
-          Accept:
-            "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+          Accept: opts.accept,
           "User-Agent": USER_AGENT,
         },
         redirect: "manual",
@@ -320,9 +358,9 @@ async function fetchFeedXml(url: string): Promise<string> {
       }
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status} fetching feed`);
+        throw new Error(`HTTP ${res.status}`);
       }
-      return await readBodyCapped(res, MAX_FEED_BYTES);
+      return await readBodyCapped(res, opts.maxBytes);
     } finally {
       clearTimeout(timer);
     }
@@ -330,9 +368,66 @@ async function fetchFeedXml(url: string): Promise<string> {
   throw new Error(`Too many redirects (>${MAX_REDIRECTS})`);
 }
 
+async function fetchFeedXml(url: string): Promise<string> {
+  return fetchHttpText(url, {
+    accept:
+      "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+    maxBytes: MAX_FEED_BYTES,
+    timeoutMs: FETCH_TIMEOUT_MS,
+  });
+}
+
+async function fetchArticlePageText(url: string): Promise<string | null> {
+  try {
+    const html = await fetchHttpText(url, {
+      accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+      maxBytes: MAX_PAGE_BYTES,
+      timeoutMs: PAGE_FETCH_TIMEOUT_MS,
+      lockHost: new URL(url).hostname,
+    });
+    const text = extractMainTextFromHtml(html);
+    return text.length >= 200 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 function envInt(name: string, fallback: number): number {
   const n = Number(process.env[name]);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+function envBool(name: string, fallback: boolean): boolean {
+  const raw = (process.env[name] || "").trim().toLowerCase();
+  if (!raw) return fallback;
+  if (["1", "true", "yes", "on"].includes(raw)) return true;
+  if (["0", "false", "no", "off"].includes(raw)) return false;
+  return fallback;
+}
+
+/** Minimum accepted raw body length after RSS (+ optional page expand). */
+export function minRawContentChars(): number {
+  return envInt("ARTICLES_FETCH_MIN_CHARS", 800);
+}
+
+/** Expand article HTML when RSS body is shorter than this. */
+export function expandBelowChars(): number {
+  return envInt("ARTICLES_EXPAND_BELOW_CHARS", 1500);
+}
+
+/**
+ * Rank candidates by body length (desc) and keep the longest that clear the
+ * minimum length floor.
+ */
+export function selectLongestItems<T extends { content: string }>(
+  items: T[],
+  maxKeep: number,
+  minChars: number,
+): T[] {
+  return [...items]
+    .filter((i) => i.content.trim().length >= minChars)
+    .sort((a, b) => b.content.length - a.content.length)
+    .slice(0, maxKeep);
 }
 
 async function mapPool<T, R>(
@@ -353,9 +448,25 @@ async function mapPool<T, R>(
   return results;
 }
 
+async function maybeExpandItems(
+  parsed: ReturnType<typeof parseItems>,
+): Promise<ReturnType<typeof parseItems>> {
+  const expandEnabled = envBool("ARTICLES_EXPAND_PAGES", true);
+  const below = expandBelowChars();
+  if (!expandEnabled) return parsed;
+
+  return mapPool(parsed, PAGE_EXPAND_CONCURRENCY, async (item) => {
+    if (item.content.length >= below) return item;
+    const pageText = await fetchArticlePageText(item.url);
+    if (!pageText || pageText.length <= item.content.length) return item;
+    return { ...item, content: pageText };
+  });
+}
+
 /**
  * Pull recent items from all configured sources.
  * Dedupes by URL within this run; DB-level dedupe happens on insert.
+ * Prefers the longest bodies per source (after optional full-page expand).
  */
 export async function fetchArticlesFromSources(opts?: {
   maxPerSource?: number;
@@ -366,6 +477,7 @@ export async function fetchArticlesFromSources(opts?: {
 }> {
   const maxPerSource =
     opts?.maxPerSource ?? envInt("ARTICLES_FETCH_MAX_PER_SOURCE", 3);
+  const minChars = minRawContentChars();
   const slugSet = new Set(
     opts?.slugs ?? PIPELINE_CATEGORY_SLUGS,
   ) as Set<string>;
@@ -387,11 +499,10 @@ export async function fetchArticlesFromSources(opts?: {
     async (source): Promise<SourceResult> => {
       try {
         const xml = await fetchFeedXml(source.url);
-        return {
-          ok: true,
-          source,
-          parsed: parseItems(xml).slice(0, maxPerSource),
-        };
+        const candidates = parseItems(xml).slice(0, CANDIDATES_PER_SOURCE);
+        const expanded = await maybeExpandItems(candidates);
+        const selected = selectLongestItems(expanded, maxPerSource, minChars);
+        return { ok: true, source, parsed: selected };
       } catch (err) {
         return {
           ok: false,

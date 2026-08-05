@@ -11,7 +11,14 @@ import {
   hashArticleUrl,
   isSafeHttpUrl,
 } from "../utils/articleUrl";
-import { redactSecrets } from "../server/services/articleRewriter";
+import {
+  redactSecrets,
+  targetReadingMinutes,
+} from "../server/services/articleRewriter";
+import {
+  extractMainTextFromHtml,
+  selectLongestItems,
+} from "../server/services/articleFetcher";
 import { rateLimitScope, resolvePolicy } from "../server/rate-limit/policies";
 
 describe("article status / pipeline constants", () => {
@@ -86,6 +93,38 @@ describe("LLM secret redaction", () => {
   it("redacts API key material from error strings", () => {
     expect(redactSecrets("key=AQ.secretvalue&x=1")).toContain("REDACTED");
     expect(redactSecrets("Bearer sk-abcdefghijklmnop")).toContain("REDACTED");
+  });
+});
+
+describe("long-form fetch selection", () => {
+  it("keeps the longest bodies above the minimum", () => {
+    const selected = selectLongestItems(
+      [
+        { content: "x".repeat(200) },
+        { content: "y".repeat(1200) },
+        { content: "z".repeat(900) },
+        { content: "short" },
+      ],
+      2,
+      800,
+    );
+    expect(selected).toHaveLength(2);
+    expect(selected[0]?.content.length).toBe(1200);
+    expect(selected[1]?.content.length).toBe(900);
+  });
+
+  it("extracts article text from HTML shells", () => {
+    const text = extractMainTextFromHtml(
+      "<html><body><nav>Skip</nav><article><p>Hello engineers</p><p>More depth here.</p></article></body></html>",
+    );
+    expect(text).toContain("Hello engineers");
+    expect(text).not.toContain("nav");
+  });
+});
+
+describe("storytelling rewrite targets", () => {
+  it("defaults to a 5–10 minute reading window", () => {
+    expect(targetReadingMinutes()).toEqual({ min: 5, max: 10 });
   });
 });
 
