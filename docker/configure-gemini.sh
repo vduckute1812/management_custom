@@ -6,7 +6,7 @@
 #
 # Optional:
 #   LLM_PROVIDER=gemini          (default)
-#   GEMINI_MODEL=gemini-2.0-flash
+#   GEMINI_MODEL=gemini-flash-latest
 #   SKIP_RECREATE=1              — only write env (ci-deploy will recreate app)
 #   MGMT_SECRETS_DIR=$HOME/.config/management
 set -euo pipefail
@@ -21,7 +21,7 @@ DOCKER_ENV="${ROOT}/docker/.env.prod"
 
 PROVIDER="${LLM_PROVIDER:-gemini}"
 API_KEY="${GEMINI_API_KEY:-}"
-MODEL="${GEMINI_MODEL:-gemini-2.0-flash}"
+MODEL="${GEMINI_MODEL:-gemini-flash-latest}"
 SKIP_RECREATE="${SKIP_RECREATE:-0}"
 
 log() { echo "[configure-gemini] $*"; }
