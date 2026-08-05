@@ -42,11 +42,12 @@ const {
   closeConversation,
 } = useChat();
 
-const { searchDebounced, results, loading: searching } = useUserDirectory();
+const { friends, refresh: refreshFriends } = useFriends();
 
 const userQuery = ref("");
 const showNewChat = ref(false);
 const starting = ref(false);
+const loadError = ref<string | null>(null);
 
 const peerFromQuery = computed(() => {
   const raw = route.query.with;
@@ -55,9 +56,33 @@ const peerFromQuery = computed(() => {
 
 const showThread = computed(() => Boolean(activeId.value));
 
+const friendPickerHits = computed(() => {
+  const q = userQuery.value.trim().toLowerCase();
+  const rows = friends.value.map((f) => f.peer);
+  if (!q) return rows;
+  return rows.filter((u) => {
+    const name = (u.name || "").toLowerCase();
+    const email = (u.email || "").toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
+});
+
+async function bootstrapChat() {
+  loadError.value = null;
+  try {
+    await Promise.all([
+      refreshConversations(),
+      ensureCatalog(),
+      refreshFriends(),
+    ]);
+  } catch {
+    loadError.value = t("chat.loadFailed");
+  }
+}
+
 onMounted(async () => {
   if (!auth.isAuthenticatedUi.value) return;
-  await Promise.all([refreshConversations(), ensureCatalog()]);
+  await bootstrapChat();
   if (peerFromQuery.value) {
     starting.value = true;
     try {
@@ -78,7 +103,7 @@ watch(
   () => auth.isAuthenticatedUi.value,
   async (ok) => {
     if (ok) {
-      await refreshConversations();
+      await bootstrapChat();
       startPolling();
     } else {
       stopPolling();
@@ -91,14 +116,13 @@ function onSelectConversation(id: string) {
 }
 
 function onUserQueryInput() {
-  searchDebounced(userQuery.value);
+  // Local filter over accepted friends — no install-wide directory.
 }
 
 async function startWithUser(userId: string) {
   starting.value = true;
   showNewChat.value = false;
   userQuery.value = "";
-  results.value = [];
   try {
     await startConversation(userId);
   } finally {
@@ -176,20 +200,21 @@ function backToList() {
             type="search"
             autocomplete="off"
             class="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-            :placeholder="t('chat.searchPeoplePlaceholder')"
+            :placeholder="t('chat.searchFriendsPlaceholder')"
             @input="onUserQueryInput"
           />
-          <ul v-if="userQuery.trim()" class="mt-2 max-h-48 overflow-y-auto">
-            <li v-if="searching" class="px-2 py-2 text-xs text-slate-400">
-              {{ t("chat.searching") }}
-            </li>
+          <ul class="mt-2 max-h-48 overflow-y-auto">
             <li
-              v-else-if="!results.length"
+              v-if="!friendPickerHits.length"
               class="px-2 py-2 text-xs text-slate-400"
             >
-              {{ t("chat.noPeopleFound") }}
+              {{
+                friends.length
+                  ? t("chat.noPeopleFound")
+                  : t("chat.noFriendsYet")
+              }}
             </li>
-            <li v-for="u in results" :key="u.id">
+            <li v-for="u in friendPickerHits" :key="u.id">
               <button
                 type="button"
                 class="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left hover:bg-slate-50"
@@ -208,17 +233,26 @@ function backToList() {
                   >
                     {{ u.name?.trim() || u.email }}
                   </span>
-                  <span
-                    v-if="u.name?.trim()"
-                    class="block truncate text-xs text-slate-400"
-                  >
-                    {{ u.email }}
-                  </span>
                 </span>
               </button>
             </li>
           </ul>
         </div>
+
+        <p
+          v-if="loadError"
+          class="px-3 py-2 text-sm text-rose-600"
+          role="alert"
+        >
+          {{ loadError }}
+          <button
+            type="button"
+            class="ml-2 font-semibold underline"
+            @click="bootstrapChat"
+          >
+            {{ t("common.retry") }}
+          </button>
+        </p>
 
         <ChatConversationList
           class="min-h-0 flex-1"

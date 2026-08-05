@@ -4,7 +4,7 @@ import type { ChatConversation } from "~/types/chat";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import { areFriends } from "./friendships";
+import { areFriends, listAcceptedFriendIds } from "./friendships";
 import type { ConversationRow } from "./chatShared";
 import {
   loadConversationRow,
@@ -92,14 +92,20 @@ export async function listConversations(
   userId: string,
 ): Promise<ChatConversation[]> {
   const pool = getPool();
-  const [rows] = await pool.query<ConversationRow[]>(
-    `${CONVERSATION_SELECT}
+  const [rows, friendIds] = await Promise.all([
+    pool.query<ConversationRow[]>(
+      `${CONVERSATION_SELECT}
      WHERE c.user_a_id = ? OR c.user_b_id = ?
      ORDER BY COALESCE(c.last_message_at, c.created_at) DESC`,
-    [userId, userId, userId, userId],
-  );
-
-  return rows.map((row) => rowToConversation(row, userId));
+      [userId, userId, userId, userId],
+    ),
+    listAcceptedFriendIds(userId),
+  ]);
+  const friends = new Set(friendIds);
+  // Hide threads whose peer is no longer an accepted friend.
+  return rows[0]
+    .map((row) => rowToConversation(row, userId))
+    .filter((c) => friends.has(c.peer.id));
 }
 
 /** Load one conversation the user participates in (no full-list scan). */
@@ -116,7 +122,12 @@ export async function getConversationForUser(
     [userId, userId, conversationId, userId, userId],
   );
   const row = rows[0];
-  return row ? rowToConversation(row, userId) : null;
+  if (!row) return null;
+  const conversation = rowToConversation(row, userId);
+  if (!(await areFriends(userId, conversation.peer.id))) {
+    return null;
+  }
+  return conversation;
 }
 
 export async function getOrCreateDirectConversation(

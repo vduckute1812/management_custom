@@ -7,7 +7,7 @@ import { ChatMessageKind } from "~/types/chat";
 import { dbToISO, isoToDB } from "./datetime";
 import { nowISO } from "./ids";
 import { getPool } from "./pool";
-import { assertParticipant, loadConversationRow } from "./chatShared";
+import { assertParticipantAndFriends, loadConversationRow } from "./chatShared";
 
 export interface ChatUnreadPreview {
   conversationId: string;
@@ -25,7 +25,7 @@ export async function markConversationRead(
   if (!conv) {
     throw new DomainError(404, "Conversation not found");
   }
-  assertParticipant(conv, userId);
+  await assertParticipantAndFriends(conv, userId);
 
   const now = nowISO();
   const pool = getPool();

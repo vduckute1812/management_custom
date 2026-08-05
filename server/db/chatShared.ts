@@ -238,6 +238,19 @@ export function assertParticipant(
   }
 }
 
+/** Participant check + Accepted friendship (blocks post-unfriend DM use). */
+export async function assertParticipantAndFriends(
+  row: { user_a_id: string; user_b_id: string },
+  userId: string,
+): Promise<void> {
+  assertParticipant(row, userId);
+  const peerId = row.user_a_id === userId ? row.user_b_id : row.user_a_id;
+  const { areFriends } = await import("./friendships");
+  if (!(await areFriends(userId, peerId))) {
+    throw new DomainError(403, "Friends only");
+  }
+}
+
 export async function loadConversationRow(
   conversationId: string,
 ): Promise<{ id: string; user_a_id: string; user_b_id: string } | null> {
