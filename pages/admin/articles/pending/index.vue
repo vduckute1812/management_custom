@@ -402,7 +402,10 @@ function categoryOptionLabel(cat: PostCategory): string {
         {{ $t("adminArticles.loadFailed") }}
       </p>
 
-      <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <div
+        class="bg-white border border-slate-200 rounded-xl overflow-hidden"
+        :aria-busy="loading"
+      >
         <div
           class="px-4 py-2 border-b border-slate-100 text-xs text-slate-500 flex justify-between gap-3 flex-wrap"
         >
@@ -412,7 +415,6 @@ function categoryOptionLabel(cat: PostCategory): string {
           <span v-if="selectedCount > 0" class="text-slate-700">
             {{ $t("adminArticles.selectedCount", { count: selectedCount }) }}
           </span>
-          <span v-if="loading">{{ $t("admin.loading") }}</span>
         </div>
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -452,18 +454,22 @@ function categoryOptionLabel(cat: PostCategory): string {
               </tr>
             </thead>
             <tbody>
+              <tr v-if="loading && !data?.articles?.length">
+                <td colspan="7" class="p-0">
+                  <SkeletonList :rows="5" />
+                </td>
+              </tr>
               <tr v-if="!loading && !data?.articles?.length">
-                <td
-                  colspan="7"
-                  class="px-4 py-8 text-center text-slate-400 text-xs space-y-2"
-                >
-                  <p>{{ $t("adminArticles.empty") }}</p>
-                  <p
-                    v-if="statusFilter === ArticleStatus.PendingApproval"
-                    class="text-slate-500"
-                  >
-                    {{ $t("adminArticles.emptyPendingHint") }}
-                  </p>
+                <td colspan="7" class="px-4 py-8">
+                  <EmptyState
+                    :title="$t('adminArticles.empty')"
+                    :description="
+                      statusFilter === ArticleStatus.PendingApproval
+                        ? $t('adminArticles.emptyPendingHint')
+                        : undefined
+                    "
+                    illustration="layers"
+                  />
                 </td>
               </tr>
               <tr

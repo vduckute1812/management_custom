@@ -5,9 +5,8 @@ import type {
   PostVisibility,
 } from "~/types/post";
 import { PostFormat } from "~/types/post";
-import { categoryDisplayName } from "~/utils/categoryLabel";
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const auth = useAuth();
 const route = useRoute();
 const { pushToast } = useToasts();
@@ -36,9 +35,6 @@ const { categories, loading: categoriesLoading } = useCategories();
 
 const composerRef = ref<{ clear: () => void; focus: () => void } | null>(null);
 const submitting = ref(false);
-const viewerOpen = ref(false);
-const viewerGroupIndex = ref(0);
-const storyComposerOpen = ref(false);
 const pendingDeletePostId = ref<string | null>(null);
 const deletePostBusy = ref(false);
 /** Sentinel at list bottom — IntersectionObserver loads the next page. */
@@ -208,10 +204,6 @@ async function onCategoryFilter(id: string | null) {
   });
 }
 
-function catLabel(cat: { slug: string; name: string }) {
-  return categoryDisplayName(cat, t, te);
-}
-
 async function onShare(id: string, note: string) {
   if (!auth.isAuthenticated.value) return;
   try {
@@ -236,11 +228,6 @@ async function confirmDeletePost() {
   } finally {
     deletePostBusy.value = false;
   }
-}
-
-function openViewer(groupIndex: number) {
-  viewerGroupIndex.value = groupIndex;
-  viewerOpen.value = true;
 }
 </script>
 
@@ -331,35 +318,12 @@ function openViewer(groupIndex: number) {
         class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_260px] xl:gap-8"
       >
         <div class="min-w-0 space-y-5">
-          <NuxtErrorBoundary v-if="auth.isAuthenticatedUi.value">
-            <div
-              class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-            >
-              <StoryTray
-                :groups="tray.groups"
-                :loading="storiesLoading"
-                @open="openViewer"
-                @create="storyComposerOpen = true"
-              />
-            </div>
-            <template #error="{ clearError }">
-              <div
-                class="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm"
-              >
-                {{ $t("feed.storiesFailed") }}
-                <button
-                  type="button"
-                  class="ml-1 font-medium underline underline-offset-2"
-                  @click="
-                    clearError();
-                    refreshStories();
-                  "
-                >
-                  {{ $t("feed.retry") }}
-                </button>
-              </div>
-            </template>
-          </NuxtErrorBoundary>
+          <FeedStoryTray
+            v-if="auth.isAuthenticatedUi.value"
+            :groups="tray.groups"
+            :loading="storiesLoading"
+            @refresh="refreshStories"
+          />
 
           <PostComposer
             v-if="auth.isAuthenticatedUi.value"
@@ -402,45 +366,12 @@ function openViewer(groupIndex: number) {
             </div>
           </NuxtLink>
 
-          <div
-            class="flex items-center gap-2 overflow-x-auto pb-1 lg:hidden"
-            role="group"
-            :aria-label="$t('feed.categoryFilterAria')"
-          >
-            <button
-              type="button"
-              class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
-              :class="
-                !categoryFilter
-                  ? 'feed-category-chip--active shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
-              "
-              :disabled="categoriesLoading"
-              @click="onCategoryFilter(null)"
-            >
-              {{ $t("feed.all") }}
-            </button>
-            <button
-              v-for="cat in categories"
-              :key="cat.id"
-              type="button"
-              class="shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition"
-              :class="
-                categoryFilter === cat.id
-                  ? 'feed-category-chip--active shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
-              "
-              @click="onCategoryFilter(cat.id)"
-            >
-              {{ catLabel(cat) }}
-              <span
-                v-if="cat.postCount !== undefined"
-                class="ml-1 tabular-nums opacity-60"
-              >
-                {{ cat.postCount }}
-              </span>
-            </button>
-          </div>
+          <FeedCategoryScroller
+            :categories="categories"
+            :category-filter="categoryFilter"
+            :loading="categoriesLoading"
+            @filter="onCategoryFilter"
+          />
 
           <div
             v-if="error"
@@ -538,128 +469,16 @@ function openViewer(groupIndex: number) {
           </div>
         </div>
 
-        <aside class="sticky top-20 hidden space-y-4 lg:block">
-          <section
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-          >
-            <div class="border-b border-slate-100 px-4 py-3.5">
-              <h2
-                class="text-xs font-bold uppercase tracking-[0.14em] text-slate-500"
-              >
-                {{ $t("feed.category") }}
-              </h2>
-            </div>
-            <div
-              class="space-y-1 p-2"
-              role="group"
-              :aria-label="$t('feed.categoryFilterAria')"
-            >
-              <button
-                type="button"
-                class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
-                :class="
-                  !categoryFilter
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                "
-                :disabled="categoriesLoading"
-                @click="onCategoryFilter(null)"
-              >
-                <span class="flex items-center gap-2.5">
-                  <span
-                    class="h-2 w-2 rounded-full"
-                    :class="!categoryFilter ? 'bg-brand-500' : 'bg-slate-300'"
-                  />
-                  {{ $t("feed.all") }}
-                </span>
-              </button>
-              <button
-                v-for="cat in categories"
-                :key="cat.id"
-                type="button"
-                class="flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
-                :class="
-                  categoryFilter === cat.id
-                    ? 'bg-brand-50 text-brand-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                "
-                @click="onCategoryFilter(cat.id)"
-              >
-                <span class="flex min-w-0 items-center gap-2.5">
-                  <span
-                    class="h-2 w-2 shrink-0 rounded-full"
-                    :class="
-                      categoryFilter === cat.id
-                        ? 'bg-brand-500'
-                        : 'bg-slate-300'
-                    "
-                  />
-                  <span class="truncate">{{ catLabel(cat) }}</span>
-                </span>
-                <span
-                  v-if="cat.postCount !== undefined"
-                  class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] tabular-nums text-slate-500"
-                >
-                  {{ cat.postCount }}
-                </span>
-              </button>
-            </div>
-          </section>
-
-          <section
-            class="relative overflow-hidden rounded-2xl bg-slate-900 p-5 text-white shadow-sm"
-          >
-            <div
-              class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-brand-500/30 blur-2xl"
-              aria-hidden="true"
-            />
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.7"
-              class="relative mb-4 h-6 w-6 text-brand-300"
-              aria-hidden="true"
-            >
-              <path d="M8 12h8M12 8v8" stroke-linecap="round" />
-              <circle cx="12" cy="12" r="9" />
-            </svg>
-            <p class="relative text-sm font-semibold leading-5">
-              {{ $t("feed.title") }}
-            </p>
-            <p class="relative mt-2 text-xs leading-5 text-slate-300">
-              {{
-                auth.isAuthenticatedUi.value
-                  ? $t("feed.subtitleAuth")
-                  : $t("feed.subtitleGuest")
-              }}
-            </p>
-            <button
-              v-if="auth.isAuthenticatedUi.value"
-              type="button"
-              class="relative mt-4 w-full rounded-xl bg-white px-3 py-2.5 text-xs font-semibold text-slate-900 transition hover:bg-brand-50"
-              @click="composerRef?.focus()"
-            >
-              {{ $t("feed.composer.writeAPost") }}
-            </button>
-            <NuxtLink
-              v-if="auth.isAuthenticatedUi.value"
-              to="/feed/write"
-              class="relative mt-2 block w-full rounded-xl border border-white/20 bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-white transition hover:bg-white/20"
-            >
-              {{ $t("manuscript.writeCta") }}
-            </NuxtLink>
-          </section>
-        </aside>
+        <FeedSidebar
+          :categories="categories"
+          :category-filter="categoryFilter"
+          :categories-loading="categoriesLoading"
+          :is-authenticated="auth.isAuthenticatedUi.value"
+          @filter="onCategoryFilter"
+          @compose="composerRef?.focus()"
+        />
       </div>
     </div>
-
-    <LazyStoryViewer
-      v-if="viewerOpen && tray.groups.length"
-      :groups="tray.groups"
-      :start-group-index="viewerGroupIndex"
-      @close="viewerOpen = false"
-    />
 
     <ConfirmDialog
       :open="!!pendingDeletePostId"
@@ -668,11 +487,6 @@ function openViewer(groupIndex: number) {
       :busy="deletePostBusy"
       @cancel="pendingDeletePostId = null"
       @confirm="confirmDeletePost"
-    />
-
-    <FeedStoryComposer
-      v-if="auth.isAuthenticatedUi.value"
-      v-model:open="storyComposerOpen"
     />
   </div>
 </template>

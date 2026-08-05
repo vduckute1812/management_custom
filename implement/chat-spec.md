@@ -4,7 +4,7 @@ Feature spec for signed-in **1:1 chat** between users, with **emoji** and **stic
 
 ## Goal
 
-Let members of the same install message each other privately from `/chat`, without requiring Redis. Live delivery uses Server-Sent Events: an install-wide inbox stream for the unread badge/toasts, and a per-thread stream while a conversation is open (with slow REST fallback if the stream drops).
+Let Accepted friends message each other privately from `/chat`, without requiring Redis. Live delivery uses Server-Sent Events: an install-wide inbox stream for the unread badge/toasts, and a per-thread stream while a conversation is open (with slow REST fallback if the stream drops).
 
 ## Scope
 
@@ -19,7 +19,7 @@ Let members of the same install message each other privately from `/chat`, witho
 - Unread counts per conversation + install-wide total
 - Read receipts (`peerLastReadAt` / `readByPeer`)
 - In-app toast + nav badge for new messages (desktop Notification when permitted) via SSE inbox stream
-- Auth required; participants only
+- Auth required; starting a conversation is friends-only, and existing threads are participants-only
 
 **Out (later)**
 
@@ -57,7 +57,7 @@ Migration: `0013_chat.sql`, `0014_chat_media.sql`, `0015_chat_unread_counters.sq
 | Method   | Path                                                        | Purpose                                                                 |
 | -------- | ----------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `GET`    | `/api/chat/conversations`                                   | List + `unreadTotal` + `peerLastReadAt`                                 |
-| `POST`   | `/api/chat/conversations`                                   | Start/get DM `{ peerUserId }`                                           |
+| `POST`   | `/api/chat/conversations`                                   | Start/get friends-only DM `{ peerUserId }`                              |
 | `GET`    | `/api/chat/conversations/:id/messages`                      | History / cursors; includes `peerLastReadAt` / `readByPeer` / reactions |
 | `GET`    | `/api/chat/conversations/:id/stream`                        | SSE: `message` + `read` + `reaction` (+ `ping`) for the open thread     |
 | `POST`   | `/api/chat/conversations/:id/messages`                      | Send text / emoji / sticker / image / audio                             |

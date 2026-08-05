@@ -7,7 +7,7 @@ import { PostVisibility } from "../../../types/post";
  *
  * Friends visibility uses a preloaded friend-id set (`IN (…)`) so the feed
  * query avoids a correlated `EXISTS` against `friendships` per row.
- * Shared visibility still uses a correlated audience `EXISTS` (sparse).
+ * Shared visibility uses an uncorrelated semi-join against `post_audience`.
  *
  * Bind order: own viewerId, audience viewerId, then friend ids (0…N).
  */
@@ -23,18 +23,27 @@ export function visibilityClause(
       AND ${alias}.user_id IN (${friendIds.map(() => "?").join(",")})
     )`;
 
+  const sharedPart = sharedAudienceClause(alias);
+
   return `(
     ${alias}.visibility = ${PostVisibility.Public}
     OR ${alias}.user_id = ?
-    OR (
-      ${alias}.visibility = ${PostVisibility.Shared}
-      AND EXISTS (
-        SELECT 1 FROM post_audience a
-        WHERE a.post_id = ${alias}.id AND a.user_id = ?
-      )
-    )
+    OR ${sharedPart}
     OR ${friendsPart}
   )`;
+}
+
+/**
+ * Shared-with-me visibility via a semi-join. This is intentionally not a
+ * row-correlated friendship check; MySQL can optimize the audience id lookup.
+ */
+export function sharedAudienceClause(alias = "p"): string {
+  return `(
+      ${alias}.visibility = ${PostVisibility.Shared}
+      AND ${alias}.id IN (
+        SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
+      )
+    )`;
 }
 
 /** Params for {@link visibilityClause}: own + audience + friend ids. */

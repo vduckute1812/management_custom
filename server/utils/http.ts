@@ -61,7 +61,12 @@ export function mapDomainError(err: unknown): never {
     statusCode < 600 &&
     message
   ) {
-    throw createError({ statusCode, statusMessage: message });
+    const data = (err as { data?: unknown })?.data;
+    throw createError({
+      statusCode,
+      statusMessage: message,
+      ...(data === undefined ? {} : { data }),
+    });
   }
   throw err;
 }

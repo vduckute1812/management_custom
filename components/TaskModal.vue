@@ -2,10 +2,8 @@
 import dayjs from "dayjs";
 import { newClientId } from "~/utils/clientId";
 import {
-  PRIORITY_I18N_KEYS,
   RECURRENCE_I18N_KEYS,
   RecurrenceRule,
-  STATUS_I18N_KEYS,
   TaskPriority,
   TaskStatus,
   type ChecklistItem,
@@ -77,8 +75,10 @@ const baseline = ref("");
 const discardConfirmOpen = ref(false);
 const deleteConfirmOpen = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
-const titleInput = ref<HTMLInputElement | null>(null);
 const discardKeepBtn = ref<HTMLButtonElement | null>(null);
+const basics = ref<{ titleInputEl: () => HTMLInputElement | null } | null>(
+  null,
+);
 const fid = useId();
 const fieldIds = {
   title: `${fid}-title`,
@@ -341,8 +341,8 @@ useModal(isOpen, {
   container: rootEl,
   initialFocus: () =>
     discardConfirmOpen.value
-      ? (discardKeepBtn.value ?? titleInput.value)
-      : titleInput.value,
+      ? (discardKeepBtn.value ?? basics.value?.titleInputEl() ?? null)
+      : (basics.value?.titleInputEl() ?? null),
   onClose: handleModalEscape,
 });
 
@@ -368,240 +368,23 @@ watch(discardConfirmOpen, (open) => {
           aria-labelledby="task-modal-title"
         >
           <div :inert="discardConfirmOpen">
-            <header
-              class="flex items-center justify-between px-6 py-4 border-b border-slate-200 gap-3"
-            >
-              <h2
-                id="task-modal-title"
-                class="text-lg font-semibold text-slate-900 min-w-0 truncate"
-              >
-                {{
-                  form.id
-                    ? $t("tasks.modal.editTask")
-                    : $t("tasks.modal.newTask")
-                }}
-              </h2>
-              <div class="flex items-center gap-2 shrink-0">
-                <TaskTimerButton
-                  v-if="task && form.id"
-                  :task="task"
-                  size="md"
-                />
-                <button
-                  type="button"
-                  class="text-slate-400 hover:text-slate-700 transition"
-                  :aria-label="$t('tasks.modal.close')"
-                  @click="requestClose"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    class="w-5 h-5"
-                  >
-                    <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                  </svg>
-                </button>
-              </div>
-            </header>
+            <TaskModalHeader
+              :task="task"
+              :task-id="form.id"
+              @close="requestClose"
+            />
 
             <form
               class="flex-1 overflow-y-auto scrollbar-thin px-6 py-5 space-y-5"
               @submit.prevent="onSubmit"
             >
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.title"
-                >
-                  {{ $t("tasks.modal.title") }}
-                </label>
-                <input
-                  :id="fieldIds.title"
-                  ref="titleInput"
-                  v-model="form.title"
-                  type="text"
-                  required
-                  :placeholder="$t('tasks.modal.titlePlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                />
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    class="block text-xs font-medium text-slate-600 mb-1"
-                    :for="fieldIds.epic"
-                  >
-                    {{ $t("tasks.modal.epicOptional") }}
-                  </label>
-                  <select
-                    :id="fieldIds.epic"
-                    v-model="form.epicId"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                  >
-                    <option value="">
-                      {{ $t("tasks.modal.standaloneTask") }}
-                    </option>
-                    <option
-                      v-for="epic in epics"
-                      :key="epic.id"
-                      :value="epic.id"
-                    >
-                      {{ epic.title }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    class="block text-xs font-medium text-slate-600 mb-1"
-                    :for="fieldIds.priority"
-                  >
-                    {{ $t("tasks.modal.priority") }}
-                  </label>
-                  <select
-                    :id="fieldIds.priority"
-                    v-model.number="form.priority"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                  >
-                    <option :value="TaskPriority.High">
-                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.High]) }}
-                    </option>
-                    <option :value="TaskPriority.Normal">
-                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Normal]) }}
-                    </option>
-                    <option :value="TaskPriority.Low">
-                      {{ $t(PRIORITY_I18N_KEYS[TaskPriority.Low]) }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.notes"
-                >
-                  {{ $t("tasks.modal.notes") }}
-                </label>
-                <textarea
-                  :id="fieldIds.notes"
-                  v-model="form.notes"
-                  rows="3"
-                  :placeholder="$t('tasks.modal.notesPlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none resize-y"
-                />
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    class="block text-xs font-medium text-slate-600 mb-1"
-                    :for="fieldIds.status"
-                  >
-                    {{ $t("tasks.modal.status") }}
-                  </label>
-                  <select
-                    :id="fieldIds.status"
-                    v-model.number="form.status"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none bg-white"
-                  >
-                    <option :value="TaskStatus.Todo">
-                      {{ $t(STATUS_I18N_KEYS[TaskStatus.Todo]) }}
-                    </option>
-                    <option :value="TaskStatus.InProgress">
-                      {{ $t(STATUS_I18N_KEYS[TaskStatus.InProgress]) }}
-                    </option>
-                    <option :value="TaskStatus.Done">
-                      {{ $t(STATUS_I18N_KEYS[TaskStatus.Done]) }}
-                    </option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    class="block text-xs font-medium text-slate-600 mb-1"
-                    :for="fieldIds.dueDate"
-                  >
-                    {{ $t("tasks.modal.dueDate") }}
-                  </label>
-                  <input
-                    :id="fieldIds.dueDate"
-                    v-model="form.dueDate"
-                    type="date"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    class="block text-xs font-medium text-slate-600 mb-1"
-                    :for="fieldIds.estimated"
-                  >
-                    {{ $t("tasks.modal.estimatedHours") }}
-                  </label>
-                  <input
-                    :id="fieldIds.estimated"
-                    v-model="form.estimatedHours"
-                    type="number"
-                    min="0"
-                    step="0.25"
-                    :placeholder="$t('tasks.modal.estimatedPlaceholder')"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                  />
-                </div>
-                <div>
-                  <label class="block text-xs font-medium text-slate-600 mb-1">
-                    {{ $t("tasks.modal.hoursSpentDerived") }}
-                  </label>
-                  <div
-                    class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 tabular-nums flex items-center justify-between"
-                  >
-                    <span>{{ totalSpent }}h</span>
-                    <span class="text-[10px] text-slate-400 uppercase">
-                      {{ $t("tasks.modal.sumOfBlocks") }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label
-                  class="flex items-center justify-between text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.progress"
-                >
-                  <span>{{ $t("tasks.modal.progress") }}</span>
-                  <span class="text-slate-500">{{ form.progress }}%</span>
-                </label>
-                <input
-                  :id="fieldIds.progress"
-                  v-model.number="form.progress"
-                  type="range"
-                  min="0"
-                  max="100"
-                  step="5"
-                  class="w-full accent-brand-600"
-                />
-              </div>
-
-              <div>
-                <label
-                  class="block text-xs font-medium text-slate-600 mb-1"
-                  :for="fieldIds.tags"
-                >
-                  {{ $t("tasks.modal.tags") }}
-                </label>
-                <input
-                  :id="fieldIds.tags"
-                  v-model="form.tags"
-                  type="text"
-                  :placeholder="$t('tasks.modal.tagsPlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-200 outline-none"
-                />
-              </div>
+              <TaskModalBasics
+                ref="basics"
+                v-model="form"
+                :epics="epics"
+                :field-ids="fieldIds"
+                :total-spent="totalSpent"
+              />
 
               <TaskModalChecklist
                 v-model="form.checklist"

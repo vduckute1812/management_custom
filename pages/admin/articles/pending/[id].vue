@@ -366,6 +366,7 @@ function onConfirm() {
 
     <div
       class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 md:pb-6"
+      :aria-busy="loading"
     >
       <p
         v-if="loadError"
@@ -373,9 +374,7 @@ function onConfirm() {
       >
         {{ $t("adminArticles.loadFailed") }}
       </p>
-      <p v-else-if="loading" class="text-xs text-slate-500">
-        {{ $t("admin.loading") }}
-      </p>
+      <SkeletonList v-else-if="loading" :rows="4" variant="card" />
 
       <template v-else-if="data">
         <p

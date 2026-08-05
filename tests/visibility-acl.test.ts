@@ -11,6 +11,9 @@ describe("visibilityClause", () => {
     expect(sql).toContain(`visibility = ${PostVisibility.Public}`);
     expect(sql).toContain(`visibility = ${PostVisibility.Shared}`);
     expect(sql).toContain(`visibility = ${PostVisibility.Friends}`);
+    expect(sql).toContain("id IN (");
+    expect(sql).toContain("SELECT a.post_id FROM post_audience a");
+    expect(sql).not.toContain("EXISTS");
     expect(sql).toContain("user_id IN (?)");
     expect(sql).not.toContain("friendships");
   });
