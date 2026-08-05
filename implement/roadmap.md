@@ -631,6 +631,10 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Extract `CalendarDailyGrid`, `ChatMessageBubble`, `SettingsNotificationsSection`, `MoneyCategoryCreatorPanel`
 - [x] `mapDomainError` on admin user role/delete + auth login/forgot/reset/verify/google-unlink
 
+### Sprint V — Structure polish
+
+- [x] Extract `TaskModalSchedule` / `TaskModalFooter`; `AdminSystemMetrics`
+
 ### Later
 
 - Playwright smoke
