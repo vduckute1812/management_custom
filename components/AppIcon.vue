@@ -7,6 +7,7 @@ export type AppIconName =
   | "shield"
   | "feed"
   | "user"
+  | "users"
   | "wallet"
   | "goal";
 
@@ -62,6 +63,12 @@ const props = withDefaults(
     <template v-else-if="name === 'user'">
       <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </template>
+    <template v-else-if="name === 'users'">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
     </template>
     <template v-else-if="name === 'chart'">
       <path d="M3 3v18h18" stroke-linecap="round" />

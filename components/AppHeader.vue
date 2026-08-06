@@ -147,7 +147,7 @@ watch(
       >
         <NuxtLink
           to="/"
-          class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          class="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:inline-flex sm:px-3 sm:text-sm"
           :class="
             isMainActive('/')
               ? 'bg-brand-50 text-brand-700'
@@ -167,10 +167,12 @@ watch(
         >
           {{ $t("nav.feed") }}
         </NuxtLink>
+        <!-- Friends lives in the feed bottom/side nav on phones; keep the
+             text link for md+ where the header has room. -->
         <NuxtLink
           v-if="auth.isAuthenticatedUi.value"
           to="/friends"
-          class="relative rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
+          class="relative hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold transition md:inline-flex md:px-3 md:text-sm"
           :class="
             isMainActive('/friends')
               ? 'bg-brand-50 text-brand-700'
@@ -293,6 +295,23 @@ watch(
               @click="closeMenu"
             >
               {{ $t("nav.profile") }}
+            </NuxtLink>
+            <NuxtLink
+              to="/friends"
+              role="menuitem"
+              class="flex items-center justify-between gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 md:hidden"
+              @click="closeMenu"
+            >
+              <span>{{ $t("nav.friends") }}</span>
+              <span
+                v-if="friendRequestCount > 0"
+                class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold leading-none text-white"
+                :aria-label="
+                  $t('friends.incomingBadge', { count: friendRequestCount })
+                "
+              >
+                {{ friendRequestCount > 99 ? "99+" : friendRequestCount }}
+              </span>
             </NuxtLink>
             <NuxtLink
               to="/settings"
