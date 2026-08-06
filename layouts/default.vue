@@ -4,6 +4,7 @@ const { t } = useI18n();
 const { paletteOpen, helpOpen } = useUiOverlays();
 const { settings, update, effectiveTheme } = useSettings();
 const auth = useAuth();
+const { incomingCount: friendsIncomingCount } = useFriends();
 
 type AppSection = "tasks" | "feed" | "money" | "other";
 type NavIcon =
@@ -241,7 +242,7 @@ useModal(mobileMoreOpen, {
             v-for="item in navItems"
             :key="item.to"
             :to="item.to"
-            class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition"
+            class="relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition"
             :class="
               isActive(item.to)
                 ? 'bg-brand-50 text-brand-700'
@@ -249,7 +250,16 @@ useModal(mobileMoreOpen, {
             "
           >
             <AppIcon :name="item.icon" class="w-4 h-4" />
-            {{ $t(item.labelKey) }}
+            <span class="flex-1">{{ $t(item.labelKey) }}</span>
+            <span
+              v-if="item.to === '/friends' && friendsIncomingCount > 0"
+              class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 text-[10px] font-bold leading-none text-white"
+              :aria-label="
+                $t('friends.incomingBadge', { count: friendsIncomingCount })
+              "
+            >
+              {{ friendsIncomingCount > 99 ? "99+" : friendsIncomingCount }}
+            </span>
           </NuxtLink>
         </nav>
 
@@ -439,11 +449,22 @@ useModal(mobileMoreOpen, {
           v-for="item in navItems"
           :key="item.to"
           :to="item.to"
-          class="flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
+          class="relative flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium"
           :class="isActive(item.to) ? 'text-brand-700' : 'text-slate-500'"
           @click="closeMobileMore"
         >
-          <AppIcon :name="item.icon" class="w-4 h-4" />
+          <span class="relative">
+            <AppIcon :name="item.icon" class="w-4 h-4" />
+            <span
+              v-if="item.to === '/friends' && friendsIncomingCount > 0"
+              class="absolute -right-2.5 -top-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold leading-none text-white"
+              :aria-label="
+                $t('friends.incomingBadge', { count: friendsIncomingCount })
+              "
+            >
+              {{ friendsIncomingCount > 9 ? "9+" : friendsIncomingCount }}
+            </span>
+          </span>
           {{ $t(item.labelKey) }}
         </NuxtLink>
         <button
