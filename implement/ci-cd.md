@@ -205,7 +205,7 @@ After deploy, set the LLM API key in the **secrets tree** (not the git checkout)
 GEMINI_API_KEY='…' bash docker/configure-gemini.sh
 ```
 
-Optional env: `LLM_PROVIDER=gemini` (default), `GEMINI_MODEL=gemini-flash-latest`,
+Optional env: `LLM_PROVIDER=gemini` (default), `GEMINI_MODEL=gemini-flash-lite-latest`,
 `SKIP_RECREATE=1` (write env only — next `ci-deploy` recreates the app).
 
 The script upserts `LLM_PROVIDER`, `GEMINI_API_KEY`, and `GEMINI_MODEL` into

@@ -154,7 +154,7 @@ Per-user personal expense ledger (not shared with Feed). Amounts are **minor uni
 
 ## Article content pipeline
 
-Automated long-form ingest: `articleFetcher.ts` pulls reputable RSS/ArXiv feeds (length-ranked, optional page expand for short RSS bodies), inserts `pending_articles` drafts, and enqueues `articles.rewrite` when an LLM key is configured. `articleRewriter.ts` calls Gemini (default `gemini-flash-latest`) or OpenAI for ~5–10 minute narrator-style Markdown. Admins review at `/admin/articles/pending`; approve publishes a public manuscript with an idempotent `**Source:**` footer (`utils/articleAttribution.ts`). Jobs: [`cache-queue.md`](./cache-queue.md); API: [`api.md`](./api.md); as-built spec: [`article-spec.md`](./article-spec.md). Pi secrets: `docker/configure-gemini.sh`.
+Automated long-form ingest: `articleFetcher.ts` pulls reputable RSS/ArXiv feeds (length-ranked, optional page expand for short RSS bodies), inserts `pending_articles` drafts, and enqueues `articles.rewrite` when an LLM key is configured. `articleRewriter.ts` calls Gemini (default `gemini-flash-lite-latest`) or OpenAI for a short ~2–3 minute summary Markdown. Admins review at `/admin/articles/pending`; approve publishes a public manuscript with an idempotent `**Source:**` footer (`utils/articleAttribution.ts`). Jobs: [`cache-queue.md`](./cache-queue.md); API: [`api.md`](./api.md); as-built spec: [`article-spec.md`](./article-spec.md). Pi secrets: `docker/configure-gemini.sh`.
 
 ---
 

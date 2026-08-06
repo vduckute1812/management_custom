@@ -172,7 +172,7 @@ async function rewriteWithGemini(userPrompt: string): Promise<string> {
   if (!apiKey) {
     throw new DomainError(503, "LLM provider is not configured");
   }
-  const model = envStr("GEMINI_MODEL", "gemini-flash-latest");
+  const model = envStr("GEMINI_MODEL", "gemini-flash-lite-latest");
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
   const maxOutputTokens = envInt("GEMINI_MAX_OUTPUT_TOKENS", 4_096);
   const timeoutMs = envInt("LLM_TIMEOUT_MS", 120_000);

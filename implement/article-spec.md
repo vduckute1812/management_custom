@@ -18,7 +18,7 @@ approve raw content or regenerate after configuring Gemini
 
 ## LLM
 
-- Default provider: Gemini (`GEMINI_MODEL=gemini-flash-latest`)
+- Default provider: Gemini (`GEMINI_MODEL=gemini-flash-lite-latest`)
 - Target length: `ARTICLES_READ_MINUTES_MIN`–`MAX` (default 5–10 min at ~220 wpm)
 - Voice: narrator / storyteller; no invented facts; no LLM-authored source footer
   (footer is always applied in `utils/articleAttribution.ts`)
