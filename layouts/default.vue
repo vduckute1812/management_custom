@@ -14,6 +14,7 @@ type NavIcon =
   | "shield"
   | "feed"
   | "user"
+  | "users"
   | "wallet"
   | "goal";
 
@@ -29,7 +30,14 @@ const activeSection = useState<AppSection>("app:section", () => "other");
 watch(
   () => route.path,
   (path) => {
-    if (path === "/feed" || path.startsWith("/feed/")) {
+    if (
+      path === "/feed" ||
+      path.startsWith("/feed/") ||
+      path === "/friends" ||
+      path.startsWith("/friends/") ||
+      path === "/chat" ||
+      path.startsWith("/chat/")
+    ) {
       activeSection.value = "feed";
       return;
     }
@@ -96,10 +104,11 @@ const navItems = computed<NavItem[]>(() => {
   if (isFeedSection.value) {
     const feedNav: NavItem[] = [
       { to: "/feed", labelKey: "nav.feed", icon: "feed" },
+      { to: "/friends", labelKey: "nav.friends", icon: "users" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdminUi.value) {
-      feedNav.splice(1, 0, {
+      feedNav.splice(2, 0, {
         to: "/admin",
         labelKey: "nav.admin",
         icon: "shield",
