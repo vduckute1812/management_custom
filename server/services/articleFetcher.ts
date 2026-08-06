@@ -518,7 +518,7 @@ export async function fetchArticlesFromSources(opts?: {
   errors: { source: string; message: string }[];
 }> {
   const maxPerSource =
-    opts?.maxPerSource ?? envInt("ARTICLES_FETCH_MAX_PER_SOURCE", 3);
+    opts?.maxPerSource ?? envInt("ARTICLES_FETCH_MAX_PER_SOURCE", 1);
   const minChars = minRawContentChars();
   const slugSet = new Set(
     opts?.slugs ?? PIPELINE_CATEGORY_SLUGS,

@@ -495,7 +495,7 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 - [x] Migration `0031_pending_articles` + `types/article.ts` integer `ArticleStatus`
 - [x] `articleFetcher.ts` — long-form RSS/ArXiv sources across 7 `PIPELINE_CATEGORY_SLUGS`; length ranking; optional page expand (`ARTICLES_EXPAND_*`); SSRF-safe fetch
-- [x] `articleRewriter.ts` — Gemini default (`gemini-flash-latest`) or OpenAI; ~5–10 min narrator storytelling; JSON response; `redactSecrets`
+- [x] `articleRewriter.ts` — Gemini default (`gemini-flash-lite-latest`) or OpenAI; ~2–3 min summary; JSON response; `redactSecrets`
 - [x] `utils/articleAttribution.ts` — idempotent `**Source:**` footer on rewrite + publish
 - [x] `articleService.ts` + job types `articles.fetch` / `articles.rewrite`; daily schedule `ARTICLES_FETCH_HOUR_UTC`
 - [x] Admin API `/api/admin/articles/pending/*` + UI `/admin/articles/pending` (list + side-by-side review)
