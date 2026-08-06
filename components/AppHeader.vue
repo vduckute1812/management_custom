@@ -209,10 +209,12 @@ watch(
             {{ unreadTotal > 99 ? "99+" : unreadTotal }}
           </span>
         </NuxtLink>
+        <!-- Money is a primary module (with Feed / Time); always keep it in the
+             header so phones can reach it without hunting the account menu. -->
         <NuxtLink
           v-if="auth.isAuthenticatedUi.value"
           to="/money"
-          class="hidden rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:inline-flex sm:px-3 sm:text-sm"
+          class="rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm"
           :class="
             isMainActive('/money')
               ? 'bg-brand-50 text-brand-700'
