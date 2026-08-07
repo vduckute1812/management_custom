@@ -12,6 +12,8 @@ import {
   refreshBodySchema,
   resetPasswordBodySchema,
   signupBodySchema,
+  tasksListQuerySchema,
+  epicsListQuerySchema,
   taskUpsertBodySchema,
   timerStartBodySchema,
   chatSendBodySchema,
@@ -182,6 +184,21 @@ describe("taskUpsertBodySchema", () => {
       status: 99,
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("task and epic list query schemas", () => {
+  it("defaults list pages to 100 and parses cursors", () => {
+    expect(tasksListQuerySchema.parse({}).limit).toBe(100);
+    expect(epicsListQuerySchema.parse({}).limit).toBe(100);
+    expect(
+      tasksListQuerySchema.parse({ limit: "25", cursor: "cursor_1" }),
+    ).toMatchObject({ limit: 25, cursor: "cursor_1" });
+  });
+
+  it("caps requested pages at 200", () => {
+    expect(tasksListQuerySchema.safeParse({ limit: 201 }).success).toBe(false);
+    expect(epicsListQuerySchema.safeParse({ limit: 201 }).success).toBe(false);
   });
 });
 

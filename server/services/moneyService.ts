@@ -25,15 +25,22 @@ function resolveYearMonth(raw: string | undefined): string {
 export async function listMoneyTransactionsForUser(
   userId: string,
   query: ListQuery,
-): Promise<{ transactions: MoneyTransaction[]; totals: MoneyMonthTotals }> {
+): Promise<{
+  transactions: MoneyTransaction[];
+  totals: MoneyMonthTotals;
+  nextCursor: string | null;
+}> {
   const yearMonth = resolveYearMonth(query.yearMonth);
   const range = yearMonthRange(yearMonth);
-  const [transactions, sums] = await Promise.all([
-    listMoneyTransactions(userId, range),
+  const [page, sums] = await Promise.all([
+    listMoneyTransactions(userId, range, {
+      limit: query.limit,
+      cursor: query.cursor,
+    }),
     sumMoneyMonth(userId, range),
   ]);
   return {
-    transactions,
+    ...page,
     totals: { yearMonth, ...sums },
   };
 }

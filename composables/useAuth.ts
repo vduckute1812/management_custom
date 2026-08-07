@@ -211,12 +211,19 @@ export const useAuth = () => {
         try {
           const { update } = useSettings();
           update("locale", user.value.locale);
-        } catch {
-          // ignore
+        } catch (error: unknown) {
+          console.warn(
+            "[auth] Could not apply the account locale:",
+            error instanceof Error ? error.message : "Unknown error",
+          );
         }
       }
       return fresh;
-    } catch {
+    } catch (error: unknown) {
+      console.warn(
+        "[auth] Could not refresh the current user:",
+        error instanceof Error ? error.message : "Unknown error",
+      );
       return null;
     }
   }

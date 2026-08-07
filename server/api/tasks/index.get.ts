@@ -2,15 +2,24 @@ import { getAllTasks, toTaskView } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { parseQuery } from "~/server/utils/http";
 import { tasksListQuerySchema } from "~/server/schemas";
+import { encodeTimestampCursor } from "~/server/db/timestampCursor";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
   const query = parseQuery(event, tasksListQuerySchema);
 
-  const { includeBlocks, includeChecklists } = query;
+  const { includeBlocks, includeChecklists, limit, cursor } = query;
 
-  const all = await getAllTasks(user.sub, { includeBlocks, includeChecklists });
-  const tasks = all.map(toTaskView).sort((a, b) => {
+  const all = await getAllTasks(user.sub, {
+    includeBlocks,
+    includeChecklists,
+    limit: limit + 1,
+    cursor,
+  });
+  const hasMore = all.length > limit;
+  const page = hasMore ? all.slice(0, limit) : all;
+  const boundary = page[page.length - 1];
+  const tasks = page.map(toTaskView).sort((a, b) => {
     const aKey =
       a.dueDate ??
       (includeBlocks
@@ -23,5 +32,11 @@ export default defineEventHandler(async (event) => {
         : (b.createdAt ?? ""));
     return aKey.localeCompare(bKey);
   });
-  return { tasks };
+  return {
+    tasks,
+    nextCursor:
+      hasMore && boundary
+        ? encodeTimestampCursor(boundary.updatedAt, boundary.id)
+        : null,
+  };
 });

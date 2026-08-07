@@ -85,8 +85,6 @@ const galleryAttachments = computed(() =>
 
 const commentsOpen = ref(false);
 const shareOpen = ref(false);
-const shareNote = ref("");
-const shareSubmitting = ref(false);
 const canInteract = computed(() => auth.isAuthenticated.value);
 
 /** Collapse long bodies / manuscripts in the feed until expanded. */
@@ -169,18 +167,6 @@ const visibilityBadge = computed(() => {
 
 function toggleComments() {
   commentsOpen.value = !commentsOpen.value;
-}
-
-function onShare() {
-  if (shareSubmitting.value) return;
-  shareSubmitting.value = true;
-  try {
-    emit("share", shareNote.value.trim());
-    shareOpen.value = false;
-    shareNote.value = "";
-  } finally {
-    shareSubmitting.value = false;
-  }
 }
 
 function onShareClick() {
@@ -505,40 +491,12 @@ function onShareClick() {
       @share-click="onShareClick"
     />
 
-    <div
+    <PostShareComposer
       v-if="shareOpen"
-      class="border-t border-slate-100 px-4 py-3 space-y-2 bg-slate-50/60"
-    >
-      <label class="sr-only" :for="`share-${post.id}`">{{
-        $t("feed.post.shareNote")
-      }}</label>
-      <input
-        :id="`share-${post.id}`"
-        v-model="shareNote"
-        type="text"
-        maxlength="5000"
-        class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-        :placeholder="$t('feed.post.shareNotePlaceholder')"
-        @keydown.enter.prevent="onShare"
-      />
-      <div class="flex justify-end gap-2">
-        <button
-          type="button"
-          class="text-xs text-slate-500 px-2 py-1.5 rounded hover:bg-slate-100"
-          @click="shareOpen = false"
-        >
-          {{ $t("feed.post.cancel") }}
-        </button>
-        <button
-          type="button"
-          class="text-xs font-medium text-white bg-brand-600 hover:bg-brand-700 px-3 py-1.5 rounded-lg disabled:opacity-50"
-          :disabled="shareSubmitting"
-          @click="onShare"
-        >
-          {{ $t("feed.post.shareNow") }}
-        </button>
-      </div>
-    </div>
+      :post-id="post.id"
+      @close="shareOpen = false"
+      @share="emit('share', $event)"
+    />
 
     <PostCommentsPanel :post-id="post.id" :open="commentsOpen" />
   </article>

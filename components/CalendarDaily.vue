@@ -2,6 +2,10 @@
 import dayjs, { type Dayjs } from "dayjs";
 import { newClientId } from "~/utils/clientId";
 import { type Task, type TimeBlock } from "~/types/task";
+import {
+  useCalendarDailyInteractions,
+  type PositionedCalendarBlock,
+} from "~/composables/calendarDailyInteractions";
 
 const props = defineProps<{
   tasks: Task[];
@@ -18,7 +22,7 @@ const { t } = useI18n();
 const { colorOfTask } = useEpics();
 const { saveTask, findTask } = useTasks();
 const { pushToast } = useToasts();
-const { settings, formatTime, formatHourLabel } = useSettings();
+const { settings, formatTime } = useSettings();
 const { now } = useNow();
 
 function weekdayShort(d: Dayjs): string {
@@ -45,53 +49,13 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const HOUR_HEIGHT = computed(() =>
   settings.value.density === "compact" ? 44 : 56,
 );
-const SNAP_PX = computed(() => HOUR_HEIGHT.value / 4); // 15-minute grid
-const MIN_HEIGHT_PX = computed(() => SNAP_PX.value * 2); // 30-minute minimum
-const DAY_HEIGHT = computed(() => HOUR_HEIGHT.value * 24);
-const DRAG_THRESHOLD_PX = 3;
+const { drag, dragLabel, suppressNextClick, onPointerDown } =
+  useCalendarDailyInteractions({
+    date: () => props.date,
+    hourHeight: HOUR_HEIGHT,
+  });
 
-interface PositionedBlock {
-  task: Task;
-  block: TimeBlock;
-  top: number;
-  height: number;
-  column: number;
-  columnCount: number;
-}
-
-type DragMode = "move" | "resize-top" | "resize-bottom";
-
-interface DragSession {
-  entry: PositionedBlock;
-  mode: DragMode;
-  startPointerY: number;
-  startTop: number;
-  startHeight: number;
-  currentTop: number;
-  currentHeight: number;
-  moved: boolean;
-  saving: boolean;
-}
-
-const drag = ref<DragSession | null>(null);
-const suppressNextClick = ref(false);
-
-function clamp(n: number, min: number, max: number) {
-  return Math.min(Math.max(n, min), max);
-}
-
-function snap(px: number) {
-  return Math.round(px / SNAP_PX.value) * SNAP_PX.value;
-}
-
-function pxToHHMM(px: number) {
-  const totalMin = (px / HOUR_HEIGHT.value) * 60;
-  const h = Math.floor(totalMin / 60);
-  const m = Math.round(totalMin % 60);
-  return dayjs().hour(h).minute(m);
-}
-
-const dayBlocks = computed<PositionedBlock[]>(() => {
+const dayBlocks = computed<PositionedCalendarBlock[]>(() => {
   const dayStart = props.date.startOf("day");
   const dayEnd = props.date.endOf("day");
 
@@ -256,7 +220,7 @@ async function scheduleTaskAtHour(taskId: string, hour: number) {
   }
 }
 
-function openSpentPopover(e: MouseEvent, entry: PositionedBlock) {
+function openSpentPopover(e: MouseEvent, entry: PositionedCalendarBlock) {
   if (entry.block.projected) {
     emit("select-task", entry.task);
     return;
@@ -280,135 +244,7 @@ function editDetailsFromPopover() {
   if (task) emit("select-task", task);
 }
 
-// --- Drag & resize ---------------------------------------------------------
-
-function onPointerDown(
-  e: PointerEvent,
-  entry: PositionedBlock,
-  mode: DragMode,
-) {
-  if (e.button !== 0) return;
-  // Projected (recurring) ghosts aren't draggable; clicking still opens the
-  // modal so the user can edit the recurrence rule itself.
-  if (entry.block.projected) return;
-  e.preventDefault();
-  e.stopPropagation();
-  (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-
-  drag.value = {
-    entry,
-    mode,
-    startPointerY: e.clientY,
-    startTop: entry.top,
-    startHeight: entry.height,
-    currentTop: entry.top,
-    currentHeight: entry.height,
-    moved: false,
-    saving: false,
-  };
-
-  document.body.style.cursor = mode === "move" ? "grabbing" : "ns-resize";
-  document.body.style.userSelect = "none";
-
-  window.addEventListener("pointermove", onPointerMove);
-  window.addEventListener("pointerup", onPointerUp, { once: true });
-  window.addEventListener("pointercancel", onPointerCancel, { once: true });
-}
-
-function onPointerMove(e: PointerEvent) {
-  const d = drag.value;
-  if (!d) return;
-  const dy = e.clientY - d.startPointerY;
-  if (Math.abs(dy) > DRAG_THRESHOLD_PX) d.moved = true;
-
-  if (d.mode === "move") {
-    d.currentTop = clamp(
-      snap(d.startTop + dy),
-      0,
-      DAY_HEIGHT.value - d.startHeight,
-    );
-    d.currentHeight = d.startHeight;
-  } else if (d.mode === "resize-top") {
-    const proposedTop = clamp(
-      snap(d.startTop + dy),
-      0,
-      d.startTop + d.startHeight - MIN_HEIGHT_PX.value,
-    );
-    d.currentTop = proposedTop;
-    d.currentHeight = d.startTop + d.startHeight - proposedTop;
-  } else {
-    d.currentTop = d.startTop;
-    d.currentHeight = clamp(
-      snap(d.startHeight + dy),
-      MIN_HEIGHT_PX.value,
-      DAY_HEIGHT.value - d.startTop,
-    );
-  }
-}
-
-function teardownDrag() {
-  document.body.style.cursor = "";
-  document.body.style.userSelect = "";
-  window.removeEventListener("pointermove", onPointerMove);
-}
-
-async function onPointerUp() {
-  const d = drag.value;
-  if (!d) {
-    teardownDrag();
-    return;
-  }
-
-  if (!d.moved) {
-    // It was a tap — release without persisting and let the click event open the modal.
-    drag.value = null;
-    teardownDrag();
-    return;
-  }
-
-  // Suppress the click that's about to fire as a synthetic event from the
-  // same pointer interaction, so we don't immediately open the modal.
-  suppressNextClick.value = true;
-
-  const dayStart = props.date.startOf("day");
-  const newStart = dayStart.add(
-    (d.currentTop / HOUR_HEIGHT.value) * 60,
-    "minute",
-  );
-  const newEnd = dayStart.add(
-    ((d.currentTop + d.currentHeight) / HOUR_HEIGHT.value) * 60,
-    "minute",
-  );
-
-  const task = d.entry.task;
-  const updatedBlocks = (task.timeBlocks ?? []).map((b) =>
-    b.id === d.entry.block.id
-      ? { ...b, start: newStart.toISOString(), end: newEnd.toISOString() }
-      : b,
-  );
-
-  d.saving = true;
-  try {
-    await saveTask({ ...task, timeBlocks: updatedBlocks });
-  } catch (err: unknown) {
-    pushToast(
-      err instanceof Error ? err.message : t("toasts.failedToReschedule"),
-      { tone: "danger" },
-    );
-  } finally {
-    drag.value = null;
-    teardownDrag();
-    // Clear suppression on the next tick so future genuine clicks work.
-    setTimeout(() => (suppressNextClick.value = false), 0);
-  }
-}
-
-function onPointerCancel() {
-  drag.value = null;
-  teardownDrag();
-}
-
-function onBlockClick(e: MouseEvent, entry: PositionedBlock) {
+function onBlockClick(e: MouseEvent, entry: PositionedCalendarBlock) {
   if (suppressNextClick.value) {
     e.stopPropagation();
     suppressNextClick.value = false;
@@ -418,27 +254,11 @@ function onBlockClick(e: MouseEvent, entry: PositionedBlock) {
   openSpentPopover(e, entry);
 }
 
-function onBlockDblClick(e: MouseEvent, entry: PositionedBlock) {
+function onBlockDblClick(e: MouseEvent, entry: PositionedCalendarBlock) {
   e.stopPropagation();
   closeSpentPopover();
   emit("select-task", entry.task);
 }
-
-// Live label shown while dragging.
-const dragLabel = computed(() => {
-  const d = drag.value;
-  if (!d) return null;
-  const start = pxToHHMM(d.currentTop);
-  const end = pxToHHMM(d.currentTop + d.currentHeight);
-  return `${formatTime(start)} – ${formatTime(end)}`;
-});
-
-onBeforeUnmount(() => {
-  if (drag.value) {
-    teardownDrag();
-    drag.value = null;
-  }
-});
 </script>
 
 <template>
@@ -452,17 +272,17 @@ onBeforeUnmount(() => {
       </p>
       <div class="flex flex-wrap gap-2">
         <button
-          v-for="t in undatedTasks"
-          :key="t.id"
+          v-for="task in undatedTasks"
+          :key="task.id"
           class="px-2.5 py-1 rounded-full text-xs font-medium ring-1 bg-white hover:bg-slate-50 transition flex items-center gap-1.5"
-          :class="colorOfTask(t).ring"
-          @click="emit('select-task', t)"
+          :class="colorOfTask(task).ring"
+          @click="emit('select-task', task)"
         >
           <span
             class="w-1.5 h-1.5 rounded-full"
-            :class="colorOfTask(t).solid"
+            :class="colorOfTask(task).solid"
           />
-          {{ t.title }}
+          {{ task.title }}
         </button>
       </div>
     </div>

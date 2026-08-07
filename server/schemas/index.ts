@@ -19,6 +19,7 @@ export {
   epicUpsertBodySchema,
   timerStartBodySchema,
   tasksListQuerySchema,
+  epicsListQuerySchema,
 } from "./task";
 
 export {

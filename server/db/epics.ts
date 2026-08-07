@@ -3,6 +3,7 @@ import { nowISO } from "./ids";
 import { rowToEpic, type EpicRow } from "./mappers";
 import { getPool } from "./pool";
 import type { Epic } from "./types";
+import { parseTimestampCursor } from "./timestampCursor";
 
 /**
  * Epic reads + writes — all scoped to the authenticated `userId`.
@@ -13,11 +14,26 @@ import type { Epic } from "./types";
  * `*ForAllUsers` variants in `./admin.ts`.
  */
 
-export async function getAllEpics(userId: string): Promise<Epic[]> {
+export async function getAllEpics(
+  userId: string,
+  options: { limit?: number; cursor?: string | null } = {},
+): Promise<Epic[]> {
   const pool = getPool();
+  const params: unknown[] = [userId];
+  let cursorClause = "";
+  if (options.cursor) {
+    const cursor = parseTimestampCursor(options.cursor);
+    const timestamp = isoToDB(cursor.timestamp);
+    cursorClause = "AND (updated_at < ? OR (updated_at = ? AND id < ?))";
+    params.push(timestamp, timestamp, cursor.id);
+  }
+  const limitClause = options.limit ? " LIMIT ?" : "";
+  if (options.limit) params.push(options.limit);
   const [rows] = await pool.query<EpicRow[]>(
-    "SELECT * FROM epics WHERE user_id = ? ORDER BY created_at ASC",
-    [userId],
+    `SELECT * FROM epics
+     WHERE user_id = ? ${cursorClause}
+     ORDER BY updated_at DESC, id DESC${limitClause}`,
+    params,
   );
   return rows.map(rowToEpic);
 }

@@ -15,8 +15,8 @@ const route = useRoute();
 const router = useRouter();
 const epicId = computed(() => String(route.params.id));
 
-const { epics, fetchAll: fetchEpics, findEpic } = useEpics();
-const { tasks, fetchAll: fetchTasks, tasksForEpic } = useTasks();
+const { fetchAll: fetchEpics, findEpic } = useEpics();
+const { fetchAll: fetchTasks, tasksForEpic } = useTasks();
 
 const editEpicOpen = ref(false);
 const taskModalOpen = ref(false);
@@ -94,7 +94,7 @@ async function onEpicDeleted() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between gap-4 flex-wrap"
     >

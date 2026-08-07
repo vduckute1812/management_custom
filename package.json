@@ -32,7 +32,11 @@
     "test:integration": "DB_INTEGRATION=1 vitest run tests/integration"
   },
   "lint-staged": {
-    "*.{js,mjs,cjs,ts,vue,json,css,md,yml,yaml}": "prettier --write"
+    "*.{js,mjs,cjs,ts,vue}": [
+      "prettier --write",
+      "eslint --max-warnings 999"
+    ],
+    "*.{json,css,md,yml,yaml}": "prettier --write"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1098.0",
