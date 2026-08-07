@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   ArticleStatus,
-  ARTICLE_STATUS_I18N_KEYS,
   PIPELINE_CATEGORY_SLUGS,
   type PendingArticle,
 } from "~/types/article";
@@ -138,12 +137,6 @@ const safeSourceUrl = computed(() => {
   const url = data.value?.originalUrl;
   return url && isSafeHttpUrl(url) ? url : null;
 });
-
-function statusLabel(status: number): string {
-  const key =
-    ARTICLE_STATUS_I18N_KEYS[status as keyof typeof ARTICLE_STATUS_I18N_KEYS];
-  return key ? t(key) : String(status);
-}
 
 function categoryOptionLabel(cat: PostCategory): string {
   return categoryDisplayName(cat, t, te);
@@ -289,80 +282,18 @@ function onConfirm() {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3 shrink-0"
-    >
-      <div>
-        <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
-          <NuxtLink to="/admin" class="hover:text-slate-800">
-            {{ $t("admin.title") }}
-          </NuxtLink>
-          <span>/</span>
-          <NuxtLink to="/admin/articles/pending" class="hover:text-slate-800">
-            {{ $t("adminArticles.breadcrumb") }}
-          </NuxtLink>
-          <span>/</span>
-          <span>{{ $t("adminArticles.review") }}</span>
-        </div>
-        <h1 class="text-lg font-semibold text-slate-900">
-          {{ $t("adminArticles.detailTitle") }}
-        </h1>
-        <p v-if="data" class="text-xs text-slate-500">
-          {{ statusLabel(data.status) }} · {{ data.sourceName }}
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2" :aria-busy="!!busy">
-        <button
-          type="button"
-          class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="!!busy || !canEdit"
-          @click="saveEdits"
-        >
-          {{ busy === "save" ? $t("common.saving") : $t("adminArticles.save") }}
-        </button>
-        <button
-          type="button"
-          class="text-xs px-3 py-1.5 rounded-md border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
-          :disabled="!!busy || !canEdit"
-          @click="regenerate"
-        >
-          {{
-            busy === "regen"
-              ? $t("adminArticles.regenerating")
-              : $t("adminArticles.regenerate")
-          }}
-        </button>
-        <button
-          type="button"
-          class="text-xs px-3 py-1.5 rounded-md border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 disabled:opacity-50"
-          :disabled="!!busy || !canEdit"
-          @click="confirmAction = 'reject'"
-        >
-          {{
-            busy === "reject"
-              ? $t("adminArticles.rejecting")
-              : $t("adminArticles.reject")
-          }}
-        </button>
-        <button
-          type="button"
-          class="text-xs px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
-          :disabled="!!busy || !canApprove"
-          :title="
-            !hasPublishableContent
-              ? $t('adminArticles.needContentToApprove')
-              : undefined
-          "
-          @click="confirmAction = 'approve'"
-        >
-          {{
-            busy === "approve"
-              ? $t("adminArticles.approving")
-              : $t("adminArticles.approvePublish")
-          }}
-        </button>
-      </div>
-    </header>
+    <AdminArticleReviewHeader
+      :status="data?.status"
+      :source-name="data?.sourceName"
+      :busy="busy"
+      :can-edit="canEdit"
+      :can-approve="canApprove"
+      :has-publishable-content="hasPublishableContent"
+      @save="saveEdits"
+      @regenerate="regenerate"
+      @reject="confirmAction = 'reject'"
+      @approve="confirmAction = 'approve'"
+    />
 
     <div
       class="flex-1 min-h-0 overflow-y-auto p-4 md:p-6 space-y-4 pb-24 md:pb-6"
@@ -439,74 +370,17 @@ function onConfirm() {
         </div>
 
         <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <section
-            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[min(70vh,36rem)]"
-          >
-            <h2 class="text-sm font-semibold text-slate-800 mb-2 shrink-0">
-              {{ $t("adminArticles.originalPanel") }}
-            </h2>
-            <p class="text-base font-medium text-slate-900 mb-3 shrink-0">
-              {{ data.originalTitle }}
-            </p>
-            <div
-              class="flex-1 min-h-0 overflow-y-auto text-sm text-slate-700 whitespace-pre-wrap leading-relaxed border border-slate-100 rounded-lg p-3 bg-slate-50"
-            >
-              <p
-                v-if="!(data.rawContent || '').trim()"
-                class="text-slate-400 italic"
-              >
-                {{ $t("adminArticles.noOriginalBody") }}
-              </p>
-              <template v-else>
-                {{ data.rawContent }}
-              </template>
-            </div>
-          </section>
-
-          <section
-            class="bg-white border border-slate-200 rounded-xl p-4 flex flex-col h-[min(70vh,36rem)] gap-3"
-          >
-            <div class="flex items-center justify-between gap-2 shrink-0">
-              <h2 class="text-sm font-semibold text-slate-800">
-                {{ $t("adminArticles.rewritePanel") }}
-              </h2>
-              <label class="text-xs text-slate-500 flex items-center gap-1.5">
-                <input v-model="showPreview" type="checkbox" />
-                {{ $t("adminArticles.showPreview") }}
-              </label>
-            </div>
-            <label class="flex flex-col gap-1 text-xs text-slate-600 shrink-0">
-              <span>{{ $t("adminArticles.rewrittenTitle") }}</span>
-              <input
-                v-model="rewrittenTitle"
-                type="text"
-                maxlength="160"
-                class="border border-slate-300 rounded-md px-2 py-1.5 text-sm"
-                :disabled="!canEdit"
-              />
-            </label>
-            <label
-              class="flex flex-col gap-1 text-xs text-slate-600 flex-1 min-h-0"
-            >
-              <span class="shrink-0">{{
-                $t("adminArticles.rewrittenBody")
-              }}</span>
-              <textarea
-                v-model="rewrittenContent"
-                class="flex-1 min-h-0 w-full border border-slate-300 rounded-md px-3 py-2 text-sm font-mono leading-relaxed resize-none"
-                :disabled="!canEdit"
-                :placeholder="$t('adminArticles.rewritePlaceholder')"
-              />
-            </label>
-            <!-- eslint-disable vue/no-v-html -- renderPostBody sanitizes this preview with DOMPurify. -->
-            <div
-              v-if="showPreview"
-              class="border border-slate-100 rounded-lg p-3 bg-slate-50 max-h-40 overflow-y-auto prose prose-sm max-w-none shrink-0"
-              aria-live="polite"
-              v-html="previewHtml"
-            />
-            <!-- eslint-enable vue/no-v-html -->
-          </section>
+          <AdminArticleOriginalPanel
+            :original-title="data.originalTitle"
+            :raw-content="data.rawContent"
+          />
+          <AdminArticleRewritePanel
+            v-model:rewritten-title="rewrittenTitle"
+            v-model:rewritten-content="rewrittenContent"
+            v-model:show-preview="showPreview"
+            :can-edit="canEdit"
+            :preview-html="previewHtml"
+          />
         </div>
       </template>
     </div>
