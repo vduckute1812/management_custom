@@ -138,7 +138,7 @@ export async function signedUploadUrl(storageKey: string): Promise<string> {
 }
 
 /** Short-lived positive ACL decisions (process-local). */
-const UPLOAD_ACL_TTL_MS = 30_000;
+const UPLOAD_ACL_TTL_MS = 10_000;
 const uploadAclAllowUntil = new Map<string, number>();
 const FRIEND_IDS_TTL_MS = 60_000;
 const friendIdsUntil = new Map<string, { until: number; ids: string[] }>();

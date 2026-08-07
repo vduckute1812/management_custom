@@ -23,7 +23,7 @@ import {
 } from "../../types/post";
 import { getCategoryById } from "./categories";
 import { isContentLocale } from "../../utils/contentLocale";
-import { clampVisibilityToCeiling } from "../../utils/postVisibilityRank";
+import { constrainShareWrapperAccess } from "../utils/shareVisibility";
 import {
   getPostById,
   normalizeFontFamily,
@@ -126,43 +126,16 @@ export async function createPost(
     if (!existing) {
       throw new DomainError(404, "Shared post not found");
     }
-    if (existing.visibility === PostVisibility.Private) {
-      throw new DomainError(400, "Private posts cannot be shared");
-    }
-    // Never let a wrapper post widen access beyond the original.
-    visibility = clampVisibilityToCeiling(visibility, existing.visibility);
-
-    // Friends-only originals must not be re-shared to arbitrary audiences
-    // (Shared visibility could name non-friends and widen access).
-    if (
-      existing.visibility === PostVisibility.Friends &&
-      visibility === PostVisibility.Shared
-    ) {
-      visibility = PostVisibility.Friends;
-    }
-
-    if (visibility === PostVisibility.Shared) {
-      const allowed = new Set(existing.audienceUserIds ?? []);
-      allowed.add(existing.author.id);
-      audienceUserIds = [
-        ...new Set(
-          (args.audienceUserIds ?? []).filter(
-            (x) => x && x !== userId && allowed.has(x),
-          ),
-        ),
-      ];
-      if (
-        existing.visibility === PostVisibility.Shared &&
-        audienceUserIds.length === 0
-      ) {
-        throw new DomainError(
-          400,
-          "Share audience must be a subset of the original audience",
-        );
-      }
-    } else {
-      audienceUserIds = [];
-    }
+    const constrained = constrainShareWrapperAccess({
+      originalVisibility: existing.visibility,
+      originalAudienceIds: existing.audienceUserIds ?? [],
+      originalAuthorId: existing.author.id,
+      sharerUserId: userId,
+      requestedVisibility: visibility,
+      requestedAudienceIds: args.audienceUserIds ?? [],
+    });
+    visibility = constrained.visibility;
+    audienceUserIds = constrained.audienceUserIds;
   }
 
   if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
@@ -312,10 +285,12 @@ export async function updatePost(
       user_id: string;
       format: PostFormat | null;
       visibility: PostVisibility;
+      shared_post_id: string | null;
     })[]
-  >("SELECT user_id, format, visibility FROM posts WHERE id = ? LIMIT 1", [
-    postId,
-  ]);
+  >(
+    "SELECT user_id, format, visibility, shared_post_id FROM posts WHERE id = ? LIMIT 1",
+    [postId],
+  );
   const owner = ownerRows[0];
   if (!owner || owner.user_id !== userId) {
     throw new DomainError(404, "Post not found");
@@ -331,8 +306,8 @@ export async function updatePost(
     throw new DomainError(400, "Manuscript title is required");
   }
 
-  const visibility = toPostVisibility(args.visibility);
-  const audienceUserIds =
+  let visibility = toPostVisibility(args.visibility);
+  let audienceUserIds =
     visibility === PostVisibility.Shared
       ? [
           ...new Set(
@@ -340,6 +315,25 @@ export async function updatePost(
           ),
         ]
       : [];
+
+  // Share wrappers must stay within the original post's access ceiling on
+  // update as well as create — otherwise PATCH can undo the write clamp.
+  if (owner.shared_post_id) {
+    const original = await getPostById(userId, owner.shared_post_id);
+    if (!original) {
+      throw new DomainError(404, "Shared post not found");
+    }
+    const constrained = constrainShareWrapperAccess({
+      originalVisibility: original.visibility,
+      originalAudienceIds: original.audienceUserIds ?? [],
+      originalAuthorId: original.author.id,
+      sharerUserId: userId,
+      requestedVisibility: visibility,
+      requestedAudienceIds: args.audienceUserIds ?? [],
+    });
+    visibility = constrained.visibility;
+    audienceUserIds = constrained.audienceUserIds;
+  }
 
   if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
     throw new DomainError(

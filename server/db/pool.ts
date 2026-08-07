@@ -22,10 +22,19 @@ export function getPool(): Pool {
   // `DB_PASSWORD` (the long form some shops prefer). Empty string means
   // "no password" — distinct from "unset".
   const password = process.env.DB_PASS ?? process.env.DB_PASSWORD ?? "";
+  const user = process.env.DB_USER || "root";
+  if (
+    process.env.NODE_ENV === "production" &&
+    (user === "root" || user === "")
+  ) {
+    console.error(
+      "[db] WARNING: DB_USER is root in production. Prefer a least-privilege app account (see .env.example).",
+    );
+  }
   _pool = mysql.createPool({
     host: process.env.DB_HOST || "127.0.0.1",
     port: envInt("DB_PORT", 3306),
-    user: process.env.DB_USER || "root",
+    user,
     password,
     database: process.env.DB_NAME || "rc",
     connectionLimit: envInt("DB_CONNECTION_LIMIT", 10),
