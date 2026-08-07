@@ -17,6 +17,7 @@ import {
   mapMoneyUserCategoriesById,
 } from "./moneyUserCategories";
 import { yearMonthRange } from "../../utils/money";
+import { MONEY_BUDGETS_MONTH_MAX } from "../utils/listLimits";
 
 interface BudgetRow extends RowDataPacket {
   id: string;
@@ -92,8 +93,9 @@ export async function listMoneyBudgets(
       .query<BudgetRow[]>(
         `SELECT * FROM money_budgets
          WHERE user_id = ? AND budget_ym = ?
-         ORDER BY scope ASC, category ASC, user_category_id ASC, id ASC`,
-        [userId, yearMonth],
+         ORDER BY scope ASC, category ASC, user_category_id ASC, id ASC
+         LIMIT ?`,
+        [userId, yearMonth, MONEY_BUDGETS_MONTH_MAX],
       )
       .then(([r]) => r),
     sumMoneyOutByCategory(userId, range),

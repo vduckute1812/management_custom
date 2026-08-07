@@ -17,6 +17,7 @@ import {
 } from "./types";
 import { roundHours } from "./compute";
 import { parseTimestampCursor } from "./timestampCursor";
+import { TASKS_UNSCOPED_MAX } from "../utils/listLimits";
 
 // -------------------------------------------------------------------------
 // Child loaders — kept private; the only consumers are getAllTasks /
@@ -132,12 +133,13 @@ export async function getAllTasks(
     clauses.push("(updated_at < ? OR (updated_at = ? AND id < ?))");
     params.push(timestamp, timestamp, cursor.id);
   }
-  const limitClause = opts?.limit ? " LIMIT ?" : "";
-  if (opts?.limit) params.push(opts.limit);
+  const limit = opts?.limit ?? TASKS_UNSCOPED_MAX;
+  params.push(limit);
   const [taskRows] = await pool.query<TaskRow[]>(
     `SELECT * FROM tasks
      WHERE ${clauses.join(" AND ")}
-     ORDER BY updated_at DESC, id DESC${limitClause}`,
+     ORDER BY updated_at DESC, id DESC
+     LIMIT ?`,
     params,
   );
   const ids = taskRows.map((r) => r.id);

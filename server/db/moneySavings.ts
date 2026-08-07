@@ -11,7 +11,10 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
-import { SAVINGS_CONTRIBUTIONS_PAGE_SIZE } from "../utils/listLimits";
+import {
+  SAVINGS_CONTRIBUTIONS_PAGE_SIZE,
+  SAVINGS_GOALS_MAX,
+} from "../utils/listLimits";
 
 interface GoalRow extends RowDataPacket {
   id: string;
@@ -101,8 +104,9 @@ export async function listMoneySavingsGoals(
      ORDER BY
        CASE g.status WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END,
        g.updated_at DESC,
-       g.id DESC`,
-    [userId, userId],
+       g.id DESC
+     LIMIT ?`,
+    [userId, userId, SAVINGS_GOALS_MAX],
   );
   return rows.map(rowToGoal);
 }
