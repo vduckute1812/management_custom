@@ -103,7 +103,8 @@ services:
     # Secrets (MYSQL_ROOT_PASSWORD) come from the gitignored docker/.env.prod.
     # Prefer a dedicated app user (DB_USER/DB_PASS) for the Nitro process;
     # keep MYSQL_ROOT_PASSWORD for admin/migrate until that cutover is done.
-    # See .env.example and implement/database.md.
+    # One-shot on an existing volume: docker/mysql-create-app-user.sql
+    # See .env.example and implement/getting-started.md.
     env_file:
       - .env.prod
     environment:

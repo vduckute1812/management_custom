@@ -17,10 +17,10 @@ Create the empty database yourself. Schema is applied only by migrations (`npm r
 
 ```sql
 CREATE DATABASE rc DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- Optional: a dedicated user instead of using root
--- CREATE USER 'mgmt'@'localhost' IDENTIFIED BY '…';
--- GRANT ALL PRIVILEGES ON rc.* TO 'mgmt'@'localhost';
 ```
+
+Optional production cutover to a least-privilege app user (DML only on `rc.*`):
+edit the password in [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql), apply it as root, then set `DB_USER`/`DB_PASS` and drop `ALLOW_ROOT_DB`. Keep root for migrate/admin only.
 
 ## Configure the connection
 
