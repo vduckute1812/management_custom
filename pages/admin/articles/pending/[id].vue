@@ -288,7 +288,7 @@ function onConfirm() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3 shrink-0"
     >

@@ -373,20 +373,12 @@ async function confirmDeletePost() {
             @filter="onCategoryFilter"
           />
 
-          <div
+          <InlineErrorAlert
             v-if="error"
-            class="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm"
-            role="alert"
-          >
-            <span>{{ error }}</span>
-            <button
-              type="button"
-              class="shrink-0 text-xs font-semibold underline underline-offset-2"
-              @click="refresh"
-            >
-              {{ $t("feed.retry") }}
-            </button>
-          </div>
+            :message="error"
+            :retry-label="$t('feed.retry')"
+            @retry="refresh"
+          />
 
           <div
             v-if="loading && !posts.length"

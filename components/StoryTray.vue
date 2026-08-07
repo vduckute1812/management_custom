@@ -75,11 +75,7 @@ function labelOf(name: string | null, email: string) {
       />
     </div>
 
-    <div
-      v-else
-      class="scrollbar-thin flex gap-4 overflow-x-auto pb-1 pt-1"
-      role="list"
-    >
+    <div v-else class="scrollbar-thin flex gap-4 overflow-x-auto pb-1 pt-1">
       <button
         type="button"
         class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
@@ -100,7 +96,6 @@ function labelOf(name: string | null, email: string) {
         v-for="(group, idx) in groups"
         :key="group.author.id"
         type="button"
-        role="listitem"
         class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
         @click="emit('open', idx)"
       >

@@ -232,9 +232,9 @@ async function confirmDeleteCategory() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
+      class="shrink-0 px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between flex-wrap gap-3"
     >
       <div>
         <h1 class="text-lg font-semibold text-slate-900">
@@ -275,7 +275,7 @@ async function confirmDeleteCategory() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+    <div class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
       <p
         v-if="error"
         class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2"

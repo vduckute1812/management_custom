@@ -261,20 +261,13 @@ function backToList() {
           </ul>
         </div>
 
-        <p
-          v-if="loadError"
-          class="px-3 py-2 text-sm text-rose-600"
-          role="alert"
-        >
-          {{ loadError }}
-          <button
-            type="button"
-            class="ml-2 font-semibold underline"
-            @click="bootstrapChat"
-          >
-            {{ t("common.retry") }}
-          </button>
-        </p>
+        <div v-if="loadError" class="px-3 py-2">
+          <InlineErrorAlert
+            :message="loadError"
+            :retry-label="t('common.retry')"
+            @retry="bootstrapChat"
+          />
+        </div>
 
         <ChatConversationList
           class="min-h-0 flex-1"

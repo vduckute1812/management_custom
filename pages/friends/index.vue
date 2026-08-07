@@ -153,16 +153,12 @@ async function confirmUnfriend() {
       </p>
     </header>
 
-    <p v-if="loadError" class="text-sm text-rose-600" role="alert">
-      {{ loadError }}
-      <button
-        type="button"
-        class="ml-2 font-semibold underline"
-        @click="loadOverview"
-      >
-        {{ $t("common.retry") }}
-      </button>
-    </p>
+    <InlineErrorAlert
+      v-if="loadError"
+      :message="loadError"
+      :retry-label="$t('common.retry')"
+      @retry="loadOverview"
+    />
 
     <section class="space-y-3" aria-labelledby="friends-find-heading">
       <h2
