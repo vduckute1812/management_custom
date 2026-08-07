@@ -2,6 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { rowToUser, type UserRow } from "../mappers";
 import { getPool } from "../pool";
 import type { UserRecord } from "../types";
+import { ADMIN_USERS_SUMMARY_MAX } from "../../utils/listLimits";
 
 export async function getUserByEmail(
   email: string,
@@ -28,7 +29,8 @@ export async function getUserById(id: string): Promise<UserRecord | null> {
 export async function listUsers(): Promise<UserRecord[]> {
   const pool = getPool();
   const [rows] = await pool.query<UserRow[]>(
-    "SELECT * FROM users ORDER BY created_at ASC",
+    "SELECT * FROM users ORDER BY created_at ASC LIMIT ?",
+    [ADMIN_USERS_SUMMARY_MAX],
   );
   return rows.map(rowToUser);
 }

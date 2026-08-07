@@ -10,6 +10,8 @@ import {
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
+import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
+import { SAVINGS_CONTRIBUTIONS_PAGE_SIZE } from "../utils/listLimits";
 
 interface GoalRow extends RowDataPacket {
   id: string;
@@ -223,17 +225,50 @@ export async function deleteMoneySavingsGoal(
 export async function listMoneySavingsContributions(
   userId: string,
   goalId: string,
-): Promise<MoneySavingsContribution[]> {
+  options: { limit?: number; cursor?: string | null } = {},
+): Promise<{
+  contributions: MoneySavingsContribution[];
+  nextCursor: string | null;
+}> {
   const goal = await getMoneySavingsGoalById(userId, goalId);
-  if (!goal) return [];
+  if (!goal) return { contributions: [], nextCursor: null };
   const pool = getPool();
+  const limit = Math.min(
+    Math.max(options.limit ?? SAVINGS_CONTRIBUTIONS_PAGE_SIZE, 1),
+    100,
+  );
+  const params: unknown[] = [goalId, userId];
+  let cursorClause = "";
+  if (options.cursor) {
+    const cursor = parseTimestampCursor(options.cursor);
+    const occurredOn = cursor.timestamp.slice(0, 10);
+    cursorClause = `AND (
+      occurred_on < ?
+      OR (occurred_on = ? AND id < ?)
+    )`;
+    params.push(occurredOn, occurredOn, cursor.id);
+  }
+  params.push(limit + 1);
   const [rows] = await pool.query<ContribRow[]>(
     `SELECT * FROM money_savings_contributions
      WHERE goal_id = ? AND user_id = ?
-     ORDER BY occurred_on DESC, created_at DESC, id DESC`,
-    [goalId, userId],
+       ${cursorClause}
+     ORDER BY occurred_on DESC, id DESC
+     LIMIT ?`,
+    params,
   );
-  return rows.map(rowToContribution);
+  const hasMore = rows.length > limit;
+  const contributions = (hasMore ? rows.slice(0, limit) : rows).map(
+    rowToContribution,
+  );
+  const last = contributions[contributions.length - 1];
+  return {
+    contributions,
+    nextCursor:
+      hasMore && last
+        ? encodeTimestampCursor(`${last.occurredOn}T00:00:00.000Z`, last.id)
+        : null,
+  };
 }
 
 export interface AddMoneySavingsContributionInput {

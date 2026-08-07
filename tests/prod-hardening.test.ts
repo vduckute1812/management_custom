@@ -57,6 +57,25 @@ describe("production hardening invariants", () => {
     expect(sql).toContain("GRANT SELECT, INSERT, UPDATE, DELETE ON `rc`.*");
   });
 
+  it("caps unbounded admin/story list queries", () => {
+    const stories = readFileSync(
+      new URL("../server/db/storiesRead.ts", import.meta.url),
+      "utf8",
+    );
+    const admin = readFileSync(
+      new URL("../server/db/admin.ts", import.meta.url),
+      "utf8",
+    );
+    const savings = readFileSync(
+      new URL("../server/db/moneySavings.ts", import.meta.url),
+      "utf8",
+    );
+    expect(stories).toContain("STORIES_TRAY_MAX");
+    expect(admin).toContain("ADMIN_USERS_SUMMARY_MAX");
+    expect(savings).toContain("SAVINGS_CONTRIBUTIONS_PAGE_SIZE");
+    expect(savings).toContain("nextCursor");
+  });
+
   it("runs lint and dependency audit in CI", () => {
     expect(ci).toContain("npm run lint");
     expect(ci).toContain("npm audit --omit=dev");

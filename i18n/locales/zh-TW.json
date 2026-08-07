@@ -318,7 +318,8 @@
       "reactions": "表情",
       "noViewsYet": "尚無查看。",
       "noReactionsYet": "尚無表情。",
-      "storyMediaAlt": "限時動態媒體"
+      "storyMediaAlt": "限時動態媒體",
+      "openAria": "查看 {name} 的限時動態"
     },
     "composer": {
       "writeAPost": "撰寫貼文",
@@ -913,7 +914,8 @@
       "high": "高",
       "normal": "普通",
       "low": "低"
-    }
+    },
+    "loadMore": "載入更多"
   },
   "uploads": {
     "errors": {

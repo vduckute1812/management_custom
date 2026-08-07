@@ -9,12 +9,7 @@
 import { randomBytes } from "node:crypto";
 import { setHeader } from "h3";
 import { buildDocumentContentSecurityPolicy } from "../utils/content-security-policy";
-
-function stampScriptNonces(fragments: string[], nonce: string): string[] {
-  // Fresh regex per call — avoid /g lastIndex bleed across fragments.
-  const re = /<script(?![^>]*\bnonce=)(?=[\s>])/gi;
-  return fragments.map((html) => html.replace(re, `<script nonce="${nonce}"`));
-}
+import { stampScriptNonces } from "../utils/cspNonceStamp";
 
 function freshNonce(): string {
   return randomBytes(16).toString("base64");

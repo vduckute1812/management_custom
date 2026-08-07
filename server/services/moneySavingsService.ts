@@ -62,16 +62,22 @@ export async function deleteMoneySavingsGoalForUser(
 export async function listMoneySavingsContributionsForUser(
   userId: string,
   goalId: string,
+  options: { limit?: number; cursor?: string | null } = {},
 ): Promise<{
   contributions: MoneySavingsContribution[];
+  nextCursor: string | null;
   goal: MoneySavingsGoal;
 }> {
   const goal = await getMoneySavingsGoalById(userId, goalId);
   if (!goal) {
     throw new DomainError(404, "Savings goal not found");
   }
-  const contributions = await listMoneySavingsContributions(userId, goalId);
-  return { contributions, goal };
+  const page = await listMoneySavingsContributions(userId, goalId, options);
+  return {
+    contributions: page.contributions,
+    nextCursor: page.nextCursor,
+    goal,
+  };
 }
 
 export async function addMoneySavingsContributionForUser(

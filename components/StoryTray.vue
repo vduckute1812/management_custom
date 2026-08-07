@@ -79,6 +79,7 @@ function labelOf(name: string | null, email: string) {
       <button
         type="button"
         class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        :aria-label="$t('feed.stories.addYours')"
         @click="emit('create')"
       >
         <span
@@ -97,6 +98,11 @@ function labelOf(name: string | null, email: string) {
         :key="group.author.id"
         type="button"
         class="group shrink-0 flex w-16 flex-col items-center gap-1.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+        :aria-label="
+          $t('feed.stories.openAria', {
+            name: labelOf(group.author.name, group.author.email),
+          })
+        "
         @click="emit('open', idx)"
       >
         <span
