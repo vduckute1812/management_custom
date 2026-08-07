@@ -3,6 +3,11 @@ export interface RateLimitOptions {
   limit: number;
   /** Window length in milliseconds. */
   windowMs: number;
+  /**
+   * When Redis is configured, refuse the request if the shared store is
+   * down instead of falling back to process-local memory.
+   */
+  failClosed?: boolean;
 }
 
 export interface RateLimitResult {
@@ -15,4 +20,5 @@ export interface RateLimitResult {
 export interface RateLimitPolicy {
   limit: number;
   windowMs: number;
+  failClosed?: boolean;
 }

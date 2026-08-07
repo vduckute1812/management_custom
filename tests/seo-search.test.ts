@@ -17,6 +17,15 @@ describe("CONTENT_SECURITY_POLICY", () => {
       "font-src 'self' data: https://fonts.gstatic.com",
     );
   });
+
+  it("keeps connect-src narrow (no wildcard https:)", () => {
+    expect(CONTENT_SECURITY_POLICY).toContain(
+      "connect-src 'self' https://static.cloudflareinsights.com https://accounts.google.com https://oauth2.googleapis.com",
+    );
+    expect(CONTENT_SECURITY_POLICY).not.toMatch(
+      /connect-src 'self' https:(;|$)/,
+    );
+  });
 });
 
 describe("public/llms.txt", () => {

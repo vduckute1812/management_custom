@@ -59,7 +59,12 @@ export function resolvePolicy(path: string): RateLimitPolicy {
   const bare = path.split("?")[0] || path;
   const match = ROUTE_POLICIES.find((r) => bare.startsWith(r.prefix));
   if (match) {
-    return { limit: match.limit, windowMs: match.windowMs };
+    return {
+      limit: match.limit,
+      windowMs: match.windowMs,
+      // Credential and account-deletion paths must not reset when Redis dies.
+      failClosed: bare.startsWith("/api/auth/"),
+    };
   }
   return { limit: DEFAULT_LIMIT, windowMs: DEFAULT_WINDOW_MS };
 }
@@ -67,7 +72,9 @@ export function resolvePolicy(path: string): RateLimitPolicy {
 export function resolveAccountPolicy(path: string): RateLimitPolicy | null {
   const bare = path.split("?")[0] || path;
   const match = ACCOUNT_POLICIES.find((r) => bare.startsWith(r.prefix));
-  return match ? { limit: match.limit, windowMs: match.windowMs } : null;
+  return match
+    ? { limit: match.limit, windowMs: match.windowMs, failClosed: true }
+    : null;
 }
 
 /**

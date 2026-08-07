@@ -12,16 +12,20 @@ import {
 } from "./acl";
 import { encodeFeedCursor, parseFeedCursor } from "./cursors";
 import { hydratePosts } from "./hydration";
-import { POST_SELECT } from "./select";
+import { buildPostSelect } from "./select";
 import type { PostRow } from "./types";
 
-async function viewerAcl(viewerId: string): Promise<{
-  sql: string;
-  params: string[];
-}> {
-  const friendIds = await listAcceptedFriendIds(viewerId);
+async function viewerFriendIds(viewerId: string): Promise<string[]> {
+  return listAcceptedFriendIds(viewerId);
+}
+
+function aclFor(
+  viewerId: string,
+  friendIds: readonly string[],
+  alias: string,
+): { sql: string; params: string[] } {
   return {
-    sql: visibilityClause("p", friendIds),
+    sql: visibilityClause(alias, friendIds),
     params: visibilityClauseParams(viewerId, friendIds),
   };
 }
@@ -32,7 +36,8 @@ export async function assertPostVisible(
   postId: string,
 ): Promise<void> {
   const pool = getPool();
-  const acl = await viewerAcl(viewerId);
+  const friendIds = await viewerFriendIds(viewerId);
+  const acl = aclFor(viewerId, friendIds, "p");
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT 1 AS ok FROM posts p
      WHERE p.id = ? AND ${acl.sql}
@@ -62,10 +67,15 @@ export async function listFeedPosts(
     : null;
   const vid = viewerId ?? "";
 
-  const params: unknown[] = [];
+  const friendIds = viewerId ? await viewerFriendIds(viewerId) : [];
+  const sharedAcl = viewerId
+    ? aclFor(viewerId, friendIds, "sp")
+    : { sql: publicOnlyClause("sp"), params: [] as string[] };
+
+  const params: unknown[] = [...sharedAcl.params];
   let where: string;
   if (viewerId) {
-    const acl = await viewerAcl(viewerId);
+    const acl = aclFor(viewerId, friendIds, "p");
     where = `WHERE ${acl.sql}`;
     params.push(...acl.params);
   } else {
@@ -89,7 +99,7 @@ export async function listFeedPosts(
   params.push(limit * 2 + 1);
 
   const [rows] = await pool.query<PostRow[]>(
-    `${POST_SELECT}
+    `${buildPostSelect(sharedAcl.sql)}
      ${where}
      ORDER BY p.created_at DESC, p.id DESC
      LIMIT ?`,
@@ -112,19 +122,23 @@ export async function getPostById(
 ): Promise<Post | null> {
   const pool = getPool();
   const vid = viewerId ?? "";
-  const params: unknown[] = [postId];
-  let acl: string;
+  const friendIds = viewerId ? await viewerFriendIds(viewerId) : [];
+  const sharedAcl = viewerId
+    ? aclFor(viewerId, friendIds, "sp")
+    : { sql: publicOnlyClause("sp"), params: [] as string[] };
+  const params: unknown[] = [...sharedAcl.params, postId];
+  let aclSql: string;
   if (viewerId) {
-    const built = await viewerAcl(viewerId);
-    acl = built.sql;
+    const built = aclFor(viewerId, friendIds, "p");
+    aclSql = built.sql;
     params.push(...built.params);
   } else {
-    acl = publicOnlyClause("p");
+    aclSql = publicOnlyClause("p");
   }
 
   const [rows] = await pool.query<PostRow[]>(
-    `${POST_SELECT}
-     WHERE p.id = ? AND ${acl}
+    `${buildPostSelect(sharedAcl.sql)}
+     WHERE p.id = ? AND ${aclSql}
      LIMIT 1`,
     params,
   );

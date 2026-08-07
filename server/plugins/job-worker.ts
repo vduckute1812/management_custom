@@ -13,6 +13,7 @@ import {
   completeJob,
   failJob,
   purgeOldJobs,
+  purgeSensitiveEmailJobs,
   requeueStaleJobs,
 } from "../db/jobs";
 import { processJob } from "../utils/queue";
@@ -54,6 +55,9 @@ export default defineNitroPlugin((nitroApp) => {
           console.warn(`[queue] requeued ${requeued} stale processing job(s)`);
         }
         await purgeOldJobs(envInt("QUEUE_PURGE_DAYS", 14));
+        await purgeSensitiveEmailJobs(
+          envInt("QUEUE_AUTH_EMAIL_PURGE_HOURS", 24),
+        );
         // Expired stories leave R2 orphans unless we sweep them even when
         // nobody opens the tray. Run inline (cheap SELECT) rather than
         // enqueueing a self-job that needs another tick.
