@@ -318,7 +318,8 @@
       "reactions": "Reactions",
       "noViewsYet": "No views yet.",
       "noReactionsYet": "No reactions yet.",
-      "storyMediaAlt": "Story media"
+      "storyMediaAlt": "Story media",
+      "openAria": "View {name}'s stories"
     },
     "composer": {
       "writeAPost": "Write a post",
@@ -913,7 +914,8 @@
       "high": "High",
       "normal": "Normal",
       "low": "Low"
-    }
+    },
+    "loadMore": "Load more"
   },
   "uploads": {
     "errors": {

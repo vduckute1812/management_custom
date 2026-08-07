@@ -11,6 +11,7 @@ interface GoalSaveResponse {
 
 interface ContributionsResponse {
   contributions: MoneySavingsContribution[];
+  nextCursor: string | null;
   goal: MoneySavingsGoal;
 }
 
@@ -66,9 +67,16 @@ export const useMoneySavings = () => {
     goals.value = goals.value.filter((g) => g.id !== id);
   }
 
-  async function fetchContributions(goalId: string) {
+  async function fetchContributions(
+    goalId: string,
+    options: { cursor?: string | null; limit?: number } = {},
+  ) {
+    const params = new URLSearchParams();
+    if (options.cursor) params.set("cursor", options.cursor);
+    if (options.limit != null) params.set("limit", String(options.limit));
+    const qs = params.toString();
     return apiFetch<ContributionsResponse>(
-      `/api/money/savings/goals/${goalId}/contributions`,
+      `/api/money/savings/goals/${goalId}/contributions${qs ? `?${qs}` : ""}`,
     );
   }
 

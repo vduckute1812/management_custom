@@ -11,6 +11,7 @@ import {
   toReactionType,
 } from "../../types/reaction";
 import type { Story, StoryAuthorGroup, StoriesTray } from "../../types/story";
+import { STORIES_TRAY_MAX } from "../utils/listLimits";
 
 export interface StoryRow extends RowDataPacket {
   id: string;
@@ -264,15 +265,19 @@ export async function listStoriesTray(viewerId: string): Promise<StoriesTray> {
   const pool = getPool();
   // Expired rows are filtered below (`expires_at > now`). Physical delete +
   // R2 cleanup runs in the job worker (~2 min), not on this read path.
+  // Cap newest-first so a busy friend graph cannot return an unbounded tray.
 
   const friendIds = await listAcceptedFriendIds(viewerId);
-  const [rows] = await pool.query<StoryRow[]>(
+  const [newestFirst] = await pool.query<StoryRow[]>(
     `${STORY_SELECT}
      WHERE s.expires_at > UTC_TIMESTAMP(3)
        AND ${storyVisibilityClause("s", friendIds)}
-     ORDER BY s.created_at ASC`,
-    [...storyVisibilityParams(viewerId, friendIds)],
+     ORDER BY s.created_at DESC
+     LIMIT ?`,
+    [...storyVisibilityParams(viewerId, friendIds), STORIES_TRAY_MAX],
   );
+  // Grouping expects chronological order within each author.
+  const rows = newestFirst.slice().reverse();
 
   const storyIds = rows.map((r) => r.id);
   const [reactionMaps, viewerState] = await Promise.all([

@@ -26,7 +26,9 @@ const editingGoal = ref<MoneySavingsGoal | null>(null);
 const contributeGoal = ref<MoneySavingsGoal | null>(null);
 const expandedId = ref<string | null>(null);
 const contributions = ref<MoneySavingsContribution[]>([]);
+const contribNextCursor = ref<string | null>(null);
 const contribLoading = ref(false);
+const contribLoadingMore = ref(false);
 
 await useAsyncData("money:savings:initial", async () => {
   await fetchGoals();
@@ -70,13 +72,16 @@ async function toggleExpand(goal: MoneySavingsGoal) {
   if (expandedId.value === goal.id) {
     expandedId.value = null;
     contributions.value = [];
+    contribNextCursor.value = null;
     return;
   }
   expandedId.value = goal.id;
   contribLoading.value = true;
+  contribNextCursor.value = null;
   try {
     const res = await fetchContributions(goal.id);
     contributions.value = res.contributions ?? [];
+    contribNextCursor.value = res.nextCursor ?? null;
   } catch (err: unknown) {
     pushToast(
       err instanceof Error
@@ -87,6 +92,30 @@ async function toggleExpand(goal: MoneySavingsGoal) {
     expandedId.value = null;
   } finally {
     contribLoading.value = false;
+  }
+}
+
+async function loadMoreContributions() {
+  const goalId = expandedId.value;
+  const cursor = contribNextCursor.value;
+  if (!goalId || !cursor || contribLoadingMore.value) return;
+  contribLoadingMore.value = true;
+  try {
+    const res = await fetchContributions(goalId, { cursor });
+    contributions.value = [
+      ...contributions.value,
+      ...(res.contributions ?? []),
+    ];
+    contribNextCursor.value = res.nextCursor ?? null;
+  } catch (err: unknown) {
+    pushToast(
+      err instanceof Error
+        ? err.message
+        : t("toasts.failedToLoadContributions"),
+      { tone: "danger" },
+    );
+  } finally {
+    contribLoadingMore.value = false;
   }
 }
 
@@ -115,6 +144,7 @@ async function onContributed() {
   if (expandedId.value && contributeGoal.value) {
     const res = await fetchContributions(contributeGoal.value.id);
     contributions.value = res.contributions ?? [];
+    contribNextCursor.value = res.nextCursor ?? null;
   }
 }
 
@@ -335,6 +365,17 @@ function onExportJson() {
                 </button>
               </li>
             </ul>
+            <div v-if="contribNextCursor" class="pt-2">
+              <button
+                type="button"
+                class="w-full rounded-lg px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+                :disabled="contribLoadingMore"
+                :aria-busy="contribLoadingMore"
+                @click="loadMoreContributions"
+              >
+                {{ $t("common.loadMore") }}
+              </button>
+            </div>
           </div>
         </article>
       </div>

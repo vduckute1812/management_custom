@@ -4,6 +4,7 @@ import { dbToISO } from "./datetime";
 import { getPool } from "./pool";
 import { TaskStatus, type UserRole } from "./types";
 import { resolveDisplayName } from "../../utils/displayName";
+import { ADMIN_USERS_SUMMARY_MAX } from "../utils/listLimits";
 
 // `TaskStatus` is simultaneously a runtime const object (`TaskStatus.Done === 2`)
 // and a numeric union type (`0 | 1 | 2`). The single import above brings both
@@ -66,7 +67,9 @@ export async function getAdminUserSummaries(): Promise<AdminUserSummaryRow[]> {
          INNER JOIN time_blocks b ON b.task_id = t.id
         GROUP BY t.user_id
      ) tb ON tb.user_id = u.id
-     ORDER BY u.created_at ASC`,
+     ORDER BY u.created_at ASC
+     LIMIT ?`,
+    [ADMIN_USERS_SUMMARY_MAX],
   );
   return rows.map((r) => ({
     id: String(r.id),

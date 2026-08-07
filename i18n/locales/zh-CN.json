@@ -318,7 +318,8 @@
       "reactions": "表情",
       "noViewsYet": "暂无查看。",
       "noReactionsYet": "暂无表情。",
-      "storyMediaAlt": "快拍媒体"
+      "storyMediaAlt": "快拍媒体",
+      "openAria": "查看 {name} 的快拍"
     },
     "composer": {
       "writeAPost": "写帖子",
@@ -913,7 +914,8 @@
       "high": "高",
       "normal": "普通",
       "low": "低"
-    }
+    },
+    "loadMore": "加载更多"
   },
   "uploads": {
     "errors": {

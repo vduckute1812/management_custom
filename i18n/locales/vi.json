@@ -318,7 +318,8 @@
       "reactions": "Cảm xúc",
       "noViewsYet": "Chưa có lượt xem.",
       "noReactionsYet": "Chưa có cảm xúc.",
-      "storyMediaAlt": "Media story"
+      "storyMediaAlt": "Media story",
+      "openAria": "Xem tin của {name}"
     },
     "composer": {
       "writeAPost": "Viết bài",
@@ -913,7 +914,8 @@
       "high": "Cao",
       "normal": "Bình thường",
       "low": "Thấp"
-    }
+    },
+    "loadMore": "Tải thêm"
   },
   "uploads": {
     "errors": {
