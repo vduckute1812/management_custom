@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { Post, PostReactionType } from "~/types/post";
-import { PostFormat, PostVisibility, UploadKind } from "~/types/post";
+import { PostFormat } from "~/types/post";
 import { categoryDisplayName } from "~/utils/categoryLabel";
 import { estimateReadingMinutes, manuscriptExcerpt } from "~/utils/manuscript";
-import { bodyReferencesUpload } from "~/utils/markdownMedia";
 import { CONTENT_LOCALE_LABELS } from "~/utils/contentLocale";
 
 const props = defineProps<{
@@ -20,7 +19,6 @@ const emit = defineEmits<{
 const { t, te } = useI18n();
 const { getPost } = usePosts();
 const { pushToast } = useToasts();
-const { mediaUrl } = useMediaUrl();
 const auth = useAuth();
 
 /** Active manuscript locale variant shown in this card. */
@@ -75,14 +73,6 @@ function localeChipLabel(code: string) {
   );
 }
 
-/** Gallery tiles: skip images already shown inline in the markdown body. */
-const galleryAttachments = computed(() =>
-  (view.value.attachments ?? []).filter((att) => {
-    if (att.kind !== UploadKind.Image) return true;
-    return !bodyReferencesUpload(view.value.body || "", att.uploadId, att.url);
-  }),
-);
-
 const commentsOpen = ref(false);
 const shareOpen = ref(false);
 const canInteract = computed(() => auth.isAuthenticated.value);
@@ -127,10 +117,6 @@ function authorLabel(name: string | null, email: string) {
   return name?.trim() || email;
 }
 
-function initialOf(name: string | null, email: string) {
-  return (name?.trim() || email).charAt(0).toUpperCase() || "?";
-}
-
 function formatWhen(iso: string) {
   try {
     const d = new Date(iso);
@@ -151,19 +137,6 @@ function formatWhen(iso: string) {
     return "";
   }
 }
-
-const visibilityBadge = computed(() => {
-  if (props.post.visibility === PostVisibility.Private) {
-    return t("feed.post.onlyYou");
-  }
-  if (props.post.visibility === PostVisibility.Shared) {
-    return t("feed.post.shared");
-  }
-  if (props.post.visibility === PostVisibility.Friends) {
-    return t("feed.post.friends");
-  }
-  return t("feed.post.public");
-});
 
 function toggleComments() {
   commentsOpen.value = !commentsOpen.value;
@@ -187,91 +160,12 @@ function onShareClick() {
         : 'border-slate-200 bg-white hover:border-slate-300'
     "
   >
-    <header class="flex items-start gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-      <div
-        class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden text-sm font-bold text-white shadow-sm"
-        :class="
-          isManuscript
-            ? 'rounded-xl manuscript-avatar ring-4'
-            : post.author.avatarUrl
-              ? 'rounded-full bg-slate-200 ring-4 ring-brand-50'
-              : 'rounded-full bg-gradient-to-br from-brand-500 to-brand-700 ring-4 ring-brand-50'
-        "
-        aria-hidden="true"
-      >
-        <img
-          v-if="post.author.avatarUrl"
-          :src="post.author.avatarUrl"
-          alt=""
-          class="h-full w-full object-cover"
-        />
-        <template v-else>
-          {{ initialOf(post.author.name, post.author.email) }}
-        </template>
-      </div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-baseline gap-2 min-w-0 flex-wrap">
-          <p class="text-sm font-semibold text-slate-900 truncate">
-            {{ authorLabel(post.author.name, post.author.email) }}
-          </p>
-          <time
-            class="text-[11px] text-slate-400 tabular-nums shrink-0"
-            :datetime="post.createdAt"
-            :title="post.createdAt"
-          >
-            {{ formatWhen(post.createdAt) }}
-          </time>
-          <span
-            v-if="isManuscript"
-            class="manuscript-pill rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
-          >
-            {{ $t("manuscript.badge") }}
-          </span>
-          <span
-            class="text-[10px] font-medium uppercase tracking-wide rounded-full bg-slate-100 text-slate-600 px-1.5 py-0.5"
-          >
-            {{ visibilityBadge }}
-          </span>
-        </div>
-        <p class="text-[11px] text-slate-400 truncate">
-          <template v-if="isManuscript">
-            {{ $t("manuscript.readingTime", { count: readingMinutes }) }}
-            <span aria-hidden="true"> · </span>
-          </template>
-          <template v-if="post.author.title || post.author.job">
-            <span v-if="post.author.title">{{ post.author.title }}</span>
-            <span v-if="post.author.title && post.author.job"> · </span>
-            <span v-if="post.author.job">{{ post.author.job }}</span>
-          </template>
-          <template v-else>
-            {{ post.author.email }}
-          </template>
-        </p>
-      </div>
-      <div
-        v-if="post.canEdit || post.canDelete"
-        class="flex shrink-0 items-center gap-0.5"
-      >
-        <button
-          v-if="post.canEdit"
-          type="button"
-          class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-          :title="$t('feed.post.editTitle')"
-          @click="navigateTo(`/feed/edit/${post.id}`)"
-        >
-          {{ $t("feed.post.edit") }}
-        </button>
-        <button
-          v-if="post.canDelete"
-          type="button"
-          class="rounded-lg px-2 py-1 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
-          :title="$t('feed.post.deleteTitle')"
-          @click="emit('delete')"
-        >
-          {{ $t("feed.post.delete") }}
-        </button>
-      </div>
-    </header>
+    <PostCardHeader
+      :post="post"
+      :manuscript="isManuscript"
+      :reading-minutes="readingMinutes"
+      @delete="emit('delete')"
+    />
 
     <div class="min-w-0 max-w-full space-y-3 px-4 pb-3 pt-4 sm:px-5">
       <div v-if="post.category" class="flex flex-wrap gap-1.5">
@@ -402,46 +296,7 @@ function onShareClick() {
         </button>
       </div>
 
-      <div
-        v-if="galleryAttachments.length"
-        class="grid gap-2"
-        :class="galleryAttachments.length > 1 ? 'sm:grid-cols-2' : ''"
-      >
-        <template v-for="att in galleryAttachments" :key="att.id">
-          <a
-            v-if="att.kind === UploadKind.Image"
-            :href="mediaUrl(att.url)"
-            target="_blank"
-            rel="noopener"
-            class="block overflow-hidden rounded-xl border border-slate-200 bg-slate-100"
-          >
-            <img
-              :src="mediaUrl(att.url)"
-              :alt="att.fileName"
-              width="640"
-              height="360"
-              loading="lazy"
-              class="w-full max-h-96 object-cover bg-slate-100 transition duration-300 group-hover:scale-[1.01]"
-              @error="
-                ($event.target as HTMLImageElement).style.display = 'none'
-              "
-            />
-          </a>
-          <a
-            v-else
-            :href="mediaUrl(att.url)"
-            target="_blank"
-            rel="noopener"
-            class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
-          >
-            <span class="text-lg" aria-hidden="true">📄</span>
-            <span class="truncate font-medium">{{ att.fileName }}</span>
-            <span class="text-[11px] text-slate-400 shrink-0">
-              {{ Math.round(att.sizeBytes / 1024) }} KB
-            </span>
-          </a>
-        </template>
-      </div>
+      <PostCardMedia :attachments="view.attachments" :body="view.body" />
 
       <div
         v-if="post.sharedPost"

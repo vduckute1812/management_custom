@@ -1,11 +1,5 @@
 <script setup lang="ts">
 import type { PostReactionType } from "~/types/post";
-import {
-  POST_REACTION_TYPES,
-  REACTION_EMOJI,
-  ReactionType,
-} from "~/types/post";
-import { REACTION_I18N_KEY } from "~/types/reaction";
 import type { StoryAuthorGroup, StoryInsights } from "~/types/story";
 
 const props = defineProps<{
@@ -36,7 +30,6 @@ const deleteConfirmOpen = ref(false);
 const deleteBusy = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
 const closeBtn = ref<HTMLButtonElement | null>(null);
-const insightsRoot = ref<HTMLElement | null>(null);
 
 const viewerOpen = computed(() => true);
 useModal(viewerOpen, {
@@ -44,20 +37,6 @@ useModal(viewerOpen, {
   initialFocus: closeBtn,
   closeOnEscape: false,
 });
-
-useModal(insightsOpen, {
-  container: insightsRoot,
-  onClose: () => closeInsights(),
-});
-
-const REACTION_LABEL = computed<Record<PostReactionType, string>>(() => ({
-  [ReactionType.Like]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Like]}`),
-  [ReactionType.Love]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Love]}`),
-  [ReactionType.Haha]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Haha]}`),
-  [ReactionType.Wow]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Wow]}`),
-  [ReactionType.Sad]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Sad]}`),
-  [ReactionType.Angry]: t(`feed.post.${REACTION_I18N_KEY[ReactionType.Angry]}`),
-}));
 
 const group = computed(() => props.groups[groupIndex.value] ?? null);
 const story = computed(() => group.value?.stories[storyIndex.value] ?? null);
@@ -216,19 +195,6 @@ function onKey(e: KeyboardEvent) {
   if (e.key === "ArrowLeft") prev();
 }
 
-function formatWhen(iso: string) {
-  try {
-    return new Date(iso).toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  } catch {
-    return "";
-  }
-}
-
 onMounted(() => {
   window.addEventListener("keydown", onKey);
   void startTimer();
@@ -270,25 +236,13 @@ watch(
       v-if="story && group"
       class="relative w-full max-w-md aspect-[9/16] max-h-[85vh] rounded-2xl overflow-hidden bg-slate-900 text-white shadow-xl"
     >
-      <div class="absolute inset-x-0 top-0 z-10 flex gap-1 p-2">
-        <div
-          v-for="(s, i) in group.stories"
-          :key="s.id"
-          class="h-0.5 flex-1 rounded-full bg-white/30 overflow-hidden"
-        >
-          <div
-            class="h-full bg-white transition-[width] duration-75 ease-linear motion-reduce:transition-none"
-            :style="{
-              width:
-                i < storyIndex
-                  ? '100%'
-                  : i === storyIndex
-                    ? `${progress}%`
-                    : '0%',
-            }"
-          />
-        </div>
-      </div>
+      <StoryPlaybackControls
+        :stories="group.stories"
+        :current-index="storyIndex"
+        :progress="progress"
+        @previous="prev"
+        @next="next"
+      />
 
       <div
         class="absolute inset-x-0 top-3 z-10 px-3 pt-3 flex items-center justify-between gap-2"
@@ -322,19 +276,6 @@ watch(
         </div>
       </div>
 
-      <button
-        type="button"
-        class="absolute inset-y-0 left-0 w-1/3 z-[5]"
-        :aria-label="$t('feed.stories.previous')"
-        @click="prev"
-      />
-      <button
-        type="button"
-        class="absolute inset-y-0 right-0 w-1/3 z-[5]"
-        :aria-label="$t('feed.stories.next')"
-        @click="next"
-      />
-
       <div
         class="absolute inset-0 flex items-center justify-center p-6 pt-14 pb-20"
       >
@@ -357,28 +298,12 @@ watch(
         </p>
       </div>
 
-      <!-- Reactions for others' stories -->
-      <div
+      <StoryReactionBar
         v-if="!isOwnStory"
-        class="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-center justify-center gap-1 p-3 bg-gradient-to-t from-black/60 to-transparent"
-      >
-        <button
-          v-for="r in POST_REACTION_TYPES"
-          :key="r"
-          type="button"
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xl leading-none transition hover:scale-110 motion-reduce:transition-none"
-          :class="
-            story.myReaction === r
-              ? 'bg-white/25 ring-1 ring-white/50'
-              : 'bg-white/10 hover:bg-white/20'
-          "
-          :aria-label="REACTION_LABEL[r]"
-          :disabled="reacting"
-          @click.stop="onReact(r)"
-        >
-          {{ REACTION_EMOJI[r] }}
-        </button>
-      </div>
+        :my-reaction="story.myReaction"
+        :reacting="reacting"
+        @react="onReact"
+      />
 
       <!-- Own story: open insights sheet -->
       <button
@@ -401,144 +326,15 @@ watch(
       </button>
     </div>
 
-    <!-- Insights bottom sheet (My Story) -->
-    <Teleport to="body">
-      <Transition name="sheet">
-        <div
-          v-if="insightsOpen && isOwnStory"
-          ref="insightsRoot"
-          class="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/50 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          :aria-label="$t('feed.stories.insightsAria')"
-          @click.self="closeInsights"
-        >
-          <div
-            class="w-full max-w-md max-h-[75vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl flex flex-col"
-          >
-            <div
-              class="flex items-center justify-between border-b border-slate-200 px-4 py-3"
-            >
-              <div>
-                <p class="text-sm font-semibold text-slate-900">
-                  {{ $t("feed.stories.myStory") }}
-                </p>
-                <p class="text-xs text-slate-500">
-                  {{
-                    $t("feed.stories.viewsReactions", {
-                      views: insights?.viewCount ?? story?.viewCount ?? 0,
-                      reactions:
-                        insights?.reactionCount ?? story?.reactionCount ?? 0,
-                    })
-                  }}
-                </p>
-              </div>
-              <button
-                type="button"
-                class="text-sm text-slate-500 hover:text-slate-800 px-2 py-1"
-                @click="closeInsights"
-              >
-                {{ $t("feed.stories.close") }}
-              </button>
-            </div>
-
-            <div class="overflow-y-auto flex-1 px-4 py-3 space-y-5">
-              <div v-if="insightsLoading" class="space-y-2" aria-busy="true">
-                <SkeletonBlock height="h-10" rounded="rounded-lg" />
-                <SkeletonBlock height="h-10" rounded="rounded-lg" />
-              </div>
-
-              <template v-else-if="insights">
-                <section>
-                  <h3
-                    class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2"
-                  >
-                    {{ $t("feed.stories.viewers") }}
-                  </h3>
-                  <ul v-if="insights.viewers.length" class="space-y-2">
-                    <li
-                      v-for="v in insights.viewers"
-                      :key="v.user.id"
-                      class="flex items-center gap-3"
-                    >
-                      <UserAvatar
-                        :name="v.user.name"
-                        :email="v.user.email"
-                        :avatar-url="v.user.avatarUrl"
-                        size="md"
-                      />
-                      <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-slate-800">
-                          {{ v.user.name || v.user.email }}
-                        </p>
-                        <p class="text-[11px] text-slate-400">
-                          {{ formatWhen(v.viewedAt) }}
-                        </p>
-                      </div>
-                      <span
-                        v-if="v.reaction != null"
-                        class="text-base"
-                        :title="REACTION_LABEL[v.reaction]"
-                      >
-                        {{ REACTION_EMOJI[v.reaction] }}
-                      </span>
-                    </li>
-                  </ul>
-                  <p v-else class="text-sm text-slate-500">
-                    {{ $t("feed.stories.noViewsYet") }}
-                  </p>
-                </section>
-
-                <section>
-                  <h3
-                    class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2"
-                  >
-                    {{ $t("feed.stories.reactions") }}
-                  </h3>
-                  <div
-                    v-if="insights.reactionCount"
-                    class="flex flex-wrap gap-2 mb-3"
-                  >
-                    <span
-                      v-for="r in POST_REACTION_TYPES.filter(
-                        (k) => (insights?.reactions[k] ?? 0) > 0,
-                      )"
-                      :key="r"
-                      class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700"
-                    >
-                      {{ REACTION_EMOJI[r] }}
-                      {{ insights.reactions[r] }}
-                    </span>
-                  </div>
-                  <ul v-if="insights.reactionUsers.length" class="space-y-2">
-                    <li
-                      v-for="ru in insights.reactionUsers"
-                      :key="`${ru.user.id}-${ru.reaction}`"
-                      class="flex items-center gap-3"
-                    >
-                      <span class="text-base">{{
-                        REACTION_EMOJI[ru.reaction]
-                      }}</span>
-                      <div class="min-w-0 flex-1">
-                        <p class="truncate text-sm font-medium text-slate-800">
-                          {{ ru.user.name || ru.user.email }}
-                        </p>
-                        <p class="text-[11px] text-slate-400">
-                          {{ formatWhen(ru.createdAt) }}
-                        </p>
-                      </div>
-                    </li>
-                  </ul>
-                  <p v-else class="text-sm text-slate-500">
-                    {{ $t("feed.stories.noReactionsYet") }}
-                  </p>
-                </section>
-              </template>
-            </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+    <StoryInsightsPanel
+      v-if="story && isOwnStory"
+      :open="insightsOpen"
+      :loading="insightsLoading"
+      :insights="insights"
+      :view-count="story.viewCount"
+      :reaction-count="story.reactionCount"
+      @close="closeInsights"
+    />
 
     <ConfirmDialog
       :open="deleteConfirmOpen"
@@ -550,31 +346,3 @@ watch(
     />
   </div>
 </template>
-
-<style scoped>
-.sheet-enter-active,
-.sheet-leave-active {
-  transition: opacity 0.2s ease;
-}
-.sheet-enter-active > div,
-.sheet-leave-active > div {
-  transition: transform 0.2s ease;
-}
-.sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
-}
-.sheet-enter-from > div,
-.sheet-leave-to > div {
-  transform: translateY(1rem);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sheet-enter-active,
-  .sheet-leave-active,
-  .sheet-enter-active > div,
-  .sheet-leave-active > div {
-    transition: none;
-  }
-}
-</style>
