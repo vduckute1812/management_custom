@@ -216,8 +216,12 @@ export async function cacheDelPrefix(prefix: string): Promise<void> {
 
 /**
  * Read-through helper. On miss, runs `loader`, stores the result, returns it.
+ * Concurrent misses for the same key share one in-flight loader (singleflight)
+ * so a cache stampede after invalidation cannot multiply DB work.
  * Loader errors propagate; cache write failures are swallowed by the driver.
  */
+const inflightLoaders = new Map<string, Promise<unknown>>();
+
 export async function cacheGetOrSet<T>(
   key: string,
   ttlSeconds: number,
@@ -225,9 +229,21 @@ export async function cacheGetOrSet<T>(
 ): Promise<T> {
   const cached = await cacheGet<T>(key);
   if (cached !== undefined) return cached;
-  const value = await loader();
-  await cacheSet(key, value, ttlSeconds);
-  return value;
+
+  const existing = inflightLoaders.get(key) as Promise<T> | undefined;
+  if (existing) return existing;
+
+  const pending = (async () => {
+    try {
+      const value = await loader();
+      await cacheSet(key, value, ttlSeconds);
+      return value;
+    } finally {
+      inflightLoaders.delete(key);
+    }
+  })();
+  inflightLoaders.set(key, pending);
+  return pending;
 }
 
 /** Stable hash for composing cache keys from structured query params. */
@@ -244,7 +260,8 @@ export const CacheKeys = {
     cursor: string | null,
     categoryId: string | null,
     locale: string | null = null,
-  ) => `feed:public:${cacheKeyHash({ cursor, categoryId, locale })}`,
+    limit: number | null = null,
+  ) => `feed:public:${cacheKeyHash({ cursor, categoryId, locale, limit })}`,
   feedPublicPrefix: () => "feed:public:",
 } as const;
 

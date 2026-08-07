@@ -89,16 +89,18 @@ export async function listMoneySavingsGoals(
        COALESCE(s.saved_minor, 0) AS saved_minor
      FROM money_savings_goals g
      LEFT JOIN (
-       SELECT goal_id, SUM(amount_minor) AS saved_minor
-         FROM money_savings_contributions
-        GROUP BY goal_id
+       SELECT c.goal_id, SUM(c.amount_minor) AS saved_minor
+         FROM money_savings_contributions c
+         INNER JOIN money_savings_goals g2 ON g2.id = c.goal_id
+        WHERE g2.user_id = ?
+        GROUP BY c.goal_id
      ) s ON s.goal_id = g.id
      WHERE g.user_id = ?
      ORDER BY
        CASE g.status WHEN 0 THEN 0 WHEN 1 THEN 1 ELSE 2 END,
        g.updated_at DESC,
        g.id DESC`,
-    [userId],
+    [userId, userId],
   );
   return rows.map(rowToGoal);
 }

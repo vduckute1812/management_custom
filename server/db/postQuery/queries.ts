@@ -96,7 +96,10 @@ export async function listFeedPosts(
       params.push(isoToDB(parsed.createdAt));
     }
   }
-  params.push(limit * 2 + 1);
+  // Over-fetch when a preferred locale may collapse translation siblings
+  // into fewer feed cards; otherwise only need limit+1 for nextCursor.
+  const fetchLimit = preferredLocale ? limit * 2 + 1 : limit + 1;
+  params.push(fetchLimit);
 
   const [rows] = await pool.query<PostRow[]>(
     `${buildPostSelect(sharedAcl.sql)}

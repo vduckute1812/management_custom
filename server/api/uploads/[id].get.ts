@@ -1,6 +1,5 @@
 import {
-  canViewerAccessUpload,
-  getUploadById,
+  resolveUploadForViewer,
   readUploadFile,
   signedUploadUrl,
 } from "~/server/utils/db";
@@ -21,18 +20,16 @@ export default defineEventHandler(async (event) => {
       throw new DomainError(400, "Upload id required");
     }
 
-    const allowed = await canViewerAccessUpload(user?.sub ?? null, id);
-    if (!allowed) {
-      throw new DomainError(404, "Upload not found");
-    }
-
-    const row = await getUploadById(id);
+    const row = await resolveUploadForViewer(user?.sub ?? null, id);
     if (!row) {
       throw new DomainError(404, "Upload not found");
     }
 
     const q = getQuery(event);
     const noRedirect = q.redirect === "0" || q.redirect === "false";
+
+    // Brief private cache: repeat views in a feed avoid re-hitting ACL+sign.
+    setHeader(event, "Cache-Control", "private, max-age=60");
 
     if (!noRedirect) {
       const url = await signedUploadUrl(row.storage_key);
@@ -46,7 +43,6 @@ export default defineEventHandler(async (event) => {
       "Content-Disposition",
       `inline; filename="${row.file_name.replace(/"/g, "")}"`,
     );
-    setHeader(event, "Cache-Control", "private, max-age=300");
     return data;
   } catch (err) {
     mapDomainError(err);
