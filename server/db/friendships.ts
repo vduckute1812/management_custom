@@ -108,7 +108,16 @@ export async function areFriends(
 
 /** Peer user ids with an Accepted friendship (for feed/story ACL `IN` lists). */
 const FRIEND_IDS_TTL_MS = 60_000;
+const FRIEND_IDS_CACHE_MAX = 500;
 const friendIdsCache = new Map<string, { until: number; ids: string[] }>();
+
+function rememberFriendIds(userId: string, ids: string[]) {
+  if (friendIdsCache.size >= FRIEND_IDS_CACHE_MAX) {
+    const oldest = friendIdsCache.keys().next().value;
+    if (oldest) friendIdsCache.delete(oldest);
+  }
+  friendIdsCache.set(userId, { ids, until: Date.now() + FRIEND_IDS_TTL_MS });
+}
 
 export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
   if (!userId) return [];
@@ -124,7 +133,7 @@ export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
     [userId, FriendshipStatus.Accepted, userId, userId],
   );
   const ids = rows.map((r) => String(r.peer_id));
-  friendIdsCache.set(userId, { ids, until: Date.now() + FRIEND_IDS_TTL_MS });
+  rememberFriendIds(userId, ids);
   return ids;
 }
 
