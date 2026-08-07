@@ -1,10 +1,5 @@
 <script setup lang="ts">
-import {
-  MONEY_SAVINGS_GOAL_STATUSES,
-  MONEY_SAVINGS_GOAL_STATUS_I18N_KEYS,
-  MoneySavingsGoalStatus,
-  type MoneySavingsGoal,
-} from "~/types/money";
+import { MoneySavingsGoalStatus, type MoneySavingsGoal } from "~/types/money";
 import { formatMoneyMinorPlain, parseMoneyMinorInput } from "~/utils/money";
 
 const props = defineProps<{
@@ -48,7 +43,9 @@ const baseline = ref("");
 const discardConfirmOpen = ref(false);
 const deleteConfirmOpen = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
-const titleInput = ref<HTMLInputElement | null>(null);
+const formFields = ref<{ titleInputEl: () => HTMLInputElement | null } | null>(
+  null,
+);
 const discardKeepBtn = ref<HTMLButtonElement | null>(null);
 const fid = useId();
 const fieldIds = {
@@ -205,8 +202,8 @@ useModal(isOpen, {
   container: rootEl,
   initialFocus: () =>
     discardConfirmOpen.value
-      ? (discardKeepBtn.value ?? titleInput.value)
-      : titleInput.value,
+      ? (discardKeepBtn.value ?? formFields.value?.titleInputEl() ?? null)
+      : (formFields.value?.titleInputEl() ?? null),
   onClose: handleModalEscape,
 });
 
@@ -232,133 +229,20 @@ watch(discardConfirmOpen, (open) => {
           aria-labelledby="savings-goal-modal-title"
         >
           <div :inert="discardConfirmOpen || deleteConfirmOpen">
-            <header
-              class="flex items-center justify-between border-b border-slate-200 px-6 py-4"
-            >
-              <h2
-                id="savings-goal-modal-title"
-                class="text-lg font-semibold text-slate-900"
-              >
-                {{
-                  form.id
-                    ? $t("money.savings.modal.editTitle")
-                    : $t("money.savings.modal.newTitle")
-                }}
-              </h2>
-              <button
-                type="button"
-                class="text-slate-400 transition hover:text-slate-700"
-                :aria-label="$t('money.savings.modal.close')"
-                @click="requestClose"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="h-5 w-5"
-                >
-                  <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                </svg>
-              </button>
-            </header>
+            <MoneySavingsGoalModalHeader
+              :goal-id="form.id"
+              @close="requestClose"
+            />
 
             <form
               class="flex-1 space-y-4 overflow-y-auto px-6 py-5 scrollbar-thin"
               @submit.prevent="onSubmit"
             >
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.title"
-                >
-                  {{ $t("money.savings.modal.title") }}
-                </label>
-                <input
-                  :id="fieldIds.title"
-                  ref="titleInput"
-                  v-model="form.title"
-                  type="text"
-                  required
-                  maxlength="120"
-                  :placeholder="$t('money.savings.modal.titlePlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
-
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    class="mb-1 block text-xs font-medium text-slate-600"
-                    :for="fieldIds.target"
-                  >
-                    {{ $t("money.savings.modal.target") }}
-                  </label>
-                  <input
-                    :id="fieldIds.target"
-                    v-model="form.targetText"
-                    type="text"
-                    inputmode="numeric"
-                    required
-                    :placeholder="$t('money.savings.modal.targetPlaceholder')"
-                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                  />
-                </div>
-                <div>
-                  <label
-                    class="mb-1 block text-xs font-medium text-slate-600"
-                    :for="fieldIds.status"
-                  >
-                    {{ $t("money.savings.modal.status") }}
-                  </label>
-                  <select
-                    :id="fieldIds.status"
-                    v-model.number="form.status"
-                    class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                  >
-                    <option
-                      v-for="st in MONEY_SAVINGS_GOAL_STATUSES"
-                      :key="st"
-                      :value="st"
-                    >
-                      {{ $t(MONEY_SAVINGS_GOAL_STATUS_I18N_KEYS[st]) }}
-                    </option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.targetDate"
-                >
-                  {{ $t("money.savings.modal.targetDate") }}
-                </label>
-                <input
-                  :id="fieldIds.targetDate"
-                  v-model="form.targetDate"
-                  type="date"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
-
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="fieldIds.note"
-                >
-                  {{ $t("money.savings.modal.note") }}
-                </label>
-                <input
-                  :id="fieldIds.note"
-                  v-model="form.note"
-                  type="text"
-                  maxlength="500"
-                  :placeholder="$t('money.savings.modal.notePlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
+              <MoneySavingsGoalModalForm
+                ref="formFields"
+                v-model="form"
+                :field-ids="fieldIds"
+              />
 
               <p
                 v-if="errorMsg"
@@ -369,42 +253,13 @@ watch(discardConfirmOpen, (open) => {
               </p>
             </form>
 
-            <footer
-              class="flex items-center justify-between gap-3 border-t border-slate-200 px-6 py-4"
-            >
-              <button
-                v-if="form.id"
-                type="button"
-                class="text-xs font-semibold text-rose-600 hover:text-rose-700 disabled:opacity-50"
-                :disabled="submitting"
-                @click="requestDelete"
-              >
-                {{ $t("money.savings.modal.delete") }}
-              </button>
-              <div v-else />
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  :disabled="submitting"
-                  @click="requestClose"
-                >
-                  {{ $t("money.savings.modal.cancel") }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
-                  :disabled="submitting"
-                  @click="onSubmit"
-                >
-                  {{
-                    submitting
-                      ? $t("money.savings.modal.saving")
-                      : $t("money.savings.modal.save")
-                  }}
-                </button>
-              </div>
-            </footer>
+            <MoneySavingsGoalModalFooter
+              :goal-id="form.id"
+              :submitting="submitting"
+              @cancel="requestClose"
+              @delete="requestDelete"
+              @save="onSubmit"
+            />
           </div>
 
           <div
