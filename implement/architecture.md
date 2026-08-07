@@ -160,16 +160,16 @@ Automated long-form ingest: `articleFetcher.ts` pulls reputable RSS/ArXiv feeds 
 
 ## Security headers
 
-`server/middleware/security-headers.ts` sets baseline headers on every response:
+`server/middleware/security-headers.ts` sets baseline headers on every response; HTML documents get a matching per-request script nonce from `server/plugins/csp-nonce.ts` (paired with SWR-cached bodies):
 
-- `Content-Security-Policy` (self-hosted scripts/styles; `unsafe-inline` for theme boot + Vue; Cloudflare Insights beacon + Google Fonts allowlisted)
+- `Content-Security-Policy` — no script `unsafe-inline`; document `script-src` uses `'nonce-…'`; `script-src-attr 'none'`; style `unsafe-inline` kept for Vue/KaTeX; Cloudflare Insights beacon + Google Fonts allowlisted
 - `Strict-Transport-Security` when the request is HTTPS / `X-Forwarded-Proto: https` (also set on the nginx prod edge)
 - `X-Content-Type-Options: nosniff`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 - `X-Frame-Options: SAMEORIGIN`
 - `Permissions-Policy` — `camera=()`, `geolocation=()`, `microphone=(self)` (chat voice notes)
 
-Tighten CSP further when inline boot scripts can be nonce-based.
+Theme boot script lives in `utils/themeBootScript.ts` and is stamped with the document nonce during render.
 
 ---
 

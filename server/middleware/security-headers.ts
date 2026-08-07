@@ -1,10 +1,12 @@
 /**
  * Baseline security headers for HTML + API responses.
- * CSP is intentionally strict-but-compatible with Nuxt/Vite inline theme boot
- * and KaTeX/CDN-free self-hosted assets. Tighten further as the surface grows.
+ * Document CSP nonces are applied in `server/plugins/csp-nonce.ts` during
+ * render so they stay paired with SWR-cached HTML. This middleware sets a
+ * strict no-inline script CSP as the default (API/JSON and any response that
+ * never hits the HTML renderer).
  */
 import type { H3Event } from "h3";
-import { CONTENT_SECURITY_POLICY } from "../utils/content-security-policy";
+import { buildApiContentSecurityPolicy } from "../utils/content-security-policy";
 
 function isHttpsRequest(event: H3Event): boolean {
   const proto = getRequestHeader(event, "x-forwarded-proto");
@@ -24,7 +26,7 @@ export default defineEventHandler((event) => {
     // Chat voice notes need same-origin mic; camera/geo stay off.
     "camera=(), microphone=(self), geolocation=()",
   );
-  setHeader(event, "Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  setHeader(event, "Content-Security-Policy", buildApiContentSecurityPolicy());
   // HSTS only on HTTPS (incl. Cloudflare Tunnel via X-Forwarded-Proto).
   // Browsers ignore HSTS on plain HTTP responses.
   if (isHttpsRequest(event)) {

@@ -1,4 +1,5 @@
 import tailwindcss from "@tailwindcss/vite";
+import { THEME_BOOT_SCRIPT } from "./utils/themeBootScript";
 
 export default defineNuxtConfig({
   compatibilityDate: "2025-01-01",
@@ -149,8 +150,8 @@ export default defineNuxtConfig({
         {
           // Runs synchronously in <head> before any styles paint, so users
           // who chose dark (or set their OS to dark) never see a light flash
-          // during hydration. Safe to inline: reads localStorage + media query.
-          innerHTML: `(function(){try{var s=localStorage.getItem('mgmt:settings:v1');var t='system';if(s){var p=JSON.parse(s);if(p&&(p.theme==='light'||p.theme==='dark'))t=p.theme;}if(t==='system'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;document.documentElement.style.colorScheme=t;}catch(e){}})();`,
+          // during hydration. CSP stamps a per-request nonce via csp-nonce plugin.
+          innerHTML: THEME_BOOT_SCRIPT,
           tagPosition: "head",
         },
       ],

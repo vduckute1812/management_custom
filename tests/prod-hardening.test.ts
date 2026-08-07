@@ -42,6 +42,21 @@ describe("production hardening invariants", () => {
     expect(csp).not.toMatch(/connect-src 'self' https:(;|$)/);
   });
 
+  it("does not allow script unsafe-inline in CSP builders", () => {
+    expect(csp).not.toMatch(/script-src[^;\n]*'unsafe-inline'/);
+    expect(csp).toContain("script-src-attr 'none'");
+    expect(csp).toContain("buildDocumentContentSecurityPolicy");
+  });
+
+  it("ships a MySQL app-user cutover script", () => {
+    const sql = readFileSync(
+      new URL("../docker/mysql-create-app-user.sql", import.meta.url),
+      "utf8",
+    );
+    expect(sql).toContain("CREATE USER IF NOT EXISTS 'mgmt'");
+    expect(sql).toContain("GRANT SELECT, INSERT, UPDATE, DELETE ON `rc`.*");
+  });
+
   it("runs lint and dependency audit in CI", () => {
     expect(ci).toContain("npm run lint");
     expect(ci).toContain("npm audit --omit=dev");
