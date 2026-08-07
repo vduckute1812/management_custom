@@ -67,5 +67,6 @@ export {
 
 export {
   friendshipRequestBodySchema,
+  friendshipPageQuerySchema,
   friendshipsQuerySchema,
 } from "./friendship";

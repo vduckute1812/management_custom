@@ -27,16 +27,19 @@ export async function listMoneyTransactionsForUser(
   query: ListQuery,
 ): Promise<{
   transactions: MoneyTransaction[];
-  totals: MoneyMonthTotals;
+  totals?: MoneyMonthTotals;
   nextCursor: string | null;
 }> {
   const yearMonth = resolveYearMonth(query.yearMonth);
   const range = yearMonthRange(yearMonth);
+  const pagePromise = listMoneyTransactions(userId, range, {
+    limit: query.limit,
+    cursor: query.cursor,
+  });
+  if (query.cursor) return pagePromise;
+
   const [page, sums] = await Promise.all([
-    listMoneyTransactions(userId, range, {
-      limit: query.limit,
-      cursor: query.cursor,
-    }),
+    pagePromise,
     sumMoneyMonth(userId, range),
   ]);
   return {

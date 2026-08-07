@@ -11,7 +11,7 @@ import {
   publicOnlyClause,
 } from "./acl";
 import { encodeFeedCursor, parseFeedCursor } from "./cursors";
-import { hydratePosts } from "./hydration";
+import { hydratePosts, shouldFetchMoreLocaleRows } from "./hydration";
 import { buildPostSelect } from "./select";
 import type { PostRow } from "./types";
 
@@ -85,29 +85,54 @@ export async function listFeedPosts(
     where += " AND p.category_id = ?";
     params.push(categoryId);
   }
+  let queryCursorAt: string | null = null;
+  let queryCursorId: string | null = null;
   if (cursor) {
     const parsed = parseFeedCursor(cursor);
-    if (parsed.id) {
-      where += " AND (p.created_at < ? OR (p.created_at = ? AND p.id < ?))";
-      const at = isoToDB(parsed.createdAt);
-      params.push(at, at, parsed.id);
-    } else {
-      where += " AND p.created_at < ?";
-      params.push(isoToDB(parsed.createdAt));
-    }
+    queryCursorAt = isoToDB(parsed.createdAt);
+    queryCursorId = parsed.id;
   }
   // Over-fetch when a preferred locale may collapse translation siblings
-  // into fewer feed cards; otherwise only need limit+1 for nextCursor.
+  // into fewer feed cards; otherwise only need limit+1 for nextCursor. If a
+  // locale-heavy batch still has too few card candidates, continue from its
+  // final raw row until hydration can produce a complete page or rows end.
   const fetchLimit = preferredLocale ? limit * 2 + 1 : limit + 1;
-  params.push(fetchLimit);
+  const rows: PostRow[] = [];
+  while (true) {
+    let pageWhere = where;
+    const pageParams = [...params];
+    if (queryCursorAt) {
+      if (queryCursorId) {
+        pageWhere +=
+          " AND (p.created_at < ? OR (p.created_at = ? AND p.id < ?))";
+        pageParams.push(queryCursorAt, queryCursorAt, queryCursorId);
+      } else {
+        pageWhere += " AND p.created_at < ?";
+        pageParams.push(queryCursorAt);
+      }
+    }
+    pageParams.push(fetchLimit);
 
-  const [rows] = await pool.query<PostRow[]>(
-    `${buildPostSelect(sharedAcl.sql)}
-     ${where}
-     ORDER BY p.created_at DESC, p.id DESC
-     LIMIT ?`,
-    params,
-  );
+    const [batch] = await pool.query<PostRow[]>(
+      `${buildPostSelect(sharedAcl.sql)}
+       ${pageWhere}
+       ORDER BY p.created_at DESC, p.id DESC
+       LIMIT ?`,
+      pageParams,
+    );
+    rows.push(...batch);
+
+    if (
+      !preferredLocale ||
+      !shouldFetchMoreLocaleRows(rows, limit + 1, batch.length === fetchLimit)
+    ) {
+      break;
+    }
+    const lastRow = batch[batch.length - 1];
+    if (!lastRow) break;
+    queryCursorAt = lastRow.created_at;
+    queryCursorId = lastRow.id;
+  }
 
   const hydrated = await hydratePosts(rows, vid, preferredLocale);
   const posts = hydrated.slice(0, limit);

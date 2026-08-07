@@ -89,6 +89,27 @@ function localeRank(locale: string, preferred: string | null): number {
   return idx >= 0 ? 10 + idx : 100;
 }
 
+/**
+ * Translation groups produce at least one hydrated card each. Treating every
+ * non-null group as one candidate is a safe lower bound: malformed singleton
+ * groups may make us over-fetch, but can never make us stop too early.
+ */
+export function shouldFetchMoreLocaleRows(
+  rows: readonly Pick<PostRow, "id" | "translation_group_id">[],
+  targetCount: number,
+  lastBatchFull: boolean,
+): boolean {
+  if (!lastBatchFull) return false;
+  const candidates = new Set(
+    rows.map((row) =>
+      row.translation_group_id
+        ? `group:${row.translation_group_id}`
+        : `post:${row.id}`,
+    ),
+  );
+  return candidates.size < targetCount;
+}
+
 function categoryFromRow(row: PostRow): PostCategory | null {
   if (!row.category_id || !row.category_slug || !row.category_name) return null;
   return {

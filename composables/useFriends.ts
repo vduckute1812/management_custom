@@ -12,6 +12,11 @@ interface FriendshipOverviewResponse {
   };
 }
 
+interface FriendshipPageResponse {
+  rows: FriendshipRow[];
+  nextCursor: string | null;
+}
+
 function appendUnique(
   current: FriendshipRow[],
   incoming: FriendshipRow[],
@@ -81,11 +86,14 @@ export function useFriends() {
     if (!friendsNextCursor.value || loadingMoreFriends.value) return;
     loadingMoreFriends.value = true;
     try {
-      const res = await apiFetch<FriendshipOverviewResponse>("/api/friends", {
-        query: { limit: 50, friendsCursor: friendsNextCursor.value },
-      });
-      friends.value = appendUnique(friends.value, res.friends);
-      friendsNextCursor.value = res.nextCursors.friends;
+      const res = await apiFetch<FriendshipPageResponse>(
+        "/api/friends/accepted",
+        {
+          query: { limit: 50, cursor: friendsNextCursor.value },
+        },
+      );
+      friends.value = appendUnique(friends.value, res.rows);
+      friendsNextCursor.value = res.nextCursor;
     } finally {
       loadingMoreFriends.value = false;
     }
@@ -95,11 +103,14 @@ export function useFriends() {
     if (!incomingNextCursor.value || loadingMoreIncoming.value) return;
     loadingMoreIncoming.value = true;
     try {
-      const res = await apiFetch<FriendshipOverviewResponse>("/api/friends", {
-        query: { limit: 50, incomingCursor: incomingNextCursor.value },
-      });
-      incoming.value = appendUnique(incoming.value, res.incoming);
-      incomingNextCursor.value = res.nextCursors.incoming;
+      const res = await apiFetch<FriendshipPageResponse>(
+        "/api/friends/incoming",
+        {
+          query: { limit: 50, cursor: incomingNextCursor.value },
+        },
+      );
+      incoming.value = appendUnique(incoming.value, res.rows);
+      incomingNextCursor.value = res.nextCursor;
     } finally {
       loadingMoreIncoming.value = false;
     }
@@ -109,11 +120,14 @@ export function useFriends() {
     if (!outgoingNextCursor.value || loadingMoreOutgoing.value) return;
     loadingMoreOutgoing.value = true;
     try {
-      const res = await apiFetch<FriendshipOverviewResponse>("/api/friends", {
-        query: { limit: 50, outgoingCursor: outgoingNextCursor.value },
-      });
-      outgoing.value = appendUnique(outgoing.value, res.outgoing);
-      outgoingNextCursor.value = res.nextCursors.outgoing;
+      const res = await apiFetch<FriendshipPageResponse>(
+        "/api/friends/outgoing",
+        {
+          query: { limit: 50, cursor: outgoingNextCursor.value },
+        },
+      );
+      outgoing.value = appendUnique(outgoing.value, res.rows);
+      outgoingNextCursor.value = res.nextCursor;
     } finally {
       loadingMoreOutgoing.value = false;
     }

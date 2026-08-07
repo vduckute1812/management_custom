@@ -3,7 +3,7 @@ import { toYearMonth } from "~/utils/money";
 
 interface ListResponse {
   transactions: MoneyTransaction[];
-  totals: MoneyMonthTotals;
+  totals?: MoneyMonthTotals;
   nextCursor: string | null;
 }
 
@@ -61,7 +61,7 @@ export const useMoney = () => {
         ...transactions.value,
         ...data.transactions.filter((row) => !seen.has(row.id)),
       ];
-      totals.value = data.totals;
+      if (data.totals) totals.value = data.totals;
       nextCursor.value = data.nextCursor ?? null;
     } catch (err: unknown) {
       error.value =
