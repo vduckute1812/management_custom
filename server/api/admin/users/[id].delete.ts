@@ -7,9 +7,10 @@
  *   - The superadmin account itself cannot be deleted.
  *   - You cannot delete your own account while signed in.
  */
-import { UserRole, deleteUser, getUserById } from "~/server/utils/db";
+import { UserRole, getUserById } from "~/server/utils/db";
 import { requireSuperAdmin } from "~/server/utils/authContext";
 import { DomainError, mapDomainError } from "~/server/utils/http";
+import { deleteUserAccount } from "~/server/services/accountDeletionService";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
       throw new DomainError(400, "The superadmin account cannot be deleted.");
     }
 
-    const removed = await deleteUser(id);
+    const removed = await deleteUserAccount(id);
     if (!removed) {
       throw new DomainError(404, "User not found");
     }

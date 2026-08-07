@@ -408,38 +408,18 @@ export async function recordUserLogin(id: string): Promise<void> {
 }
 
 /**
- * Hard-delete a user row and every artefact that belongs to them.
- *
- * MySQL `ON DELETE CASCADE` removes owned rows (tasks, posts, chat, money,
- * uploads metadata, sessions, …). Extra work the FKs cannot do:
- *   - queue jobs whose payload targets their email (no `user_id` column)
- *   - Cloudflare R2 objects for their uploads and any legacy story keys
- *   - recount `posts.comment_count` on other people's posts they commented on
- *   - bust the anonymous public-feed cache so their posts stop appearing
- *
- * Share posts *by other users* that pointed at this user's originals keep
- * their row with `shared_post_id` SET NULL — those posts belong to the
- * sharer, not the deleted account.
+ * Atomically delete the user row and address-only queued jobs. Cascading
+ * foreign keys remove owned database records; external cleanup is orchestrated
+ * by accountDeletionService.
  */
-export async function deleteUser(id: string): Promise<boolean> {
-  const { listStorageKeysForUser, purgeR2StorageKeys } =
-    await import("./uploads");
-  const { listStoryStorageKeysForUser } = await import("./stories");
-  const { recountCommentCounts } = await import("./postComments");
+export async function deleteUserRecord(
+  id: string,
+  recipientEmail: string,
+): Promise<{ removed: boolean; touchedPostIds: string[] }> {
   const { deleteJobsForRecipientEmail } = await import("./jobs");
-  const { invalidatePublicFeedCaches } =
-    await import("~/server/utils/cacheInvalidate");
-
-  const existing = await getUserById(id);
-  if (!existing) return false;
-
-  const uploadKeys = await listStorageKeysForUser(id);
-  const storyKeys = await listStoryStorageKeysForUser(id);
-  const keys = [...new Set([...uploadKeys, ...storyKeys])];
-
   const pool = getPool();
   const conn = await pool.getConnection();
-  let ok = false;
+  let removed = false;
   let touchedPostIds: string[] = [];
   try {
     await conn.beginTransaction();
@@ -453,13 +433,13 @@ export async function deleteUser(id: string): Promise<boolean> {
 
     // Jobs reference the address, not the user id — delete them in the same
     // transaction so a crash between steps cannot leave mail still queued.
-    await deleteJobsForRecipientEmail(existing.email, conn);
+    await deleteJobsForRecipientEmail(recipientEmail, conn);
 
     const [result] = await conn.query<ResultSetHeader>(
       "DELETE FROM users WHERE id = ?",
       [id],
     );
-    ok = (result.affectedRows ?? 0) > 0;
+    removed = (result.affectedRows ?? 0) > 0;
     await conn.commit();
   } catch (err) {
     await conn.rollback();
@@ -468,16 +448,7 @@ export async function deleteUser(id: string): Promise<boolean> {
     conn.release();
   }
 
-  if (!ok) return false;
-
-  if (touchedPostIds.length) {
-    await recountCommentCounts(touchedPostIds);
-  }
-  if (keys.length) {
-    await purgeR2StorageKeys(keys);
-  }
-  await invalidatePublicFeedCaches();
-  return true;
+  return { removed, touchedPostIds };
 }
 
 export async function searchUserDirectory(

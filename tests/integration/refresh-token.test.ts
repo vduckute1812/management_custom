@@ -5,13 +5,13 @@
 import { describe, expect, it } from "vitest";
 import {
   createUser,
-  deleteUser,
   findActiveRefreshToken,
   findRefreshTokenByHash,
   issueRefreshToken,
   revokeRefreshTokenFamily,
   rotateRefreshToken,
 } from "../../server/utils/db";
+import { deleteUserAccount } from "../../server/services/accountDeletionService";
 import { hashOpaqueToken, nowPlusSeconds } from "../../server/utils/auth";
 import {
   assertIntegrationDbReady,
@@ -61,7 +61,7 @@ describe.skipIf(!integrationEnabled)(
         await revokeRefreshTokenFamily(familyId);
         expect(await findActiveRefreshToken(hash2)).toBeNull();
       } finally {
-        await deleteUser(user.id);
+        await deleteUserAccount(user.id);
       }
     });
   },

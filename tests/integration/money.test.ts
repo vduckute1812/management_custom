@@ -16,7 +16,8 @@ import {
   listMoneyBudgets,
   upsertMoneyBudget,
 } from "../../server/db/moneyBudgets";
-import { createUser, deleteUser } from "../../server/utils/db";
+import { createUser } from "../../server/utils/db";
+import { deleteUserAccount } from "../../server/services/accountDeletionService";
 import {
   MoneyBudgetScope,
   MoneyCategory,
@@ -67,7 +68,7 @@ describe.skipIf(!integrationEnabled)(
 
         await deleteMoneySavingsGoal(user.id, goal.id);
       } finally {
-        await deleteUser(user.id);
+        await deleteUserAccount(user.id);
       }
     });
 
@@ -130,7 +131,7 @@ describe.skipIf(!integrationEnabled)(
           await deleteMoneyBudget(user.id, b.id);
         }
       } finally {
-        await deleteUser(user.id);
+        await deleteUserAccount(user.id);
       }
     });
   },

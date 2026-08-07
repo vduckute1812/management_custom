@@ -4,28 +4,13 @@ import type {
   Post,
   PostAuthor,
   PostCategory,
-  PostComment,
   PostFontFamily,
-  PostReactionType,
   PostTextColor,
 } from "~/types/post";
 import { PostFormat, PostVisibility } from "~/types/post";
 import type { StoriesTray } from "~/types/story";
-import { applyOptimisticReaction } from "~/utils/optimisticReaction";
+import { createPostMutations, patchPost } from "./postMutations";
 
-function patchPost(list: Post[], id: string, next: Post): Post[] {
-  const idx = list.findIndex((p) => p.id === id);
-  if (idx < 0) return list;
-  return [...list.slice(0, idx), next, ...list.slice(idx + 1)];
-}
-
-/**
- * Monotonic token per post for reaction mutations. Rapid clicks fire
- * overlapping requests; only the response (or rollback) belonging to the
- * newest request may touch state, so out-of-order responses can never
- * overwrite fresher optimistic UI or corrupt counts.
- */
-const reactionRequestTokens = new Map<string, number>();
 /** Ignores overlapping refresh results so rapid category switches stay consistent. */
 let feedRefreshGeneration = 0;
 
@@ -289,135 +274,12 @@ export const usePosts = () => {
     }
   }
 
-  /**
-   * Optimistically apply a reaction (or clear it when `reaction` is null),
-   * then reconcile with the server. Guarded by a per-post request token so
-   * click spamming cannot interleave responses and corrupt counts.
-   */
-  async function mutateReaction(id: string, reaction: PostReactionType | null) {
-    const idx = posts.value.findIndex((p) => p.id === id);
-    if (idx < 0) return;
-    const prev = posts.value[idx];
-    if (!prev) return;
-    if (reaction === null && prev.myReaction == null) return;
-    if (reaction !== null && prev.myReaction === reaction) return;
-
-    const token = (reactionRequestTokens.get(id) ?? 0) + 1;
-    reactionRequestTokens.set(id, token);
-    const isLatest = () => reactionRequestTokens.get(id) === token;
-
-    const optimisticCounts = applyOptimisticReaction(prev, reaction);
-    const optimistic: Post = {
-      ...prev,
-      ...optimisticCounts,
-    };
-    posts.value = patchPost(posts.value, id, optimistic);
-
-    try {
-      const res =
-        reaction != null
-          ? await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
-              method: "POST",
-              body: { reaction },
-            })
-          : await apiFetch<{ post: Post }>(`/api/posts/${id}/reactions`, {
-              method: "DELETE",
-            });
-      // A newer click superseded this request — let its response win.
-      if (isLatest()) {
-        posts.value = patchPost(posts.value, id, res.post);
-      }
-    } catch {
-      if (isLatest()) {
-        posts.value = patchPost(posts.value, id, prev);
-        pushToast(
-          t(
-            reaction != null
-              ? "toasts.couldNotUpdateReaction"
-              : "toasts.couldNotClearReaction",
-          ),
-          { tone: "danger" },
-        );
-      }
-    }
-  }
-
-  async function setReaction(id: string, reaction: PostReactionType) {
-    await mutateReaction(id, reaction);
-  }
-
-  async function clearReaction(id: string) {
-    await mutateReaction(id, null);
-  }
-
-  async function sharePost(
-    id: string,
-    note?: string,
-    visibility: PostVisibility = PostVisibility.Public,
-  ): Promise<Post> {
-    const res = await apiFetch<{ post: Post }>(`/api/posts/${id}/share`, {
-      method: "POST",
-      body: { body: note ?? "", visibility },
-    });
-    posts.value = [res.post, ...posts.value];
-    pushToast(t("toasts.postSharedToFeed"), {
-      tone: "success",
-      duration: 2500,
-    });
-    return res.post;
-  }
-
-  async function loadComments(
-    postId: string,
-    opts: { limit?: number; before?: string | null } = {},
-  ): Promise<{
-    comments: PostComment[];
-    hasMore: boolean;
-    nextBefore: string | null;
-  }> {
-    const res = await apiFetch<{
-      comments: PostComment[];
-      hasMore: boolean;
-      nextBefore: string | null;
-    }>(`/api/posts/${postId}/comments`, {
-      query: {
-        limit: opts.limit ?? 30,
-        ...(opts.before ? { before: opts.before } : {}),
-      },
-    });
-    return res;
-  }
-
-  async function addComment(
-    postId: string,
-    body: string,
-  ): Promise<PostComment> {
-    const res = await apiFetch<{ comment: PostComment }>(
-      `/api/posts/${postId}/comments`,
-      { method: "POST", body: { body } },
-    );
-    const current = posts.value.find((p) => p.id === postId);
-    if (current) {
-      posts.value = patchPost(posts.value, postId, {
-        ...current,
-        commentCount: current.commentCount + 1,
-      });
-    }
-    return res.comment;
-  }
-
-  async function removeComment(postId: string, commentId: string) {
-    await apiFetch(`/api/posts/${postId}/comments/${commentId}`, {
-      method: "DELETE",
-    });
-    const current = posts.value.find((p) => p.id === postId);
-    if (current) {
-      posts.value = patchPost(posts.value, postId, {
-        ...current,
-        commentCount: Math.max(0, current.commentCount - 1),
-      });
-    }
-  }
+  const postMutations = createPostMutations({
+    posts,
+    apiFetch,
+    pushToast,
+    t: (key) => t(key),
+  });
 
   return {
     posts,
@@ -435,11 +297,6 @@ export const usePosts = () => {
     getPostForEdit,
     updatePost,
     removePost,
-    setReaction,
-    clearReaction,
-    sharePost,
-    loadComments,
-    addComment,
-    removeComment,
+    ...postMutations,
   };
 };
