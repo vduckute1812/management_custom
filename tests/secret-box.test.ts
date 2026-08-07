@@ -19,7 +19,8 @@ describe("secretBox", () => {
   it("rejects tampered ciphertext", () => {
     process.env.JWT_SECRET = "test-secret-at-least-16";
     const sealed = sealSecret("token");
-    const tweaked = `${sealed.slice(0, -2)}ab`;
+    const replacement = sealed[2] === "A" ? "B" : "A";
+    const tweaked = `${sealed.slice(0, 2)}${replacement}${sealed.slice(3)}`;
     expect(() => openSecret(tweaked)).toThrow();
   });
 });
