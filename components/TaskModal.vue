@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import dayjs from "dayjs";
+import { useDiscardConfirm } from "~/composables/useDiscardConfirm";
 import { newClientId } from "~/utils/clientId";
 import {
   RecurrenceRule,
