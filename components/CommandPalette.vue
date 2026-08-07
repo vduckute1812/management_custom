@@ -110,6 +110,17 @@ const allItems = computed<PaletteItem[]>(() => {
       },
     },
     {
+      id: "view:friends",
+      kind: "view",
+      title: t("commandPalette.goFriends"),
+      subtitle: t("commandPalette.goFriendsSub"),
+      icon: "bolt",
+      shortcut: "g r",
+      run: () => {
+        router.push("/friends");
+      },
+    },
+    {
       id: "view:money",
       kind: "view",
       title: t("commandPalette.goMoney"),

@@ -474,6 +474,11 @@ export const useChat = () => {
 
   async function deleteMessage(messageId: string) {
     if (!activeId.value) return;
+    const previous = messages.value;
+    const previousConversations = conversations.value.map((c) => ({
+      ...c,
+      lastMessage: c.lastMessage ? { ...c.lastMessage } : null,
+    }));
     messages.value = messages.value.filter((m) => m.id !== messageId);
     const conv = conversations.value.find((c) => c.id === activeId.value);
     if (conv?.lastMessage?.id === messageId) {
@@ -481,10 +486,16 @@ export const useChat = () => {
       conv.lastMessage =
         remaining.length > 0 ? (remaining[remaining.length - 1] ?? null) : null;
     }
-    await apiFetch(
-      `/api/chat/conversations/${activeId.value}/messages/${messageId}`,
-      { method: "DELETE" },
-    );
+    try {
+      await apiFetch(
+        `/api/chat/conversations/${activeId.value}/messages/${messageId}`,
+        { method: "DELETE" },
+      );
+    } catch (err) {
+      messages.value = previous;
+      conversations.value = previousConversations;
+      throw err;
+    }
   }
 
   function closeConversation() {

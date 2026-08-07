@@ -1060,6 +1060,8 @@
     "taskSubtitleWithEpic": "任務 · {epic}",
     "goChat": "前往聊天",
     "goChatSub": "私訊",
+    "goFriends": "前往好友",
+    "goFriendsSub": "好友列表與請求",
     "goMoney": "前往記帳",
     "goMoneySub": "收支與月度彙總"
   },

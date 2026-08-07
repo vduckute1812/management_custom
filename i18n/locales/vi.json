@@ -1060,6 +1060,8 @@
     "taskSubtitleWithEpic": "Công việc · {epic}",
     "goChat": "Đến Chat",
     "goChatSub": "Tin nhắn trực tiếp",
+    "goFriends": "Đến Bạn bè",
+    "goFriendsSub": "Danh sách bạn và lời mời",
     "goMoney": "Đến Tiền",
     "goMoneySub": "Chi tiêu và tổng theo tháng"
   },

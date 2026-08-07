@@ -94,11 +94,12 @@ async function seedSamples() {
       </button>
     </header>
 
-    <div
-      v-if="error"
-      class="px-6 py-2 bg-rose-50 text-rose-700 text-sm border-b border-rose-200"
-    >
-      {{ error }}
+    <div v-if="error" class="px-6 py-2 border-b border-rose-200">
+      <InlineErrorAlert
+        :message="error"
+        :retry-label="$t('common.retry')"
+        @retry="fetchAll()"
+      />
     </div>
 
     <div class="flex-1 overflow-y-auto scrollbar-thin p-6">

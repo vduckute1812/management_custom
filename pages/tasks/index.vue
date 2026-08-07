@@ -342,11 +342,12 @@ const isEmpty = computed(
       </div>
     </header>
 
-    <div
-      v-if="error"
-      class="px-6 py-2 bg-rose-50 text-rose-700 text-sm border-b border-rose-200"
-    >
-      {{ error }}
+    <div v-if="error" class="px-6 py-2 border-b border-rose-200">
+      <InlineErrorAlert
+        :message="error"
+        :retry-label="$t('common.retry')"
+        @retry="fetchAll()"
+      />
     </div>
 
     <!-- Empty state takes over the whole canvas on first run. -->

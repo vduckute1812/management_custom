@@ -343,9 +343,12 @@ defineExpose({ scrollToBottom });
       v-if="hasMore"
       ref="loadOlderSentinel"
       class="mb-2 flex min-h-8 items-center justify-center"
-      aria-hidden="true"
     >
-      <span v-if="loadingMore" class="text-xs font-medium text-slate-400">
+      <span
+        v-if="loadingMore"
+        class="text-xs font-medium text-slate-400"
+        aria-live="polite"
+      >
         {{ t("chat.loadingOlder") }}
       </span>
       <button

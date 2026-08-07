@@ -183,9 +183,12 @@ function onExportJson() {
 
     <div class="relative z-0 flex-1 overflow-y-auto scrollbar-thin">
       <div class="mx-auto max-w-3xl space-y-4 px-4 py-6 md:px-6">
-        <p v-if="error" class="text-sm text-rose-600" role="alert">
-          {{ error }}
-        </p>
+        <InlineErrorAlert
+          v-if="error"
+          :message="error"
+          :retry-label="$t('common.retry')"
+          @retry="fetchGoals()"
+        />
         <div
           v-else-if="isLoading && !goals.length"
           class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"

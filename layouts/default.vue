@@ -17,7 +17,8 @@ type NavIcon =
   | "user"
   | "users"
   | "wallet"
-  | "goal";
+  | "goal"
+  | "chat";
 
 interface NavItem {
   to: string;
@@ -105,11 +106,12 @@ const navItems = computed<NavItem[]>(() => {
   if (isFeedSection.value) {
     const feedNav: NavItem[] = [
       { to: "/feed", labelKey: "nav.feed", icon: "feed" },
+      { to: "/chat", labelKey: "nav.chat", icon: "chat" },
       { to: "/friends", labelKey: "nav.friends", icon: "users" },
       { to: "/settings", labelKey: "nav.settings", icon: "cog" },
     ];
     if (auth.isAdminUi.value) {
-      feedNav.splice(2, 0, {
+      feedNav.splice(3, 0, {
         to: "/admin",
         labelKey: "nav.admin",
         icon: "shield",
@@ -370,7 +372,11 @@ useModal(mobileMoreOpen, {
       <main
         id="main-content"
         class="flex min-h-0 min-w-0 flex-1 flex-col"
-        :class="showModuleSidebar ? 'pb-20 md:pb-0' : ''"
+        :class="
+          showModuleSidebar
+            ? 'pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-0'
+            : ''
+        "
         tabindex="-1"
       >
         <slot />
@@ -392,7 +398,7 @@ useModal(mobileMoreOpen, {
           @click="closeMobileMore"
         >
           <div
-            class="absolute inset-x-0 bottom-[5.5rem] mx-3 mb-2 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+            class="absolute inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] mx-3 mb-2 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 overflow-hidden"
             @click.stop
           >
             <button
@@ -439,7 +445,7 @@ useModal(mobileMoreOpen, {
     <!-- Mobile module nav (within-section only; module switch is via header) -->
     <div
       v-if="showModuleSidebar && navItems.length"
-      class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 no-print"
+      class="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)] no-print"
     >
       <nav
         class="grid grid-flow-col auto-cols-fr"
