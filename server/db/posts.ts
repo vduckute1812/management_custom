@@ -23,6 +23,7 @@ import {
 } from "../../types/post";
 import { getCategoryById } from "./categories";
 import { isContentLocale } from "../../utils/contentLocale";
+import { clampVisibilityToCeiling } from "../../utils/postVisibilityRank";
 import {
   getPostById,
   normalizeFontFamily,
@@ -110,8 +111,8 @@ export async function createPost(
   if (format === PostFormat.Manuscript && !title) {
     throw new DomainError(400, "Manuscript title is required");
   }
-  const visibility = toPostVisibility(args.visibility);
-  const audienceUserIds =
+  let visibility = toPostVisibility(args.visibility);
+  let audienceUserIds =
     visibility === PostVisibility.Shared
       ? [
           ...new Set(
@@ -119,6 +120,50 @@ export async function createPost(
           ),
         ]
       : [];
+
+  if (args.sharedPostId) {
+    const existing = await getPostById(userId, args.sharedPostId);
+    if (!existing) {
+      throw new DomainError(404, "Shared post not found");
+    }
+    if (existing.visibility === PostVisibility.Private) {
+      throw new DomainError(400, "Private posts cannot be shared");
+    }
+    // Never let a wrapper post widen access beyond the original.
+    visibility = clampVisibilityToCeiling(visibility, existing.visibility);
+
+    // Friends-only originals must not be re-shared to arbitrary audiences
+    // (Shared visibility could name non-friends and widen access).
+    if (
+      existing.visibility === PostVisibility.Friends &&
+      visibility === PostVisibility.Shared
+    ) {
+      visibility = PostVisibility.Friends;
+    }
+
+    if (visibility === PostVisibility.Shared) {
+      const allowed = new Set(existing.audienceUserIds ?? []);
+      allowed.add(existing.author.id);
+      audienceUserIds = [
+        ...new Set(
+          (args.audienceUserIds ?? []).filter(
+            (x) => x && x !== userId && allowed.has(x),
+          ),
+        ),
+      ];
+      if (
+        existing.visibility === PostVisibility.Shared &&
+        audienceUserIds.length === 0
+      ) {
+        throw new DomainError(
+          400,
+          "Share audience must be a subset of the original audience",
+        );
+      }
+    } else {
+      audienceUserIds = [];
+    }
+  }
 
   if (visibility === PostVisibility.Shared && audienceUserIds.length === 0) {
     throw new DomainError(
@@ -181,13 +226,6 @@ export async function createPost(
       translationGroupId = requestedGroup;
     } else {
       translationGroupId = generateId("tgrp");
-    }
-  }
-
-  if (args.sharedPostId) {
-    const existing = await getPostById(userId, args.sharedPostId);
-    if (!existing) {
-      throw new DomainError(404, "Shared post not found");
     }
   }
 

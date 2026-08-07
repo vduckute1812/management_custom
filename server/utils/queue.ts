@@ -16,6 +16,7 @@ import {
   sendVerificationEmail,
   type SendMailArgs,
 } from "~/server/utils/mailer";
+import { openSecret, sealSecret } from "~/server/utils/secretBox";
 
 export const JobTypes = {
   EmailSend: "email.send",
@@ -52,7 +53,12 @@ export async function enqueueVerificationEmail(
 ): Promise<JobRow> {
   return enqueueJob({
     type: JobTypes.EmailVerification,
-    payload: { to: args.to, token: args.token, locale: args.locale ?? "en" },
+    // Never store the raw action token in MySQL — only a sealed blob.
+    payload: {
+      to: args.to,
+      tokenSealed: sealSecret(args.token),
+      locale: args.locale ?? "en",
+    },
     delaySeconds: opts?.delaySeconds,
     maxAttempts: opts?.maxAttempts ?? 5,
   });
@@ -64,10 +70,23 @@ export async function enqueuePasswordResetEmail(
 ): Promise<JobRow> {
   return enqueueJob({
     type: JobTypes.EmailPasswordReset,
-    payload: { to: args.to, token: args.token, locale: args.locale ?? "en" },
+    payload: {
+      to: args.to,
+      tokenSealed: sealSecret(args.token),
+      locale: args.locale ?? "en",
+    },
     delaySeconds: opts?.delaySeconds,
     maxAttempts: opts?.maxAttempts ?? 5,
   });
+}
+
+function resolveEmailActionToken(payload: Record<string, unknown>): string {
+  const sealed =
+    typeof payload.tokenSealed === "string" ? payload.tokenSealed : "";
+  if (sealed) return openSecret(sealed);
+  // Legacy jobs (pre-seal) may still carry plaintext — accept once then die.
+  const legacy = typeof payload.token === "string" ? payload.token : "";
+  return legacy;
 }
 
 export async function enqueueCacheInvalidate(
@@ -107,7 +126,7 @@ export async function processJob(job: JobRow): Promise<void> {
     }
     case JobTypes.EmailVerification: {
       const to = String(job.payload.to || "");
-      const token = String(job.payload.token || "");
+      const token = resolveEmailActionToken(job.payload);
       const locale =
         typeof job.payload.locale === "string" ? job.payload.locale : "en";
       if (!to || !token) {
@@ -118,7 +137,7 @@ export async function processJob(job: JobRow): Promise<void> {
     }
     case JobTypes.EmailPasswordReset: {
       const to = String(job.payload.to || "");
-      const token = String(job.payload.token || "");
+      const token = resolveEmailActionToken(job.payload);
       const locale =
         typeof job.payload.locale === "string" ? job.payload.locale : "en";
       if (!to || !token) {

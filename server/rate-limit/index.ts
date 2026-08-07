@@ -25,7 +25,11 @@ export {
   resolveAccountPolicy,
   resolvePolicy,
 } from "./policies";
-export { _resetRateLimitStoreForTests, rateLimitHit } from "./store";
+export {
+  RateLimitStoreUnavailableError,
+  _resetRateLimitStoreForTests,
+  rateLimitHit,
+} from "./store";
 export type {
   RateLimitOptions,
   RateLimitPolicy,

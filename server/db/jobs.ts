@@ -315,3 +315,30 @@ export async function purgeOldJobs(olderThanDays = 14): Promise<number> {
   );
   return result.affectedRows ?? 0;
 }
+
+/**
+ * Auth email jobs may still carry legacy plaintext tokens. Purge them after
+ * one day even when the global retention is longer.
+ */
+export async function purgeSensitiveEmailJobs(
+  olderThanHours = 24,
+): Promise<number> {
+  const pool = getPool();
+  const cutoff = new Date(
+    Date.now() - olderThanHours * 3600 * 1000,
+  ).toISOString();
+  const [result] = await pool.query<ResultSetHeader>(
+    `DELETE FROM jobs
+     WHERE type IN (?, ?)
+       AND status IN (?, ?)
+       AND updated_at < ?`,
+    [
+      "email.verification",
+      "email.passwordReset",
+      JobStatus.Completed,
+      JobStatus.Dead,
+      isoToDB(cutoff),
+    ],
+  );
+  return result.affectedRows ?? 0;
+}

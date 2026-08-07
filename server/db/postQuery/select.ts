@@ -1,4 +1,10 @@
-export const POST_SELECT = `
+/**
+ * Feed/post SELECT. Shared-post columns are only populated when the JOIN
+ * ACL matches — otherwise `sp.*` is NULL and hydration omits the preview
+ * body (wrapper post still visible under its own ACL).
+ */
+export function buildPostSelect(sharedAclSql: string): string {
+  return `
   SELECT
     p.id,
     p.user_id,
@@ -38,6 +44,7 @@ export const POST_SELECT = `
   FROM posts p
   INNER JOIN users u ON u.id = p.user_id
   LEFT JOIN post_categories c ON c.id = p.category_id
-  LEFT JOIN posts sp ON sp.id = p.shared_post_id
+  LEFT JOIN posts sp ON sp.id = p.shared_post_id AND (${sharedAclSql})
   LEFT JOIN users su ON su.id = sp.user_id
 `;
+}

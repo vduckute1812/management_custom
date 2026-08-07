@@ -3,8 +3,8 @@
  *
  * Memory is the default (single Nitro process, zero deps). When `REDIS_URL` is
  * set the same counters live in Redis so a restart — or a future second
- * instance — cannot reset the auth budgets. Redis failures fall open to
- * memory: a cache outage must not take authentication with it.
+ * instance — cannot reset the auth budgets. Non-auth routes still fail-open
+ * to memory on Redis outages; credential paths can fail-closed.
  */
 
 interface WindowEntry {
@@ -16,6 +16,13 @@ const buckets = new Map<string, WindowEntry>();
 
 let lastPrune = Date.now();
 const PRUNE_INTERVAL_MS = 60_000;
+
+export class RateLimitStoreUnavailableError extends Error {
+  constructor(message = "Rate limit store unavailable") {
+    super(message);
+    this.name = "RateLimitStoreUnavailableError";
+  }
+}
 
 function pruneExpired(now: number) {
   if (now - lastPrune < PRUNE_INTERVAL_MS) return;
@@ -115,21 +122,34 @@ async function redisHit(
 /**
  * Increment the counter for `key` within a fixed window of `windowMs`.
  * Returns the 1-based count after increment and when the window resets.
+ *
+ * When `REDIS_URL` is set and `failClosed` is true (auth / credential paths),
+ * Redis outages reject the request instead of silently resetting budgets in
+ * process memory.
  */
 export async function rateLimitHit(
   key: string,
   windowMs: number,
+  opts?: { failClosed?: boolean },
 ): Promise<{ count: number; resetAt: number }> {
+  const redisConfigured = Boolean(process.env.REDIS_URL?.trim());
   const client = await getRedis();
   if (client) {
     try {
       return await redisHit(client, key, windowMs);
     } catch (err) {
+      if (opts?.failClosed && redisConfigured) {
+        throw new RateLimitStoreUnavailableError(
+          (err as Error)?.message || "redis hit failed",
+        );
+      }
       console.warn(
         "[rate-limit] redis hit failed, falling back to memory:",
         (err as Error)?.message || err,
       );
     }
+  } else if (opts?.failClosed && redisConfigured) {
+    throw new RateLimitStoreUnavailableError("redis client unavailable");
   }
   return memoryHit(key, windowMs);
 }

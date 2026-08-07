@@ -73,14 +73,17 @@ describe("resolvePolicy", () => {
     expect(resolvePolicy("/api/auth/login")).toEqual({
       limit: 10,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolvePolicy("/api/auth/signup")).toEqual({
       limit: 5,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolvePolicy("/api/uploads")).toEqual({
       limit: 30,
       windowMs: 60_000,
+      failClosed: false,
     });
   });
 
@@ -103,22 +106,27 @@ describe("resolvePolicy", () => {
     expect(resolveAccountPolicy("/api/auth/login")).toEqual({
       limit: 10,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolveAccountPolicy("/api/auth/signup")).toEqual({
       limit: 5,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolveAccountPolicy("/api/auth/forgot-password")).toEqual({
       limit: 5,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolveAccountPolicy("/api/auth/account")).toEqual({
       limit: 5,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolvePolicy("/api/auth/account")).toEqual({
       limit: 5,
       windowMs: 60_000,
+      failClosed: true,
     });
     expect(resolveAccountPolicy("/api/tasks")).toBeNull();
   });
