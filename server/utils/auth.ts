@@ -107,11 +107,10 @@ export function verifyAccessToken(token: string): AccessTokenClaims {
       issuer: TOKEN_ISSUER,
     });
   } catch (err: unknown) {
-    const message = (err as { name?: string; message?: string })?.name ?? "";
-    if (message === "TokenExpiredError") {
-      throw new Error("Token expired");
+    if (err instanceof Error && err.name === "TokenExpiredError") {
+      throw new Error("Token expired", { cause: err });
     }
-    throw new Error("Invalid token");
+    throw new Error("Invalid token", { cause: err });
   }
   if (typeof decoded === "string" || !decoded) {
     throw new Error("Invalid token payload");

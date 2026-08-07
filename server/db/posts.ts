@@ -28,7 +28,6 @@ import {
   getPostById,
   normalizeFontFamily,
   normalizeTitle,
-  normalizeContentLocale,
   normalizeTextColor,
 } from "./postQueries";
 

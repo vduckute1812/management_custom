@@ -18,7 +18,7 @@
     "prepare": "husky",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "vue-tsc --noEmit",
     "scan:secrets": "node scripts/scan-secrets.mjs --all",
     "scan:secrets:staged": "node scripts/scan-secrets.mjs --staged",
@@ -34,7 +34,7 @@
   "lint-staged": {
     "*.{js,mjs,cjs,ts,vue}": [
       "prettier --write",
-      "eslint --max-warnings 999"
+      "eslint --max-warnings 0"
     ],
     "*.{json,css,md,yml,yaml}": "prettier --write"
   },

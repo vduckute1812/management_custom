@@ -41,10 +41,10 @@ function resolveProvider(): LlmProvider {
 export function redactSecrets(message: string): string {
   return message
     .replace(/key=[^&\s"']+/gi, "key=REDACTED")
-    .replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, "Bearer REDACTED")
-    .replace(/AQ\.[A-Za-z0-9_\-]+/g, "REDACTED")
-    .replace(/AIza[A-Za-z0-9_\-]+/g, "REDACTED")
-    .replace(/sk-[A-Za-z0-9_\-]+/g, "REDACTED");
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer REDACTED")
+    .replace(/AQ\.[A-Za-z0-9_-]+/g, "REDACTED")
+    .replace(/AIza[A-Za-z0-9_-]+/g, "REDACTED")
+    .replace(/sk-[A-Za-z0-9_-]+/g, "REDACTED");
 }
 
 /** Target reading window for rewrite output (~220 wpm). Default ~3 minutes. */
@@ -129,7 +129,7 @@ function normalizeOutput(raw: unknown): RewriteOutput {
   }
   if (!excerpt) {
     excerpt = content
-      .replace(/[#>*_`\[\]]/g, "")
+      .replace(/[#>*_`[\]]/g, "")
       .slice(0, 280)
       .trim();
   }

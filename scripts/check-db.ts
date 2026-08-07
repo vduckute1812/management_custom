@@ -9,6 +9,19 @@
  */
 
 import { countUsers, getPool, migrationStatus } from "../server/utils/db";
+import type { RowDataPacket } from "mysql2/promise";
+
+interface PingRow extends RowDataPacket {
+  version: string;
+  server_time: Date;
+  tz: string;
+  db: string | null;
+}
+
+interface TableRow extends RowDataPacket {
+  TABLE_NAME: string;
+  TABLE_ROWS: number | null;
+}
 
 function fmt(ms: number) {
   return `${ms.toFixed(0)}ms`;
@@ -28,7 +41,7 @@ async function main() {
   const pool = getPool();
 
   const t0 = Date.now();
-  const [pingRows] = await pool.query<any[]>(
+  const [pingRows] = await pool.query<PingRow[]>(
     "SELECT VERSION() AS version, NOW(3) AS server_time, @@time_zone AS tz, DATABASE() AS db",
   );
   console.log(`[check] ping ok in ${fmt(Date.now() - t0)} ->`, pingRows[0]);
@@ -79,7 +92,7 @@ async function main() {
     "users",
   ];
   const placeholders = EXPECTED_TABLES.map(() => "?").join(",");
-  const [tableRows] = await pool.query<any[]>(
+  const [tableRows] = await pool.query<TableRow[]>(
     `SELECT TABLE_NAME, TABLE_ROWS
        FROM information_schema.TABLES
       WHERE TABLE_SCHEMA = DATABASE()

@@ -5,7 +5,7 @@ import type {
   ResultSetHeader,
   RowDataPacket,
 } from "mysql2/promise";
-import { dbToISO, isoToDB } from "./datetime";
+import { isoToDB } from "./datetime";
 import { listAcceptedFriendIds } from "./friendships";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
@@ -411,7 +411,7 @@ export async function purgeOrphanedUploads(
   let purged = 0;
   for (const id of unique) {
     const conn = await pool.getConnection();
-    let storageKey: string | null = null;
+    let storageKey: string | null;
     try {
       await conn.beginTransaction();
       const [rows] = await conn.query<UploadRow[]>(

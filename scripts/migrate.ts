@@ -85,7 +85,7 @@ async function cmdReset(): Promise<number> {
 
 async function main() {
   const cmd = (process.argv[2] ?? "up").toLowerCase();
-  let exit = 1;
+  let exit: number;
   try {
     if (cmd === "up") exit = await cmdUp();
     else if (cmd === "status") exit = await cmdStatus();

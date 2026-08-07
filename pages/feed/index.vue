@@ -9,7 +9,6 @@ import { PostFormat } from "~/types/post";
 const { t } = useI18n();
 const auth = useAuth();
 const route = useRoute();
-const { pushToast } = useToasts();
 
 const {
   posts,

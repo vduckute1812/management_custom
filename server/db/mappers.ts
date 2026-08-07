@@ -266,6 +266,19 @@ export function rowToUser(r: UserRow): UserRecord {
 
 /** Strip the password hash before any value crosses the API boundary. */
 export function toAuthUser(u: UserRecord): AuthUser {
-  const { passwordHash: _ph, ...safe } = u;
-  return safe;
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    avatarUrl: u.avatarUrl,
+    title: u.title,
+    job: u.job,
+    location: u.location,
+    locale: u.locale,
+    moneyCurrency: u.moneyCurrency,
+    role: u.role,
+    emailVerified: u.emailVerified,
+    createdAt: u.createdAt,
+    updatedAt: u.updatedAt,
+  };
 }

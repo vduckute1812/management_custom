@@ -210,7 +210,7 @@ export async function failJob(
   // Avoid persisting LLM API keys that may appear in provider error URLs.
   const message = error
     .replace(/key=[^&\s"']+/gi, "key=REDACTED")
-    .replace(/Bearer\s+[A-Za-z0-9._\-]+/gi, "Bearer REDACTED")
+    .replace(/Bearer\s+[A-Za-z0-9._-]+/gi, "Bearer REDACTED")
     .slice(0, 4000);
   const exhausted = job.attempts >= job.maxAttempts;
 

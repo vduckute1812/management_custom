@@ -1,7 +1,7 @@
 /** Helpers for embedding uploaded media in Markdown post bodies. */
 
 export function escapeMarkdownAlt(fileName: string): string {
-  const cleaned = fileName.replace(/[\[\]\\]/g, "").trim();
+  const cleaned = fileName.replace(/[[\]\\]/g, "").trim();
   return cleaned.slice(0, 120) || "image";
 }
 

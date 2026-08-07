@@ -6,7 +6,12 @@ const props = withDefaults(
     avatarUrl?: string | null;
     size?: "sm" | "md" | "lg";
   }>(),
-  { size: "md" },
+  {
+    name: null,
+    email: null,
+    avatarUrl: null,
+    size: "md",
+  },
 );
 
 const initial = computed(() => {

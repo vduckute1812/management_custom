@@ -94,7 +94,7 @@ export async function getUnreadInbox(
   }
 
   const kind = Number(row.kind ?? 0);
-  let preview = "";
+  let preview: string;
   if (kind === ChatMessageKind.Sticker) {
     preview = "🎨";
   } else if (kind === ChatMessageKind.Emoji) {

@@ -186,8 +186,8 @@ export async function deleteUserRecord(
   const { deleteJobsForRecipientEmail } = await import("../jobs");
   const pool = getPool();
   const conn = await pool.getConnection();
-  let removed = false;
-  let touchedPostIds: string[] = [];
+  let removed: boolean;
+  let touchedPostIds: string[];
   try {
     await conn.beginTransaction();
     const [commentRows] = await conn.query<RowDataPacket[]>(
