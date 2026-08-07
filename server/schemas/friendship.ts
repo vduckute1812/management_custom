@@ -10,3 +10,8 @@ export const friendshipsQuerySchema = z.object({
   incomingCursor: z.string().trim().min(1).max(512).optional(),
   outgoingCursor: z.string().trim().min(1).max(512).optional(),
 });
+
+export const friendshipPageQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  cursor: z.string().trim().min(1).max(512).optional(),
+});
