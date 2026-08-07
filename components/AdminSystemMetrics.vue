@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
       </p>
     </div>
     <div class="h-48">
-      <canvas ref="trendChart"></canvas>
+      <canvas ref="trendChart" />
     </div>
     <p
       v-if="history.length < 2"

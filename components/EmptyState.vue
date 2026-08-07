@@ -85,7 +85,9 @@ const emit = defineEmits<{
       </svg>
     </div>
 
-    <h3 class="text-base font-semibold text-slate-900">{{ props.title }}</h3>
+    <h3 class="text-base font-semibold text-slate-900">
+      {{ props.title }}
+    </h3>
     <p
       v-if="props.description"
       class="mt-1 text-sm text-slate-500 max-w-sm mx-auto"

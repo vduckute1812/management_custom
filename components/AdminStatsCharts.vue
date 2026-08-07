@@ -162,7 +162,7 @@ onBeforeUnmount(() => {
         {{ $t("admin.hoursLoggedPerDay") }}
       </h2>
       <div class="h-56">
-        <canvas ref="hoursChart"></canvas>
+        <canvas ref="hoursChart" />
       </div>
     </div>
     <div class="bg-white border border-slate-200 rounded-xl p-4">
@@ -170,7 +170,7 @@ onBeforeUnmount(() => {
         {{ $t("admin.taskStatusMix") }}
       </h2>
       <div class="h-56">
-        <canvas ref="statusChart"></canvas>
+        <canvas ref="statusChart" />
       </div>
     </div>
   </div>
@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
       {{ $t("admin.perUserActivity") }}
     </h2>
     <div class="h-72">
-      <canvas ref="usersChart"></canvas>
+      <canvas ref="usersChart" />
     </div>
   </div>
 </template>

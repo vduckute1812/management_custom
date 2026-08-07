@@ -249,7 +249,9 @@ const isEmpty = computed(
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between gap-3 flex-wrap"
     >
       <div>
-        <h1 class="text-xl font-semibold text-slate-900">{{ headerLabel }}</h1>
+        <h1 class="text-xl font-semibold text-slate-900">
+          {{ headerLabel }}
+        </h1>
         <p class="text-xs text-slate-500 mt-0.5">
           {{
             $t("tasks.statsLine", {

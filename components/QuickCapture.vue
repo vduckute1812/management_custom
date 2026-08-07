@@ -93,7 +93,7 @@ function onBackdrop(e: MouseEvent) {
           class="w-full max-w-xl bg-white rounded-2xl shadow-2xl ring-1 ring-slate-200 overflow-hidden"
           @mousedown.stop
         >
-          <form @submit.prevent="onSubmit" class="flex items-center">
+          <form class="flex items-center" @submit.prevent="onSubmit">
             <span class="pl-4 text-slate-400" aria-hidden="true">
               <svg
                 xmlns="http://www.w3.org/2000/svg"

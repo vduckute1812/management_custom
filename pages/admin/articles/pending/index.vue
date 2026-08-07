@@ -266,9 +266,9 @@ function categoryOptionLabel(cat: PostCategory): string {
     >
       <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
-          <NuxtLink to="/admin" class="hover:text-slate-800">{{
-            $t("admin.title")
-          }}</NuxtLink>
+          <NuxtLink to="/admin" class="hover:text-slate-800">
+            {{ $t("admin.title") }}
+          </NuxtLink>
           <span>/</span>
           <span>{{ $t("adminArticles.breadcrumb") }}</span>
         </div>

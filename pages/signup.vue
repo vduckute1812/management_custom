@@ -107,7 +107,9 @@ async function onSubmit() {
           <p class="text-base font-semibold text-slate-900 leading-tight">
             {{ $t("auth.signupTitle") }}
           </p>
-          <p class="text-xs text-slate-500">{{ $t("auth.signupSubtitle") }}</p>
+          <p class="text-xs text-slate-500">
+            {{ $t("auth.signupSubtitle") }}
+          </p>
         </div>
       </div>
 

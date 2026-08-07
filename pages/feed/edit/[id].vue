@@ -186,7 +186,9 @@ function onCancel() {
           <h1 class="text-xl font-semibold text-slate-900">
             {{ $t("feed.edit.title") }}
           </h1>
-          <p class="text-sm text-slate-600">{{ $t("feed.edit.lede") }}</p>
+          <p class="text-sm text-slate-600">
+            {{ $t("feed.edit.lede") }}
+          </p>
         </header>
         <PostComposer
           :submitting="submitting"

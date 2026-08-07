@@ -267,7 +267,9 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           v-model="categoryId"
           class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
         >
-          <option value="">{{ $t("feed.composer.noCategory") }}</option>
+          <option value="">
+            {{ $t("feed.composer.noCategory") }}
+          </option>
           <option v-for="cat in categories || []" :key="cat.id" :value="cat.id">
             {{ catLabel(cat) }}
           </option>

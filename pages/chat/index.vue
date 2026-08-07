@@ -188,7 +188,9 @@ function backToList() {
             <h1 class="text-base font-semibold text-slate-900">
               {{ t("chat.title") }}
             </h1>
-            <p class="text-xs text-slate-500">{{ t("chat.subtitle") }}</p>
+            <p class="text-xs text-slate-500">
+              {{ t("chat.subtitle") }}
+            </p>
           </div>
           <button
             type="button"

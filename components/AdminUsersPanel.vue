@@ -110,7 +110,9 @@ function formatDateTime(iso?: string): string {
             <div class="font-medium text-slate-800">
               {{ u.name || $t("common.emDash") }}
             </div>
-            <div class="text-xs text-slate-500">{{ u.email }}</div>
+            <div class="text-xs text-slate-500">
+              {{ u.email }}
+            </div>
           </td>
           <td class="px-4 py-2.5">
             <span
@@ -143,7 +145,7 @@ function formatDateTime(iso?: string): string {
             <span
               class="inline-block w-2 h-2 rounded-full"
               :class="u.emailVerified ? 'bg-emerald-500' : 'bg-rose-400'"
-            ></span>
+            />
           </td>
           <td class="px-4 py-2.5 text-right">
             <div class="inline-flex items-center justify-end gap-1.5 flex-wrap">

@@ -15,7 +15,9 @@ const emit = defineEmits<{
     class="flex flex-wrap items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800"
     role="alert"
   >
-    <p class="min-w-0 flex-1">{{ message }}</p>
+    <p class="min-w-0 flex-1">
+      {{ message }}
+    </p>
     <button
       v-if="retryLabel"
       type="button"

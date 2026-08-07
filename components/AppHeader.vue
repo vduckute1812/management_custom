@@ -324,7 +324,7 @@ watch(
               {{ $t("nav.settings") }}
             </NuxtLink>
             <div class="border-t border-slate-100 px-3 py-2" role="none">
-              <LanguageSwitcher variant="select" id="header-language" />
+              <LanguageSwitcher id="header-language" variant="select" />
             </div>
             <button
               type="button"

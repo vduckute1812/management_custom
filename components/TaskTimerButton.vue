@@ -128,11 +128,15 @@ const dimensions = computed(() =>
     >
       <path d="M8 5v14l11-7z" />
     </svg>
-    <template v-if="running">{{ elapsedLabel }}</template>
-    <template v-else-if="size === 'md'">{{
-      $t("tasks.timer.startTimer")
-    }}</template>
-    <template v-else>{{ $t("tasks.timer.start") }}</template>
+    <template v-if="running">
+      {{ elapsedLabel }}
+    </template>
+    <template v-else-if="size === 'md'">
+      {{ $t("tasks.timer.startTimer") }}
+    </template>
+    <template v-else>
+      {{ $t("tasks.timer.start") }}
+    </template>
   </button>
 </template>
 

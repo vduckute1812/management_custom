@@ -44,7 +44,9 @@ function levelClass(level: string): string {
           v-model="logFilter"
           class="text-xs border border-slate-300 rounded-md px-2 py-1 bg-white"
         >
-          <option value="all">{{ $t("admin.systemLogsAll") }}</option>
+          <option value="all">
+            {{ $t("admin.systemLogsAll") }}
+          </option>
           <option value="error">error</option>
           <option value="warn">warn</option>
           <option value="info">info</option>
