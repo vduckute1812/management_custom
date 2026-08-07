@@ -33,9 +33,8 @@ services:
       # Linux Podman (loopback binds are invisible from the bridge gateway).
       REDIS_URL: "redis://:${REDIS_PASSWORD}@${LAN_IP:-192.168.1.4}:6379/0"
       CACHE_DRIVER: "redis"
-      # Temporary escape hatch until a dedicated MySQL app user is cut over.
-      # Remove once DB_USER is no longer root.
-      ALLOW_ROOT_DB: "1"
+      # Do NOT default ALLOW_ROOT_DB here. If DB_USER is still root, set
+      # ALLOW_ROOT_DB=1 in docker/.env.prod until the app user cutover.
       # Rate-limit trusted proxies (nginx peer when proxying to LAN:3000).
       LAN_IP: "${LAN_IP:-192.168.1.4}"
       TRUSTED_PROXY_IPS: "127.0.0.1,::1,${LAN_IP:-192.168.1.4}"

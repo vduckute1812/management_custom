@@ -1,0 +1,49 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+/**
+ * Lightweight invariant checks so quality regressions in prod hardening
+ * are caught without needing a full Docker stack.
+ */
+describe("production hardening invariants", () => {
+  const compose = readFileSync(
+    new URL("../docker/docker-compose.prod.yml", import.meta.url),
+    "utf8",
+  );
+  const csp = readFileSync(
+    new URL("../server/utils/content-security-policy.ts", import.meta.url),
+    "utf8",
+  );
+  const pool = readFileSync(
+    new URL("../server/db/pool.ts", import.meta.url),
+    "utf8",
+  );
+  const ci = readFileSync(
+    new URL("../.github/workflows/ci.yml", import.meta.url),
+    "utf8",
+  );
+
+  it("does not ship a default Redis password of changeme", () => {
+    expect(compose).not.toContain("changeme");
+    expect(compose).toContain("REDIS_PASSWORD:?");
+  });
+
+  it("does not force ALLOW_ROOT_DB=1 in compose", () => {
+    expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
+  });
+
+  it("refuses production root DB unless explicitly overridden", () => {
+    expect(pool).toContain("ALLOW_ROOT_DB");
+    expect(pool).toContain("Refusing to start with DB_USER=root");
+  });
+
+  it("keeps connect-src narrow in CSP", () => {
+    expect(csp).toContain("connect-src 'self'");
+    expect(csp).not.toMatch(/connect-src 'self' https:(;|$)/);
+  });
+
+  it("runs lint and dependency audit in CI", () => {
+    expect(ci).toContain("npm run lint");
+    expect(ci).toContain("npm audit --omit=dev");
+  });
+});
