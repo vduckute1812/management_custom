@@ -116,9 +116,9 @@ async function doExportICS() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
+      class="shrink-0 px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
       <div>
         <h1 class="text-xl font-semibold text-slate-900">
@@ -130,7 +130,7 @@ async function doExportICS() {
       </div>
     </header>
 
-    <div class="flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6">
+    <div class="min-h-0 flex-1 overflow-y-auto scrollbar-thin p-4 md:p-6">
       <div class="max-w-2xl mx-auto space-y-6">
         <SettingsAccountSection @has-password-change="hasPassword = $event" />
 
