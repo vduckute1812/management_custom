@@ -23,6 +23,10 @@ export const useChat = () => {
     () => [],
   );
   const unreadTotal = useState<number>("chat:unreadTotal", () => 0);
+  const conversationsNextCursor = useState<string | null>(
+    "chat:conversationsNextCursor",
+    () => null,
+  );
   const activeId = useState<string | null>("chat:activeId", () => null);
   const messages = useState<ChatMessage[]>("chat:messages", () => []);
   const peerLastReadAt = useState<string | null>(
@@ -39,6 +43,10 @@ export const useChat = () => {
   );
   const loadingMessages = useState<boolean>(
     "chat:loadingMessages",
+    () => false,
+  );
+  const loadingMoreConversations = useState<boolean>(
+    "chat:loadingMoreConversations",
     () => false,
   );
   const loadingOlderMessages = useState<boolean>(
@@ -61,9 +69,18 @@ export const useChat = () => {
       const res = await apiFetch<{
         conversations: ChatConversation[];
         unreadTotal: number;
-      }>("/api/chat/conversations");
-      conversations.value = res.conversations;
+        nextCursor: string | null;
+      }>("/api/chat/conversations", { query: { limit: 50 } });
+      const currentActive = activeId.value
+        ? conversations.value.find((c) => c.id === activeId.value)
+        : null;
+      conversations.value =
+        currentActive &&
+        !res.conversations.some((c) => c.id === currentActive.id)
+          ? [...res.conversations, currentActive]
+          : res.conversations;
       unreadTotal.value = res.unreadTotal;
+      conversationsNextCursor.value = res.nextCursor;
       if (activeId.value) {
         const active = res.conversations.find((c) => c.id === activeId.value);
         if (active?.peerLastReadAt !== undefined) {
@@ -78,6 +95,35 @@ export const useChat = () => {
       throw err;
     } finally {
       loadingConversations.value = false;
+    }
+  }
+
+  async function loadMoreConversations() {
+    if (
+      !conversationsNextCursor.value ||
+      loadingMoreConversations.value ||
+      loadingConversations.value
+    ) {
+      return;
+    }
+    loadingMoreConversations.value = true;
+    try {
+      const res = await apiFetch<{
+        conversations: ChatConversation[];
+        unreadTotal: number;
+        nextCursor: string | null;
+      }>("/api/chat/conversations", {
+        query: { limit: 50, cursor: conversationsNextCursor.value },
+      });
+      const seen = new Set(conversations.value.map((c) => c.id));
+      conversations.value = [
+        ...conversations.value,
+        ...res.conversations.filter((c) => !seen.has(c.id)),
+      ];
+      unreadTotal.value = res.unreadTotal;
+      conversationsNextCursor.value = res.nextCursor;
+    } finally {
+      loadingMoreConversations.value = false;
     }
   }
 
@@ -349,12 +395,14 @@ export const useChat = () => {
   return {
     conversations,
     unreadTotal,
+    conversationsNextCursor,
     activeId,
     activeConversation,
     messages,
     peerLastReadAt,
     messagesHasMore,
     loadingConversations,
+    loadingMoreConversations,
     loadingMessages,
     loadingOlderMessages,
     sending,
@@ -362,6 +410,7 @@ export const useChat = () => {
     emoji,
     error,
     refreshConversations,
+    loadMoreConversations,
     ensureCatalog,
     startConversation,
     openConversation,

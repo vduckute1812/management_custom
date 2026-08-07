@@ -6,10 +6,13 @@ defineProps<{
   conversations: ChatConversation[];
   activeId: string | null;
   loading?: boolean;
+  hasMore?: boolean;
+  loadingMore?: boolean;
 }>();
 
 const emit = defineEmits<{
   select: [id: string];
+  loadMore: [];
 }>();
 
 const { t } = useI18n();
@@ -84,5 +87,15 @@ function preview(c: ChatConversation): string {
         </button>
       </li>
     </ul>
+    <button
+      v-if="hasMore && conversations.length"
+      type="button"
+      class="m-2 rounded-lg px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+      :disabled="loadingMore"
+      :aria-busy="loadingMore"
+      @click="emit('loadMore')"
+    >
+      {{ t("common.loadMore") }}
+    </button>
   </div>
 </template>

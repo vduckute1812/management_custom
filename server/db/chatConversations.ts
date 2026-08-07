@@ -4,7 +4,9 @@ import type { ChatConversation } from "~/types/chat";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import { areFriends, listAcceptedFriendIds } from "./friendships";
+import { areFriends } from "./friendships";
+import { FriendshipStatus } from "~/types/friendship";
+import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
 import type { ConversationRow } from "./chatShared";
 import {
   loadConversationRow,
@@ -90,22 +92,65 @@ function rowToConversation(
 
 export async function listConversations(
   userId: string,
-): Promise<ChatConversation[]> {
+  options: { limit?: number; cursor?: string | null } = {},
+): Promise<{
+  conversations: ChatConversation[];
+  nextCursor: string | null;
+}> {
   const pool = getPool();
-  const [rows, friendIds] = await Promise.all([
-    pool.query<ConversationRow[]>(
-      `${CONVERSATION_SELECT}
-     WHERE c.user_a_id = ? OR c.user_b_id = ?
-     ORDER BY COALESCE(c.last_message_at, c.created_at) DESC`,
-      [userId, userId, userId, userId],
-    ),
-    listAcceptedFriendIds(userId),
-  ]);
-  const friends = new Set(friendIds);
-  // Hide threads whose peer is no longer an accepted friend.
-  return rows[0]
-    .map((row) => rowToConversation(row, userId))
-    .filter((c) => friends.has(c.peer.id));
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const params: unknown[] = [
+    userId,
+    userId,
+    userId,
+    userId,
+    FriendshipStatus.Accepted,
+    userId,
+    userId,
+  ];
+  let cursorClause = "";
+  if (options.cursor) {
+    const cursor = parseTimestampCursor(options.cursor);
+    const timestamp = isoToDB(cursor.timestamp);
+    cursorClause = `AND (
+      COALESCE(c.last_message_at, c.created_at) < ?
+      OR (
+        COALESCE(c.last_message_at, c.created_at) = ?
+        AND c.id < ?
+      )
+    )`;
+    params.push(timestamp, timestamp, cursor.id);
+  }
+  params.push(limit + 1);
+
+  const [rows] = await pool.query<ConversationRow[]>(
+    `${CONVERSATION_SELECT}
+     WHERE (c.user_a_id = ? OR c.user_b_id = ?)
+       AND EXISTS (
+         SELECT 1
+         FROM friendships f
+         WHERE f.status = ?
+           AND (
+             (f.requester_id = ? AND f.addressee_id = peer.id)
+             OR (f.addressee_id = ? AND f.requester_id = peer.id)
+           )
+       )
+       ${cursorClause}
+     ORDER BY COALESCE(c.last_message_at, c.created_at) DESC, c.id DESC
+     LIMIT ?`,
+    params,
+  );
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const conversations = pageRows.map((row) => rowToConversation(row, userId));
+  const last = conversations[conversations.length - 1];
+  return {
+    conversations,
+    nextCursor:
+      hasMore && last
+        ? encodeTimestampCursor(last.lastMessageAt ?? last.createdAt, last.id)
+        : null,
+  };
 }
 
 /** Load one conversation the user participates in (no full-list scan). */

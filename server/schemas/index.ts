@@ -32,6 +32,7 @@ export {
 } from "./post";
 
 export {
+  chatConversationsQuerySchema,
   chatMessageReactionBodySchema,
   chatStartBodySchema,
   chatMessagesQuerySchema,
@@ -63,4 +64,7 @@ export {
   pendingArticleSettingsPatchBodySchema,
 } from "./article";
 
-export { friendshipRequestBodySchema } from "./friendship";
+export {
+  friendshipRequestBodySchema,
+  friendshipsQuerySchema,
+} from "./friendship";

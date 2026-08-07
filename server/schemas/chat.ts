@@ -12,6 +12,11 @@ export const chatStartBodySchema = z.object({
   peerUserId: z.string().min(1, "peerUserId is required"),
 });
 
+export const chatConversationsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).optional().default(50),
+  cursor: z.string().trim().min(1).max(512).optional(),
+});
+
 export const chatMessagesQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(50),
   before: z.string().min(1).optional(),

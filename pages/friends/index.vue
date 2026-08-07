@@ -17,7 +17,16 @@ const {
   incoming,
   outgoing,
   loading,
+  friendsNextCursor,
+  incomingNextCursor,
+  outgoingNextCursor,
+  loadingMoreFriends,
+  loadingMoreIncoming,
+  loadingMoreOutgoing,
   refresh,
+  loadMoreFriends,
+  loadMoreIncoming,
+  loadMoreOutgoing,
   request,
   accept,
   remove,
@@ -277,6 +286,16 @@ async function confirmUnfriend() {
           </div>
         </li>
       </ul>
+      <button
+        v-if="incomingNextCursor"
+        type="button"
+        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+        :disabled="loadingMoreIncoming"
+        :aria-busy="loadingMoreIncoming"
+        @click="loadMoreIncoming"
+      >
+        {{ $t("common.loadMore") }}
+      </button>
     </section>
 
     <section
@@ -329,6 +348,16 @@ async function confirmUnfriend() {
           </button>
         </li>
       </ul>
+      <button
+        v-if="outgoingNextCursor"
+        type="button"
+        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+        :disabled="loadingMoreOutgoing"
+        :aria-busy="loadingMoreOutgoing"
+        @click="loadMoreOutgoing"
+      >
+        {{ $t("common.loadMore") }}
+      </button>
     </section>
 
     <section class="space-y-3" aria-labelledby="friends-list-heading">
@@ -390,6 +419,16 @@ async function confirmUnfriend() {
           </button>
         </li>
       </ul>
+      <button
+        v-if="friendsNextCursor"
+        type="button"
+        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+        :disabled="loadingMoreFriends"
+        :aria-busy="loadingMoreFriends"
+        @click="loadMoreFriends"
+      >
+        {{ $t("common.loadMore") }}
+      </button>
     </section>
 
     <ConfirmDialog

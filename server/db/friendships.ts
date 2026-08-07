@@ -14,6 +14,7 @@ import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
+import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
 
 interface FriendshipPeerRow extends RowDataPacket {
   id: string;
@@ -132,57 +133,155 @@ export async function countIncomingFriendRequests(
   return Number(rows[0]?.cnt ?? 0);
 }
 
-export async function listFriends(userId: string): Promise<FriendshipRow[]> {
+export interface FriendshipPage {
+  rows: FriendshipRow[];
+  nextCursor: string | null;
+}
+
+interface FriendshipListOptions {
+  limit?: number;
+  cursor?: string | null;
+}
+
+function friendshipPage(
+  rows: FriendshipPeerRow[],
+  limit: number,
+  opts?: { wireEmail?: boolean },
+): FriendshipPage {
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const last = pageRows[pageRows.length - 1];
+  return {
+    rows: pageRows.map((row) => toFriendship(row, opts)),
+    nextCursor:
+      hasMore && last
+        ? encodeTimestampCursor(dbToISO(last.created_at), last.id)
+        : null,
+  };
+}
+
+function friendshipCursorClause(
+  cursor: string | null | undefined,
+  params: unknown[],
+): string {
+  if (!cursor) return "";
+  const parsed = parseTimestampCursor(cursor);
+  const timestamp = isoToDB(parsed.timestamp);
+  params.push(timestamp, timestamp, parsed.id);
+  return `AND (
+    f.created_at < ?
+    OR (f.created_at = ? AND f.id < ?)
+  )`;
+}
+
+export async function listFriends(
+  userId: string,
+  options: FriendshipListOptions = {},
+): Promise<FriendshipPage> {
   const pool = getPool();
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const params: unknown[] = [userId, FriendshipStatus.Accepted, userId, userId];
+  const cursorClause = friendshipCursorClause(options.cursor, params);
+  params.push(limit + 1);
   const [rows] = await pool.query<FriendshipPeerRow[]>(
     `${PEER_SELECT}
      WHERE f.status = ?
        AND (f.requester_id = ? OR f.addressee_id = ?)
-     ORDER BY peer.name ASC, peer.email ASC`,
-    [userId, FriendshipStatus.Accepted, userId, userId],
+       ${cursorClause}
+     ORDER BY f.created_at DESC, f.id DESC
+     LIMIT ?`,
+    params,
   );
-  return rows.map((row) => toFriendship(row, { wireEmail: true }));
+  return friendshipPage(rows, limit, { wireEmail: true });
 }
 
 export async function listIncomingFriendRequests(
   userId: string,
-): Promise<FriendshipRow[]> {
+  options: FriendshipListOptions = {},
+): Promise<FriendshipPage> {
   const pool = getPool();
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const params: unknown[] = [userId, FriendshipStatus.Pending, userId];
+  const cursorClause = friendshipCursorClause(options.cursor, params);
+  params.push(limit + 1);
   const [rows] = await pool.query<FriendshipPeerRow[]>(
     `${PEER_SELECT}
      WHERE f.status = ?
        AND f.addressee_id = ?
-     ORDER BY f.created_at DESC`,
-    [userId, FriendshipStatus.Pending, userId],
+       ${cursorClause}
+     ORDER BY f.created_at DESC, f.id DESC
+     LIMIT ?`,
+    params,
   );
-  return rows.map((row) => toFriendship(row));
+  return friendshipPage(rows, limit);
 }
 
 export async function listOutgoingFriendRequests(
   userId: string,
-): Promise<FriendshipRow[]> {
+  options: FriendshipListOptions = {},
+): Promise<FriendshipPage> {
   const pool = getPool();
+  const limit = Math.min(Math.max(options.limit ?? 50, 1), 100);
+  const params: unknown[] = [userId, FriendshipStatus.Pending, userId];
+  const cursorClause = friendshipCursorClause(options.cursor, params);
+  params.push(limit + 1);
   const [rows] = await pool.query<FriendshipPeerRow[]>(
     `${PEER_SELECT}
      WHERE f.status = ?
        AND f.requester_id = ?
-     ORDER BY f.created_at DESC`,
-    [userId, FriendshipStatus.Pending, userId],
+       ${cursorClause}
+     ORDER BY f.created_at DESC, f.id DESC
+     LIMIT ?`,
+    params,
   );
-  return rows.map((row) => toFriendship(row));
+  return friendshipPage(rows, limit);
 }
 
-export async function listFriendshipOverview(userId: string): Promise<{
+export async function listFriendshipOverview(
+  userId: string,
+  options: {
+    limit?: number;
+    friendsCursor?: string | null;
+    incomingCursor?: string | null;
+    outgoingCursor?: string | null;
+  } = {},
+): Promise<{
   friends: FriendshipRow[];
   incoming: FriendshipRow[];
   outgoing: FriendshipRow[];
+  incomingTotal: number;
+  nextCursors: {
+    friends: string | null;
+    incoming: string | null;
+    outgoing: string | null;
+  };
 }> {
-  const [friends, incoming, outgoing] = await Promise.all([
-    listFriends(userId),
-    listIncomingFriendRequests(userId),
-    listOutgoingFriendRequests(userId),
+  const [friends, incoming, outgoing, incomingTotal] = await Promise.all([
+    listFriends(userId, {
+      limit: options.limit,
+      cursor: options.friendsCursor,
+    }),
+    listIncomingFriendRequests(userId, {
+      limit: options.limit,
+      cursor: options.incomingCursor,
+    }),
+    listOutgoingFriendRequests(userId, {
+      limit: options.limit,
+      cursor: options.outgoingCursor,
+    }),
+    countIncomingFriendRequests(userId),
   ]);
-  return { friends, incoming, outgoing };
+  return {
+    friends: friends.rows,
+    incoming: incoming.rows,
+    outgoing: outgoing.rows,
+    incomingTotal,
+    nextCursors: {
+      friends: friends.nextCursor,
+      incoming: incoming.nextCursor,
+      outgoing: outgoing.nextCursor,
+    },
+  };
 }
 
 async function loadFriendshipForUser(
