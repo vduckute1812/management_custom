@@ -11,7 +11,14 @@ import {
 dayjs.extend(isoWeek);
 
 const { t } = useI18n();
-const { tasks, fetchAll, isLoading } = useTasks();
+const {
+  tasks,
+  nextCursor: tasksNextCursor,
+  fetchAll,
+  loadMore: loadMoreTasks,
+  isLoading,
+  isLoadingMore: isLoadingMoreTasks,
+} = useTasks();
 const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
@@ -96,7 +103,7 @@ async function seedSamples() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
@@ -333,6 +340,20 @@ async function seedSamples() {
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div
+            v-if="tasksNextCursor"
+            class="flex justify-center border-t border-slate-100 p-3"
+          >
+            <button
+              type="button"
+              class="rounded-lg px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+              :disabled="isLoadingMoreTasks"
+              :aria-busy="isLoadingMoreTasks"
+              @click="loadMoreTasks"
+            >
+              {{ $t("common.loadMore") }}
+            </button>
           </div>
         </section>
       </template>

@@ -7,6 +7,7 @@ import {
 
 interface EpicsApiResponse {
   epics: Epic[];
+  nextCursor: string | null;
 }
 
 interface SaveResponse {
@@ -16,7 +17,9 @@ interface SaveResponse {
 
 export const useEpics = () => {
   const epics = useState<Epic[]>("epics", () => []);
+  const nextCursor = useState<string | null>("epics:nextCursor", () => null);
   const isLoading = useState<boolean>("epics:loading", () => false);
+  const isLoadingMore = useState<boolean>("epics:loadingMore", () => false);
   const error = useState<string | null>("epics:error", () => null);
   const { apiFetch } = useApi();
   const { t } = useI18n();
@@ -25,13 +28,39 @@ export const useEpics = () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const data = await apiFetch<EpicsApiResponse>("/api/epics");
+      const data = await apiFetch<EpicsApiResponse>("/api/epics", {
+        query: { limit: 100 },
+      });
       epics.value = data.epics ?? [];
+      nextCursor.value = data.nextCursor ?? null;
     } catch (err: unknown) {
       error.value =
         err instanceof Error ? err.message : t("toasts.failedToLoadEpics");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function loadMore() {
+    const cursor = nextCursor.value;
+    if (!cursor || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+    error.value = null;
+    try {
+      const data = await apiFetch<EpicsApiResponse>("/api/epics", {
+        query: { limit: 100, cursor },
+      });
+      const seen = new Set(epics.value.map((epic) => epic.id));
+      epics.value = [
+        ...epics.value,
+        ...data.epics.filter((epic) => !seen.has(epic.id)),
+      ];
+      nextCursor.value = data.nextCursor ?? null;
+    } catch (err: unknown) {
+      error.value =
+        err instanceof Error ? err.message : t("toasts.failedToLoadEpics");
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 
@@ -68,9 +97,12 @@ export const useEpics = () => {
 
   return {
     epics,
+    nextCursor,
     isLoading,
+    isLoadingMore,
     error,
     fetchAll,
+    loadMore,
     saveEpic,
     deleteEpic,
     findEpic,

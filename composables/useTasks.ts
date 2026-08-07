@@ -2,6 +2,7 @@ import { TaskStatus, type Recurrence, type Task } from "~/types/task";
 
 interface TasksApiResponse {
   tasks: Task[];
+  nextCursor: string | null;
 }
 
 interface SaveResponse {
@@ -35,25 +36,58 @@ export const useTasks = () => {
   // Also pulled in from plugins/notifications.client.ts at app boot.
   const { t } = useSafeI18n();
   const tasks = useState<Task[]>("tasks", () => []);
+  const nextCursor = useState<string | null>("tasks:nextCursor", () => null);
   const isLoading = useState<boolean>("tasks:loading", () => false);
+  const isLoadingMore = useState<boolean>("tasks:loadingMore", () => false);
   const error = useState<string | null>("tasks:error", () => null);
+  const activeInclude = useState<string>("tasks:activeInclude", () => "");
   const { apiFetch } = useApi();
 
   async function fetchAll(opts?: FetchTasksOpts) {
     isLoading.value = true;
     error.value = null;
     try {
-      const qs =
-        opts?.include && opts.include.length > 0
-          ? `?include=${opts.include.join(",")}`
-          : "";
-      const data = await apiFetch<TasksApiResponse>(`/api/tasks${qs}`);
+      activeInclude.value = opts?.include?.join(",") ?? "";
+      const data = await apiFetch<TasksApiResponse>("/api/tasks", {
+        query: {
+          limit: 100,
+          ...(activeInclude.value ? { include: activeInclude.value } : {}),
+        },
+      });
       tasks.value = data.tasks ?? [];
+      nextCursor.value = data.nextCursor ?? null;
     } catch (err: unknown) {
       error.value =
         err instanceof Error ? err.message : t("toasts.failedToLoadTasks");
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  async function loadMore() {
+    const cursor = nextCursor.value;
+    if (!cursor || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+    error.value = null;
+    try {
+      const data = await apiFetch<TasksApiResponse>("/api/tasks", {
+        query: {
+          limit: 100,
+          cursor,
+          ...(activeInclude.value ? { include: activeInclude.value } : {}),
+        },
+      });
+      const seen = new Set(tasks.value.map((task) => task.id));
+      tasks.value = [
+        ...tasks.value,
+        ...data.tasks.filter((task) => !seen.has(task.id)),
+      ];
+      nextCursor.value = data.nextCursor ?? null;
+    } catch (err: unknown) {
+      error.value =
+        err instanceof Error ? err.message : t("toasts.failedToLoadTasks");
+    } finally {
+      isLoadingMore.value = false;
     }
   }
 
@@ -104,10 +138,13 @@ export const useTasks = () => {
 
   return {
     tasks,
+    nextCursor,
     isLoading,
+    isLoadingMore,
     error,
     tasksByStatus,
     fetchAll,
+    loadMore,
     saveTask,
     deleteTask,
     tasksForEpic,

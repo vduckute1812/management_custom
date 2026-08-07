@@ -18,9 +18,12 @@ const {
   transactions,
   totals,
   yearMonth,
+  nextCursor,
   isLoading,
+  isLoadingMore,
   error,
   fetchMonth,
+  loadMore,
   shiftMonth,
 } = useMoney();
 const { pushToast } = useToasts();
@@ -442,6 +445,17 @@ const netTone = computed(() => {
             </button>
           </li>
         </ul>
+        <div v-if="nextCursor" class="flex justify-center">
+          <button
+            type="button"
+            class="rounded-lg px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+            :disabled="isLoadingMore"
+            :aria-busy="isLoadingMore"
+            @click="loadMore"
+          >
+            {{ $t("common.loadMore") }}
+          </button>
+        </div>
       </div>
     </div>
 

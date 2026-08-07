@@ -15,6 +15,7 @@ import {
   mapMoneyUserCategoriesById,
   rowToUserCategory,
 } from "./moneyUserCategories";
+import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
 
 interface MoneyTxRow extends RowDataPacket {
   id: string;
@@ -99,17 +100,47 @@ const TX_SELECT = `
 export async function listMoneyTransactions(
   userId: string,
   range: { start: string; end: string },
-): Promise<MoneyTransaction[]> {
+  options: { limit?: number; cursor?: string | null } = {},
+): Promise<{
+  transactions: MoneyTransaction[];
+  nextCursor: string | null;
+}> {
   const pool = getPool();
+  const limit = Math.min(Math.max(options.limit ?? 100, 1), 200);
+  const params: unknown[] = [userId, range.start, range.end];
+  let cursorClause = "";
+  if (options.cursor) {
+    const cursor = parseTimestampCursor(options.cursor);
+    const occurredOn = cursor.timestamp.slice(0, 10);
+    cursorClause = `AND (
+      t.occurred_on < ?
+      OR (t.occurred_on = ? AND t.id < ?)
+    )`;
+    params.push(occurredOn, occurredOn, cursor.id);
+  }
+  params.push(limit + 1);
   const [rows] = await pool.query<MoneyTxRow[]>(
     `${TX_SELECT}
      WHERE t.user_id = ?
        AND t.occurred_on >= ?
        AND t.occurred_on <= ?
-     ORDER BY t.occurred_on DESC, t.created_at DESC, t.id DESC`,
-    [userId, range.start, range.end],
+       ${cursorClause}
+     ORDER BY t.occurred_on DESC, t.id DESC
+     LIMIT ?`,
+    params,
   );
-  return rows.map(rowToTransaction);
+  const hasMore = rows.length > limit;
+  const transactions = (hasMore ? rows.slice(0, limit) : rows).map(
+    rowToTransaction,
+  );
+  const last = transactions[transactions.length - 1];
+  return {
+    transactions,
+    nextCursor:
+      hasMore && last
+        ? encodeTimestampCursor(`${last.occurredOn}T00:00:00.000Z`, last.id)
+        : null,
+  };
 }
 
 export async function getMoneyTransactionById(

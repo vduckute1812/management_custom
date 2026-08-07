@@ -16,6 +16,7 @@ import {
   type TimeBlock,
 } from "./types";
 import { roundHours } from "./compute";
+import { parseTimestampCursor } from "./timestampCursor";
 
 // -------------------------------------------------------------------------
 // Child loaders — kept private; the only consumers are getAllTasks /
@@ -106,15 +107,38 @@ async function loadSpentByTask(
  */
 export async function getAllTasks(
   userId: string,
-  opts?: { includeBlocks?: boolean; includeChecklists?: boolean },
+  opts?: {
+    includeBlocks?: boolean;
+    includeChecklists?: boolean;
+    limit?: number;
+    cursor?: string | null;
+    epicIds?: string[];
+  },
 ): Promise<Task[]> {
   const includeBlocks = opts?.includeBlocks ?? false;
   const includeChecklists = opts?.includeChecklists ?? false;
+  if (opts?.epicIds && opts.epicIds.length === 0) return [];
 
   const pool = getPool();
+  const clauses = ["user_id = ?"];
+  const params: unknown[] = [userId];
+  if (opts?.epicIds) {
+    clauses.push(`epic_id IN (${opts.epicIds.map(() => "?").join(",")})`);
+    params.push(...opts.epicIds);
+  }
+  if (opts?.cursor) {
+    const cursor = parseTimestampCursor(opts.cursor);
+    const timestamp = isoToDB(cursor.timestamp);
+    clauses.push("(updated_at < ? OR (updated_at = ? AND id < ?))");
+    params.push(timestamp, timestamp, cursor.id);
+  }
+  const limitClause = opts?.limit ? " LIMIT ?" : "";
+  if (opts?.limit) params.push(opts.limit);
   const [taskRows] = await pool.query<TaskRow[]>(
-    "SELECT * FROM tasks WHERE user_id = ?",
-    [userId],
+    `SELECT * FROM tasks
+     WHERE ${clauses.join(" AND ")}
+     ORDER BY updated_at DESC, id DESC${limitClause}`,
+    params,
   );
   const ids = taskRows.map((r) => r.id);
 

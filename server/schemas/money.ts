@@ -38,6 +38,8 @@ const yearMonthSchema = z
 
 export const moneyTransactionsQuerySchema = z.object({
   yearMonth: yearMonthSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+  cursor: z.string().trim().min(1).max(512).optional(),
 });
 
 export const moneyTransactionUpsertBodySchema = z

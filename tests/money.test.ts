@@ -45,7 +45,7 @@ import {
 
 describe("moneyTransactionsQuerySchema", () => {
   it("accepts empty query", () => {
-    expect(moneyTransactionsQuerySchema.safeParse({}).success).toBe(true);
+    expect(moneyTransactionsQuerySchema.parse({}).limit).toBe(100);
   });
 
   it("accepts YYYY-MM", () => {
@@ -61,6 +61,21 @@ describe("moneyTransactionsQuerySchema", () => {
     expect(
       moneyTransactionsQuerySchema.safeParse({ yearMonth: "Aug 2026" }).success,
     ).toBe(false);
+  });
+
+  it("accepts pagination and rejects oversized pages", () => {
+    expect(
+      moneyTransactionsQuerySchema.parse({
+        limit: "25",
+        cursor: "2026-08-03T00:00:00.000Z|mtx_1",
+      }),
+    ).toMatchObject({
+      limit: 25,
+      cursor: "2026-08-03T00:00:00.000Z|mtx_1",
+    });
+    expect(moneyTransactionsQuerySchema.safeParse({ limit: 201 }).success).toBe(
+      false,
+    );
   });
 });
 

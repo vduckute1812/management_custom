@@ -2,7 +2,15 @@
 import type { Epic } from "~/types/task";
 
 const { t } = useI18n();
-const { epics, fetchAll, isLoading, error } = useEpics();
+const {
+  epics,
+  nextCursor,
+  fetchAll,
+  loadMore,
+  isLoading,
+  isLoadingMore,
+  error,
+} = useEpics();
 const { fetchAll: fetchTasks } = useTasks();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
@@ -60,7 +68,7 @@ async function seedSamples() {
 </script>
 
 <template>
-  <div class="flex flex-col h-screen">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <header
       class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between"
     >
@@ -130,6 +138,17 @@ async function seedSamples() {
           :href="`/epics/${epic.id}`"
           @edit="openEdit"
         />
+      </div>
+      <div v-if="nextCursor" class="mt-6 flex justify-center">
+        <button
+          type="button"
+          class="rounded-lg px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+          :disabled="isLoadingMore"
+          :aria-busy="isLoadingMore"
+          @click="loadMore"
+        >
+          {{ $t("common.loadMore") }}
+        </button>
       </div>
     </div>
 

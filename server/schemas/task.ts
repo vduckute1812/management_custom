@@ -103,6 +103,8 @@ export const timerStartBodySchema = z.object({
 export const tasksListQuerySchema = z
   .object({
     include: z.string().max(64).optional().default(""),
+    limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+    cursor: z.string().trim().min(1).max(512).optional(),
   })
   .transform((q, ctx) => {
     const tokens = q.include
@@ -124,5 +126,12 @@ export const tasksListQuerySchema = z
       includeBlocks: tokens.includes("blocks"),
       includeChecklists:
         tokens.includes("checklists") || tokens.includes("checklist"),
+      limit: q.limit,
+      cursor: q.cursor,
     };
   });
+
+export const epicsListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).optional().default(100),
+  cursor: z.string().trim().min(1).max(512).optional(),
+});

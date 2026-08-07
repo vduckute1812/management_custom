@@ -1,14 +1,10 @@
 import { type MoneyMonthTotals, type MoneyTransaction } from "~/types/money";
-import {
-  computeMonthTotals,
-  toYearMonth,
-  upsertTransactionInMonth,
-  yearMonthFromOccurredOn,
-} from "~/utils/money";
+import { toYearMonth } from "~/utils/money";
 
 interface ListResponse {
   transactions: MoneyTransaction[];
   totals: MoneyMonthTotals;
+  nextCursor: string | null;
 }
 
 interface SaveResponse {
@@ -22,7 +18,9 @@ export const useMoney = () => {
   const yearMonth = useState<string>("money:yearMonth", () =>
     toYearMonth(new Date()),
   );
+  const nextCursor = useState<string | null>("money:nextCursor", () => null);
   const isLoading = useState<boolean>("money:loading", () => false);
+  const isLoadingMore = useState<boolean>("money:loadingMore", () => false);
   const error = useState<string | null>("money:error", () => null);
   const { apiFetch } = useApi();
   const { t } = useI18n();
@@ -33,11 +31,12 @@ export const useMoney = () => {
     error.value = null;
     try {
       const data = await apiFetch<ListResponse>("/api/money/transactions", {
-        query: { yearMonth: target },
+        query: { yearMonth: target, limit: 100 },
       });
       yearMonth.value = data.totals?.yearMonth ?? target;
       transactions.value = data.transactions ?? [];
       totals.value = data.totals ?? null;
+      nextCursor.value = data.nextCursor ?? null;
     } catch (err: unknown) {
       error.value =
         err instanceof Error ? err.message : t("toasts.failedToLoadMoney");
@@ -46,9 +45,30 @@ export const useMoney = () => {
     }
   }
 
-  function applyLocalList(next: MoneyTransaction[]) {
-    transactions.value = next;
-    totals.value = computeMonthTotals(next, yearMonth.value);
+  async function loadMore() {
+    const cursor = nextCursor.value;
+    const target = yearMonth.value;
+    if (!cursor || isLoadingMore.value) return;
+    isLoadingMore.value = true;
+    error.value = null;
+    try {
+      const data = await apiFetch<ListResponse>("/api/money/transactions", {
+        query: { yearMonth: target, limit: 100, cursor },
+      });
+      if (yearMonth.value !== target) return;
+      const seen = new Set(transactions.value.map((row) => row.id));
+      transactions.value = [
+        ...transactions.value,
+        ...data.transactions.filter((row) => !seen.has(row.id)),
+      ];
+      totals.value = data.totals;
+      nextCursor.value = data.nextCursor ?? null;
+    } catch (err: unknown) {
+      error.value =
+        err instanceof Error ? err.message : t("toasts.failedToLoadMoney");
+    } finally {
+      isLoadingMore.value = false;
+    }
   }
 
   async function saveTransaction(
@@ -73,25 +93,14 @@ export const useMoney = () => {
       },
     });
     const tx = data.transaction;
-    const txYm = yearMonthFromOccurredOn(tx.occurredOn);
     const viewing = yearMonth.value;
-    const without = transactions.value.filter((row) => row.id !== tx.id);
-
-    if (txYm === viewing) {
-      applyLocalList(upsertTransactionInMonth(without, tx));
-    } else if (without.length !== transactions.value.length) {
-      // Edited out of the current month — drop from the open list.
-      applyLocalList(without);
-    }
+    await fetchMonth(viewing);
     return tx;
   }
 
   async function deleteTransaction(id: string) {
     await apiFetch(`/api/money/transactions/${id}`, { method: "DELETE" });
-    const next = transactions.value.filter((row) => row.id !== id);
-    if (next.length !== transactions.value.length) {
-      applyLocalList(next);
-    }
+    await fetchMonth(yearMonth.value);
   }
 
   function shiftMonth(delta: number) {
@@ -104,9 +113,12 @@ export const useMoney = () => {
     transactions,
     totals,
     yearMonth,
+    nextCursor,
     isLoading,
+    isLoadingMore,
     error,
     fetchMonth,
+    loadMore,
     saveTransaction,
     deleteTransaction,
     shiftMonth,
