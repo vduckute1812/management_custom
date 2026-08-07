@@ -9,7 +9,7 @@
  *
  * Optional:
  *   R2_ENDPOINT          — defaults to https://{accountId}.r2.cloudflarestorage.com
- *   R2_SIGNED_URL_TTL    — seconds for GET signed URLs (default 300, max 3600)
+ *   R2_SIGNED_URL_TTL    — seconds for GET signed URLs (default 60, max 3600)
  */
 import {
   DeleteObjectCommand,
@@ -29,7 +29,7 @@ export function r2Config() {
   const endpoint =
     process.env.R2_ENDPOINT?.trim() ||
     (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
-  const signedTtl = Number(process.env.R2_SIGNED_URL_TTL || "300");
+  const signedTtl = Number(process.env.R2_SIGNED_URL_TTL || "60");
 
   return {
     accountId,
@@ -40,7 +40,7 @@ export function r2Config() {
     signedTtl:
       Number.isFinite(signedTtl) && signedTtl > 0
         ? Math.min(Math.floor(signedTtl), 3600)
-        : 300,
+        : 60,
   };
 }
 

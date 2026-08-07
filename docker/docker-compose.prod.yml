@@ -31,7 +31,7 @@ services:
       # Forces redis even if an old .env.prod left CACHE_DRIVER=memory.
       # NOTE: host.containers.internal → 127.0.0.1 publishes does NOT work on
       # Linux Podman (loopback binds are invisible from the bridge gateway).
-      REDIS_URL: "redis://:${REDIS_PASSWORD:-changeme}@${LAN_IP:-192.168.1.4}:6379/0"
+      REDIS_URL: "redis://:${REDIS_PASSWORD}@${LAN_IP:-192.168.1.4}:6379/0"
       CACHE_DRIVER: "redis"
       # Rate-limit trusted proxies (nginx peer when proxying to LAN:3000).
       LAN_IP: "${LAN_IP:-192.168.1.4}"
@@ -60,9 +60,9 @@ services:
     container_name: mgmt-redis-prod
     restart: unless-stopped
     environment:
-      REDIS_PASSWORD: "${REDIS_PASSWORD:-changeme}"
+      # Required — compose fails fast if REDIS_PASSWORD is unset/empty.
+      REDIS_PASSWORD: "${REDIS_PASSWORD:?Set REDIS_PASSWORD in docker/.env.prod}"
     # Cache-only: no RDB/AOF (lighter on the Pi SD). Cap RAM + LRU eviction.
-    # Require a password (set REDIS_PASSWORD in .env.prod — do not leave changeme).
     command:
       - redis-server
       - --save
@@ -74,7 +74,7 @@ services:
       - --maxmemory-policy
       - allkeys-lru
       - --requirepass
-      - "${REDIS_PASSWORD:-changeme}"
+      - "${REDIS_PASSWORD:?Set REDIS_PASSWORD in docker/.env.prod}"
     ports:
       - "127.0.0.1:6379:6379"
       # LAN publish required: app container reaches Redis via ${LAN_IP} (no
