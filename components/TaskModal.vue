@@ -71,13 +71,21 @@ const submitting = ref(false);
 const justSaved = ref(false);
 const errorMsg = ref<string | null>(null);
 const baseline = ref("");
-const discardConfirmOpen = ref(false);
 const deleteConfirmOpen = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
-const discardKeepBtn = ref<HTMLButtonElement | null>(null);
 const basics = ref<{ titleInputEl: () => HTMLInputElement | null } | null>(
   null,
 );
+const {
+  discardConfirmOpen,
+  discardKeepBtn,
+  requestClose: requestDiscardClose,
+  confirmDiscard,
+  cancelDiscard,
+} = useDiscardConfirm({
+  isDirty: () => !justSaved.value && isDirty(),
+  onDiscard: () => emit("close"),
+});
 const fid = useId();
 const fieldIds = {
   title: `${fid}-title`,
@@ -155,7 +163,7 @@ watch(
       loadFromTask(props.task);
       errorMsg.value = null;
       justSaved.value = false;
-      discardConfirmOpen.value = false;
+      cancelDiscard();
       deleteConfirmOpen.value = false;
       nextTick(() => snapshotForm());
     }
@@ -280,16 +288,7 @@ async function onDelete() {
 
 function requestClose() {
   if (submitting.value) return;
-  if (justSaved.value || !isDirty()) {
-    emit("close");
-    return;
-  }
-  discardConfirmOpen.value = true;
-}
-
-function confirmDiscard() {
-  discardConfirmOpen.value = false;
-  emit("close");
+  requestDiscardClose();
 }
 
 function onBackdrop(e: MouseEvent) {
@@ -307,7 +306,7 @@ function handleModalEscape() {
   if (deleteConfirmOpen.value) {
     deleteConfirmOpen.value = false;
   } else if (discardConfirmOpen.value) {
-    discardConfirmOpen.value = false;
+    cancelDiscard();
   } else {
     requestClose();
   }
@@ -415,7 +414,7 @@ watch(discardConfirmOpen, (open) => {
                   ref="discardKeepBtn"
                   type="button"
                   class="px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 rounded-lg"
-                  @click="discardConfirmOpen = false"
+                  @click="cancelDiscard"
                 >
                   {{ $t("tasks.modal.keepEditing") }}
                 </button>

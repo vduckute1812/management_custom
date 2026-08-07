@@ -17,7 +17,7 @@
  */
 import { requestKey } from "~/utils/apiRequestKey";
 
-type ApiFetchOptions = Record<string, unknown> & {
+export type ApiFetchOptions = Record<string, unknown> & {
   method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: unknown;
   query?: Record<string, unknown>;
