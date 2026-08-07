@@ -2,7 +2,10 @@
 import dayjs, { type Dayjs } from "dayjs";
 import { newClientId } from "~/utils/clientId";
 import { type Task, type TimeBlock } from "~/types/task";
-import type { PositionedCalendarBlock } from "~/composables/calendarDailyInteractions";
+import {
+  useCalendarDailyInteractions,
+  type PositionedCalendarBlock,
+} from "~/composables/calendarDailyInteractions";
 
 const props = defineProps<{
   tasks: Task[];
