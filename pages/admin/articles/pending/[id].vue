@@ -294,13 +294,13 @@ function onConfirm() {
     >
       <div>
         <div class="flex items-center gap-2 text-xs text-slate-500 mb-1">
-          <NuxtLink to="/admin" class="hover:text-slate-800">{{
-            $t("admin.title")
-          }}</NuxtLink>
+          <NuxtLink to="/admin" class="hover:text-slate-800">
+            {{ $t("admin.title") }}
+          </NuxtLink>
           <span>/</span>
-          <NuxtLink to="/admin/articles/pending" class="hover:text-slate-800">{{
-            $t("adminArticles.breadcrumb")
-          }}</NuxtLink>
+          <NuxtLink to="/admin/articles/pending" class="hover:text-slate-800">
+            {{ $t("adminArticles.breadcrumb") }}
+          </NuxtLink>
           <span>/</span>
           <span>{{ $t("adminArticles.review") }}</span>
         </div>
@@ -457,7 +457,9 @@ function onConfirm() {
               >
                 {{ $t("adminArticles.noOriginalBody") }}
               </p>
-              <template v-else>{{ data.rawContent }}</template>
+              <template v-else>
+                {{ data.rawContent }}
+              </template>
             </div>
           </section>
 

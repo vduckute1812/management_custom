@@ -322,7 +322,9 @@ async function onColumnDrop(e: DragEvent, day: Dayjs) {
                 · {{ entry.block.spentHours }}h
               </span>
             </template>
-            <template v-else>{{ $t("calendar.dueToday") }}</template>
+            <template v-else>
+              {{ $t("calendar.dueToday") }}
+            </template>
           </div>
         </button>
         <p

@@ -51,6 +51,8 @@ onMounted(async () => {
   <div
     class="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-4"
   >
-    <p class="text-sm text-slate-600">{{ $t("auth.signingIn") }}</p>
+    <p class="text-sm text-slate-600">
+      {{ $t("auth.signingIn") }}
+    </p>
   </div>
 </template>

@@ -166,11 +166,11 @@ function blockStyle(entry: PositionedBlock) {
           <span
             v-if="!entry.block.projected"
             class="absolute inset-x-0 top-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-hidden="true"
             @pointerdown="
               emit('block-pointerdown', $event, entry, 'resize-top')
             "
             @click.stop
-            aria-hidden="true"
           />
 
           <div class="flex items-center gap-1">
@@ -178,7 +178,9 @@ function blockStyle(entry: PositionedBlock) {
               class="inline-block w-1.5 h-1.5 rounded-full shrink-0"
               :class="STATUS_DOTS[entry.task.status]"
             />
-            <div class="truncate font-semibold">{{ entry.task.title }}</div>
+            <div class="truncate font-semibold">
+              {{ entry.task.title }}
+            </div>
             <svg
               v-if="entry.block.projected"
               xmlns="http://www.w3.org/2000/svg"
@@ -224,11 +226,11 @@ function blockStyle(entry: PositionedBlock) {
           <span
             v-if="!entry.block.projected"
             class="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize opacity-0 group-hover:opacity-100 transition-opacity"
+            aria-hidden="true"
             @pointerdown="
               emit('block-pointerdown', $event, entry, 'resize-bottom')
             "
             @click.stop
-            aria-hidden="true"
           />
         </button>
       </div>

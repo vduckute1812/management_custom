@@ -1,4 +1,5 @@
 import eslint from "@eslint/js";
+import prettier from "eslint-config-prettier";
 import vue from "eslint-plugin-vue";
 import tseslint from "typescript-eslint";
 import vueParser from "vue-eslint-parser";
@@ -88,4 +89,6 @@ export default [
       reportUnusedDisableDirectives: "warn",
     },
   },
+  // Last: turn off rules that fight Prettier (attribute order, etc.).
+  prettier,
 ];

@@ -259,10 +259,18 @@ async function confirmDeleteCategory() {
           v-model.number="days"
           class="text-xs border border-slate-300 rounded-md px-2 py-1.5 bg-white"
         >
-          <option :value="7">{{ $t("admin.last7Days") }}</option>
-          <option :value="14">{{ $t("admin.last14Days") }}</option>
-          <option :value="30">{{ $t("admin.last30Days") }}</option>
-          <option :value="90">{{ $t("admin.last90Days") }}</option>
+          <option :value="7">
+            {{ $t("admin.last7Days") }}
+          </option>
+          <option :value="14">
+            {{ $t("admin.last14Days") }}
+          </option>
+          <option :value="30">
+            {{ $t("admin.last30Days") }}
+          </option>
+          <option :value="90">
+            {{ $t("admin.last90Days") }}
+          </option>
         </select>
       </div>
     </header>
@@ -357,7 +365,9 @@ async function confirmDeleteCategory() {
               <td class="px-3 py-2 font-medium text-slate-800">
                 {{ cat.name }}
               </td>
-              <td class="px-3 py-2 text-xs text-slate-500">{{ cat.slug }}</td>
+              <td class="px-3 py-2 text-xs text-slate-500">
+                {{ cat.slug }}
+              </td>
               <td class="px-3 py-2 text-right tabular-nums">
                 {{ cat.postCount ?? 0 }}
               </td>

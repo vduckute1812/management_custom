@@ -151,7 +151,7 @@ async function doExportICS() {
             >
               {{ $t("settings.language.label") }}
             </p>
-            <LanguageSwitcher variant="buttons" id="settings-language-label" />
+            <LanguageSwitcher id="settings-language-label" variant="buttons" />
           </div>
         </section>
 
@@ -418,9 +418,9 @@ async function doExportICS() {
           </header>
           <div class="px-5 py-4 text-xs text-slate-600 leading-relaxed">
             {{ $t("settings.print.body") }}
-            <NuxtLink to="/tasks" class="ml-1 text-brand-700 hover:underline">{{
-              $t("settings.print.dashboardLink")
-            }}</NuxtLink>
+            <NuxtLink to="/tasks" class="ml-1 text-brand-700 hover:underline">
+              {{ $t("settings.print.dashboardLink") }}
+            </NuxtLink>
           </div>
         </section>
       </div>

@@ -62,7 +62,9 @@ onMounted(async () => {
       <p v-else-if="status === 'ok'" class="text-sm text-slate-700">
         {{ $t("auth.verifiedBody") }}
       </p>
-      <p v-else class="text-sm text-rose-700">{{ error }}</p>
+      <p v-else class="text-sm text-rose-700">
+        {{ error }}
+      </p>
       <NuxtLink
         to="/login"
         class="block w-full py-2 rounded-md text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 transition"

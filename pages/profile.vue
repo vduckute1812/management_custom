@@ -205,7 +205,9 @@ onMounted(async () => {
             <p class="truncate text-lg font-semibold text-slate-900">
               {{ user.name || $t("profile.unnamedUser") }}
             </p>
-            <p class="truncate text-sm text-slate-500">{{ user.email }}</p>
+            <p class="truncate text-sm text-slate-500">
+              {{ user.email }}
+            </p>
             <p v-if="user.title" class="mt-1 truncate text-sm text-slate-700">
               {{ user.title }}
             </p>
@@ -306,19 +308,25 @@ onMounted(async () => {
 
       <dl v-if="!editing" class="mt-6 space-y-3 text-sm">
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">{{ $t("profile.role") }}</dt>
+          <dt class="text-slate-500">
+            {{ $t("profile.role") }}
+          </dt>
           <dd class="font-medium text-slate-800">
             {{ t(ROLE_I18N_KEYS[user.role] ?? "roles.normal") }}
           </dd>
         </div>
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">{{ $t("profile.emailVerified") }}</dt>
+          <dt class="text-slate-500">
+            {{ $t("profile.emailVerified") }}
+          </dt>
           <dd class="font-medium text-slate-800">
             {{ user.emailVerified ? $t("profile.yes") : $t("profile.no") }}
           </dd>
         </div>
         <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">{{ $t("profile.memberSince") }}</dt>
+          <dt class="text-slate-500">
+            {{ $t("profile.memberSince") }}
+          </dt>
           <dd class="font-medium tabular-nums text-slate-800">
             {{ memberSince }}
           </dd>

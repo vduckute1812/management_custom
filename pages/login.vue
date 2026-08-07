@@ -85,7 +85,9 @@ async function onSubmit() {
           <p class="text-base font-semibold text-slate-900 leading-tight">
             {{ $t("nav.brand") }}
           </p>
-          <p class="text-xs text-slate-500">{{ $t("auth.signInTitle") }}</p>
+          <p class="text-xs text-slate-500">
+            {{ $t("auth.signInTitle") }}
+          </p>
         </div>
       </div>
 

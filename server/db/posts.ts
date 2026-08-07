@@ -172,7 +172,7 @@ export async function createPost(
     );
   }
 
-  let categoryId: string | null = args.categoryId?.trim() || null;
+  const categoryId: string | null = args.categoryId?.trim() || null;
   if (categoryId) {
     const cat = await getCategoryById(categoryId);
     if (!cat) {
@@ -348,7 +348,7 @@ export async function updatePost(
     );
   }
 
-  let categoryId: string | null = args.categoryId?.trim() || null;
+  const categoryId: string | null = args.categoryId?.trim() || null;
   if (categoryId) {
     const cat = await getCategoryById(categoryId);
     if (!cat) {

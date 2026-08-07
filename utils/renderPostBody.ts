@@ -117,10 +117,6 @@ function isSeparatorRow(line: string): boolean {
   return cells.length > 0 && cells.every((cell) => /^:?-+:?$/.test(cell));
 }
 
-function columnCount(line: string): number {
-  return splitCells(line).length;
-}
-
 function makeSeparator(cols: number): string {
   return `|${Array.from({ length: cols }, () => " --- ").join("|")}|`;
 }
