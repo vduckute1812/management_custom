@@ -35,7 +35,7 @@ export default defineEventHandler(async (event): Promise<FeedBootstrap> => {
   const loadPosts = () => {
     if (!user) {
       return cacheGetOrSet(
-        CacheKeys.feedPublic(cursor, categoryId, locale),
+        CacheKeys.feedPublic(cursor, categoryId, locale, limit),
         CacheTTL.feedPublic,
         () => listFeedPosts(null, { cursor, limit, categoryId, locale }),
       );

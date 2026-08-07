@@ -137,21 +137,52 @@ export async function signedUploadUrl(storageKey: string): Promise<string> {
   return r2SignedGetUrl(storageKey);
 }
 
-/**
- * True if the viewer may fetch this upload.
- * Anonymous viewers only get uploads attached to public posts or used as
- * anyone's profile avatar (avatars appear on public feed surfaces).
- * Authenticated viewers also get own uploads, shared-audience posts, and live stories.
- */
-export async function canViewerAccessUpload(
+/** Short-lived positive ACL decisions (process-local). */
+const UPLOAD_ACL_TTL_MS = 30_000;
+const uploadAclAllowUntil = new Map<string, number>();
+const FRIEND_IDS_TTL_MS = 60_000;
+const friendIdsUntil = new Map<string, { until: number; ids: string[] }>();
+
+function rememberUploadAllow(viewerId: string | null, uploadId: string) {
+  uploadAclAllowUntil.set(
+    `${viewerId ?? ""}:${uploadId}`,
+    Date.now() + UPLOAD_ACL_TTL_MS,
+  );
+}
+
+function wasUploadAllowedRecently(
   viewerId: string | null,
   uploadId: string,
+): boolean {
+  const key = `${viewerId ?? ""}:${uploadId}`;
+  const until = uploadAclAllowUntil.get(key);
+  if (!until) return false;
+  if (until <= Date.now()) {
+    uploadAclAllowUntil.delete(key);
+    return false;
+  }
+  return true;
+}
+
+async function cachedFriendIds(viewerId: string): Promise<string[]> {
+  const hit = friendIdsUntil.get(viewerId);
+  if (hit && hit.until > Date.now()) return hit.ids;
+  const ids = await listAcceptedFriendIds(viewerId);
+  friendIdsUntil.set(viewerId, {
+    ids,
+    until: Date.now() + FRIEND_IDS_TTL_MS,
+  });
+  return ids;
+}
+
+async function uploadAccessibleToViewer(
+  row: UploadRow,
+  viewerId: string | null,
 ): Promise<boolean> {
-  const row = await getUploadById(uploadId);
-  if (!row) return false;
   if (viewerId && row.user_id === viewerId) return true;
 
   const pool = getPool();
+  const uploadId = row.id;
 
   // Profile avatars are intentionally public — they show next to authors on
   // public posts and stories even for anonymous visitors.
@@ -173,7 +204,7 @@ export async function canViewerAccessUpload(
     return publicRows.length > 0;
   }
 
-  const friendIds = await listAcceptedFriendIds(viewerId);
+  const friendIds = await cachedFriendIds(viewerId);
   const friendsPostClause =
     friendIds.length === 0
       ? "0"
@@ -231,6 +262,47 @@ export async function canViewerAccessUpload(
     [uploadId, viewerId, viewerId],
   );
   return chatRows.length > 0;
+}
+
+/**
+ * True if the viewer may fetch this upload.
+ * Anonymous viewers only get uploads attached to public posts or used as
+ * anyone's profile avatar (avatars appear on public feed surfaces).
+ * Authenticated viewers also get own uploads, shared-audience posts, and live stories.
+ */
+export async function canViewerAccessUpload(
+  viewerId: string | null,
+  uploadId: string,
+): Promise<boolean> {
+  if (wasUploadAllowedRecently(viewerId, uploadId)) return true;
+  const row = await getUploadById(uploadId);
+  if (!row) return false;
+  const allowed = await uploadAccessibleToViewer(row, viewerId);
+  if (allowed) rememberUploadAllow(viewerId, uploadId);
+  return allowed;
+}
+
+/**
+ * Single round-trip helper for the download route: ACL + row, or null when
+ * denied / missing (callers map null → 404).
+ */
+export async function resolveUploadForViewer(
+  viewerId: string | null,
+  uploadId: string,
+): Promise<UploadRow | null> {
+  const row = await getUploadById(uploadId);
+  if (!row) return null;
+  if (wasUploadAllowedRecently(viewerId, uploadId)) return row;
+  const allowed = await uploadAccessibleToViewer(row, viewerId);
+  if (!allowed) return null;
+  rememberUploadAllow(viewerId, uploadId);
+  return row;
+}
+
+/** Test helper — clear process-local upload ACL / friend-id caches. */
+export function _resetUploadAccessCachesForTests() {
+  uploadAclAllowUntil.clear();
+  friendIdsUntil.clear();
 }
 
 export async function assertOwnedUploads(
