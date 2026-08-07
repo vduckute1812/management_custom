@@ -237,80 +237,10 @@ async function confirmDeletePost() {
       aria-hidden="true"
     />
 
-    <header
-      class="relative border-b border-slate-200 bg-white px-4 py-7 sm:px-6 sm:py-9"
-    >
-      <div class="mx-auto max-w-[1180px]">
-        <div class="flex items-start justify-between gap-6">
-          <div class="max-w-2xl">
-            <div class="mb-3 flex items-center gap-2">
-              <span
-                class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm shadow-brand-200"
-                aria-hidden="true"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  class="h-4 w-4"
-                >
-                  <path d="M4 5.5h16v11H8l-4 3v-14Z" stroke-linejoin="round" />
-                  <path d="M8 9h8M8 13h5" stroke-linecap="round" />
-                </svg>
-              </span>
-              <span
-                class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700"
-              >
-                {{ $t("home.brand") }}
-              </span>
-            </div>
-            <h1
-              class="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
-            >
-              {{ $t("feed.title") }}
-            </h1>
-            <p class="mt-2 max-w-xl text-sm leading-6 text-slate-500">
-              <template v-if="auth.isAuthenticatedUi.value">
-                {{ $t("feed.subtitleAuth") }}
-              </template>
-              <template v-else>
-                {{ $t("feed.subtitleGuest") }}
-              </template>
-            </p>
-          </div>
-
-          <div
-            v-if="auth.isAuthenticatedUi.value"
-            class="hidden shrink-0 items-center gap-2 lg:flex"
-          >
-            <NuxtLink
-              to="/feed/write"
-              class="feed-manuscript-btn inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition hover:-translate-y-0.5"
-            >
-              {{ $t("manuscript.writeCta") }}
-            </NuxtLink>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md"
-              @click="composerRef?.focus()"
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="h-4 w-4"
-                aria-hidden="true"
-              >
-                <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-              </svg>
-              {{ $t("feed.composer.writeAPost") }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <FeedPageHeader
+      :is-authenticated="auth.isAuthenticatedUi.value"
+      @compose="composerRef?.focus()"
+    />
 
     <div class="relative mx-auto max-w-[1180px] px-4 py-6 sm:px-6 sm:py-8">
       <div
@@ -332,38 +262,7 @@ async function confirmDeletePost() {
             @submit="onCreate"
           />
 
-          <NuxtLink
-            v-if="auth.isAuthenticatedUi.value"
-            to="/feed/write"
-            class="manuscript-invite group relative block overflow-hidden rounded-2xl border border-[color:var(--mf-border)] px-5 py-5 transition hover:-translate-y-0.5 hover:border-[color:var(--mf-border-hover)] hover:shadow-md sm:px-6"
-          >
-            <div class="relative z-[1] max-w-xl">
-              <p
-                class="feed-manuscript-kicker text-[11px] font-bold uppercase tracking-[0.18em]"
-              >
-                {{ $t("manuscript.inviteKicker") }}
-              </p>
-              <p
-                class="mt-1 font-[family-name:var(--font-manuscript,Georgia,serif)] text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
-                style="
-                  font-family:
-                    &quot;Source Serif 4&quot;, Georgia,
-                    &quot;Times New Roman&quot;, serif;
-                "
-              >
-                {{ $t("manuscript.inviteTitle") }}
-              </p>
-              <p class="mt-2 text-sm leading-6 text-slate-600">
-                {{ $t("manuscript.inviteBody") }}
-              </p>
-              <span
-                class="feed-manuscript-action mt-3 inline-flex items-center gap-1.5 text-sm font-semibold transition group-hover:gap-2"
-              >
-                {{ $t("manuscript.inviteAction") }}
-                <span aria-hidden="true">→</span>
-              </span>
-            </div>
-          </NuxtLink>
+          <FeedManuscriptInvite v-if="auth.isAuthenticatedUi.value" />
 
           <FeedCategoryScroller
             :categories="categories"
@@ -481,40 +380,3 @@ async function confirmDeletePost() {
     />
   </div>
 </template>
-
-<style scoped>
-.manuscript-invite {
-  background:
-    linear-gradient(
-      135deg,
-      rgba(228, 239, 232, 0.95),
-      rgba(247, 248, 246, 0.98)
-    ),
-    radial-gradient(circle at 100% 0%, rgba(63, 111, 90, 0.12), transparent 40%);
-}
-
-.manuscript-invite::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--mf-accent), transparent 80%);
-}
-
-html[data-theme="dark"] .manuscript-invite {
-  background: linear-gradient(
-    135deg,
-    rgba(36, 49, 42, 0.95),
-    rgba(17, 24, 22, 0.98)
-  );
-  border-color: #2a332e;
-}
-
-html[data-theme="dark"] .manuscript-invite .text-slate-900 {
-  color: #f1f5f9 !important;
-}
-
-html[data-theme="dark"] .manuscript-invite .text-slate-600 {
-  color: #94a3b8 !important;
-}
-</style>

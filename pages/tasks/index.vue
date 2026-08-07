@@ -2,8 +2,6 @@
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
 import {
-  PRIORITY_BADGE,
-  PRIORITY_I18N_KEYS,
   PRIORITY_RANK,
   TaskPriority,
   TaskStatus,
@@ -26,12 +24,12 @@ const {
   error,
   findTask,
 } = useTasks();
-const { epics, fetchAll: fetchEpics, findEpic, colorOfTask } = useEpics();
+const { epics, fetchAll: fetchEpics } = useEpics();
 const { quickCaptureOpen, focusTaskId, clearFocusTask, pendingCreateTask } =
   useUiOverlays();
 const { pushToast } = useToasts();
 const { load: loadSamples } = useSampleData();
-const { settings, startOfWeek, formatTime } = useSettings();
+const { settings, startOfWeek } = useSettings();
 const { withProjections } = useRecurrence();
 
 const TASK_DND_MIME = "application/x-mgmt-task-id";
@@ -43,12 +41,6 @@ const editingTask = ref<Task | null>(null);
 const defaultStart = ref<string>("");
 const seeding = ref(false);
 const isNarrow = ref(false);
-
-const VIEW_I18N_KEYS: Record<CalendarView, string> = {
-  daily: "tasks.viewDaily",
-  weekly: "tasks.viewWeekly",
-  monthly: "tasks.viewMonthly",
-};
 
 function syncViewport() {
   if (!import.meta.client) return;
@@ -245,113 +237,17 @@ const isEmpty = computed(
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-    <header
-      class="px-4 md:px-6 py-4 border-b border-slate-200 bg-white flex items-center justify-between gap-3 flex-wrap"
-    >
-      <div>
-        <h1 class="text-xl font-semibold text-slate-900">
-          {{ headerLabel }}
-        </h1>
-        <p class="text-xs text-slate-500 mt-0.5">
-          {{
-            $t("tasks.statsLine", {
-              total: stats.total,
-              inProgress: stats.inProgress,
-              done: stats.done,
-              epics: epics.length,
-            })
-          }}
-        </p>
-      </div>
-
-      <div class="flex items-center gap-2 flex-wrap justify-end">
-        <div
-          class="inline-flex rounded-lg ring-1 ring-slate-200 overflow-hidden"
-        >
-          <button
-            v-for="opt in ['daily', 'weekly', 'monthly'] as const"
-            :key="opt"
-            class="px-3 py-1.5 text-xs font-medium capitalize transition disabled:opacity-40 disabled:cursor-not-allowed"
-            :class="
-              view === opt
-                ? 'bg-brand-600 text-white'
-                : 'bg-white text-slate-600 hover:bg-slate-50'
-            "
-            :disabled="isNarrow && opt !== 'daily'"
-            :title="
-              isNarrow && opt !== 'daily'
-                ? $t('tasks.availableOnLargerScreens')
-                : undefined
-            "
-            @click="setView(opt)"
-          >
-            {{ $t(VIEW_I18N_KEYS[opt]) }}
-          </button>
-        </div>
-
-        <div class="inline-flex items-center gap-1 ml-1">
-          <button
-            class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600"
-            :aria-label="$t('tasks.previous')"
-            @click="step(-1)"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              class="w-4 h-4"
-            >
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </button>
-          <button
-            class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-100"
-            @click="jumpToday"
-          >
-            {{ $t("tasks.today") }}
-          </button>
-          <button
-            class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600"
-            :aria-label="$t('tasks.next')"
-            @click="step(1)"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              class="w-4 h-4"
-            >
-              <polyline points="9 18 15 12 9 6" />
-            </svg>
-          </button>
-        </div>
-
-        <button
-          class="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm"
-          @click="quickCaptureOpen = true"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-            class="w-4 h-4"
-          >
-            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-          </svg>
-          {{ $t("tasks.quickCapture.button") }}
-          <kbd
-            class="hidden sm:inline px-1 py-0.5 bg-white/20 rounded text-[10px] font-mono"
-            >n</kbd
-          >
-        </button>
-      </div>
-    </header>
+    <TasksCalendarHeader
+      :header-label="headerLabel"
+      :view="view"
+      :is-narrow="isNarrow"
+      :stats="stats"
+      :epic-count="epics.length"
+      @set-view="setView"
+      @step="step"
+      @today="jumpToday"
+      @quick-capture="quickCaptureOpen = true"
+    />
 
     <div v-if="error" class="px-6 py-2 border-b border-rose-200">
       <InlineErrorAlert
@@ -405,147 +301,15 @@ const isEmpty = computed(
         />
       </section>
 
-      <aside
-        class="border-t lg:border-t-0 lg:border-l border-slate-200 bg-white overflow-y-auto scrollbar-thin max-h-[40vh] lg:max-h-none"
-      >
-        <div class="p-4 border-b border-slate-100">
-          <h2 class="text-sm font-semibold text-slate-800">
-            {{ $t("tasks.upNext") }}
-          </h2>
-          <p class="text-[11px] text-slate-500">
-            <span class="lg:hidden">{{ $t("tasks.upNextHint") }}</span>
-            <span class="hidden lg:inline">{{
-              $t("tasks.upNextHintDesktop")
-            }}</span>
-          </p>
-        </div>
-        <SkeletonList v-if="isLoading" variant="row" :rows="3" />
-        <ul v-else class="divide-y divide-slate-100">
-          <li
-            v-for="task in upcoming"
-            :key="task.id"
-            class="p-4 hover:bg-slate-50 cursor-grab active:cursor-grabbing"
-            draggable="true"
-            @dragstart="onUpNextDragStart($event, task)"
-            @click="openEdit(task)"
-          >
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0 flex items-center gap-2">
-                <span
-                  class="w-2 h-2 rounded-full shrink-0"
-                  :class="colorOfTask(task).solid"
-                  :title="
-                    findEpic(task.epicId)?.title ?? $t('tasks.standalone')
-                  "
-                />
-                <p class="text-sm font-medium text-slate-900 truncate">
-                  {{ task.title }}
-                </p>
-              </div>
-              <div class="flex items-center gap-1.5 shrink-0">
-                <TaskTimerButton :task="task" />
-                <StatusPill :task="task" />
-              </div>
-            </div>
-            <p
-              v-if="findEpic(task.epicId)"
-              class="mt-0.5 text-[11px] text-slate-500 truncate ml-4"
-            >
-              {{ findEpic(task.epicId)?.title }}
-            </p>
-            <div
-              class="mt-1 ml-4 flex items-center gap-2 text-[11px] text-slate-500 tabular-nums flex-wrap"
-            >
-              <span
-                v-if="
-                  task.priority !== undefined &&
-                  task.priority !== TaskPriority.Normal
-                "
-                class="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide"
-                :class="PRIORITY_BADGE[task.priority]"
-              >
-                {{ $t(PRIORITY_I18N_KEYS[task.priority]) }}
-              </span>
-              <span v-if="task.timeBlocks?.[0]">
-                {{
-                  $t("tasks.nextBlock", {
-                    date: dayjs(task.timeBlocks[0].start).format("MMM D"),
-                    time: formatTime(dayjs(task.timeBlocks[0].start)),
-                  })
-                }}
-              </span>
-              <span v-else-if="task.dueDate">
-                {{
-                  $t("tasks.due", { date: dayjs(task.dueDate).format("MMM D") })
-                }}
-              </span>
-              <span v-if="task.estimatedHours !== undefined">
-                {{
-                  $t("tasks.hoursRatio", {
-                    spent: task.spentHours ?? 0,
-                    estimated: task.estimatedHours,
-                  })
-                }}
-              </span>
-              <span
-                v-if="task.checklist && task.checklist.length"
-                class="inline-flex items-center gap-0.5"
-                :title="
-                  $t('tasks.checklistTitle', {
-                    done: task.checklist.filter((c) => c.done).length,
-                    total: task.checklist.length,
-                  })
-                "
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  class="w-3 h-3"
-                >
-                  <polyline
-                    points="20 6 9 17 4 12"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-                {{ task.checklist.filter((c) => c.done).length }}/{{
-                  task.checklist.length
-                }}
-              </span>
-            </div>
-            <div
-              v-if="task.progress !== undefined"
-              class="mt-2 ml-4 h-1 rounded-full bg-slate-100 overflow-hidden"
-            >
-              <div
-                class="h-full"
-                :class="colorOfTask(task).solid"
-                :style="{ width: task.progress + '%' }"
-              />
-            </div>
-          </li>
-          <li
-            v-if="upcoming.length === 0"
-            class="p-6 text-center text-xs text-slate-400 italic"
-          >
-            {{ $t("tasks.allClear") }}
-          </li>
-        </ul>
-        <div v-if="nextCursor" class="border-t border-slate-100 p-3">
-          <button
-            type="button"
-            class="w-full rounded-lg px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-            :disabled="isLoadingMore"
-            :aria-busy="isLoadingMore"
-            @click="loadMore"
-          >
-            {{ $t("common.loadMore") }}
-          </button>
-        </div>
-      </aside>
+      <TasksUpNextAside
+        :upcoming="upcoming"
+        :is-loading="isLoading"
+        :next-cursor="nextCursor"
+        :is-loading-more="isLoadingMore"
+        @select="openEdit"
+        @load-more="loadMore"
+        @drag-start="onUpNextDragStart"
+      />
     </div>
 
     <TaskModal
