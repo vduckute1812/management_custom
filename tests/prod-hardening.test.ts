@@ -70,10 +70,21 @@ describe("production hardening invariants", () => {
       new URL("../server/db/moneySavings.ts", import.meta.url),
       "utf8",
     );
+    const tasks = readFileSync(
+      new URL("../server/db/tasks.ts", import.meta.url),
+      "utf8",
+    );
+    const categories = readFileSync(
+      new URL("../server/db/moneyUserCategories.ts", import.meta.url),
+      "utf8",
+    );
     expect(stories).toContain("STORIES_TRAY_MAX");
     expect(admin).toContain("ADMIN_USERS_SUMMARY_MAX");
     expect(savings).toContain("SAVINGS_CONTRIBUTIONS_PAGE_SIZE");
+    expect(savings).toContain("SAVINGS_GOALS_MAX");
     expect(savings).toContain("nextCursor");
+    expect(tasks).toContain("TASKS_UNSCOPED_MAX");
+    expect(categories).toContain("MONEY_USER_CATEGORIES_MAX");
   });
 
   it("runs lint and dependency audit in CI", () => {

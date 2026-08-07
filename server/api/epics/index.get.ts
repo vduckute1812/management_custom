@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
   const boundary = epicsRaw[epicsRaw.length - 1];
   const tasks = await getAllTasks(user.sub, {
     epicIds: epicsRaw.map((epic) => epic.id),
+    limit: 2000,
   });
   const epics = epicsRaw
     .map((e) => toEpicView(e, tasks))

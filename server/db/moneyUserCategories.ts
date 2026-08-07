@@ -7,6 +7,7 @@ import {
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
+import { MONEY_USER_CATEGORIES_MAX } from "../utils/listLimits";
 
 interface UserCategoryRow extends RowDataPacket {
   id: string;
@@ -52,8 +53,9 @@ export async function listMoneyUserCategories(
   const [rows] = await pool.query<UserCategoryRow[]>(
     `SELECT * FROM money_user_categories
      WHERE ${clauses.join(" AND ")}
-     ORDER BY sort_order ASC, created_at ASC, id ASC`,
-    params,
+     ORDER BY sort_order ASC, created_at ASC, id ASC
+     LIMIT ?`,
+    [...params, MONEY_USER_CATEGORIES_MAX],
   );
   return rows.map(rowToUserCategory);
 }
