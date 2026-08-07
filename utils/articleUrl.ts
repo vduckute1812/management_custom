@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 /** True when the URL uses http: or https: only (blocks javascript:/data:/etc.). */
 export function isSafeHttpUrl(url: string): boolean {
   try {
@@ -24,8 +22,4 @@ export function normalizeArticleUrl(url: string): string {
   } catch {
     return url.trim().replace(/#.*$/, "").replace(/\/+$/, "");
   }
-}
-
-export function hashArticleUrl(url: string): string {
-  return createHash("sha256").update(normalizeArticleUrl(url)).digest("hex");
 }

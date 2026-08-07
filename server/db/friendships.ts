@@ -107,8 +107,14 @@ export async function areFriends(
 }
 
 /** Peer user ids with an Accepted friendship (for feed/story ACL `IN` lists). */
+const FRIEND_IDS_TTL_MS = 60_000;
+const friendIdsCache = new Map<string, { until: number; ids: string[] }>();
+
 export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
   if (!userId) return [];
+  const hit = friendIdsCache.get(userId);
+  if (hit && hit.until > Date.now()) return hit.ids;
+
   const pool = getPool();
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT IF(requester_id = ?, addressee_id, requester_id) AS peer_id
@@ -117,7 +123,18 @@ export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
        AND (requester_id = ? OR addressee_id = ?)`,
     [userId, FriendshipStatus.Accepted, userId, userId],
   );
-  return rows.map((r) => String(r.peer_id));
+  const ids = rows.map((r) => String(r.peer_id));
+  friendIdsCache.set(userId, { ids, until: Date.now() + FRIEND_IDS_TTL_MS });
+  return ids;
+}
+
+/** Clear process-local friend-id cache (tests / after friendship mutations). */
+export function invalidateAcceptedFriendIdsCache(userId?: string) {
+  if (!userId) {
+    friendIdsCache.clear();
+    return;
+  }
+  friendIdsCache.delete(userId);
 }
 
 export async function countIncomingFriendRequests(
@@ -389,6 +406,8 @@ export async function acceptFriendship(
       FriendshipStatus.Pending,
     ],
   );
+  invalidateAcceptedFriendIdsCache(String(row.requester_id));
+  invalidateAcceptedFriendIdsCache(String(row.addressee_id));
   return loadFriendshipForUser(userId, friendshipId);
 }
 
@@ -398,6 +417,11 @@ export async function deleteFriendship(
   friendshipId: string,
 ): Promise<void> {
   const pool = getPool();
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT requester_id, addressee_id FROM friendships WHERE id = ? LIMIT 1`,
+    [friendshipId],
+  );
+  const pair = rows[0];
   const [result] = await pool.query(
     `DELETE FROM friendships
      WHERE id = ?
@@ -409,5 +433,9 @@ export async function deleteFriendship(
   );
   if (!affected) {
     throw new DomainError(404, "Friendship not found");
+  }
+  if (pair) {
+    invalidateAcceptedFriendIdsCache(String(pair.requester_id));
+    invalidateAcceptedFriendIdsCache(String(pair.addressee_id));
   }
 }
