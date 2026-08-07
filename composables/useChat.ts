@@ -4,8 +4,7 @@ import type {
   ChatMessageReactionType,
   ChatSticker,
 } from "~/types/chat";
-import { ChatMessageKind } from "~/types/chat";
-import { applyOptimisticReaction } from "~/utils/optimisticReaction";
+import { createChatMessageActions } from "~/composables/chatMessageActions";
 import {
   threadLive,
   connectThreadStream,
@@ -128,6 +127,15 @@ export const useChat = () => {
       void refreshConversations().catch(() => undefined);
     }
   }
+
+  const messageActions = createChatMessageActions({
+    activeId,
+    messages,
+    conversations,
+    sending,
+    apiFetch,
+    ingestMessage,
+  });
 
   function applyReadEvent(userId: string, lastReadAt: string) {
     const myId = auth.user.value?.id;
@@ -330,174 +338,6 @@ export const useChat = () => {
     disconnectThreadStream();
   }
 
-  async function sendText(text: string) {
-    if (!activeId.value) return;
-    const body = text.trim();
-    if (!body || sending.value) return;
-    sending.value = true;
-    try {
-      const res = await apiFetch<{ message: ChatMessage }>(
-        `/api/chat/conversations/${activeId.value}/messages`,
-        {
-          method: "POST",
-          body: { kind: ChatMessageKind.Text, body },
-        },
-      );
-      ingestMessage(res.message, { fromSelf: true });
-    } finally {
-      sending.value = false;
-    }
-  }
-
-  async function sendSticker(stickerId: string) {
-    if (!activeId.value || sending.value) return;
-    sending.value = true;
-    try {
-      const res = await apiFetch<{ message: ChatMessage }>(
-        `/api/chat/conversations/${activeId.value}/messages`,
-        {
-          method: "POST",
-          body: { kind: ChatMessageKind.Sticker, stickerId },
-        },
-      );
-      ingestMessage(res.message, { fromSelf: true });
-    } finally {
-      sending.value = false;
-    }
-  }
-
-  async function sendImage(uploadId: string) {
-    if (!activeId.value || sending.value) return;
-    sending.value = true;
-    try {
-      const res = await apiFetch<{ message: ChatMessage }>(
-        `/api/chat/conversations/${activeId.value}/messages`,
-        {
-          method: "POST",
-          body: { kind: ChatMessageKind.Image, uploadId },
-        },
-      );
-      ingestMessage(res.message, { fromSelf: true });
-    } finally {
-      sending.value = false;
-    }
-  }
-
-  async function sendAudio(uploadId: string, durationMs: number) {
-    if (!activeId.value || sending.value) return;
-    sending.value = true;
-    try {
-      const res = await apiFetch<{ message: ChatMessage }>(
-        `/api/chat/conversations/${activeId.value}/messages`,
-        {
-          method: "POST",
-          body: { kind: ChatMessageKind.Audio, uploadId, durationMs },
-        },
-      );
-      ingestMessage(res.message, { fromSelf: true });
-    } finally {
-      sending.value = false;
-    }
-  }
-
-  /**
-   * Optimistic reaction mutation with per-message request tokens so rapid
-   * clicks don't leave a stale response winning.
-   */
-  const reactionRequestTokens = new Map<string, number>();
-
-  async function mutateMessageReaction(
-    messageId: string,
-    reaction: ChatMessageReactionType | null,
-  ) {
-    if (!activeId.value) return;
-    const prev = messages.value.find((m) => m.id === messageId);
-    if (!prev) return;
-    if (reaction === null && prev.myReaction == null) return;
-    if (reaction !== null && prev.myReaction === reaction) return;
-
-    const token = (reactionRequestTokens.get(messageId) ?? 0) + 1;
-    reactionRequestTokens.set(messageId, token);
-    const isLatest = () => reactionRequestTokens.get(messageId) === token;
-
-    const optimisticCounts = applyOptimisticReaction(prev, reaction);
-
-    messages.value = messages.value.map((m) =>
-      m.id === messageId ? { ...m, ...optimisticCounts } : m,
-    );
-
-    try {
-      const path = `/api/chat/conversations/${activeId.value}/messages/${messageId}/reactions`;
-      const res =
-        reaction != null
-          ? await apiFetch<{
-              message: ChatMessage;
-              reactions: Record<ChatMessageReactionType, number>;
-              reactionCount: number;
-              myReaction: ChatMessageReactionType | null;
-            }>(path, { method: "POST", body: { reaction } })
-          : await apiFetch<{
-              message: ChatMessage;
-              reactions: Record<ChatMessageReactionType, number>;
-              reactionCount: number;
-              myReaction: ChatMessageReactionType | null;
-            }>(path, { method: "DELETE" });
-      if (!isLatest()) return;
-      messages.value = messages.value.map((m) =>
-        m.id === messageId
-          ? {
-              ...m,
-              reactions: res.reactions ?? res.message.reactions,
-              reactionCount: res.reactionCount ?? res.message.reactionCount,
-              myReaction: res.myReaction ?? res.message.myReaction,
-            }
-          : m,
-      );
-    } catch {
-      if (!isLatest()) return;
-      messages.value = messages.value.map((m) =>
-        m.id === messageId ? prev : m,
-      );
-    }
-  }
-
-  async function setMessageReaction(
-    messageId: string,
-    reaction: ChatMessageReactionType,
-  ) {
-    await mutateMessageReaction(messageId, reaction);
-  }
-
-  async function clearMessageReaction(messageId: string) {
-    await mutateMessageReaction(messageId, null);
-  }
-
-  async function deleteMessage(messageId: string) {
-    if (!activeId.value) return;
-    const previous = messages.value;
-    const previousConversations = conversations.value.map((c) => ({
-      ...c,
-      lastMessage: c.lastMessage ? { ...c.lastMessage } : null,
-    }));
-    messages.value = messages.value.filter((m) => m.id !== messageId);
-    const conv = conversations.value.find((c) => c.id === activeId.value);
-    if (conv?.lastMessage?.id === messageId) {
-      const remaining = messages.value;
-      conv.lastMessage =
-        remaining.length > 0 ? (remaining[remaining.length - 1] ?? null) : null;
-    }
-    try {
-      await apiFetch(
-        `/api/chat/conversations/${activeId.value}/messages/${messageId}`,
-        { method: "DELETE" },
-      );
-    } catch (err) {
-      messages.value = previous;
-      conversations.value = previousConversations;
-      throw err;
-    }
-  }
-
   function closeConversation() {
     disconnectThreadStream();
     activeId.value = null;
@@ -526,13 +366,7 @@ export const useChat = () => {
     startConversation,
     openConversation,
     loadOlderMessages,
-    sendText,
-    sendSticker,
-    sendImage,
-    sendAudio,
-    setMessageReaction,
-    clearMessageReaction,
-    deleteMessage,
+    ...messageActions,
     startPolling,
     stopPolling,
     closeConversation,

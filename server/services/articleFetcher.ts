@@ -3,11 +3,14 @@
  * Curated to well-known, reputable publishers and academic archives only.
  */
 
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
 import type { PipelineCategorySlug } from "~/types/article";
 import { PIPELINE_CATEGORY_SLUGS } from "~/types/article";
 import { isSafeHttpUrl } from "~/utils/articleUrl";
+import {
+  fetchArticlePageText,
+  fetchFeedXml,
+} from "~/server/services/articleFetchHttp";
+export { sameRegistrableHint } from "~/server/services/articleFetchHttp";
 
 export interface FeedSource {
   name: string;
@@ -74,17 +77,10 @@ export const ARTICLE_FEED_SOURCES: FeedSource[] = [
   },
 ];
 
-const FETCH_TIMEOUT_MS = 25_000;
-const PAGE_FETCH_TIMEOUT_MS = 20_000;
-const MAX_FEED_BYTES = 2_500_000;
-const MAX_PAGE_BYTES = 1_500_000;
-const MAX_REDIRECTS = 3;
 const FETCH_CONCURRENCY = 4;
 const PAGE_EXPAND_CONCURRENCY = 2;
 /** How many feed entries to consider before length-ranking. */
 const CANDIDATES_PER_SOURCE = 16;
-const USER_AGENT =
-  "DNTechX-ArticlePipeline/1.0 (+https://dntechx.com; content aggregator)";
 
 function decodeXmlEntities(text: string): string {
   return text
@@ -215,225 +211,6 @@ function parseItems(xml: string): Array<{
   return out;
 }
 
-/** Block obvious private / link-local / metadata hosts (SSRF hardening). */
-function isBlockedHostname(hostname: string): boolean {
-  const host = hostname.toLowerCase().replace(/\.$/, "");
-  if (
-    host === "localhost" ||
-    host === "metadata.google.internal" ||
-    host.endsWith(".local") ||
-    host.endsWith(".internal")
-  ) {
-    return true;
-  }
-  if (isBlockedIpLiteral(host)) return true;
-  if (
-    host === "::1" ||
-    host.startsWith("fe80:") ||
-    host.startsWith("fc") ||
-    host.startsWith("fd")
-  ) {
-    return true;
-  }
-  return false;
-}
-
-function isBlockedIpLiteral(host: string): boolean {
-  const m = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
-  if (m) {
-    const a = Number(m[1]);
-    const b = Number(m[2]);
-    if (a === 10 || a === 127 || a === 0) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    return false;
-  }
-  return false;
-}
-
-/** Resolve DNS and reject private / link-local answers (incl. DNS rebinding). */
-async function assertPublicResolvedHost(hostname: string): Promise<void> {
-  if (isBlockedHostname(hostname)) {
-    throw new Error("Private/metadata host blocked");
-  }
-  if (isIP(hostname)) {
-    if (isBlockedIpLiteral(hostname) || isBlockedHostname(hostname)) {
-      throw new Error("Private IP blocked");
-    }
-    return;
-  }
-  let records: { address: string; family: number }[];
-  try {
-    records = await lookup(hostname, { all: true, verbatim: true });
-  } catch {
-    throw new Error("DNS lookup failed");
-  }
-  if (!records.length) {
-    throw new Error("DNS lookup returned no addresses");
-  }
-  for (const rec of records) {
-    if (isBlockedHostname(rec.address) || isBlockedIpLiteral(rec.address)) {
-      throw new Error("Host resolves to a private address");
-    }
-  }
-}
-
-/** Approximate eTLD+1 for same-site redirect checks (no PSL dependency). */
-function registrableHint(hostname: string): string {
-  const parts = hostname
-    .toLowerCase()
-    .replace(/\.$/, "")
-    .split(".")
-    .filter(Boolean);
-  if (parts.length <= 2) return parts.join(".");
-  return parts.slice(-2).join(".");
-}
-
-/**
- * True when hosts are the same site family: exact, parent/child subdomain, or
- * sibling subdomains of the same registrable domain (api.x.org → www.x.org).
- */
-export function sameRegistrableHint(a: string, b: string): boolean {
-  const left = a.toLowerCase().replace(/\.$/, "");
-  const right = b.toLowerCase().replace(/\.$/, "");
-  if (
-    left === right ||
-    left.endsWith(`.${right}`) ||
-    right.endsWith(`.${left}`)
-  ) {
-    return true;
-  }
-  return registrableHint(left) === registrableHint(right);
-}
-
-async function readBodyCapped(
-  res: Response,
-  maxBytes: number,
-): Promise<string> {
-  const len = Number(res.headers.get("content-length") || 0);
-  if (len > maxBytes) {
-    throw new Error(`Body too large (${len} bytes)`);
-  }
-  if (!res.body) {
-    const text = await res.text();
-    if (text.length > maxBytes) {
-      throw new Error(`Body too large (${text.length} bytes)`);
-    }
-    return text;
-  }
-  const reader = res.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    if (!value) continue;
-    total += value.byteLength;
-    if (total > maxBytes) {
-      try {
-        await reader.cancel();
-      } catch {
-        /* ignore */
-      }
-      throw new Error(`Body too large (>${maxBytes} bytes)`);
-    }
-    chunks.push(value);
-  }
-  const merged = new Uint8Array(total);
-  let offset = 0;
-  for (const c of chunks) {
-    merged.set(c, offset);
-    offset += c.byteLength;
-  }
-  return new TextDecoder("utf-8", { fatal: false }).decode(merged);
-}
-
-async function fetchHttpText(
-  url: string,
-  opts: {
-    accept: string;
-    maxBytes: number;
-    timeoutMs: number;
-    /** When set, redirects must stay on this host family. */
-    lockHost?: string;
-  },
-): Promise<string> {
-  if (!isSafeHttpUrl(url)) {
-    throw new Error("URL must be http(s)");
-  }
-  const originHost = opts.lockHost || new URL(url).hostname;
-  let current = url;
-
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    const parsed = new URL(current);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      throw new Error("Redirect to non-http(s) blocked");
-    }
-    if (isBlockedHostname(parsed.hostname)) {
-      throw new Error("Redirect to private/metadata host blocked");
-    }
-    await assertPublicResolvedHost(parsed.hostname);
-    if (!sameRegistrableHint(parsed.hostname, originHost)) {
-      throw new Error(
-        `Cross-host redirect blocked (${originHost} → ${parsed.hostname})`,
-      );
-    }
-
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs);
-    try {
-      const res = await fetch(current, {
-        signal: ctrl.signal,
-        headers: {
-          Accept: opts.accept,
-          "User-Agent": USER_AGENT,
-        },
-        redirect: "manual",
-      });
-
-      if (res.status >= 300 && res.status < 400) {
-        const loc = res.headers.get("location");
-        if (!loc) throw new Error(`Redirect ${res.status} without Location`);
-        current = new URL(loc, current).toString();
-        continue;
-      }
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      return await readBodyCapped(res, opts.maxBytes);
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-  throw new Error(`Too many redirects (>${MAX_REDIRECTS})`);
-}
-
-async function fetchFeedXml(url: string): Promise<string> {
-  return fetchHttpText(url, {
-    accept:
-      "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
-    maxBytes: MAX_FEED_BYTES,
-    timeoutMs: FETCH_TIMEOUT_MS,
-  });
-}
-
-async function fetchArticlePageText(url: string): Promise<string | null> {
-  try {
-    const html = await fetchHttpText(url, {
-      accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
-      maxBytes: MAX_PAGE_BYTES,
-      timeoutMs: PAGE_FETCH_TIMEOUT_MS,
-      lockHost: new URL(url).hostname,
-    });
-    const text = extractMainTextFromHtml(html);
-    return text.length >= 200 ? text : null;
-  } catch {
-    return null;
-  }
-}
-
 function envInt(name: string, fallback: number): number {
   const n = Number(process.env[name]);
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
@@ -499,7 +276,10 @@ async function maybeExpandItems(
 
   return mapPool(parsed, PAGE_EXPAND_CONCURRENCY, async (item) => {
     if (item.content.length >= below) return item;
-    const pageText = await fetchArticlePageText(item.url);
+    const pageText = await fetchArticlePageText(
+      item.url,
+      extractMainTextFromHtml,
+    );
     if (!pageText || pageText.length <= item.content.length) return item;
     return { ...item, content: pageText };
   });
