@@ -227,9 +227,12 @@ function onExportJson() {
           />
         </section>
 
-        <p v-if="error" class="text-sm text-rose-600" role="alert">
-          {{ error }}
-        </p>
+        <InlineErrorAlert
+          v-if="error"
+          :message="error"
+          :retry-label="$t('common.retry')"
+          @retry="fetchMonth()"
+        />
         <div
           v-else-if="isLoading && !month?.budgets.length"
           class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"

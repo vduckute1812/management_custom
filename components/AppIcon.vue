@@ -9,7 +9,8 @@ export type AppIconName =
   | "user"
   | "users"
   | "wallet"
-  | "goal";
+  | "goal"
+  | "chat";
 
 const props = withDefaults(
   defineProps<{
@@ -69,6 +70,12 @@ const props = withDefaults(
       <circle cx="9" cy="7" r="4" />
       <path d="M23 21v-2a4 4 0 00-3-3.87" />
       <path d="M16 3.13a4 4 0 010 7.75" />
+    </template>
+    <template v-else-if="name === 'chat'">
+      <path
+        d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"
+        stroke-linejoin="round"
+      />
     </template>
     <template v-else-if="name === 'chart'">
       <path d="M3 3v18h18" stroke-linecap="round" />

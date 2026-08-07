@@ -1060,6 +1060,8 @@
     "taskSubtitleWithEpic": "Task · {epic}",
     "goChat": "Go to Chat",
     "goChatSub": "Direct messages",
+    "goFriends": "Go to Friends",
+    "goFriendsSub": "Friend list and requests",
     "goMoney": "Go to Money",
     "goMoneySub": "Expenses and month totals"
   },

@@ -355,9 +355,12 @@ const netTone = computed(() => {
           </div>
         </div>
 
-        <p v-if="error" class="text-sm text-rose-600" role="alert">
-          {{ error }}
-        </p>
+        <InlineErrorAlert
+          v-if="error"
+          :message="error"
+          :retry-label="$t('common.retry')"
+          @retry="fetchMonth()"
+        />
         <div
           v-else-if="isLoading && !transactions.length"
           class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
