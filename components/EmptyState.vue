@@ -9,7 +9,13 @@ const props = withDefaults(
     secondaryLabel?: string;
     secondaryLoading?: boolean;
   }>(),
-  { illustration: "spark" },
+  {
+    description: undefined,
+    illustration: "spark",
+    primaryLabel: undefined,
+    primaryShortcut: undefined,
+    secondaryLabel: undefined,
+  },
 );
 
 const emit = defineEmits<{

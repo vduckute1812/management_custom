@@ -18,7 +18,10 @@ const props = withDefaults(
     currency?: MoneyCurrencyT;
     activePick?: MoneyCategoryPick | null;
   }>(),
-  { currency: MoneyCurrency.VND },
+  {
+    currency: MoneyCurrency.VND,
+    activePick: null,
+  },
 );
 
 const emit = defineEmits<{

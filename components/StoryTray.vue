@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { StoryAuthorGroup } from "~/types/story";
 
-const props = defineProps<{
+defineProps<{
   groups: StoryAuthorGroup[];
   loading?: boolean;
 }>();

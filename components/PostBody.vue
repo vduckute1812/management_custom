@@ -62,11 +62,13 @@ const style = computed(() => {
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-v-html -- renderPostBody sanitizes this HTML with DOMPurify. -->
   <div
     class="post-body min-w-0 max-w-full text-sm break-words"
     :style="style"
     v-html="html"
   />
+  <!-- eslint-enable vue/no-v-html -->
 </template>
 
 <!--

@@ -106,7 +106,7 @@ function onDragStart(e: DragEvent, entry: DayEntry) {
     "application/x-mgmt-block",
     JSON.stringify(dragPayload.value),
   );
-  e.dataTransfer && (e.dataTransfer.effectAllowed = "move");
+  if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
 }
 
 function onDragEnd() {

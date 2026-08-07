@@ -245,6 +245,7 @@ export async function runMigrations(): Promise<MigrationRunResult> {
         } catch (err) {
           throw new Error(
             `Migration ${m.id} failed: ${(err as Error).message}`,
+            { cause: err },
           );
         }
         const duration = Date.now() - t0;

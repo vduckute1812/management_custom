@@ -44,7 +44,9 @@ const props = withDefaults(
     initialLocale?: ContentLocale | null;
   }>(),
   {
+    categories: () => [],
     editing: false,
+    initial: undefined,
     translationGroupId: null,
     existingLocales: () => [],
     initialLocale: null,

@@ -14,7 +14,6 @@ import type {
 } from "../../../types/post";
 import {
   POST_REACTION_TYPES,
-  PostFormat,
   UploadKind,
   toPostFormat,
   toPostVisibility,

@@ -15,6 +15,7 @@ const props = withDefaults(
     intent: "login",
     redirect: "/",
     busy: false,
+    label: undefined,
   },
 );
 

@@ -8,7 +8,7 @@ import {
   getChatSticker,
 } from "~/types/chat";
 
-const props = defineProps<{
+defineProps<{
   message: ChatMessage;
   highlighted: boolean;
   showReadReceipt: boolean;

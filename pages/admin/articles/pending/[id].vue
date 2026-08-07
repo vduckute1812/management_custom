@@ -498,12 +498,14 @@ function onConfirm() {
                 :placeholder="$t('adminArticles.rewritePlaceholder')"
               />
             </label>
+            <!-- eslint-disable vue/no-v-html -- renderPostBody sanitizes this preview with DOMPurify. -->
             <div
               v-if="showPreview"
               class="border border-slate-100 rounded-lg p-3 bg-slate-50 max-h-40 overflow-y-auto prose prose-sm max-w-none shrink-0"
               aria-live="polite"
               v-html="previewHtml"
             />
+            <!-- eslint-enable vue/no-v-html -->
           </section>
         </div>
       </template>

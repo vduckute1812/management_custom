@@ -36,8 +36,11 @@ const props = withDefaults(
     allowCreate?: boolean;
   }>(),
   {
+    id: undefined,
     mode: "all",
+    direction: undefined,
     allowNull: false,
+    nullLabel: undefined,
     size: "md",
     allowCreate: true,
   },

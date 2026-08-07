@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import type { AppLocale } from "~/types/locale";
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     /** compact = native select for menus; buttons = settings grid */
     variant?: "select" | "buttons";
     id?: string;
   }>(),
-  { variant: "select" },
+  { variant: "select", id: undefined },
 );
 
 const { locales, locale } = useI18n();
