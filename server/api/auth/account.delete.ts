@@ -10,7 +10,7 @@
  * therefore delete such an account, the same exposure it already has to delete
  * every post by hand. Closing it properly needs a Google re-consent round trip.
  *
- * Everything else is `deleteUser`: MySQL cascades the user's rows, the R2
+ * The account deletion service cascades the user's rows, sweeps the R2
  * objects behind their uploads are swept, and comment counters on other
  * people's posts are recounted. There is no recycle bin and no grace period —
  * the privacy policy promises exactly that.

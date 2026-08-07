@@ -4,7 +4,7 @@
  *   node --env-file=.env --import tsx scripts/verify-user-delete-cascade.ts
  *
  * Seeds a throwaway account with task / post / comment / chat / money / story
- * (legacy media key) / pending email job, calls `deleteUser`, then fails if
+ * (legacy media key) / pending email job, deletes the account, then fails if
  * any owned row or job for that email remains. The peer account must survive.
  */
 import type { RowDataPacket } from "mysql2/promise";
@@ -16,7 +16,6 @@ import {
   createPost,
   createPostComment,
   createUser,
-  deleteUser,
   getOrCreateDirectConversation,
   getPool,
   getUserByEmail,
@@ -24,6 +23,7 @@ import {
   upsertMoneyTransaction,
   upsertTask,
 } from "../server/utils/db";
+import { deleteUserAccount } from "../server/services/accountDeletionService";
 import { generateId, nowISO } from "../server/db/ids";
 import { isoToDB } from "../server/db/datetime";
 
@@ -72,7 +72,7 @@ async function main() {
   // Start clean so a previous failed run cannot leave false positives.
   for (const email of [VICTIM_EMAIL, PEER_EMAIL]) {
     const u = await getUserByEmail(email);
-    if (u) await deleteUser(u.id);
+    if (u) await deleteUserAccount(u.id);
   }
 
   const victim = await ensureUser(VICTIM_EMAIL, "Cascade Victim");
@@ -162,8 +162,8 @@ async function main() {
     ],
   );
 
-  const removed = await deleteUser(victim.id);
-  if (!removed) throw new Error("deleteUser returned false");
+  const removed = await deleteUserAccount(victim.id);
+  if (!removed) throw new Error("deleteUserAccount returned false");
 
   const leftovers: string[] = [];
   for (const { table, column } of OWNED_TABLES) {

@@ -14,18 +14,21 @@ useSeoMeta({
 
 const {
   conversations,
+  conversationsNextCursor,
   activeId,
   activeConversation,
   messages,
   peerLastReadAt,
   messagesHasMore,
   loadingConversations,
+  loadingMoreConversations,
   loadingMessages,
   loadingOlderMessages,
   sending,
   stickers,
   emoji,
   refreshConversations,
+  loadMoreConversations,
   ensureCatalog,
   startConversation,
   openConversation,
@@ -42,7 +45,13 @@ const {
   closeConversation,
 } = useChat();
 
-const { friends, refresh: refreshFriends } = useFriends();
+const {
+  friends,
+  friendsNextCursor,
+  loadingMoreFriends,
+  refresh: refreshFriends,
+  loadMoreFriends,
+} = useFriends();
 
 const userQuery = ref("");
 const showNewChat = ref(false);
@@ -236,6 +245,17 @@ function backToList() {
                 </span>
               </button>
             </li>
+            <li v-if="friendsNextCursor" class="pt-1">
+              <button
+                type="button"
+                class="w-full rounded-lg px-3 py-2 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
+                :disabled="loadingMoreFriends"
+                :aria-busy="loadingMoreFriends"
+                @click="loadMoreFriends"
+              >
+                {{ t("common.loadMore") }}
+              </button>
+            </li>
           </ul>
         </div>
 
@@ -259,7 +279,10 @@ function backToList() {
           :conversations="conversations"
           :active-id="activeId"
           :loading="loadingConversations"
+          :has-more="!!conversationsNextCursor"
+          :loading-more="loadingMoreConversations"
           @select="onSelectConversation"
+          @load-more="loadMoreConversations"
         />
       </aside>
 

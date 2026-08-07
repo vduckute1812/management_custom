@@ -9,7 +9,6 @@ import type { AuthUser } from "~/types/auth";
 import { UserRole } from "~/types/auth";
 import {
   createUserWithEmailVerification,
-  deleteUser,
   findActiveRefreshToken,
   findRefreshTokenByHash,
   getUserByEmail,
@@ -19,6 +18,7 @@ import {
   toAuthUser,
   type UserRecord,
 } from "~/server/utils/db";
+import { deleteUserAccount } from "~/server/services/accountDeletionService";
 import {
   emailConfirmationMatches,
   generateOpaqueToken,
@@ -199,7 +199,7 @@ export async function deleteOwnAccount(
     }
   }
 
-  const removed = await deleteUser(user.id);
+  const removed = await deleteUserAccount(user.id);
   if (!removed) {
     throw new DomainError(404, "User not found");
   }
