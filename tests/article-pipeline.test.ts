@@ -9,11 +9,8 @@ import {
 } from "../server/schemas/article";
 import { ArticleStatus, PIPELINE_CATEGORY_SLUGS } from "../types/article";
 import { AppSettingKey } from "../types/appSettings";
-import {
-  normalizeArticleUrl,
-  hashArticleUrl,
-  isSafeHttpUrl,
-} from "../utils/articleUrl";
+import { normalizeArticleUrl, isSafeHttpUrl } from "../utils/articleUrl";
+import { hashArticleUrl } from "../server/utils/articleUrlHash";
 import { ensureSourceAttribution } from "../utils/articleAttribution";
 import {
   redactSecrets,

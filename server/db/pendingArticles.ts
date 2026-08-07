@@ -7,17 +7,14 @@ import {
   type PendingArticleListItem,
 } from "../../types/article";
 import { DomainError } from "~/server/utils/http";
-import {
-  hashArticleUrl,
-  normalizeArticleUrl,
-  isSafeHttpUrl,
-} from "~/utils/articleUrl";
+import { hashArticleUrl } from "~/server/utils/articleUrlHash";
+import { normalizeArticleUrl, isSafeHttpUrl } from "~/utils/articleUrl";
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
 
 export type { ArticleStatusValue as ArticleStatus };
-export { hashArticleUrl, normalizeArticleUrl, isSafeHttpUrl };
+export { normalizeArticleUrl, isSafeHttpUrl };
 
 interface PendingArticleRow extends RowDataPacket {
   id: string;

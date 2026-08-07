@@ -63,9 +63,17 @@ jobs:
         if: ${{ !cancelled() }}
         run: npm run scan:secrets
 
+      - name: Audit production dependencies
+        if: ${{ !cancelled() }}
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Check formatting
         if: ${{ !cancelled() }}
         run: npm run format:check
+
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: npm run lint
 
       - name: Typecheck
         if: ${{ !cancelled() }}
