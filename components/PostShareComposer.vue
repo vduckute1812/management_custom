@@ -26,8 +26,8 @@ function submit() {
 
 <template>
   <div class="space-y-2 border-t border-slate-100 bg-slate-50/60 px-4 py-3">
-    <label class="sr-only" :for="`share-${postId}`">
-      {{ $t("feed.post.shareNote") }}
+    <label :for="`share-${postId}`">
+      <span class="sr-only">{{ $t("feed.post.shareNote") }}</span>
     </label>
     <input
       :id="`share-${postId}`"

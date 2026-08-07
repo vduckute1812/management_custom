@@ -272,17 +272,17 @@ function onBlockDblClick(e: MouseEvent, entry: PositionedCalendarBlock) {
       </p>
       <div class="flex flex-wrap gap-2">
         <button
-          v-for="t in undatedTasks"
-          :key="t.id"
+          v-for="task in undatedTasks"
+          :key="task.id"
           class="px-2.5 py-1 rounded-full text-xs font-medium ring-1 bg-white hover:bg-slate-50 transition flex items-center gap-1.5"
-          :class="colorOfTask(t).ring"
-          @click="emit('select-task', t)"
+          :class="colorOfTask(task).ring"
+          @click="emit('select-task', task)"
         >
           <span
             class="w-1.5 h-1.5 rounded-full"
-            :class="colorOfTask(t).solid"
+            :class="colorOfTask(task).solid"
           />
-          {{ t.title }}
+          {{ task.title }}
         </button>
       </div>
     </div>

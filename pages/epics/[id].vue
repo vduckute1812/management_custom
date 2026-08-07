@@ -15,8 +15,8 @@ const route = useRoute();
 const router = useRouter();
 const epicId = computed(() => String(route.params.id));
 
-const { epics, fetchAll: fetchEpics, findEpic } = useEpics();
-const { tasks, fetchAll: fetchTasks, tasksForEpic } = useTasks();
+const { fetchAll: fetchEpics, findEpic } = useEpics();
+const { fetchAll: fetchTasks, tasksForEpic } = useTasks();
 
 const editEpicOpen = ref(false);
 const taskModalOpen = ref(false);
