@@ -85,6 +85,16 @@ describe("production hardening invariants", () => {
     expect(savings).toContain("nextCursor");
     expect(tasks).toContain("TASKS_UNSCOPED_MAX");
     expect(categories).toContain("MONEY_USER_CATEGORIES_MAX");
+    const friends = readFileSync(
+      new URL("../server/db/friendships.ts", import.meta.url),
+      "utf8",
+    );
+    const storyInsights = readFileSync(
+      new URL("../server/db/stories.ts", import.meta.url),
+      "utf8",
+    );
+    expect(friends).toContain("ACCEPTED_FRIEND_IDS_MAX");
+    expect(storyInsights).toContain("STORY_INSIGHTS_LIST_MAX");
   });
 
   it("runs lint and dependency audit in CI", () => {

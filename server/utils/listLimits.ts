@@ -21,3 +21,9 @@ export const MONEY_BUDGETS_MONTH_MAX = 200;
  * (e.g. epic roll-up hydration). List APIs pass their own page size.
  */
 export const TASKS_UNSCOPED_MAX = 1000;
+
+/** Soft cap for accepted friend-id ACL lookups (visibility clauses). */
+export const ACCEPTED_FRIEND_IDS_MAX = 2000;
+
+/** Soft cap for story insights viewer/reaction lists. */
+export const STORY_INSIGHTS_LIST_MAX = 200;

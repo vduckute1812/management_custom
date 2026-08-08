@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { UploadKind } from "~/types/post";
-import { ROLE_I18N_KEYS } from "~/types/auth";
 import { INTL_LOCALE, type AppLocale } from "~/types/locale";
 
 const auth = useAuth();
@@ -38,6 +37,21 @@ const form = reactive({
   avatarUploadId: null as string | null | undefined,
   avatarPreviewUrl: null as string | null,
   avatarDirty: false,
+});
+
+const profileFields = computed({
+  get: () => ({
+    name: form.name,
+    title: form.title,
+    job: form.job,
+    location: form.location,
+  }),
+  set: (v) => {
+    form.name = v.name;
+    form.title = v.title;
+    form.job = v.job;
+    form.location = v.location;
+  },
 });
 
 function syncFormFromUser() {
@@ -221,80 +235,7 @@ onMounted(async () => {
             </p>
           </template>
 
-          <form
-            v-else
-            id="profile-edit-form"
-            class="space-y-3"
-            @submit.prevent="onSave"
-          >
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600"
-                for="profile-name"
-              >
-                {{ $t("profile.fields.name") }}
-              </label>
-              <input
-                id="profile-name"
-                v-model="form.name"
-                type="text"
-                required
-                maxlength="120"
-                autocomplete="name"
-                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-                :placeholder="$t('profile.fields.namePlaceholder')"
-              />
-            </div>
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600"
-                for="profile-title"
-              >
-                {{ $t("profile.fields.title") }}
-              </label>
-              <input
-                id="profile-title"
-                v-model="form.title"
-                type="text"
-                maxlength="120"
-                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-                :placeholder="$t('profile.fields.titlePlaceholder')"
-              />
-            </div>
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600"
-                for="profile-job"
-              >
-                {{ $t("profile.fields.job") }}
-              </label>
-              <input
-                id="profile-job"
-                v-model="form.job"
-                type="text"
-                maxlength="120"
-                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-                :placeholder="$t('profile.fields.jobPlaceholder')"
-              />
-            </div>
-            <div>
-              <label
-                class="block text-xs font-medium text-slate-600"
-                for="profile-location"
-              >
-                {{ $t("profile.fields.location") }}
-              </label>
-              <input
-                id="profile-location"
-                v-model="form.location"
-                type="text"
-                maxlength="120"
-                autocomplete="address-level2"
-                class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-                :placeholder="$t('profile.fields.locationPlaceholder')"
-              />
-            </div>
-          </form>
+          <ProfileEditForm v-else v-model="profileFields" @submit="onSave" />
         </div>
       </div>
 
@@ -306,75 +247,19 @@ onMounted(async () => {
         {{ error }}
       </p>
 
-      <dl v-if="!editing" class="mt-6 space-y-3 text-sm">
-        <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">
-            {{ $t("profile.role") }}
-          </dt>
-          <dd class="font-medium text-slate-800">
-            {{ t(ROLE_I18N_KEYS[user.role] ?? "roles.normal") }}
-          </dd>
-        </div>
-        <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">
-            {{ $t("profile.emailVerified") }}
-          </dt>
-          <dd class="font-medium text-slate-800">
-            {{ user.emailVerified ? $t("profile.yes") : $t("profile.no") }}
-          </dd>
-        </div>
-        <div class="flex justify-between gap-4 border-t border-slate-100 pt-3">
-          <dt class="text-slate-500">
-            {{ $t("profile.memberSince") }}
-          </dt>
-          <dd class="font-medium tabular-nums text-slate-800">
-            {{ memberSince }}
-          </dd>
-        </div>
-      </dl>
+      <ProfileAccountMeta
+        v-if="!editing"
+        :user="user"
+        :member-since="memberSince"
+      />
 
-      <div class="mt-6 flex flex-wrap gap-3">
-        <template v-if="!editing">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-            @click="startEdit"
-          >
-            {{ $t("profile.edit") }}
-          </button>
-          <NuxtLink
-            to="/settings"
-            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-          >
-            {{ $t("profile.settings") }}
-          </NuxtLink>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500"
-            @click="onLogout"
-          >
-            {{ $t("profile.logout") }}
-          </button>
-        </template>
-        <template v-else>
-          <button
-            type="submit"
-            form="profile-edit-form"
-            class="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:opacity-50"
-            :disabled="busy"
-          >
-            {{ busy ? $t("profile.saving") : $t("profile.save") }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:opacity-50"
-            :disabled="busy"
-            @click="cancelEdit"
-          >
-            {{ $t("common.cancel") }}
-          </button>
-        </template>
-      </div>
+      <ProfileCardActions
+        :editing="editing"
+        :busy="busy"
+        @edit="startEdit"
+        @logout="onLogout"
+        @cancel="cancelEdit"
+      />
     </div>
 
     <p v-else class="mt-8 text-sm text-slate-500">

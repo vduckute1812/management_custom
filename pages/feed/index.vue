@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type {
   PostFontFamily,
+  PostReactionType,
   PostTextColor,
   PostVisibility,
 } from "~/types/post";
@@ -36,8 +37,6 @@ const composerRef = ref<{ clear: () => void; focus: () => void } | null>(null);
 const submitting = ref(false);
 const pendingDeletePostId = ref<string | null>(null);
 const deletePostBusy = ref(false);
-/** Sentinel at list bottom — IntersectionObserver loads the next page. */
-const loadMoreSentinel = ref<HTMLElement | null>(null);
 
 useSeoMeta({
   title: () => t("seo.feed"),
@@ -110,46 +109,6 @@ onMounted(() => {
     },
     { immediate: true },
   );
-
-  // Facebook-style pagination: load the next page when the sentinel enters
-  // (or nears) the viewport — no "Load more" button.
-  if (typeof IntersectionObserver === "undefined") return;
-
-  function maybeLoadMore() {
-    if (!nextCursor.value || loadingMore.value || loading.value) return;
-    void loadMore().catch(() => undefined);
-  }
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      if (!entries.some((e) => e.isIntersecting)) return;
-      maybeLoadMore();
-    },
-    { root: null, rootMargin: "280px 0px", threshold: 0 },
-  );
-  watch(
-    loadMoreSentinel,
-    (el, _prev, onCleanup) => {
-      if (!el) return;
-      observer.observe(el);
-      onCleanup(() => observer.unobserve(el));
-    },
-    { immediate: true },
-  );
-  // If the list is still shorter than the viewport after a page loads, the
-  // sentinel stays intersecting and IO won't re-fire — keep paging until it
-  // leaves the viewport or there is no nextCursor.
-  watch(loadingMore, async (busy, wasBusy) => {
-    if (busy || !wasBusy || !nextCursor.value) return;
-    await nextTick();
-    const el = loadMoreSentinel.value;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.top < (window.innerHeight || 0) + 280) {
-      maybeLoadMore();
-    }
-  });
-  onBeforeUnmount(() => observer.disconnect());
 });
 
 // Same page component is reused for `/feed` ↔ `/feed?category=…`.
@@ -271,92 +230,21 @@ async function confirmDeletePost() {
             @filter="onCategoryFilter"
           />
 
-          <InlineErrorAlert
-            v-if="error"
-            :message="error"
-            :retry-label="$t('feed.retry')"
+          <FeedPostList
+            :posts="posts"
+            :loading="loading"
+            :loading-more="loadingMore"
+            :error="error"
+            :next-cursor="nextCursor"
+            :is-authenticated="auth.isAuthenticatedUi.value"
             @retry="refresh"
+            @react="(id: string, r: PostReactionType) => setReaction(id, r)"
+            @clear-react="clearReaction"
+            @delete="requestDeletePost"
+            @share="onShare"
+            @load-more="loadMore"
+            @compose="composerRef?.focus()"
           />
-
-          <div
-            v-if="loading && !posts.length"
-            class="space-y-4"
-            aria-busy="true"
-          >
-            <SkeletonBlock
-              v-for="n in 3"
-              :key="n"
-              height="h-52"
-              rounded="rounded-2xl"
-            />
-          </div>
-
-          <EmptyState
-            v-else-if="!loading && !posts.length && !error"
-            :title="$t('empty.feedNothingYet')"
-            :description="
-              auth.isAuthenticatedUi.value
-                ? $t('empty.feedBeFirst')
-                : $t('empty.feedNoPublic')
-            "
-            illustration="spark"
-            :primary-label="
-              auth.isAuthenticatedUi.value ? $t('empty.writeAPost') : undefined
-            "
-            @primary="composerRef?.focus()"
-          />
-
-          <div v-else class="space-y-5">
-            <LazyPostCard
-              v-for="post in posts"
-              :key="post.id"
-              :post="post"
-              @react="(r) => setReaction(post.id, r)"
-              @clear-react="clearReaction(post.id)"
-              @delete="requestDeletePost(post.id)"
-              @share="(note) => onShare(post.id, note)"
-            />
-
-            <!--
-              Infinite scroll sentinel: when this enters the viewport the
-              observer calls loadMore(). Spinner shown while a page is in flight.
-            -->
-            <div
-              v-if="nextCursor"
-              ref="loadMoreSentinel"
-              class="flex justify-center py-3"
-            >
-              <div
-                v-if="loadingMore"
-                class="inline-flex items-center gap-2 text-sm font-medium text-slate-500"
-                role="status"
-                aria-live="polite"
-              >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  class="h-4 w-4 animate-spin"
-                  aria-hidden="true"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="9"
-                    stroke="currentColor"
-                    stroke-opacity=".25"
-                    stroke-width="3"
-                  />
-                  <path
-                    d="M21 12a9 9 0 0 0-9-9"
-                    stroke="currentColor"
-                    stroke-width="3"
-                    stroke-linecap="round"
-                  />
-                </svg>
-                {{ $t("feed.loading") }}
-              </div>
-            </div>
-          </div>
         </div>
 
         <FeedSidebar

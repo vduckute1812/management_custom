@@ -15,6 +15,7 @@ import { generateId, nowISO } from "./ids";
 import { avatarUrlFromUploadId } from "./mappers";
 import { getPool } from "./pool";
 import { encodeTimestampCursor, parseTimestampCursor } from "./timestampCursor";
+import { ACCEPTED_FRIEND_IDS_MAX } from "../utils/listLimits";
 
 interface FriendshipPeerRow extends RowDataPacket {
   id: string;
@@ -125,14 +126,28 @@ export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
   if (hit && hit.until > Date.now()) return hit.ids;
 
   const pool = getPool();
+  // Newest friendships first so ACL prefers active peers if the soft cap hits.
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT IF(requester_id = ?, addressee_id, requester_id) AS peer_id
      FROM friendships
      WHERE status = ?
-       AND (requester_id = ? OR addressee_id = ?)`,
-    [userId, FriendshipStatus.Accepted, userId, userId],
+       AND (requester_id = ? OR addressee_id = ?)
+     ORDER BY updated_at DESC, id DESC
+     LIMIT ?`,
+    [
+      userId,
+      FriendshipStatus.Accepted,
+      userId,
+      userId,
+      ACCEPTED_FRIEND_IDS_MAX,
+    ],
   );
   const ids = rows.map((r) => String(r.peer_id));
+  if (ids.length >= ACCEPTED_FRIEND_IDS_MAX) {
+    console.warn(
+      `[friends] accepted friend-id ACL capped at ${ACCEPTED_FRIEND_IDS_MAX} for user ${userId}`,
+    );
+  }
   rememberFriendIds(userId, ids);
   return ids;
 }
