@@ -4,6 +4,7 @@ import { dbToISO, isoToDB } from "./datetime";
 import { listAcceptedFriendIds } from "./friendships";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
+import { STORY_INSIGHTS_LIST_MAX } from "../utils/listLimits";
 import {
   assertOwnedUploads,
   purgeOrphanedUploads,
@@ -266,8 +267,9 @@ export async function getStoryInsights(
      LEFT JOIN story_reactions sr
        ON sr.story_id = sv.story_id AND sr.user_id = sv.user_id
      WHERE sv.story_id = ?
-     ORDER BY sv.viewed_at DESC`,
-    [storyId],
+     ORDER BY sv.viewed_at DESC
+     LIMIT ?`,
+    [storyId, STORY_INSIGHTS_LIST_MAX],
   );
 
   const viewers: StoryViewerEntry[] = viewerRows.map((r) => {
@@ -309,8 +311,9 @@ export async function getStoryInsights(
      FROM story_reactions sr
      INNER JOIN users u ON u.id = sr.user_id
      WHERE sr.story_id = ?
-     ORDER BY sr.created_at DESC`,
-    [storyId],
+     ORDER BY sr.created_at DESC
+     LIMIT ?`,
+    [storyId, STORY_INSIGHTS_LIST_MAX],
   );
 
   return {
