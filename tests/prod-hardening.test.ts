@@ -131,7 +131,7 @@ describe("production hardening invariants", () => {
       "utf8",
     );
     const tasks = readFileSync(
-      new URL("../server/db/time/tasks.ts", import.meta.url),
+      new URL("../server/db/time/tasksRead.ts", import.meta.url),
       "utf8",
     );
     const categories = readFileSync(
