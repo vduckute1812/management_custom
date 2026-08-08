@@ -56,7 +56,7 @@ DB_PASS=
 DB_NAME=rc
 DB_CONNECTION_LIMIT=10
 
-# Auth — REQUIRED. JWT_SECRET must be ≥ 16 chars and kept private.
+# Auth — REQUIRED. JWT_SECRET must be ≥ 32 chars and kept private.
 JWT_SECRET=…                    # `openssl rand -base64 48` is a good source
 # Auth cookies (`mgmt_rt` refresh, `mgmt_at` access). Default: Secure when
 # NODE_ENV=production or APP_BASE_URL is https. For plain http://localhost dev:

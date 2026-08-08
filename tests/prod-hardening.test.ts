@@ -114,6 +114,30 @@ describe("production hardening invariants", () => {
     expect(sql).toContain("updated_at");
   });
 
+  it("routes friends API through friendService", () => {
+    const svc = readFileSync(
+      new URL("../server/services/friends/friendService.ts", import.meta.url),
+      "utf8",
+    );
+    expect(svc).toContain("requestFriendshipForUser");
+    expect(svc).toContain("acceptFriendshipForUser");
+    const accept = readFileSync(
+      new URL("../server/api/friends/[id]/accept.post.ts", import.meta.url),
+      "utf8",
+    );
+    expect(accept).toContain("acceptFriendshipForUser");
+    expect(accept).not.toContain('from "~/server/utils/db"');
+  });
+
+  it("requires JWT_SECRET floor of 32 chars in auth primitives", () => {
+    const auth = readFileSync(
+      new URL("../server/utils/auth.ts", import.meta.url),
+      "utf8",
+    );
+    expect(auth).toContain("raw.length < 32");
+    expect(auth).toContain(">=32 chars");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });

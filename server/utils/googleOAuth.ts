@@ -76,8 +76,8 @@ export function safeOAuthRedirect(raw: unknown, fallback = "/"): string {
 
 function stateSecret(): string {
   const raw = process.env.JWT_SECRET;
-  if (!raw || raw.length < 16) {
-    throw new Error("JWT_SECRET must be set (>=16 chars) for OAuth state");
+  if (!raw || raw.length < 32) {
+    throw new Error("JWT_SECRET must be set (>=32 chars) for OAuth state");
   }
   return raw;
 }

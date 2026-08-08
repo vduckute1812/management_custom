@@ -88,7 +88,7 @@ The big "single-user app becomes a small multi-user app" pass. Every API now req
 - [x] Short-lived JWT access tokens (HS256, 15 min, signed with `JWT_SECRET`, carry `{ sub, email, role }`)
 - [x] Opaque refresh tokens (30 days, base64url, SHA-256-hashed at rest) with rotation on every refresh
 - [x] Logout revokes the supplied refresh token; `everywhere: true` revokes every active refresh token for the caller
-- [x] `JWT_SECRET` length guard (≥16 chars) at process startup
+- [x] `JWT_SECRET` length guard (≥32 chars) at process startup
 
 **Server auth**
 
@@ -642,6 +642,13 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Chat mobile height accounts for `AppMobileModuleNav` + safe-area
 - [x] Docs drift: money transaction cursor, chat New Chat friends-only, README Friends visibility
 - [x] LAN firewall helper reads `LAN_IP` without bash-sourcing full `.env.prod`; re-runs delete+reappend world-denys so ALLOW stays above DENY; applied on Pi (`APPLY=1`)
+
+## Phase 43 — Quality Sprint 2 (audit P2)
+
+- [x] Friends API handlers go through `server/services/friends/friendService.ts`
+- [x] `JWT_SECRET` floor raised to ≥32 (auth / secretBox / Google OAuth + CI/env docs)
+- [x] Playwright `e2e/auth-gate.spec.ts` — protected routes + `/api/auth/me` 401
+- [x] Money UI: strip decorative stat-card gradients/rings on budgets/savings
 
 ## Phase 36 — Feature-folder layout
 
