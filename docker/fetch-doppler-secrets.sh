@@ -119,7 +119,9 @@ tmp="$(mktemp)"
 trap 'rm -f "${tmp}" "${tmp}.clean"' EXIT
 
 log "downloading secrets (project=${PROJECT} config=${CONFIG})"
-download_args=(secrets download --no-file --format env-no-quotes)
+# Prefer quoted `env` so values with spaces / <> (e.g. SMTP_FROM=Name <a@b>)
+# are valid for bash `source` in cutover scripts. Compose accepts quotes too.
+download_args=(secrets download --no-file --format env)
 if [[ -n "${PROJECT}" ]]; then
   download_args+=(--project "${PROJECT}")
 fi

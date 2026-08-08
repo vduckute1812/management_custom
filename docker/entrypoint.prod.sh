@@ -33,6 +33,8 @@ EOF
   sleep 5
 done
 
+# Migrator uses MYSQL_ROOT_PASSWORD for DDL when set (least-privilege app user
+# stays DML-only). See server/db/core/migrator.ts migrateAuth().
 echo "[mgmt] running migrations…"
 node --import tsx scripts/migrate.ts up
 
