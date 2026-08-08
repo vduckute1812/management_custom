@@ -28,19 +28,34 @@ onMounted(() => {
 function catLabel(cat: { slug: string; name: string }) {
   return categoryDisplayName(cat, t, te);
 }
+
+const modules = computed(() => [
+  { to: "/feed", label: t("nav.feed"), body: t("home.feedBody") },
+  {
+    to: "/tasks",
+    label: t("nav.timeManagement"),
+    body: t("home.timeBody"),
+  },
+  { to: "/money", label: t("nav.money"), body: t("home.moneyBody") },
+  { to: "/chat", label: t("nav.chat"), body: t("home.chatBody") },
+  { to: "/friends", label: t("nav.friends"), body: t("home.friendsBody") },
+]);
 </script>
 
 <template>
   <div class="relative isolate flex-1 overflow-hidden">
     <div
-      class="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[38rem] overflow-hidden"
+      class="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       aria-hidden="true"
     >
       <div
-        class="absolute -left-24 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-200/40 blur-3xl home-ambient-brand"
+        class="absolute inset-0 bg-gradient-to-b from-brand-50/80 via-slate-50 to-slate-50"
       />
       <div
-        class="absolute -right-20 top-10 h-[26rem] w-[26rem] rounded-full bg-brand-100/50 blur-3xl home-ambient-brand"
+        class="absolute -left-24 -top-40 h-[32rem] w-[32rem] rounded-full bg-brand-200/35 blur-3xl home-ambient-brand"
+      />
+      <div
+        class="absolute -right-28 top-24 h-[28rem] w-[28rem] rounded-full bg-brand-100/45 blur-3xl home-ambient-brand"
       />
       <div
         class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300 to-transparent"
@@ -50,36 +65,33 @@ function catLabel(cat: { slug: string; name: string }) {
     <div
       class="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20"
     >
-      <section
-        class="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16"
-      >
+      <!-- Hero: brand + one headline + one sentence + CTA — no cards -->
+      <section class="relative min-h-[70vh] max-w-3xl">
         <header>
-          <!-- Same brand mark Google Auth Platform reviewers expect on the
-               consent screen — keep the PNG path stable for re-verification. -->
           <div class="flex items-center gap-3">
             <img
               src="/branding/google-oauth-logo.png"
-              width="48"
-              height="48"
+              width="56"
+              height="56"
               decoding="async"
               alt=""
               aria-hidden="true"
-              class="h-12 w-12 shrink-0 rounded-[0.85rem] shadow-sm ring-1 ring-brand-200/80"
+              class="h-14 w-14 shrink-0 rounded-[0.95rem] shadow-sm ring-1 ring-brand-200/80"
             />
             <div class="min-w-0">
               <p
-                class="text-sm font-bold tracking-tight text-slate-900 sm:text-base"
+                class="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl"
               >
                 {{ $t("home.brand") }}
               </p>
-              <p class="text-xs font-medium tracking-wide text-brand-700">
+              <p class="text-sm font-medium tracking-wide text-brand-700">
                 {{ $t("home.brandTagline") }}
               </p>
             </div>
           </div>
 
           <h1
-            class="mt-6 max-w-2xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl lg:leading-[1.08]"
+            class="mt-8 max-w-2xl text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl lg:text-5xl lg:leading-[1.1]"
           >
             {{
               auth.userUi.value?.name
@@ -114,19 +126,8 @@ function catLabel(cat: { slug: string; name: string }) {
             </NuxtLink>
             <NuxtLink
               to="/tasks"
-              class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-300 hover:bg-brand-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+              class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-800 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-brand-300 hover:bg-brand-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                class="h-4 w-4 text-brand-600"
-                aria-hidden="true"
-              >
-                <rect x="3" y="5" width="18" height="16" rx="2" />
-                <path d="M8 3v4M16 3v4M3 10h18" stroke-linecap="round" />
-              </svg>
               {{ $t("nav.timeManagement") }}
             </NuxtLink>
           </div>
@@ -139,132 +140,51 @@ function catLabel(cat: { slug: string; name: string }) {
             }}
           </p>
         </header>
-
-        <div class="relative">
-          <div
-            class="absolute -inset-4 -z-10 rotate-2 rounded-[2rem] home-preview-glow blur-sm"
-            aria-hidden="true"
-          />
-          <div
-            class="overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/85 p-3 shadow-2xl shadow-slate-900/10 backdrop-blur sm:p-4"
-          >
-            <div class="flex items-center justify-between px-2 pb-3 pt-1">
-              <div class="flex items-center gap-2">
-                <span class="h-2.5 w-2.5 rounded-full bg-rose-400" />
-                <span class="h-2.5 w-2.5 rounded-full bg-amber-400" />
-                <span class="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-              </div>
-              <span
-                class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500"
-              >
-                {{ $t("nav.brand") }}
-              </span>
-            </div>
-
-            <div class="grid gap-3 sm:grid-cols-2">
-              <NuxtLink
-                to="/feed"
-                class="group flex min-h-64 flex-col rounded-2xl bg-slate-900 p-5 text-white transition hover:-translate-y-1 hover:shadow-xl sm:min-h-72"
-              >
-                <span
-                  class="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/15"
-                >
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    class="h-5 w-5"
-                    aria-hidden="true"
-                  >
-                    <path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round" />
-                    <circle cx="19" cy="19" r="2" />
-                  </svg>
-                </span>
-                <div class="mt-auto">
-                  <p
-                    class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-300"
-                  >
-                    {{ $t("nav.feed") }}
-                  </p>
-                  <h2 class="mt-2 text-xl font-semibold">
-                    {{ $t("home.feedTitle") }}
-                  </h2>
-                  <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-300">
-                    {{ $t("home.feedBody") }}
-                  </p>
-                  <span
-                    class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-white"
-                  >
-                    {{ $t("nav.feed") }}
-                    <span
-                      class="transition-transform group-hover:translate-x-1"
-                      aria-hidden="true"
-                      >→</span
-                    >
-                  </span>
-                </div>
-              </NuxtLink>
-
-              <NuxtLink
-                to="/tasks"
-                class="group flex min-h-64 flex-col overflow-hidden rounded-2xl border border-brand-100 bg-gradient-to-b from-brand-50 to-white p-5 transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-xl sm:min-h-72"
-              >
-                <div class="flex items-center justify-between">
-                  <span
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white shadow-md shadow-brand-600/20"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      class="h-5 w-5"
-                      aria-hidden="true"
-                    >
-                      <circle cx="12" cy="12" r="8" />
-                      <path d="M12 8v4l2.5 1.5" stroke-linecap="round" />
-                    </svg>
-                  </span>
-                  <div class="flex gap-1" aria-hidden="true">
-                    <span class="h-5 w-1 rounded-full bg-brand-200" />
-                    <span class="h-8 w-1 rounded-full bg-brand-400" />
-                    <span class="h-6 w-1 rounded-full bg-brand-300" />
-                  </div>
-                </div>
-                <div class="mt-auto">
-                  <p
-                    class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600"
-                  >
-                    {{ $t("nav.timeManagement") }}
-                  </p>
-                  <h2 class="mt-2 text-xl font-semibold text-slate-900">
-                    {{ $t("home.timeTitle") }}
-                  </h2>
-                  <p class="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
-                    {{ $t("home.timeBody") }}
-                  </p>
-                  <span
-                    class="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700"
-                  >
-                    {{ $t("nav.timeManagement") }}
-                    <span
-                      class="transition-transform group-hover:translate-x-1"
-                      aria-hidden="true"
-                      >→</span
-                    >
-                  </span>
-                </div>
-              </NuxtLink>
-            </div>
-          </div>
-        </div>
       </section>
 
+      <!-- Modules: link rows, not hero cards -->
       <section
-        class="mt-16 rounded-3xl border border-slate-200 bg-white/80 p-5 shadow-sm backdrop-blur sm:mt-20 sm:p-8 lg:p-10"
-        :aria-label="$t('home.categoriesTitle')"
+        class="mt-6 border-t border-slate-200/80 pt-12 sm:mt-8 sm:pt-16"
+        :aria-label="$t('home.modulesTitle')"
       >
+        <div class="max-w-2xl">
+          <div class="flex items-center gap-3">
+            <span class="h-px w-8 bg-brand-500" aria-hidden="true" />
+            <p
+              class="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600"
+            >
+              {{ $t("home.modulesTitle") }}
+            </p>
+          </div>
+          <h2
+            class="mt-3 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl"
+          >
+            {{ $t("home.modulesBody") }}
+          </h2>
+        </div>
+
+        <ul class="mt-8 divide-y divide-slate-200 border-y border-slate-200">
+          <li v-for="mod in modules" :key="mod.to">
+            <NuxtLink
+              :to="mod.to"
+              class="group flex flex-col gap-1 py-5 transition sm:flex-row sm:items-baseline sm:justify-between sm:gap-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            >
+              <span
+                class="text-base font-semibold text-slate-900 group-hover:text-brand-700"
+              >
+                {{ mod.label }}
+              </span>
+              <span
+                class="max-w-xl text-sm leading-6 text-slate-500 sm:text-right"
+              >
+                {{ mod.body }}
+              </span>
+            </NuxtLink>
+          </li>
+        </ul>
+      </section>
+
+      <section class="mt-16 sm:mt-20" :aria-label="$t('home.categoriesTitle')">
         <div
           class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
         >
@@ -316,7 +236,7 @@ function catLabel(cat: { slug: string; name: string }) {
             v-for="(cat, index) in categories"
             :key="cat.id"
             :to="{ path: '/feed', query: { category: cat.slug } }"
-            class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-600/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-4 transition duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg hover:shadow-brand-600/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
           >
             <div class="flex items-start justify-between gap-4">
               <span

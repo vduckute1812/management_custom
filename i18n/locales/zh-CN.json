@@ -1103,7 +1103,8 @@
     "dragUpNext": "拖到日视图小时上以排期",
     "dragWeekly": "在周视图中跨日移动时间块",
     "goChat": "前往聊天",
-    "goMoney": "前往记账"
+    "goMoney": "前往记账",
+    "goFriends": "前往好友"
   },
   "empty": {
     "feedNothingYet": "这里还没有内容",
@@ -1127,7 +1128,7 @@
   "seo": {
     "appTitle": "个人任务与分析管理器",
     "home": "首页",
-    "homeDescription": "Da Nang TechX — 动态与时间管理模块总览。",
+    "homeDescription": "Da Nang TechX — 动态、时间管理、记账、聊天与好友，一站安装。",
     "feed": "动态",
     "feedDescription": "与团队分享文档、快拍与动态。",
     "profile": "个人资料",
@@ -1216,7 +1217,7 @@
     "brandTagline": "研发与社交门户",
     "welcome": "欢迎",
     "welcomeNamed": "欢迎，{name}",
-    "intro": "Da Nang TechX 是连接并分享科技热情的社区门户——公开动态、聊天与私人时间管理。",
+    "intro": "Da Nang TechX 连接技术爱好者 — 公开动态、好友与聊天、个人记账，以及私密时间管理。",
     "categoriesTitle": "主要栏目",
     "categoriesBody": "文章按核心科技主题分类整理。选择一个栏目即可在动态中浏览其文章。",
     "articleCount": "暂无文章 | {count} 篇文章 | {count} 篇文章",
@@ -1224,8 +1225,16 @@
     "feedBody": "分享带分类、LaTeX 公式与样式文字的帖子。浏览带查看者与表情的快拍。可见性可为公开、私密或限指定人员。",
     "timeTitle": "时间管理",
     "timeBody": "在日历上规划一天，将工作组织为史诗，运行计时器并查看分析——与动态完全分离。",
-    "cta": "从页眉打开动态或时间管理。",
-    "ctaGuest": "从页眉打开动态或时间管理 · 使用登录 / 注册来管理任务并私下发帖。"
+    "cta": "从下方选择模块，或随时使用顶栏链接。",
+    "ctaGuest": "访客可浏览动态 · 登录/注册后可聊天、记账并管理任务。",
+    "modulesTitle": "模块",
+    "modulesBody": "一次安装，五个专注界面。",
+    "moneyTitle": "记账",
+    "moneyBody": "流水、月度预算与储蓄目标 — 仅你可见。",
+    "chatTitle": "聊天",
+    "chatBody": "与好友一对一消息 — 文字、贴纸、图片与语音。",
+    "friendsTitle": "好友",
+    "friendsBody": "好友请求与关系图 — 聊天与定向分享的门槛。"
   },
   "export": {
     "status": "状态",

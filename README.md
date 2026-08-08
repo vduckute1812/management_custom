@@ -373,8 +373,7 @@ Every screen has four states. The README — and the code — must specify all f
 
 ### Loading
 
-- **Skeletons, not spinners.** List rows render as 3 gray pulse blocks; cards as their full layout in `slate-100`.
-- Skeletons appear only if the request takes > 200 ms (avoid flash).
+- **Skeletons, not spinners.** List rows and cards use pulse placeholders while data loads.
 
 ### Error
 
@@ -386,9 +385,9 @@ Every screen has four states. The README — and the code — must specify all f
 - Writes are serialized so two near-simultaneous edits can't clobber each other.
 - If a task was modified by another tab while the modal was open, save shows: "This task changed on disk. Reload and re-apply your changes?"
 
-### Offline
+### Offline / unreachable server
 
-- The app _is_ offline. No spinner ever waits on the network. If the local server stops, the UI surfaces "Server unreachable — your data is safe on disk."
+- The app is **local-first** but still needs the local Nitro process and MySQL. If the API is unreachable, requests fail with clear errors / toasts — data remains in your database, not in an offline client cache.
 
 ---
 
@@ -398,21 +397,20 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 
 ### Global
 
-| Shortcut    | Action                                  |
-| ----------- | --------------------------------------- |
-| `?`         | Show the full shortcuts cheatsheet      |
-| `Mod + K`   | Open command palette (jump to anything) |
-| `/`         | Focus search                            |
-| `n`         | New task (quick capture)                |
-| `Shift + N` | New task (full modal)                   |
-| `e`         | New epic                                |
-| `g h`       | Go to Home (hub)                        |
-| `g d`       | Go to Time Management (`/tasks`)        |
-| `g e`       | Go to Epics                             |
-| `g a`       | Go to Analytics                         |
-| `g f`       | Go to Feed                              |
-| `g c`       | Go to Chat                              |
-| `g m`       | Go to Money (`/money`)                  |
+| Shortcut    | Action                                               |
+| ----------- | ---------------------------------------------------- |
+| `?`         | Show the full shortcuts cheatsheet                   |
+| `Mod + K`   | Open command palette (jump to anything)              |
+| `n`         | New task (quick capture; skipped on home/feed/money) |
+| `Shift + N` | New task (full modal; opens `/tasks`)                |
+| `g h`       | Go to Home (hub)                                     |
+| `g d`       | Go to Time Management (`/tasks`)                     |
+| `g e`       | Go to Epics                                          |
+| `g a`       | Go to Analytics                                      |
+| `g f`       | Go to Feed                                           |
+| `g c`       | Go to Chat                                           |
+| `g m`       | Go to Money (`/money`)                               |
+| `g r`       | Go to Friends (`/friends`)                           |
 
 ### Calendar
 
@@ -421,7 +419,6 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 | `1` / `2` / `3` | Daily / Weekly / Monthly view |
 | `t`             | Jump to Today                 |
 | `←` / `→`       | Previous / Next period        |
-| `Shift + ←/→`   | Jump by month in any view     |
 
 ### Calendar (mouse & touch)
 
@@ -431,15 +428,6 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 | Drag top/bottom edge | Resize block (30-minute minimum)                |
 | Drag block (Weekly)  | Move across days (time of day preserved)        |
 | Click empty slot     | Open task modal pre-filled with that start time |
-
-### Lists & rows
-
-| Shortcut  | Action                 |
-| --------- | ---------------------- |
-| `j` / `k` | Next / previous row    |
-| `Enter`   | Open selected          |
-| `Space`   | Toggle status          |
-| `Delete`  | Delete with undo toast |
 
 ### Modals & forms
 

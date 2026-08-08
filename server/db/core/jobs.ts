@@ -137,14 +137,21 @@ export async function getJobById(id: string): Promise<JobRow | null> {
  * Atomically claim the next available pending job for this worker.
  * Uses a short transaction + SELECT … FOR UPDATE SKIP LOCKED when available.
  */
-export async function claimNextJob(workerId: string): Promise<JobRow | null> {
+export async function claimNextJob(
+  workerId: string,
+  opts?: { excludeArticleTypes?: boolean },
+): Promise<JobRow | null> {
   const pool = getPool();
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
+    const articleFilter = opts?.excludeArticleTypes
+      ? "AND type NOT LIKE 'articles.%'"
+      : "";
     const [rows] = await conn.query<JobDbRow[]>(
       `SELECT * FROM jobs
        WHERE status = ? AND available_at <= ?
+       ${articleFilter}
        ORDER BY
          CASE WHEN type LIKE 'articles.%' THEN 1 ELSE 0 END ASC,
          available_at ASC,

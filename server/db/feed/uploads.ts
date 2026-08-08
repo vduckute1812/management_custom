@@ -184,24 +184,23 @@ async function uploadAccessibleToViewer(
   const pool = getPool();
   const uploadId = row.id;
 
-  // Profile avatars are intentionally public — they show next to authors on
-  // public posts and stories even for anonymous visitors.
-  const [avatarRows] = await pool.query<RowDataPacket[]>(
-    `SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1`,
-    [uploadId],
-  );
-  if (avatarRows.length) return true;
-
+  // Single round-trip: avatar OR post OR story OR chat (anonymous: avatar/public post).
   if (!viewerId) {
-    const [publicRows] = await pool.query<RowDataPacket[]>(
-      `SELECT pa.post_id
-       FROM post_attachments pa
-       INNER JOIN posts p ON p.id = pa.post_id
-       WHERE pa.upload_id = ? AND p.visibility = ${PostVisibility.Public}
-       LIMIT 1`,
-      [uploadId],
+    const [rows] = await pool.query<RowDataPacket[]>(
+      `SELECT 1 AS ok
+       WHERE EXISTS (
+         SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1
+       )
+       OR EXISTS (
+         SELECT 1
+         FROM post_attachments pa
+         INNER JOIN posts p ON p.id = pa.post_id
+         WHERE pa.upload_id = ? AND p.visibility = ${PostVisibility.Public}
+         LIMIT 1
+       )`,
+      [uploadId, uploadId],
     );
-    return publicRows.length > 0;
+    return rows.length > 0;
   }
 
   const friendIds = await cachedFriendIds(viewerId);
@@ -217,51 +216,62 @@ async function uploadAccessibleToViewer(
       ? "0"
       : `s.user_id IN (${friendIds.map(() => "?").join(",")})`;
 
-  const [postRows] = await pool.query<RowDataPacket[]>(
-    `SELECT pa.post_id
-     FROM post_attachments pa
-     INNER JOIN posts p ON p.id = pa.post_id
-     WHERE pa.upload_id = ?
-       AND (
-         p.visibility = ${PostVisibility.Public}
-         OR p.user_id = ?
-         OR (
-           p.visibility = ${PostVisibility.Shared}
-           AND p.id IN (
-             SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
+  const [rows] = await pool.query<RowDataPacket[]>(
+    `SELECT 1 AS ok
+     WHERE EXISTS (
+       SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM post_attachments pa
+       INNER JOIN posts p ON p.id = pa.post_id
+       WHERE pa.upload_id = ?
+         AND (
+           p.visibility = ${PostVisibility.Public}
+           OR p.user_id = ?
+           OR (
+             p.visibility = ${PostVisibility.Shared}
+             AND p.id IN (
+               SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
+             )
            )
+           OR ${friendsPostClause}
          )
-         OR ${friendsPostClause}
-       )
-     LIMIT 1`,
-    [uploadId, viewerId, viewerId, ...friendIds],
+       LIMIT 1
+     )
+     OR EXISTS (
+       SELECT 1 FROM stories s
+       WHERE s.upload_id = ?
+         AND s.expires_at > UTC_TIMESTAMP(3)
+         AND (
+           s.user_id = ?
+           OR ${friendsStoryClause}
+         )
+       LIMIT 1
+     )
+     OR EXISTS (
+       SELECT 1
+       FROM chat_messages m
+       INNER JOIN chat_conversations c ON c.id = m.conversation_id
+       WHERE m.upload_id = ?
+         AND (c.user_a_id = ? OR c.user_b_id = ?)
+       LIMIT 1
+     )`,
+    [
+      uploadId,
+      uploadId,
+      viewerId,
+      viewerId,
+      ...friendIds,
+      uploadId,
+      viewerId,
+      ...friendIds,
+      uploadId,
+      viewerId,
+      viewerId,
+    ],
   );
-  if (postRows.length) return true;
-
-  const [storyRows] = await pool.query<RowDataPacket[]>(
-    `SELECT s.id FROM stories s
-     WHERE s.upload_id = ?
-       AND s.expires_at > UTC_TIMESTAMP(3)
-       AND (
-         s.user_id = ?
-         OR ${friendsStoryClause}
-       )
-     LIMIT 1`,
-    [uploadId, viewerId, ...friendIds],
-  );
-  if (storyRows.length) return true;
-
-  // Chat attachments: either participant of the conversation may fetch.
-  const [chatRows] = await pool.query<RowDataPacket[]>(
-    `SELECT 1
-     FROM chat_messages m
-     INNER JOIN chat_conversations c ON c.id = m.conversation_id
-     WHERE m.upload_id = ?
-       AND (c.user_a_id = ? OR c.user_b_id = ?)
-     LIMIT 1`,
-    [uploadId, viewerId, viewerId],
-  );
-  return chatRows.length > 0;
+  return rows.length > 0;
 }
 
 /**

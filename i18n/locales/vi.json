@@ -1103,7 +1103,8 @@
     "dragUpNext": "Thả vào giờ trong Ngày để lên lịch",
     "dragWeekly": "Di chuyển khối qua các ngày trong Tuần",
     "goChat": "Đến Chat",
-    "goMoney": "Đến Tiền"
+    "goMoney": "Đến Tiền",
+    "goFriends": "Đến Bạn bè"
   },
   "empty": {
     "feedNothingYet": "Chưa có gì ở đây",
@@ -1127,7 +1128,7 @@
   "seo": {
     "appTitle": "Quản lý công việc & phân tích cá nhân",
     "home": "Trang chủ",
-    "homeDescription": "Da Nang TechX — tổng quan các mô-đun Bảng tin và Quản lý thời gian.",
+    "homeDescription": "Da Nang TechX — Bảng tin, Quản lý thời gian, Tiền, Chat và Bạn bè trên một bản cài.",
     "feed": "Bảng tin",
     "feedDescription": "Chia sẻ tài liệu, story và cập nhật với nhóm của bạn.",
     "profile": "Hồ sơ",
@@ -1216,7 +1217,7 @@
     "brandTagline": "Cổng R&D và Kết nối",
     "welcome": "Chào mừng",
     "welcomeNamed": "Chào mừng, {name}",
-    "intro": "Da Nang TechX là cổng cộng đồng nơi chúng ta kết nối và chia sẻ với những người đam mê công nghệ — bảng tin công khai, chat và quản lý thời gian riêng tư.",
+    "intro": "Da Nang TechX kết nối cộng đồng tech — bảng tin công khai, bạn bè và chat, theo dõi tiền cá nhân, và quản lý thời gian riêng tư.",
     "categoriesTitle": "Chuyên mục chính",
     "categoriesBody": "Bài viết được sắp xếp theo các chủ đề công nghệ cốt lõi. Chọn một chuyên mục để xem các bài viết trong Bảng tin.",
     "articleCount": "Chưa có bài viết | {count} bài viết | {count} bài viết",
@@ -1224,8 +1225,16 @@
     "feedBody": "Chia sẻ bài với danh mục, công thức LaTeX và chữ có kiểu. Duyệt story với người xem và cảm xúc. Hiển thị có thể công khai, riêng tư hoặc giới hạn người cụ thể.",
     "timeTitle": "Quản lý thời gian",
     "timeBody": "Lên kế hoạch ngày trên lịch, tổ chức công việc thành epic, chạy bộ đếm và xem phân tích — hoàn toàn tách khỏi Bảng tin.",
-    "cta": "Mở Bảng tin hoặc Quản lý thời gian từ thanh đầu trang.",
-    "ctaGuest": "Mở Bảng tin hoặc Quản lý thời gian từ thanh đầu trang · dùng Đăng nhập / Đăng ký để quản lý công việc và đăng bài riêng tư."
+    "cta": "Chọn một mô-đun bên dưới, hoặc dùng liên kết trên header.",
+    "ctaGuest": "Xem Bảng tin với tư cách khách · Đăng nhập / Đăng ký để chat, ghi tiền và quản lý việc.",
+    "modulesTitle": "Mô-đun",
+    "modulesBody": "Một bản cài, năm bề mặt tập trung.",
+    "moneyTitle": "Tiền",
+    "moneyBody": "Sổ thu chi, ngân sách tháng và mục tiêu tiết kiệm — riêng tư theo tài khoản.",
+    "chatTitle": "Chat",
+    "chatBody": "Tin nhắn 1:1 với bạn bè — chữ, sticker, ảnh và ghi âm.",
+    "friendsTitle": "Bạn bè",
+    "friendsBody": "Lời mời và danh sách — cổng cho chat và chia sẻ bảng tin chọn lọc."
   },
   "export": {
     "status": "Trạng thái",

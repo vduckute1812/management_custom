@@ -162,9 +162,11 @@ ORDER BY
 ```
 
 This means a queued verification e-mail will never be blocked behind an LLM
-rewrite call, even on a single-worker Pi deploy. The worker remains
-single-job serial; true concurrency is deferred until a dedicated worker
-container is warranted (see Evolution path §3).
+rewrite call, even on a Pi deploy. The in-process worker defaults to
+`QUEUE_CONCURRENCY=2` with **at most one** `articles.*` job active at a time
+(`claimNextJob({ excludeArticleTypes })` when an article slot is held). Set
+`QUEUE_CONCURRENCY=1` for strict serial. Higher concurrency across processes
+still relies on `FOR UPDATE SKIP LOCKED`.
 
 Disable for migrate-only containers: `QUEUE_WORKER_ENABLED=false`.
 

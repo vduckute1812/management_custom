@@ -1103,7 +1103,8 @@
     "dragUpNext": "Drop onto a Daily hour to schedule",
     "dragWeekly": "Move a block across days in Weekly",
     "goChat": "Go to Chat",
-    "goMoney": "Go to Money"
+    "goMoney": "Go to Money",
+    "goFriends": "Go to Friends"
   },
   "empty": {
     "feedNothingYet": "Nothing here yet",
@@ -1127,7 +1128,7 @@
   "seo": {
     "appTitle": "Personal Task & Analytics Manager",
     "home": "Home",
-    "homeDescription": "Da Nang TechX — overview of the Feed and Time Management modules.",
+    "homeDescription": "Da Nang TechX — Feed, Time Management, Money, Chat, and Friends on one install.",
     "feed": "Feed",
     "feedDescription": "Share documents, stories, and updates with your team.",
     "profile": "Profile",
@@ -1216,7 +1217,7 @@
     "brandTagline": "R&D and Networking Portal",
     "welcome": "Welcome",
     "welcomeNamed": "Welcome, {name}",
-    "intro": "Da Nang TechX is a community portal where we connect and share with tech enthusiasts — a public feed, chat, and private time management.",
+    "intro": "Da Nang TechX connects tech enthusiasts — a public feed, friends and chat, personal money tracking, and private time management.",
     "categoriesTitle": "Main categories",
     "categoriesBody": "Articles are organized into core tech topics. Pick a directory to browse its articles in the Feed.",
     "articleCount": "No articles yet | 1 article | {count} articles",
@@ -1224,8 +1225,16 @@
     "feedBody": "Share posts with categories, LaTeX formulas, and styled text. Browse stories with viewers and reactions. Visibility can be public, private, or limited to specific people.",
     "timeTitle": "Time Management",
     "timeBody": "Plan your day on the calendar, organize work into epics, run timers, and review analytics — completely separate from the Feed.",
-    "cta": "Open Feed or Time Management from the header.",
-    "ctaGuest": "Open Feed or Time Management from the header · use Login / Register to manage tasks and post privately."
+    "cta": "Pick a module below, or use the header links anytime.",
+    "ctaGuest": "Browse the Feed as a guest · Login / Register to chat, track money, and manage tasks.",
+    "modulesTitle": "Modules",
+    "modulesBody": "One install, five focused surfaces.",
+    "moneyTitle": "Money",
+    "moneyBody": "Ledger, monthly budgets, and savings goals — private to your account.",
+    "chatTitle": "Chat",
+    "chatBody": "1:1 messages with friends — text, stickers, photos, and voice notes.",
+    "friendsTitle": "Friends",
+    "friendsBody": "Requests and your graph — the gate for chat and selective feed sharing."
   },
   "export": {
     "status": "Status",
