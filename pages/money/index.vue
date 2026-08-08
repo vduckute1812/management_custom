@@ -6,11 +6,7 @@ import {
   type MoneyCategoryPick,
   type MoneyTransaction,
 } from "~/types/money";
-import {
-  formatMoneyMinor,
-  resolveMoneyCategoryMeta,
-  toYearMonth,
-} from "~/utils/money";
+import { formatMoneyMinor, toYearMonth } from "~/utils/money";
 
 const { t } = useI18n();
 const { currency, intlLocale } = useMoneyCurrency();
@@ -34,7 +30,6 @@ const modalOpen = ref(false);
 const editing = ref<MoneyTransaction | null>(null);
 const filterDirection = ref<"all" | MoneyDirection>("all");
 const filterCategoryPick = ref<MoneyCategoryPick | null>(null);
-/** Mobile: charts collapsed so the first viewport stays usable. */
 const chartsExpanded = ref(false);
 
 await useAsyncData("money:initial", async () => {
@@ -148,10 +143,6 @@ function onSelectCategoryFromChart(pick: MoneyCategoryPick) {
   filterCategoryPick.value = pick;
 }
 
-function txMeta(tx: MoneyTransaction) {
-  return resolveMoneyCategoryMeta(tx, t);
-}
-
 function onExportCsv() {
   exportTransactionsCsv(yearMonth.value, transactions.value);
   pushToast(t("toasts.moneyExported"), { tone: "success" });
@@ -172,47 +163,12 @@ const netTone = computed(() => {
 
 <template>
   <div class="money-shell relative flex min-h-0 flex-1 flex-col">
-    <header
-      class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-white/80 px-4 py-4 backdrop-blur-md md:px-6"
-    >
-      <div>
-        <p
-          class="text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-600"
-        >
-          {{ $t("nav.sectionMoney") }}
-        </p>
-        <h1 class="mt-0.5 text-xl font-semibold tracking-tight text-slate-900">
-          {{ $t("money.title") }}
-        </h1>
-        <p class="mt-0.5 text-xs text-slate-500">
-          {{ $t("money.subtitle") }}
-        </p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <MoneyExportMenu
-          :disabled="isLoading || transactions.length === 0"
-          @csv="onExportCsv"
-          @json="onExportJson"
-        />
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm shadow-brand-600/20 transition hover:bg-brand-700"
-          @click="openCreate"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="h-3.5 w-3.5"
-          >
-            <path d="M12 5v14M5 12h14" stroke-linecap="round" />
-          </svg>
-          {{ $t("money.addTransaction") }}
-        </button>
-      </div>
-    </header>
+    <MoneyPageHeader
+      :export-disabled="isLoading || transactions.length === 0"
+      @create="openCreate"
+      @export-csv="onExportCsv"
+      @export-json="onExportJson"
+    />
 
     <div class="relative z-0 flex-1 overflow-y-auto scrollbar-thin">
       <div class="mx-auto max-w-4xl space-y-6 px-4 py-6 md:px-6">
@@ -230,232 +186,52 @@ const netTone = computed(() => {
           />
         </div>
 
-        <section
-          class="grid grid-cols-1 gap-3 sm:grid-cols-3"
-          :aria-label="$t('money.totalsAria')"
-        >
-          <MoneyStatCard
-            :label="$t('money.in')"
-            :value="fmt(totals?.inMinor ?? 0)"
-            tone="in"
-          />
-          <MoneyStatCard
-            :label="$t('money.out')"
-            :value="fmt(totals?.outMinor ?? 0)"
-            tone="out"
-          />
-          <MoneyStatCard
-            :label="$t('money.net')"
-            :value="fmt(totals?.netMinor ?? 0)"
-            :tone="netTone"
-          />
-        </section>
+        <MoneyTotalsPanel
+          :in-label="$t('money.in')"
+          :out-label="$t('money.out')"
+          :net-label="$t('money.net')"
+          :in-value="fmt(totals?.inMinor ?? 0)"
+          :out-value="fmt(totals?.outMinor ?? 0)"
+          :net-value="fmt(totals?.netMinor ?? 0)"
+          :net-tone="netTone"
+          :totals-aria="$t('money.totalsAria')"
+        />
 
-        <div class="space-y-3">
-          <button
-            type="button"
-            class="flex w-full items-center justify-between rounded-xl bg-white/90 px-3 py-2 text-left text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-slate-200/80 xl:hidden"
-            :aria-expanded="chartsExpanded"
-            aria-controls="money-charts-panel"
-            @click="chartsExpanded = !chartsExpanded"
-          >
-            <span>{{ $t("money.chartsToggle") }}</span>
-            <span class="text-xs font-medium text-slate-500" aria-hidden="true">
-              {{ chartsExpanded ? "▴" : "▾" }}
-            </span>
-          </button>
-          <div
-            id="money-charts-panel"
-            class="xl:block"
-            :class="chartsExpanded ? 'block' : 'hidden'"
-          >
-            <LazyMoneyCharts
-              :transactions="transactions"
-              :year-month="yearMonth"
-              :locale-tag="moneyLocale"
-              :currency="currency"
-              :active-pick="filterCategoryPick"
-              @select-category="onSelectCategoryFromChart"
-            />
-          </div>
-        </div>
+        <MoneyChartsPanel
+          :transactions="transactions"
+          :year-month="yearMonth"
+          :locale-tag="moneyLocale"
+          :currency="currency"
+          :active-pick="filterCategoryPick"
+          :expanded="chartsExpanded"
+          @update:expanded="chartsExpanded = $event"
+          @select-category="onSelectCategoryFromChart"
+        />
 
-        <div
-          class="sticky top-0 z-[1] -mx-1 space-y-3 rounded-2xl bg-white/90 p-3 shadow-sm ring-1 ring-slate-200/80 backdrop-blur-md"
-        >
-          <div
-            class="flex flex-wrap items-center gap-2"
-            role="group"
-            :aria-label="$t('money.filterDirectionAria')"
-          >
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
-              :class="
-                filterDirection === 'all'
-                  ? 'money-chip--active ring-1'
-                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-              "
-              :aria-pressed="filterDirection === 'all'"
-              @click="filterDirection = 'all'"
-            >
-              {{ $t("money.filterAll") }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
-              :class="
-                filterDirection === MoneyDirection.Out
-                  ? 'bg-rose-600 text-white ring-rose-600'
-                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-              "
-              :aria-pressed="filterDirection === MoneyDirection.Out"
-              @click="filterDirection = MoneyDirection.Out"
-            >
-              {{ $t("money.direction.out") }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold ring-1 transition"
-              :class="
-                filterDirection === MoneyDirection.In
-                  ? 'bg-emerald-600 text-white ring-emerald-600'
-                  : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-              "
-              :aria-pressed="filterDirection === MoneyDirection.In"
-              @click="filterDirection = MoneyDirection.In"
-            >
-              {{ $t("money.direction.in") }}
-            </button>
-          </div>
+        <MoneyFiltersPanel
+          :filter-direction="filterDirection"
+          :filter-category-pick="filterCategoryPick"
+          :has-filters="hasFilters"
+          @update:filter-direction="filterDirection = $event"
+          @update:filter-category-pick="filterCategoryPick = $event"
+          @clear-filters="clearFilters"
+        />
 
-          <div class="flex flex-wrap items-end gap-2">
-            <div class="min-w-[12rem] flex-1">
-              <label
-                class="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500"
-                for="money-filter-category"
-              >
-                {{ $t("money.modal.category") }}
-              </label>
-              <MoneyCategorySelect
-                id="money-filter-category"
-                v-model="filterCategoryPick"
-                mode="all"
-                allow-null
-                :allow-create="false"
-                size="sm"
-                :aria-label="$t('money.filterCategoryAria')"
-              />
-            </div>
-            <button
-              v-if="hasFilters"
-              type="button"
-              class="mb-0.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition hover:bg-slate-50"
-              @click="clearFilters"
-            >
-              {{ $t("money.clearFilter") }}
-            </button>
-          </div>
-        </div>
-
-        <InlineErrorAlert
-          v-if="error"
-          :message="error"
-          :retry-label="$t('common.retry')"
+        <MoneyTransactionListPanel
+          :transactions="filtered"
+          :all-transactions="transactions"
+          :is-loading="isLoading"
+          :is-loading-more="isLoadingMore"
+          :error="error"
+          :next-cursor="nextCursor"
+          :format-amount="fmt"
+          :format-date="formatTxDate"
           @retry="fetchMonth()"
+          @create="openCreate"
+          @clear-filters="clearFilters"
+          @edit="openEdit"
+          @load-more="loadMore"
         />
-        <div
-          v-else-if="isLoading && !transactions.length"
-          class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
-          :aria-busy="true"
-          :aria-label="$t('money.loading')"
-        >
-          <SkeletonList :rows="4" />
-        </div>
-        <EmptyState
-          v-else-if="!transactions.length"
-          illustration="chart"
-          :title="$t('money.empty')"
-          :description="$t('money.emptyHint')"
-          :primary-label="$t('money.addTransaction')"
-          primary-shortcut="N"
-          @primary="openCreate"
-        />
-        <EmptyState
-          v-else-if="!filtered.length"
-          illustration="spark"
-          :title="$t('money.filterEmpty')"
-          :primary-label="$t('money.clearFilter')"
-          @primary="clearFilters"
-        />
-
-        <ul
-          v-else
-          class="overflow-hidden rounded-2xl bg-white/90 shadow-sm ring-1 ring-slate-200/80"
-        >
-          <li
-            v-for="(tx, idx) in filtered"
-            :key="tx.id"
-            :class="idx > 0 ? 'border-t border-slate-100' : ''"
-          >
-            <button
-              type="button"
-              class="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-slate-50/90 focus-visible:bg-brand-50/50 focus-visible:outline-none"
-              @click="openEdit(tx)"
-            >
-              <div class="flex min-w-0 items-start gap-3">
-                <span
-                  class="mt-0.5 text-base leading-none"
-                  aria-hidden="true"
-                  >{{ txMeta(tx)?.emoji || "📦" }}</span
-                >
-                <span
-                  class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full shadow-sm ring-2 ring-white"
-                  :style="{
-                    backgroundColor: txMeta(tx)?.color || '#94a3b8',
-                  }"
-                  aria-hidden="true"
-                />
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-semibold text-slate-900">
-                    {{ txMeta(tx)?.label }}
-                    <span v-if="tx.note" class="font-normal text-slate-500">
-                      · {{ tx.note }}
-                    </span>
-                  </p>
-                  <p class="mt-0.5 text-xs text-slate-400">
-                    {{ formatTxDate(tx.occurredOn) }}
-                  </p>
-                </div>
-              </div>
-              <p
-                class="shrink-0 text-sm font-semibold tabular-nums"
-                :class="
-                  tx.direction === MoneyDirection.In
-                    ? 'text-emerald-700'
-                    : 'text-rose-700'
-                "
-              >
-                {{
-                  tx.direction === MoneyDirection.In
-                    ? `+${fmt(tx.amountMinor)}`
-                    : `−${fmt(tx.amountMinor)}`
-                }}
-              </p>
-            </button>
-          </li>
-        </ul>
-        <div v-if="nextCursor" class="flex justify-center">
-          <button
-            type="button"
-            class="rounded-lg px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-            :disabled="isLoadingMore"
-            :aria-busy="isLoadingMore"
-            @click="loadMore"
-          >
-            {{ $t("common.loadMore") }}
-          </button>
-        </div>
       </div>
     </div>
 
