@@ -76,7 +76,7 @@ Login and refresh set both cookies. Logout revokes the refresh hash server-side 
 
 Cookie-authenticated mutations (`refresh`, `logout`, Google unlink, account delete, and every other mutating `/api/*` that carries `mgmt_rt` / `mgmt_at`) apply a same-origin check (`Origin` / `Referer` must match `Host`). In production (Secure cookies / `https` `APP_BASE_URL`, or `CSRF_REQUIRE_ORIGIN=1`), a missing Origin **and** Referer is also rejected.
 
-Refresh tokens belong to a **family** (`auth_refresh_tokens.family_id`). Login starts a family; each successful refresh keeps the same id. Presenting an already-revoked refresh hash revokes the entire family so a stolen token cannot keep minting sessions after the victim refreshed.
+Refresh tokens belong to a **family** (`auth_refresh_tokens.family_id`). Login starts a family; each successful refresh keeps the same id. Presenting an already-revoked refresh hash **outside a short grace window** (~15s) revokes the entire family so a stolen token cannot keep minting sessions after the victim refreshed. Presentations inside the grace window are treated as concurrent-tab races (401 only) so the winner's new session is not killed.
 
 ### Self-service account deletion
 
