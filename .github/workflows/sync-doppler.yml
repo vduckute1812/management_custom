@@ -1,0 +1,67 @@
+# Upload Pi-local ~/.config/management/.env.prod into Doppler config prd.
+#
+# Requires:
+#   - Self-hosted runner on the Pi (label management)
+#   - GitHub Actions secret DOPPLER_TOKEN (write-capable service/personal token)
+#   - Existing secrets file on the Pi
+#
+# Manual: Actions → Sync secrets to Doppler → Run workflow
+
+name: Sync secrets to Doppler
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: sync-doppler-prd
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    name: Upload .env.prod → Doppler prd
+    runs-on: [self-hosted, management]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          clean: false
+
+      - name: Ensure Doppler CLI
+        run: |
+          set -euo pipefail
+          bash docker/install-doppler-cli.sh
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+
+      - name: Link local secrets (env file + token file if present)
+        env:
+          MGMT_SECRETS_DIR: ${{ vars.MGMT_SECRETS_DIR }}
+        run: |
+          set -euo pipefail
+          export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
+          # Materialize docker/.env.prod from local file only (skip empty Doppler).
+          if [[ -f "${MGMT_SECRETS_DIR}/.env.prod" ]]; then
+            rm -f docker/.env.prod
+            ln -sfn "${MGMT_SECRETS_DIR}/.env.prod" docker/.env.prod
+            echo "linked docker/.env.prod ← ${MGMT_SECRETS_DIR}/.env.prod"
+          elif [[ -f docker/.env.prod ]]; then
+            echo "using existing docker/.env.prod"
+          else
+            echo "::error::No .env.prod on the Pi under ${MGMT_SECRETS_DIR}"
+            exit 1
+          fi
+
+      - name: Upload to Doppler
+        env:
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ vars.DOPPLER_PROJECT }}
+          DOPPLER_CONFIG: ${{ vars.DOPPLER_CONFIG }}
+        run: |
+          set -euo pipefail
+          [[ -n "${DOPPLER_TOKEN:-}" ]] || {
+            echo "::error::GitHub Actions secret DOPPLER_TOKEN is not set"
+            exit 1
+          }
+          export DOPPLER_PROJECT="${DOPPLER_PROJECT:-management_custom}"
+          export DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
+          bash docker/sync-env-to-doppler.sh

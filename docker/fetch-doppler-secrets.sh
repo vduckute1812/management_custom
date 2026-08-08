@@ -85,15 +85,25 @@ if ! doppler "${download_args[@]}" > "${tmp}"; then
 fi
 
 # Strip Doppler meta keys if present; keep app secrets only.
-grep -vE '^(DOPPLER_PROJECT|DOPPLER_CONFIG|DOPPLER_ENVIRONMENT)=' "${tmp}" > "${tmp}.clean" \
-  || cp "${tmp}" "${tmp}.clean"
+if ! grep -vE '^(DOPPLER_PROJECT|DOPPLER_CONFIG|DOPPLER_ENVIRONMENT)=' "${tmp}" \
+  > "${tmp}.clean"; then
+  # grep exit 1 = no lines left (or no matches to print). Treat empty as fail.
+  : > "${tmp}.clean"
+fi
 
-[[ -s "${tmp}.clean" ]] || die "Doppler returned an empty secrets file"
+if [[ ! -s "${tmp}.clean" ]]; then
+  log "ERROR: Doppler config ${CONFIG} has no app secrets yet (only meta keys).
+Import the Pi env file into Doppler, then re-run:
+  doppler secrets upload ~/.config/management/.env.prod --config ${CONFIG}
+Or Dashboard → ${PROJECT} → ${CONFIG} → Import.
+Falling back to local secrets dir."
+  exit 2
+fi
 
 # Replace any prior symlink/file so we own a materialised env from Doppler.
 rm -f "${OUT}"
 install -m 0600 "${tmp}.clean" "${OUT}"
-log "wrote ${OUT} ($(wc -l < "${OUT}" | tr -d ' ') keys)"
+log "wrote ${OUT} ($(grep -c '=' "${OUT}" | tr -d ' ') keys)"
 
 # Cache under the secrets dir so offline deploys can fall back.
 if [[ -d "${SECRETS_DIR}" ]] || mkdir -p "${SECRETS_DIR}" 2>/dev/null; then
