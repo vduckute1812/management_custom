@@ -30,7 +30,7 @@ If `DB_USER` is still `root`, set `ALLOW_ROOT_DB=1` only as a temporary bridge â
 then cut over with `bash docker/apply-mysql-app-user.sh` +
 `bash docker/verify-mysql-app-user.sh` and **delete** `ALLOW_ROOT_DB` from Doppler
 (see [`getting-started.md`](./getting-started.md)). Keep LAN MySQL/Redis publishes;
-tighten exposure with the host firewall.
+tighten exposure with the host firewall (`bash docker/configure-lan-firewall.sh`).
 
 Edit in the Doppler dashboard or:
 
