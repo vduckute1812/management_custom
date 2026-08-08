@@ -13,6 +13,54 @@ jobs:
     runs-on: [self-hosted, management]
     timeout-minutes: 10
     steps:
+      # No actions/checkout — avoids _work/_actions permission traps when the
+      # runner user and cached action files disagree (root vs login user).
+      - name: Heal runner _work ownership
+        run: |
+          set -euo pipefail
+          echo "=== identity ==="
+          id; echo "HOME=${HOME:-}"; echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-}"
+          echo
+          RUNNER_DIR=""
+          if [[ -n "${GITHUB_WORKSPACE:-}" && "${GITHUB_WORKSPACE}" =~ ^(/home/[^/]+)/actions-runner/ ]]; then
+            RUNNER_DIR="${BASH_REMATCH[1]}/actions-runner"
+          elif [[ -d "${HOME}/actions-runner" ]]; then
+            RUNNER_DIR="${HOME}/actions-runner"
+          fi
+          echo "RUNNER_DIR=${RUNNER_DIR:-unset}"
+          if [[ -z "${RUNNER_DIR}" || ! -d "${RUNNER_DIR}/_work" ]]; then
+            echo "No runner _work dir to heal"
+            exit 0
+          fi
+          echo "=== _work ownership (before) ==="
+          ls -la "${RUNNER_DIR}/_work" || true
+          ls -la "${RUNNER_DIR}/_work/_actions" 2>/dev/null | head -20 || true
+          OWNER="$(stat -c '%U' "${RUNNER_DIR}" 2>/dev/null || true)"
+          echo "runner dir owner=${OWNER:-unknown}"
+          # Prefer the login user that owns the runner install (not process HOME
+          # when it is wrongly /root).
+          TARGET_USER="${OWNER}"
+          if [[ -z "${TARGET_USER}" || "${TARGET_USER}" == "UNKNOWN" ]]; then
+            TARGET_USER="$(id -un)"
+          fi
+          if [[ -d "${RUNNER_DIR}/_work/_actions" ]]; then
+            echo "Healing ownership of ${RUNNER_DIR}/_work → ${TARGET_USER}"
+            if sudo -n chown -R "${TARGET_USER}:${TARGET_USER}" "${RUNNER_DIR}/_work" 2>/dev/null; then
+              echo "chown OK"
+            else
+              echo "sudo chown failed — trying rm _actions cache"
+              sudo -n rm -rf "${RUNNER_DIR}/_work/_actions" 2>/dev/null \
+                || rm -rf "${RUNNER_DIR}/_work/_actions" 2>/dev/null \
+                || echo "WARN: could not heal _actions (manual: sudo chown -R ${TARGET_USER}: ${RUNNER_DIR}/_work)"
+            fi
+          fi
+          echo "=== _work ownership (after) ==="
+          ls -la "${RUNNER_DIR}/_work" || true
+          touch "${RUNNER_DIR}/_work/.mgmt-write-test" 2>/dev/null \
+            && rm -f "${RUNNER_DIR}/_work/.mgmt-write-test" \
+            && echo "write test OK" \
+            || echo "WARN: still cannot write _work"
+
       - name: Container status + recent app logs
         run: |
           set -euo pipefail
@@ -66,4 +114,4 @@ jobs:
             podman exec "$APP" sh -c 'echo NODE_ENV=$NODE_ENV; echo APP_BASE_URL=$APP_BASE_URL; echo DB_HOST=$DB_HOST; printenv | grep -E "^(NUXT_|NITRO_|R2_|MYSQL_|DB_)" | sed "s/=.*/=***/" || true' 2>/dev/null || true
           fi
 
-# diagnostics kick 20260802080301
+# diagnostics kick 20260808134000
