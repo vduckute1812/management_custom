@@ -76,7 +76,7 @@ Login and refresh set both cookies. Logout revokes the refresh hash server-side 
 
 Cookie-authenticated mutations (`refresh`, `logout`, Google unlink, account delete, and every other mutating `/api/*` that carries `mgmt_rt` / `mgmt_at`) apply a same-origin check (`Origin` / `Referer` must match `Host`). In production (Secure cookies / `https` `APP_BASE_URL`, or `CSRF_REQUIRE_ORIGIN=1`), a missing Origin **and** Referer is also rejected.
 
-Refresh tokens belong to a **family** (`auth_refresh_tokens.family_id`). Login starts a family; each successful refresh keeps the same id. Presenting an already-revoked refresh hash revokes the entire family so a stolen token cannot keep minting sessions after the victim refreshed.
+Refresh tokens belong to a **family** (`auth_refresh_tokens.family_id`). Login starts a family; each successful refresh keeps the same id. Presenting an already-revoked refresh hash **outside a short grace window** (~15s) revokes the entire family so a stolen token cannot keep minting sessions after the victim refreshed. Presentations inside the grace window are treated as concurrent-tab races (401 only) so the winner's new session is not killed.
 
 ### Self-service account deletion
 
@@ -128,7 +128,7 @@ The script is the only entrypoint that creates a `superadmin` — there's no "fi
 
 ## Email transport
 
-`server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email body (including the verification URL) to stdout, so the sign-up flow remains exercisable in dev without provisioning a real provider. For Gmail / Google Workspace you need an [App Password](https://myaccount.google.com/apppasswords), not your account password. Production typically sets `SMTP_FROM` to a display name + address (e.g. `Danang TechX <admin@dntechx.com>`) while `SMTP_USER` remains the mailbox used to authenticate.
+`server/utils/mailer.ts` uses `nodemailer`. When `SMTP_HOST/USER/PASS` are present it sends real email; when any is missing it falls back to logging the email to stdout. Verification / reset **plaintext** intentionally omits the raw URL (button-only HTML); the dry-run logger still prints a `Link:` line extracted from the HTML so local sign-up stays walkable. For Gmail / Google Workspace you need an [App Password](https://myaccount.google.com/apppasswords), not your account password. Production typically sets `SMTP_FROM` to a display name + address (e.g. `Danang TechX <admin@dntechx.com>`) while `SMTP_USER` remains the mailbox used to authenticate.
 
 Outbound mail from product flows should go through the **job queue** (`enqueueVerificationEmail` / `enqueuePasswordResetEmail` / `enqueueEmailSend`) so HTTP handlers stay fast and SMTP failures retry with backoff. Direct `sendMail` remains available for scripts and the worker itself. Password reset uses job type `email.passwordReset`.
 

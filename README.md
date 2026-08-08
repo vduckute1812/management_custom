@@ -140,11 +140,17 @@ Concrete journeys, each rated by target friction.
 3. Press `n` for quick capture; type `Read MLE paper @9` or `Draft tomorrow 9-11` + `Enter`.
 4. Done. No modal traversal required for routine planning. (`Shift+N` opens the full editor when you need it.)
 
-### Flow 2 — "Log what I just spent" _(target: ≤ 15 seconds)_
+### Flow 2 — "Log hours on a block" _(target: ≤ 15 seconds)_
 
 1. While in **Daily** view, click the existing block.
 2. Tap **Log Nh** to use the full block duration (or enter a custom amount).
 3. Done — task `spentHours` and parent Epic totals recompute instantly. Double-click (or _Edit details_) opens the full modal.
+
+### Flow 2b — "Log what I just spent" _(Money, target: ≤ 20 seconds)_
+
+1. Open **Money** with `g m` (or the module nav).
+2. Tap **Add** / the transaction modal; enter amount, direction, category, optional note.
+3. Save — month totals and charts update from the reply.
 
 ### Flow 3 — "Weekly review" _(target: ≤ 5 minutes)_
 
@@ -458,11 +464,11 @@ Targets, not aspirations. These are required for any PR.
 
 A productivity tool should be useful on a phone for capture, even if planning happens at a desk.
 
-| Breakpoint     | Layout                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **< 640px**    | Sidebar collapses to a bottom nav bar. Calendar shows Daily only; Weekly/Monthly disabled with a hint. Modals are full-screen sheets. |
-| **640–1024px** | Sidebar becomes a top bar with icons. Weekly view stays but cells shrink and clamp at 2 lines per task.                               |
-| **≥ 1024px**   | Full layout: left sidebar + main + right rail.                                                                                        |
+| Breakpoint         | Layout                                                                                                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **< 768px**        | Module sidebar hides; bottom module nav (`AppMobileModuleNav`). Calendar prefers Daily; Weekly/Monthly may be limited with a hint. Dialogs stay centered (`max-h-[90vh]`), not full-bleed sheets. |
+| **≥ 768px (`md`)** | Left module sidebar (~224px / `w-56`). Weekly calendar cells shrink and clamp long titles.                                                                                                        |
+| **Wide desktop**   | Full layout: sidebar + main content (+ Time right rail where applicable).                                                                                                                         |
 
 **Print:** a print stylesheet renders a clean weekly agenda — sidebar hidden, hour grid black-on-white, no shadows.
 
@@ -483,7 +489,7 @@ A few choices that look opinionated and aren't accidents.
 - **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
 - **Language is a device preference, not a URL.** Same model as theme and density: stored in local settings, no `/en/...` prefixes, no server-side user locale. Switching language rewrites chrome only — user content stays as authored.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
-- **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub and Feed only; Time Management / admin / auth forms stay disallowed. `/` and `/feed` are selectively SSR'd so crawlers get real HTML; the rest of the app stays a client SPA.
+- **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub, Feed, and legal pages (`/`, `/feed`, `/privacy`, `/terms`); Time Management / admin / auth forms / Chat / Friends / Money stay disallowed. Public routes are selectively SSR'd so crawlers get real HTML; the rest of the app stays a client SPA.
 
 ---
 

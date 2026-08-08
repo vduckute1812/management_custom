@@ -198,7 +198,10 @@ Facebook-style request → accept graph. Status: `Pending=0` \| `Accepted=1`. Fr
 
 | Method   | Endpoint                      | Auth     | Description                                                                                          |
 | -------- | ----------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `GET`    | `/api/friends`                | Required | `{ friends, incoming, outgoing }` — each item is a `FriendshipRow`.                                  |
+| `GET`    | `/api/friends`                | Required | Compact overview `{ friends, incoming, outgoing }` — each item is a `FriendshipRow`.                 |
+| `GET`    | `/api/friends/accepted`       | Required | Cursor-paged Accepted friends (`friendshipPageQuerySchema`).                                         |
+| `GET`    | `/api/friends/incoming`       | Required | Cursor-paged pending requests addressed to you.                                                      |
+| `GET`    | `/api/friends/outgoing`       | Required | Cursor-paged pending requests you sent.                                                              |
 | `GET`    | `/api/friends/incoming-count` | Required | Badge helper `{ count }` of pending incoming requests.                                               |
 | `POST`   | `/api/friends`                | Required | Body `{ userId }`. Sends a request (or auto-accepts a reciprocal pending). Returns `{ friendship }`. |
 | `POST`   | `/api/friends/:id/accept`     | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
@@ -287,7 +290,7 @@ Message `kind` is the same integer-enum convention as the rest of the API (`Chat
 
 ## Money (expense ledger)
 
-Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are integer VND đồng (`amountMinor` ≥ 0); `direction` / `category` are integer enums (`MoneyDirection`, `MoneyCategory` in `types/money.ts`).
+Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are integer **minor units** of the caller's display currency (`MoneyCurrency`: VND đồng / USD·CNY·TWD cents; `amountMinor` ≥ 0). Changing currency does **not** convert historical rows. `direction` / `category` are integer enums (`MoneyDirection`, `MoneyCategory` in `types/money.ts`).
 
 | Method   | Endpoint                      | Auth     | Description                                                                                                                                      |
 | -------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |

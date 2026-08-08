@@ -68,11 +68,18 @@ export async function sendMail(args: SendMailArgs): Promise<void> {
   const t = getTransport();
   if (!t) {
     // Visible enough to find in logs, but no ANSI noise so it's grep-able.
+    // Verification / reset emails keep the URL out of plaintext (button-only
+    // HTML); surface the first http(s) href so local signup stays walkable.
+    const link =
+      args.html?.match(/href="(https?:\/\/[^"]+)"/i)?.[1] ??
+      args.html?.match(/href='(https?:\/\/[^']+)'/i)?.[1] ??
+      null;
     console.log(
       `\n[mailer:dry-run]\n` +
         `To:      ${args.to}\n` +
         `Subject: ${args.subject}\n` +
-        `---\n${args.text}\n---\n`,
+        `---\n${args.text}\n---\n` +
+        (link ? `Link:    ${link}\n\n` : ""),
     );
     return;
   }

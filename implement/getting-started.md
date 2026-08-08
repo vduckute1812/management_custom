@@ -55,9 +55,8 @@ ADMIN_INITIAL_PASSWORD=…        # used once by `migrate:auth`
 ADMIN_INITIAL_NAME=Administrator
 
 # SMTP for the email-verification flow. If any of HOST/USER/PASS is blank
-# the mailer prints the verification email to the server console so the
-# flow still works in dev. For Gmail use an App Password, not your normal
-# password.
+# the mailer dry-runs to the server console (plaintext + the HTML button
+# link) so local sign-up stays walkable. For Gmail use an App Password.
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USER=
@@ -133,9 +132,10 @@ Article pipeline env + Pi Gemini setup: `.env.example` and [`ci-cd.md`](./ci-cd.
 | `npm test`             | Vitest unit tests (auth JWT/guards, schemas, security, markdown) |
 | `npm run test:watch`   | Vitest watch mode                                                |
 | `npm run format`       | Prettier write                                                   |
+| `npm run typecheck`    | `vue-tsc --noEmit` (Vue / TypeScript)                            |
 | `npm run scan:secrets` | Scan repo for accidental secrets                                 |
 
-Type-check (not an npm script): `npx vue-tsc --noEmit -p tsconfig.json` — see below.
+Type-check also works as `npx vue-tsc --noEmit -p tsconfig.json` — see below.
 
 ## Install dependencies
 
@@ -182,7 +182,7 @@ npm run dev
 
 The app boots at `http://localhost:3000` on the **public hub** (`/`). Guests can open **Feed** (`/feed`) without signing in. Protected sections (Time Management `/tasks`, settings, admin, …) bounce unauthenticated users to `/login?redirect=…`.
 
-Sign in with the seed superadmin, or sign up a normal user — the verification link prints to the server console unless SMTP is configured.
+Sign in with the seed superadmin, or sign up a normal user. Without SMTP, the mailer dry-runs to the server console (including the verification **Link:** line extracted from the HTML button). With SMTP configured, open the message in your inbox instead.
 
 **Sessions.** Refresh tokens live in the HttpOnly cookie `mgmt_rt`; the access JWT is held in memory (and mirrored as `mgmt_at` for media). After login, a page reload should keep you signed in without re-entering credentials. On plain `http://localhost`, set `COOKIE_SECURE=false` in `.env` if cookies are rejected.
 
@@ -199,7 +199,7 @@ On the live host, confirm SEO endpoints after deploy:
 
 - `https://dntechx.com/` and `https://dntechx.com/feed` (view-source should show real copy / public posts, not an empty `#__nuxt` shell)
 - `https://dntechx.com/robots.txt`
-- `https://dntechx.com/sitemap.xml` (should list `/` and `/feed` only)
+- `https://dntechx.com/sitemap.xml` (should list `/`, `/feed`, `/privacy`, and `/terms`)
 - `https://dntechx.com/llms.txt` (Markdown with an H1 + absolute links)
 
 Then submit the sitemap in Google Search Console. Details: [`architecture.md`](./architecture.md#seo-nuxtjsseo).
@@ -207,6 +207,8 @@ Then submit the sitemap in Google Search Console. Details: [`architecture.md`](.
 ## Type-checking Vue / TypeScript
 
 ```bash
+npm run typecheck
+# equivalent:
 npx vue-tsc --noEmit -p tsconfig.json
 ```
 
@@ -228,4 +230,4 @@ After signing in, open **Time Management** (`/tasks`, or `g d`). An empty calend
 1. **Quick capture** — single-line task input (`n`).
 2. **Load sample data** — seeds a sample Epic with tasks across the current week so calendar/analytics have something to render.
 
-The hub (`/`) explains the two modules (Feed vs Time Management) without requiring a session.
+The hub (`/`) introduces all five surfaces (Feed, Time, Money, Chat, Friends) without requiring a session.

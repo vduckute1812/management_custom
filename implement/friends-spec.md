@@ -43,12 +43,15 @@ Domain SQL: `server/db/friends/` (`friendshipShared`, `friendshipCache`, `friend
 
 ## API (summary)
 
-| Method   | Path                          | Purpose                                                                 |
-| -------- | ----------------------------- | ----------------------------------------------------------------------- |
-| `GET`    | `/api/friends`                | Overview `{ friends, incoming, outgoing }` (+ cursors where applicable) |
-| `GET`    | `/api/friends/incoming-count` | Badge `{ count }`                                                       |
-| `POST`   | `/api/friends`                | Body `{ userId }` — request or auto-accept reciprocal pending           |
-| `POST`   | `/api/friends/:id/accept`     | Addressee accepts                                                       |
-| `DELETE` | `/api/friends/:id`            | Cancel / decline / unfriend                                             |
+| Method   | Path                          | Purpose                                                       |
+| -------- | ----------------------------- | ------------------------------------------------------------- |
+| `GET`    | `/api/friends`                | Compact overview `{ friends, incoming, outgoing }`            |
+| `GET`    | `/api/friends/accepted`       | Cursor-paged Accepted friends                                 |
+| `GET`    | `/api/friends/incoming`       | Cursor-paged incoming pending                                 |
+| `GET`    | `/api/friends/outgoing`       | Cursor-paged outgoing pending                                 |
+| `GET`    | `/api/friends/incoming-count` | Badge `{ count }`                                             |
+| `POST`   | `/api/friends`                | Body `{ userId }` — request or auto-accept reciprocal pending |
+| `POST`   | `/api/friends/:id/accept`     | Addressee accepts                                             |
+| `DELETE` | `/api/friends/:id`            | Cancel / decline / unfriend                                   |
 
 See [`api.md`](./api.md) (Friends section) and [`database.md`](./database.md) for the as-built reference. Chat friends-only gate: [`chat-spec.md`](./chat-spec.md).

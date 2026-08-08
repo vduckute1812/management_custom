@@ -12,8 +12,6 @@ import { type UploadRow } from "./uploadShared";
 /** Short-lived positive ACL decisions (process-local). */
 const UPLOAD_ACL_TTL_MS = 10_000;
 const uploadAclAllowUntil = new Map<string, number>();
-const FRIEND_IDS_TTL_MS = 60_000;
-const friendIdsUntil = new Map<string, { until: number; ids: string[] }>();
 
 function rememberUploadAllow(viewerId: string | null, uploadId: string) {
   uploadAclAllowUntil.set(
@@ -34,17 +32,6 @@ function wasUploadAllowedRecently(
     return false;
   }
   return true;
-}
-
-async function cachedFriendIds(viewerId: string): Promise<string[]> {
-  const hit = friendIdsUntil.get(viewerId);
-  if (hit && hit.until > Date.now()) return hit.ids;
-  const ids = await listAcceptedFriendIds(viewerId);
-  friendIdsUntil.set(viewerId, {
-    ids,
-    until: Date.now() + FRIEND_IDS_TTL_MS,
-  });
-  return ids;
 }
 
 function mapUploadRow(row: UploadRow): UploadRow {
@@ -88,7 +75,9 @@ async function fetchUploadIfAccessible(
     return row ? mapUploadRow(row) : null;
   }
 
-  const friendIds = await cachedFriendIds(viewerId);
+  // Use friendshipCache (invalidated on accept/unfriend) — do not layer a
+  // second process-local friend list that would outlive graph mutations.
+  const friendIds = await listAcceptedFriendIds(viewerId);
   const friendsPostClause =
     friendIds.length === 0
       ? "0"
@@ -200,8 +189,7 @@ export async function resolveUploadForViewer(
   return row;
 }
 
-/** Test helper — clear process-local upload ACL / friend-id caches. */
+/** Test helper — clear process-local positive upload ACL cache. */
 export function _resetUploadAccessCachesForTests() {
   uploadAclAllowUntil.clear();
-  friendIdsUntil.clear();
 }
