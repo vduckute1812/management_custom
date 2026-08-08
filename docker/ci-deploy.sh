@@ -571,3 +571,5 @@ echo "  DB:     migrations applied before app switch"
 echo "  Redis:  ${LAN_IP}:6379 (app cache; fail-open to memory)"
 
 # retrigger deploy after runner _work heal 2026-08-08
+
+# retrigger deploy after podman image prune 2026-08-08T14:39Z
