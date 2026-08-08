@@ -167,6 +167,23 @@ mgmt_compose() {
     echo "[deploy] ERROR: REDIS_PASSWORD missing — set it in Doppler config prd" >&2
     return 1
   fi
+  # Encode password for REDIS_URL — raw `/+=@` in secrets break URL parsing
+  # and leave auth rate-limits fail-closed with 503.
+  if command -v python3 >/dev/null 2>&1; then
+    REDIS_URL="$(
+      LAN_IP="${LAN_IP}" REDIS_PASSWORD="${REDIS_PASSWORD}" python3 - <<'PY'
+import os, urllib.parse
+pw = urllib.parse.quote(os.environ["REDIS_PASSWORD"], safe="")
+host = os.environ.get("LAN_IP") or "192.168.1.4"
+print(f"redis://:{pw}@{host}:6379/0")
+PY
+    )"
+  else
+    # BusyBox/fallback: percent-encode a minimal set via sed (good enough for base64).
+    enc="$(printf '%s' "${REDIS_PASSWORD}" | sed -e 's/%/%25/g' -e 's/\//%2F/g' -e 's/+/%2B/g' -e 's/=/%3D/g' -e 's/@/%40/g' -e 's/:/%3A/g')"
+    REDIS_URL="redis://:${enc}@${LAN_IP}:6379/0"
+  fi
+  export REDIS_URL
   mgmt_render_nginx || return 1
   (cd "${root}" && "${COMPOSE_ARR[@]}" -f "${file}" "$@")
 }

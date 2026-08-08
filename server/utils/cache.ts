@@ -12,6 +12,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { resolveRedisUrl } from "~/server/utils/redisUrl";
 
 export type CacheDriverName = "memory" | "redis";
 
@@ -156,7 +157,7 @@ function namespacePrefix(): string {
 }
 
 async function createDriver(): Promise<CacheDriver> {
-  const url = process.env.REDIS_URL?.trim();
+  const url = resolveRedisUrl();
   const prefer = (process.env.CACHE_DRIVER || "").trim().toLowerCase();
   const memoryMax = Number(process.env.CACHE_MEMORY_MAX || 500);
 

@@ -5,6 +5,7 @@ import { getPool } from "~/server/db/core/pool";
 import { migrationStatus } from "~/server/db/core/migrator";
 import { countJobsByStatus } from "~/server/db/core/jobs";
 import { cacheDriverName } from "~/server/utils/cache";
+import { resolveRedisUrl } from "~/server/utils/redisUrl";
 import type { SystemSnapshot } from "~/types/system";
 
 const CPU_SAMPLE_MS = 80;
@@ -27,14 +28,14 @@ async function measureDbLatency(): Promise<{
 }
 
 /**
- * Redis PING latency. Returns null when REDIS_URL is unset.
+ * Redis PING latency. Returns null when Redis is not configured.
  * Uses a short-lived connection so we do not share state with the cache driver.
  */
 async function measureRedisLatency(): Promise<{
   ok: boolean;
   ms: number | null;
 } | null> {
-  const url = process.env.REDIS_URL?.trim();
+  const url = resolveRedisUrl();
   if (!url) return null;
   const t0 = Date.now();
   try {
@@ -182,7 +183,7 @@ export async function collectSystemSnapshot(): Promise<SystemSnapshot> {
     },
     cache: {
       driver: cacheDriver,
-      redisConfigured: Boolean(process.env.REDIS_URL?.trim()),
+      redisConfigured: Boolean(resolveRedisUrl()),
     },
     queue: {
       workerEnabled: !["0", "false", "no", "off"].includes(

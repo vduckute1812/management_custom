@@ -1,11 +1,14 @@
 /**
  * Fixed-window rate-limit store.
  *
- * Memory is the default (single Nitro process, zero deps). When `REDIS_URL` is
- * set the same counters live in Redis so a restart — or a future second
- * instance — cannot reset the auth budgets. Non-auth routes still fail-open
- * to memory on Redis outages; credential paths can fail-closed.
+ * Memory is the default (single Nitro process, zero deps). When Redis is
+ * configured (REDIS_PASSWORD or a valid REDIS_URL) the same counters live in
+ * Redis so a restart — or a future second instance — cannot reset the auth
+ * budgets. Non-auth routes still fail-open to memory on Redis outages;
+ * credential paths can fail-closed.
  */
+
+import { resolveRedisUrl } from "~/server/utils/redisUrl";
 
 interface WindowEntry {
   count: number;
@@ -70,7 +73,7 @@ function redisKeyPrefix(): string {
 
 async function getRedis(): Promise<RedisClient | null> {
   if (redisPromise) return redisPromise;
-  const url = process.env.REDIS_URL?.trim();
+  const url = resolveRedisUrl();
   if (!url) {
     redisPromise = Promise.resolve(null);
     return redisPromise;
@@ -132,7 +135,7 @@ export async function rateLimitHit(
   windowMs: number,
   opts?: { failClosed?: boolean },
 ): Promise<{ count: number; resetAt: number }> {
-  const redisConfigured = Boolean(process.env.REDIS_URL?.trim());
+  const redisConfigured = Boolean(resolveRedisUrl());
   const client = await getRedis();
   if (client) {
     try {

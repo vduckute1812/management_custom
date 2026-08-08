@@ -1,6 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { cacheDriverName } from "~/server/utils/cache";
 import { countJobsByStatus } from "~/server/db/core/jobs";
+import { resolveRedisUrl } from "~/server/utils/redisUrl";
 
 /**
  * GET /api/admin/queue — admin only.
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
   return {
     cache: {
       driver: cacheDriver,
-      redisConfigured: Boolean(process.env.REDIS_URL?.trim()),
+      redisConfigured: Boolean(resolveRedisUrl()),
     },
     queue: {
       workerEnabled: !["0", "false", "no", "off"].includes(
