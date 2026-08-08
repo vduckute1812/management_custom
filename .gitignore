@@ -27,6 +27,9 @@ logs
 .env.*
 !.env.example
 
+# Doppler service token on disk (Pi / laptop) — never commit
+**/doppler.token
+
 # Rendered from docker/nginx.prod.conf.template (LAN_IP); do not commit.
 docker/nginx.prod.rendered.conf
 
