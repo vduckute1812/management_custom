@@ -1,27 +1,23 @@
 #!/usr/bin/env bash
-# Upsert Gemini / LLM env into the Pi secrets .env.prod.
+# Set Gemini / LLM keys in Doppler (config prd), then refresh the app.
 #
-# When production keys live in Doppler, prefer:
-#   doppler secrets set GEMINI_API_KEY=… --project management_custom --config prd
-# then re-run Deploy. This script still patches the local/cached .env.prod.
-#
-# Usage (on the Pi):
+# Usage (on the Pi or any machine with DOPPLER_TOKEN):
 #   GEMINI_API_KEY=… bash docker/configure-gemini.sh
 #
 # Optional:
 #   LLM_PROVIDER=gemini          (default)
 #   GEMINI_MODEL=gemini-flash-lite-latest
-#   SKIP_RECREATE=1              — only write env (ci-deploy will recreate app)
-#   MGMT_SECRETS_DIR=$HOME/.config/management
+#   SKIP_RECREATE=1              — only write Doppler (ci-deploy will recreate)
+#   DOPPLER_PROJECT / DOPPLER_CONFIG
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=docker/lib-compose.sh
 source "${ROOT}/docker/lib-compose.sh"
 
-SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
-SECRETS_ENV="${SECRETS_DIR}/.env.prod"
-DOCKER_ENV="${ROOT}/docker/.env.prod"
+PROJECT="${DOPPLER_PROJECT:-management_custom}"
+CONFIG="${DOPPLER_CONFIG:-prd}"
+TOKEN_FILE="${DOPPLER_TOKEN_FILE:-${MGMT_SECRETS_DIR:-${HOME}/.config/management}/doppler.token}"
 
 PROVIDER="${LLM_PROVIDER:-gemini}"
 API_KEY="${GEMINI_API_KEY:-}"
@@ -32,34 +28,31 @@ log() { echo "[configure-gemini] $*"; }
 die() { echo "[configure-gemini] ERROR: $*" >&2; exit 1; }
 
 [[ -n "${API_KEY}" ]] || die "GEMINI_API_KEY is required"
-[[ -d "${SECRETS_DIR}" ]] || die "secrets dir missing: ${SECRETS_DIR}"
-[[ -f "${SECRETS_ENV}" ]] || die "missing ${SECRETS_ENV}"
 
-upsert_env() {
-  local file="$1" key="$2" value="$3"
-  local tmp
-  tmp="$(mktemp)"
-  if [[ -f "${file}" ]]; then
-    grep -Ev "^[[:space:]]*${key}=" "${file}" >"${tmp}" || true
-  else
-    : >"${tmp}"
-  fi
-  printf '%s=%s\n' "${key}" "${value}" >>"${tmp}"
-  mv "${tmp}" "${file}"
-  chmod 600 "${file}" 2>/dev/null || true
-}
+if [[ -z "${DOPPLER_TOKEN:-}" && -f "${TOKEN_FILE}" ]]; then
+  DOPPLER_TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
+  export DOPPLER_TOKEN
+fi
+[[ -n "${DOPPLER_TOKEN:-}" ]] || die "DOPPLER_TOKEN (or ${TOKEN_FILE}) required"
 
-log "updating secrets env (values not printed)"
-upsert_env "${SECRETS_ENV}" "LLM_PROVIDER" "${PROVIDER}"
-upsert_env "${SECRETS_ENV}" "GEMINI_API_KEY" "${API_KEY}"
-upsert_env "${SECRETS_ENV}" "GEMINI_MODEL" "${MODEL}"
+if ! command -v doppler >/dev/null 2>&1; then
+  bash "${ROOT}/docker/install-doppler-cli.sh"
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
+command -v doppler >/dev/null 2>&1 || die "doppler CLI missing"
 
-log "linking secrets into docker/"
+log "setting LLM keys in Doppler ${PROJECT}/${CONFIG} (values not printed)"
+doppler secrets set \
+  "LLM_PROVIDER=${PROVIDER}" \
+  "GEMINI_API_KEY=${API_KEY}" \
+  "GEMINI_MODEL=${MODEL}" \
+  --project "${PROJECT}" \
+  --config "${CONFIG}"
+
+log "refreshing docker/.env.prod from Doppler"
 bash "${ROOT}/docker/link-secrets.sh"
-[[ -f "${DOCKER_ENV}" ]] || die "docker/.env.prod missing after link-secrets"
-
-grep -q '^GEMINI_API_KEY=.\+' "${DOCKER_ENV}" || die "GEMINI_API_KEY not written"
-grep -q '^LLM_PROVIDER=.\+' "${DOCKER_ENV}" || die "LLM_PROVIDER not written"
+[[ -f "${ROOT}/docker/.env.prod" ]] || die "docker/.env.prod missing after Doppler fetch"
+grep -q '^GEMINI_API_KEY=.\+' "${ROOT}/docker/.env.prod" || die "GEMINI_API_KEY not in Doppler download"
 log "keys present in docker/.env.prod"
 
 if [[ "${SKIP_RECREATE}" == "1" ]]; then

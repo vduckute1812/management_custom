@@ -1,115 +1,82 @@
 # Secrets with Doppler
 
 Env keys (`JWT_SECRET`, `DB_*`, `REDIS_PASSWORD`, OAuth, SMTP, R2, LLM, …)
-are managed in [Doppler](https://www.doppler.com/). File secrets (TLS certs,
-Cloudflare Tunnel credentials) stay on the Pi under `~/.config/management`.
+are managed **only** in [Doppler](https://www.doppler.com/). Deploy downloads
+config `prd` into `docker/.env.prod`. If a required key is missing or empty,
+deploy **fails** (no local `.env.prod` fallback, no auto-mint).
+
+File secrets (TLS certs, Cloudflare Tunnel credentials) stay on the Pi under
+`~/.config/management`. The only runtime “sync” left is **public IP →
+`APP_HOST`** via `docker/sync-public-ip.sh` (updates the local env after the
+Doppler download when the router IP changes).
 
 ## Project layout
 
-| Doppler                     | Purpose                                      |
-| --------------------------- | -------------------------------------------- |
-| Project `management_custom` | This app (override with `DOPPLER_PROJECT`)   |
-| Config `dev`                | Local development (`.doppler.yaml` default)  |
-| Config `prd`                | Raspberry Pi production (`docker/.env.prod`) |
+| Doppler                     | Purpose                                    |
+| --------------------------- | ------------------------------------------ |
+| Project `management_custom` | This app (override with `DOPPLER_PROJECT`) |
+| Config `dev`                | Local development (`.doppler.yaml`)        |
+| Config `prd`                | Raspberry Pi production                    |
 
-## One-time setup
+## Required production keys
 
-### 1. Create the project and import keys
+`fetch-doppler-secrets.sh` refuses to continue without non-empty:
 
-1. Create project `management_custom` with configs `dev` and `prd`.
-2. Import the current Pi file into `prd`:
+`JWT_SECRET`, `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `MYSQL_ROOT_PASSWORD`,
+`REDIS_PASSWORD`
 
-   ```bash
-   # On a machine with the Pi secrets (or after scp):
-   doppler secrets upload ~/.config/management/.env.prod \
-     --project management_custom --config prd
-   ```
+Also set whatever else the app needs (`APP_BASE_URL`, OAuth, SMTP, R2, LLM,
+`ALLOW_ROOT_DB` if still on `DB_USER=root`, …).
 
-   `prd` must contain real app keys (not only `DOPPLER_*`). Until then,
-   `fetch-doppler-secrets.sh` fails closed and `link-secrets` falls back to
-   the local secrets file.
-
-3. Copy a subset into `dev` (or start from `.env.example`) and set local
-   `DB_HOST` / weaker secrets as needed.
-
-Required production keys include at least: `JWT_SECRET`, `DB_HOST`, `DB_USER`,
-`DB_PASS`, `DB_NAME`, `MYSQL_ROOT_PASSWORD`, `REDIS_PASSWORD`, `APP_BASE_URL`
-(or `APP_HOST`), plus any OAuth / SMTP / R2 / LLM keys you use.
-
-### 2. Service token for the Pi
+Edit in the Doppler dashboard or:
 
 ```bash
-doppler configs tokens create pi-deploy \
-  --project management_custom --config prd --plain
+doppler secrets set KEY=value --project management_custom --config prd
 ```
 
-Store it **one or both** of:
+## Auth on the Pi / CI
 
-- GitHub → Settings → Secrets and variables → Actions → `DOPPLER_TOKEN`
-- On the Pi: `~/.config/management/doppler.token` (mode `600`)
+Store a **read** service token as:
 
-For the **first import** from the Pi file into Doppler, use a write-capable
-token and either:
+- GitHub Actions secret `DOPPLER_TOKEN`, and/or
+- `~/.config/management/doppler.token` (mode `600`)
 
-```bash
-# On the Pi
-bash docker/sync-env-to-doppler.sh
-```
-
-or **Actions → Sync secrets to Doppler → Run workflow** (reads the Pi
-`~/.config/management/.env.prod` and uploads to config `prd`).
-
-Optional repo **variables**: `DOPPLER_PROJECT`, `DOPPLER_CONFIG` (defaults
+Optional repo variables: `DOPPLER_PROJECT`, `DOPPLER_CONFIG` (defaults
 `management_custom` / `prd`).
-
-### 3. Install CLI (local + Pi)
 
 ```bash
 bash docker/install-doppler-cli.sh
-# or: https://docs.doppler.com/docs/install-cli
 ```
 
-The Deploy workflow installs the CLI automatically when missing.
+## Deploy flow
 
-## How deploy uses Doppler
-
-`docker/link-secrets.sh` (called by Deploy and `ci-deploy.sh`):
-
-1. Runs `docker/fetch-doppler-secrets.sh` when a token is available → writes
-   `docker/.env.prod` (and caches `~/.config/management/.env.prod`).
-2. If Doppler is not configured, falls back to the local secrets file.
-3. Still links `ssl/` + `cloudflared/` from the local secrets dir.
-4. Ensures `REDIS_PASSWORD` / `ALLOW_ROOT_DB` bridges for older configs.
-
-Service tokens are usually **read-only**; use a write-capable token (or the
-dashboard / `doppler secrets set`) when changing values. After changing `prd`,
-re-run **Deploy (Raspberry Pi)** (or push a `docker/**` change) so the Pi
-refreshes `docker/.env.prod` before recreate.
+1. Install Doppler CLI (workflow).
+2. `docker/link-secrets.sh` → `fetch-doppler-secrets.sh` (hard fail on missing keys).
+3. Link local `ssl/` + `cloudflared/` if present.
+4. `docker/sync-public-ip.sh` may rewrite `APP_HOST` when the public IP changes.
+5. Build / migrate / recreate app.
 
 ## Local development
 
 ```bash
-doppler setup   # once — picks project/config from .doppler.yaml
+doppler setup
 npm run dev:doppler
-# or materialise a gitignored .env:
-npm run secrets:pull
+# or:
+npm run secrets:pull   # writes gitignored .env
 npm run dev
 ```
 
 ## Scripts
 
-| Script                            | Role                                     |
-| --------------------------------- | ---------------------------------------- |
-| `docker/install-doppler-cli.sh`   | Install CLI                              |
-| `docker/fetch-doppler-secrets.sh` | Download `prd` → `docker/.env.prod`      |
-| `docker/sync-env-to-doppler.sh`   | Upload local `.env.prod` → Doppler `prd` |
-| `docker/link-secrets.sh`          | Doppler-or-local + file secrets          |
-| `npm run dev:doppler`             | `doppler run --config dev -- nuxt dev`   |
-| `npm run secrets:pull`            | Download current Doppler config → `.env` |
-| `npm run secrets:pull:prd`        | Same as fetch script for production      |
+| Script                            | Role                                |
+| --------------------------------- | ----------------------------------- |
+| `docker/install-doppler-cli.sh`   | Install CLI                         |
+| `docker/fetch-doppler-secrets.sh` | Download `prd` → `docker/.env.prod` |
+| `docker/link-secrets.sh`          | Doppler env + local file secrets    |
+| `docker/sync-public-ip.sh`        | Detect IP; update `APP_HOST` / TLS  |
+| `npm run dev:doppler`             | `doppler run --config dev -- nuxt`  |
+| `npm run secrets:pull`            | Download current config → `.env`    |
+| `npm run secrets:pull:prd`        | Same as fetch script for production |
 
-## What stays off Doppler
-
-- `docker/ssl/*` (TLS for direct-IP HTTPS)
-- `docker/cloudflared/*` + `cloudflared.env` (tunnel)
-- GitHub Actions runner registration token
+There is **no** upload/sync-to-Doppler script or workflow — secrets are edited
+in Doppler only.

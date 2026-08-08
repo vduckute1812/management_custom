@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Detect the router's current public IP and update local config when it changes.
+# Detect the router's current public IP and update local APP_HOST when it changes.
 # Viettel (and most home ISPs) assign a new public IP after reboot or periodically.
+# This is the only host-side env sync kept after Doppler became source of truth
+# for secrets — it rewrites APP_HOST in docker/.env.prod *after* the Doppler
+# download so the live IP wins for TLS / optional direct-IP HTTPS.
 #
 #   bash docker/sync-public-ip.sh
 #   bash docker/sync-public-ip.sh --no-restart   # update config only

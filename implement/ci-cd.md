@@ -65,40 +65,29 @@ cd ~/actions-runner   # or the --dir you chose
 ./svc.sh status
 ```
 
-### 3. Secrets on the Pi (Doppler or local file)
+### 3. Secrets on the Pi (Doppler required)
 
-**Preferred:** manage env keys in Doppler (see [`doppler.md`](./doppler.md)).
-Put a read-only Service Token in GitHub Actions secret `DOPPLER_TOKEN` and/or
+Manage env keys in Doppler only (see [`doppler.md`](./doppler.md)). Put a
+Service Token in GitHub Actions secret `DOPPLER_TOKEN` and/or
 `~/.config/management/doppler.token`. Deploy runs `docker/link-secrets.sh`,
 which downloads config `prd` into `docker/.env.prod`.
 
-**Fallback:** keep a local file when Doppler is not configured:
+**Missing or empty required keys abort the deploy** (no local `.env.prod`
+fallback, no auto-mint of `REDIS_PASSWORD` / `ALLOW_ROOT_DB`).
+
+Keep TLS / Cloudflare Tunnel **files** under `~/.config/management` (or
+`MGMT_SECRETS_DIR`):
 
 ```bash
 mkdir -p ~/.config/management
-
-# From your existing working deploy tree (adjust the source path):
-cp docker/.env.prod ~/.config/management/.env.prod
 cp -a docker/ssl ~/.config/management/ssl
 cp -a docker/cloudflared ~/.config/management/cloudflared
 cp docker/cloudflared.env ~/.config/management/cloudflared.env   # if you use it
 ```
 
-TLS / Cloudflare Tunnel **files** always live under `~/.config/management`
-(or `MGMT_SECRETS_DIR`) — only `KEY=VAL` env secrets move to Doppler.
-
-Required at minimum: Doppler `prd` secrets **or** `~/.config/management/.env.prod`
-
-`REDIS_PASSWORD` is required for compose interpolation (`redis --requirepass`).
-If the env file predates Redis auth and the key is missing/empty,
-`docker/link-secrets.sh` (and `mgmt_compose`) mint one with `openssl rand`
-into the local file. With Doppler, also add that value to config `prd` so the
-next download does not drop it.
-
-If `DB_USER` is still `root`, the same helpers set `ALLOW_ROOT_DB=1` so
-production `pool.ts` will start (with a logged warning). Prefer cutting over
-to the least-privilege `mgmt` user via `docker/mysql-create-app-user.sql`.
-With Doppler, set `ALLOW_ROOT_DB=1` (or cut over `DB_USER`) in the dashboard.
+When the public IP changes, `docker/sync-public-ip.sh` updates local
+`APP_HOST` (and TLS SANs) after the Doppler download — that is the only
+remaining host-side env sync.
 
 ### 4. Trigger a deploy
 
@@ -146,10 +135,12 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 
 See [`.github/workflows/deploy-pi.yml`](../.github/workflows/deploy-pi.yml). Concurrency group `deploy-pi-production` keeps one deploy at a time; `cancel-in-progress: true` so a newer push cancels an older queued/stuck run.
 
-## Troubleshooting: `docker/.env.prod missing`
+## Troubleshooting: Doppler secrets missing
 
-The deploy failed because secrets were not on the Pi yet. Create
-`~/.config/management/.env.prod` (see §3 above), then re-run the workflow.
+Deploy failed while fetching or validating Doppler `prd`. Confirm
+`DOPPLER_TOKEN` (Actions secret or `~/.config/management/doppler.token`), then
+ensure required keys exist in the dashboard (`JWT_SECRET`, `DB_*`,
+`MYSQL_ROOT_PASSWORD`, `REDIS_PASSWORD`, …). See [`doppler.md`](./doppler.md).
 
 ## Troubleshooting: stuck on Queued
 
@@ -214,21 +205,22 @@ Logs: `journalctl --user -u mgmt-deploy-watch -f`
 
 ## Configure Gemini on the Pi (`configure-gemini.sh`)
 
-After deploy, set the LLM API key in the **secrets tree** (not the git checkout):
+After deploy, set the LLM API key in **Doppler** (requires write-capable token
+or dashboard access):
 
 ```bash
-# On the Pi, with ~/.config/management/.env.prod already present:
+# On the Pi, with DOPPLER_TOKEN / ~/.config/management/doppler.token:
 GEMINI_API_KEY='…' bash docker/configure-gemini.sh
 ```
 
 Optional env: `LLM_PROVIDER=gemini` (default), `GEMINI_MODEL=gemini-flash-lite-latest`,
-`SKIP_RECREATE=1` (write env only — next `ci-deploy` recreates the app).
+`SKIP_RECREATE=1` (write Doppler only — next `ci-deploy` recreates the app).
 
-The script upserts `LLM_PROVIDER`, `GEMINI_API_KEY`, and `GEMINI_MODEL` into
-`~/.config/management/.env.prod`, runs `docker/link-secrets.sh`, verifies keys in
-`docker/.env.prod`, then `mgmt_compose up -d --no-deps --force-recreate app` and
-waits on `http://127.0.0.1:3000/api/health`. Without a key, fetch still runs but
-drafts stay Draft until an admin uses Re-generate AI or approves raw content.
+The script runs `doppler secrets set` for `LLM_PROVIDER`, `GEMINI_API_KEY`, and
+`GEMINI_MODEL`, refreshes `docker/.env.prod` from Doppler, then recreates the
+app and waits on `http://127.0.0.1:3000/api/health`. Without a key, fetch still
+runs but drafts stay Draft until an admin uses Re-generate AI or approves raw
+content.
 
 Pi production health probes in `ci-deploy.sh` use `http://${LAN_IP}:3000/api/health`;
 `configure-gemini.sh` uses loopback — both should succeed when the app is up.

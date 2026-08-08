@@ -28,33 +28,23 @@ describe("production hardening invariants", () => {
     expect(compose).toContain("REDIS_PASSWORD:?");
   });
 
-  it("auto-mints REDIS_PASSWORD into Pi secrets when missing", () => {
+  it("requires Redis password from Doppler (no local auto-mint)", () => {
     const lib = readFileSync(
       new URL("../docker/lib-compose.sh", import.meta.url),
       "utf8",
     );
-    const link = readFileSync(
-      new URL("../docker/link-secrets.sh", import.meta.url),
+    const fetch = readFileSync(
+      new URL("../docker/fetch-doppler-secrets.sh", import.meta.url),
       "utf8",
     );
-    expect(lib).toContain("mgmt_ensure_redis_password");
-    expect(link).toContain("mgmt_ensure_redis_password");
+    expect(lib).not.toContain("mgmt_ensure_redis_password");
+    expect(lib).not.toContain("mgmt_ensure_allow_root_db");
+    expect(fetch).toContain("REDIS_PASSWORD");
+    expect(fetch).toContain("REQUIRED_KEYS");
+    expect(fetch).toContain("required secret(s) missing");
   });
 
-  it("bridges ALLOW_ROOT_DB when Pi still uses DB_USER=root", () => {
-    const lib = readFileSync(
-      new URL("../docker/lib-compose.sh", import.meta.url),
-      "utf8",
-    );
-    const link = readFileSync(
-      new URL("../docker/link-secrets.sh", import.meta.url),
-      "utf8",
-    );
-    expect(lib).toContain("mgmt_ensure_allow_root_db");
-    expect(link).toContain("mgmt_ensure_allow_root_db");
-  });
-
-  it("prefers Doppler for production env secrets", () => {
+  it("uses Doppler-only env secrets (no upload sync / no local fallback)", () => {
     const link = readFileSync(
       new URL("../docker/link-secrets.sh", import.meta.url),
       "utf8",
@@ -68,10 +58,12 @@ describe("production hardening invariants", () => {
       "utf8",
     );
     expect(link).toContain("fetch-doppler-secrets.sh");
+    expect(link).toContain("Doppler secrets required");
     expect(fetch).toContain("secrets download");
     expect(fetch).toContain("DOPPLER_TOKEN");
     expect(wf).toContain("secrets.DOPPLER_TOKEN");
     expect(wf).toContain("install-doppler-cli.sh");
+    expect(wf).not.toContain("sync-doppler");
   });
 
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {

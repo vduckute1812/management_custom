@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Upsert Google OAuth env into the Pi secrets .env.prod.
-#
-# When production keys live in Doppler, prefer:
-#   doppler secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… \
-#     --project management_custom --config prd
-# then re-run Deploy so the Pi refreshes docker/.env.prod. This script still
-# patches the local/cached .env.prod for emergency / offline use.
+# Set Google OAuth keys in Doppler (config prd), then refresh the app.
 #
 # Usage:
 #   GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… bash docker/configure-google-oauth.sh
@@ -17,16 +11,17 @@
 #
 # Optional:
 #   GOOGLE_REDIRECT_URI=https://dntechx.com/api/auth/google/callback
-#   MGMT_SECRETS_DIR=$HOME/.config/management
-#   SKIP_RECREATE=1   — only write env (ci-deploy will recreate the app)
+#   SKIP_RECREATE=1   — only write Doppler (ci-deploy will recreate the app)
+#   DOPPLER_PROJECT / DOPPLER_CONFIG
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=docker/lib-compose.sh
 source "${ROOT}/docker/lib-compose.sh"
 
-SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
-SECRETS_ENV="${SECRETS_DIR}/.env.prod"
+PROJECT="${DOPPLER_PROJECT:-management_custom}"
+CONFIG="${DOPPLER_CONFIG:-prd}"
+TOKEN_FILE="${DOPPLER_TOKEN_FILE:-${MGMT_SECRETS_DIR:-${HOME}/.config/management}/doppler.token}"
 DOCKER_ENV="${ROOT}/docker/.env.prod"
 BOOTSTRAP="${ROOT}/docker/google-oauth.bootstrap.env"
 
@@ -35,7 +30,6 @@ if [[ -f "${BOOTSTRAP}" ]]; then
   set -a
   source "${BOOTSTRAP}"
   set +a
-  # Assemble from split parts when provided (avoids raw OAuth patterns in git).
   if [[ -z "${GOOGLE_CLIENT_ID:-}" && -n "${_MGMT_GOOG_ID_A:-}" && -n "${_MGMT_GOOG_ID_B:-}" ]]; then
     GOOGLE_CLIENT_ID="${_MGMT_GOOG_ID_A}${_MGMT_GOOG_ID_B}"
   fi
@@ -54,35 +48,34 @@ die() { echo "[configure-google-oauth] ERROR: $*" >&2; exit 1; }
 
 [[ -n "${CLIENT_ID}" ]] || die "GOOGLE_CLIENT_ID is required"
 [[ -n "${CLIENT_SECRET}" ]] || die "GOOGLE_CLIENT_SECRET is required"
-[[ -d "${SECRETS_DIR}" ]] || die "secrets dir missing: ${SECRETS_DIR}"
-[[ -f "${SECRETS_ENV}" ]] || die "missing ${SECRETS_ENV}"
 
-upsert_env() {
-  local file="$1" key="$2" value="$3"
-  local tmp
-  tmp="$(mktemp)"
-  if [[ -f "${file}" ]]; then
-    grep -Ev "^[[:space:]]*${key}=" "${file}" >"${tmp}" || true
-  else
-    : >"${tmp}"
-  fi
-  printf '%s=%s\n' "${key}" "${value}" >>"${tmp}"
-  mv "${tmp}" "${file}"
-  chmod 600 "${file}" 2>/dev/null || true
-}
+if [[ -z "${DOPPLER_TOKEN:-}" && -f "${TOKEN_FILE}" ]]; then
+  DOPPLER_TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
+  export DOPPLER_TOKEN
+fi
+[[ -n "${DOPPLER_TOKEN:-}" ]] || die "DOPPLER_TOKEN (or ${TOKEN_FILE}) required"
 
-log "updating secrets env (values not printed)"
-upsert_env "${SECRETS_ENV}" "GOOGLE_CLIENT_ID" "${CLIENT_ID}"
-upsert_env "${SECRETS_ENV}" "GOOGLE_CLIENT_SECRET" "${CLIENT_SECRET}"
-upsert_env "${SECRETS_ENV}" "GOOGLE_REDIRECT_URI" "${REDIRECT_URI}"
+if ! command -v doppler >/dev/null 2>&1; then
+  bash "${ROOT}/docker/install-doppler-cli.sh"
+  export PATH="${HOME}/.local/bin:${PATH}"
+fi
+command -v doppler >/dev/null 2>&1 || die "doppler CLI missing"
 
-log "linking secrets into docker/"
+log "setting Google OAuth keys in Doppler ${PROJECT}/${CONFIG} (values not printed)"
+doppler secrets set \
+  "GOOGLE_CLIENT_ID=${CLIENT_ID}" \
+  "GOOGLE_CLIENT_SECRET=${CLIENT_SECRET}" \
+  "GOOGLE_REDIRECT_URI=${REDIRECT_URI}" \
+  --project "${PROJECT}" \
+  --config "${CONFIG}"
+
+log "refreshing docker/.env.prod from Doppler"
 bash "${ROOT}/docker/link-secrets.sh"
-[[ -f "${DOCKER_ENV}" ]] || die "docker/.env.prod missing after link-secrets"
+[[ -f "${DOCKER_ENV}" ]] || die "docker/.env.prod missing after Doppler fetch"
 
-grep -q '^GOOGLE_CLIENT_ID=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_ID not written"
-grep -q '^GOOGLE_CLIENT_SECRET=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_SECRET not written"
-grep -q '^GOOGLE_REDIRECT_URI=.\+' "${DOCKER_ENV}" || die "GOOGLE_REDIRECT_URI not written"
+grep -q '^GOOGLE_CLIENT_ID=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_ID not in Doppler download"
+grep -q '^GOOGLE_CLIENT_SECRET=.\+' "${DOCKER_ENV}" || die "GOOGLE_CLIENT_SECRET not in Doppler download"
+grep -q '^GOOGLE_REDIRECT_URI=.\+' "${DOCKER_ENV}" || die "GOOGLE_REDIRECT_URI not in Doppler download"
 log "keys present in docker/.env.prod"
 
 if [[ -f "${BOOTSTRAP}" ]]; then

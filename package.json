@@ -25,7 +25,6 @@
     "scan:secrets:staged": "node scripts/scan-secrets.mjs --staged",
     "secrets:pull": "doppler secrets download --no-file --format env-no-quotes > .env",
     "secrets:pull:prd": "bash docker/fetch-doppler-secrets.sh",
-    "secrets:push:prd": "bash docker/sync-env-to-doppler.sh",
     "migrate": "node --env-file=.env --import tsx scripts/migrate.ts up",
     "migrate:status": "node --env-file=.env --import tsx scripts/migrate.ts status",
     "migrate:reset": "node --env-file=.env --import tsx scripts/migrate.ts reset",
