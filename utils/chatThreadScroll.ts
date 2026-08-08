@@ -62,3 +62,15 @@ export function restoreChatScrollAfterPrepend(
 ): number {
   return nextScrollHeight - prevScrollHeight + prevScrollTop;
 }
+
+/**
+ * scrollTop that keeps the thread end (last message) flush with the
+ * bottom of the scrollport. Clamped so short threads stay at 0 —
+ * pair with `mt-auto` so the last bubble still sits at the panel bottom.
+ */
+export function scrollTopForLastMessage(
+  scrollHeight: number,
+  clientHeight: number,
+): number {
+  return Math.max(0, scrollHeight - clientHeight);
+}

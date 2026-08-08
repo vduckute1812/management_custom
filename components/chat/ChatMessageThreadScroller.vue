@@ -5,6 +5,7 @@ import {
   isChatNearTopForOlder,
   isChatStuckToBottom,
   restoreChatScrollAfterPrepend,
+  scrollTopForLastMessage,
 } from "~/utils/chatThreadScroll";
 
 const props = defineProps<{
@@ -23,9 +24,11 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 const scroller = ref<HTMLElement | null>(null);
+const threadColumn = ref<HTMLElement | null>(null);
 const loadOlderSentinel = ref<HTMLElement | null>(null);
+const endAnchor = ref<HTMLElement | null>(null);
 const stickToBottom = ref(true);
-/** After open/hydrate, pin to newest before any older-page fetch. */
+/** After open/hydrate, pin to the last message before any older-page fetch. */
 const pinReady = ref(false);
 const scrollSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(
   null,
@@ -33,6 +36,11 @@ const scrollSnapshot = ref<{ scrollHeight: number; scrollTop: number } | null>(
 
 let pinGeneration = 0;
 let olderObserver: IntersectionObserver | null = null;
+let sizeObserver: ResizeObserver | null = null;
+
+const lastMessageId = computed(
+  () => props.messages[props.messages.length - 1]?.id ?? null,
+);
 
 function isReadByPeer(msg: ChatMessage): boolean {
   if (!msg.mine) return false;
@@ -92,11 +100,12 @@ function onScroll() {
   }
 }
 
+/** Keep the last message flush with the bottom of the scrollport. */
 function scrollToBottom(force = false) {
   const el = scroller.value;
   if (!el) return;
   if (!force && !stickToBottom.value) return;
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop = scrollTopForLastMessage(el.scrollHeight, el.clientHeight);
 }
 
 function pinToNewest() {
@@ -110,16 +119,23 @@ function pinToNewest() {
     scrollToBottom(true);
   };
 
+  const finish = () => {
+    if (gen !== pinGeneration) return;
+    apply();
+    // Reveal UI (Load older sentinel mounts here) then re-anchor so the
+    // extra top chrome cannot leave us short of the last message.
+    pinReady.value = true;
+    nextTick(() => {
+      apply();
+      requestAnimationFrame(apply);
+    });
+  };
+
   nextTick(() => {
     apply();
-    // Layout may settle after message bubbles paint — re-pin twice.
     requestAnimationFrame(() => {
       apply();
-      requestAnimationFrame(() => {
-        apply();
-        if (gen !== pinGeneration) return;
-        pinReady.value = true;
-      });
+      requestAnimationFrame(finish);
     });
   });
 }
@@ -156,6 +172,13 @@ watch(
   },
 );
 
+// New last message (send / live) — stay glued to the end when stuck.
+watch(lastMessageId, (id, prev) => {
+  if (!id || id === prev) return;
+  if (scrollSnapshot.value || !pinReady.value) return;
+  nextTick(() => scrollToBottom());
+});
+
 watch(
   () => props.loading,
   (loading, wasLoading) => {
@@ -173,6 +196,24 @@ watch(
 );
 
 onMounted(() => {
+  if (typeof ResizeObserver !== "undefined") {
+    sizeObserver = new ResizeObserver(() => {
+      // During hydrate always re-pin; afterwards only while stuck to bottom
+      // (media/layout settling must not yank the user away from history).
+      if (!pinReady.value || stickToBottom.value) {
+        scrollToBottom(true);
+      }
+    });
+    watch(
+      threadColumn,
+      (el, prev) => {
+        if (prev) sizeObserver?.unobserve(prev);
+        if (el) sizeObserver?.observe(el);
+      },
+      { immediate: true },
+    );
+  }
+
   if (typeof IntersectionObserver === "undefined") return;
   watch(
     [scroller, loadOlderSentinel, () => props.hasMore, pinReady],
@@ -197,6 +238,8 @@ onBeforeUnmount(() => {
   pinGeneration += 1;
   olderObserver?.disconnect();
   olderObserver = null;
+  sizeObserver?.disconnect();
+  sizeObserver = null;
 });
 
 defineExpose({ scrollToBottom });
@@ -208,32 +251,48 @@ defineExpose({ scrollToBottom });
     class="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4"
     @scroll="onScroll"
   >
-    <div v-if="hasMore && pinReady" ref="loadOlderSentinel">
-      <ChatMessageThreadLoadOlder
-        :has-more="hasMore"
-        :loading-more="loadingMore"
-        @load-more="requestLoadMore({ userGesture: true })"
+    <!-- min-h-full + mt-auto: short threads sit on the last message at the
+         panel bottom; long threads still scroll with the end anchored. -->
+    <div ref="threadColumn" class="flex min-h-full flex-col">
+      <div v-if="hasMore && pinReady" ref="loadOlderSentinel">
+        <ChatMessageThreadLoadOlder
+          :has-more="hasMore"
+          :loading-more="loadingMore"
+          @load-more="requestLoadMore({ userGesture: true })"
+        />
+      </div>
+
+      <!-- Keep the skeleton up for the whole load so the newest page never
+           flashes at scrollTop=0 before pinToNewest runs. -->
+      <div v-if="loading" class="space-y-3" aria-busy="true">
+        <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-2/3" />
+        <SkeletonBlock height="h-10" rounded="rounded-2xl" class="mr-8 w-1/2" />
+        <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-3/5" />
+      </div>
+
+      <EmptyState
+        v-else-if="!messages.length"
+        class="my-auto"
+        illustration="spark"
+        :title="t('chat.threadEmpty')"
+      />
+
+      <!-- Laid out but hidden until pinToNewest anchors the last message. -->
+      <ul
+        v-else
+        class="mt-auto space-y-3"
+        :class="{ invisible: !pinReady }"
+        role="list"
+      >
+        <slot :last-read-mine-id="lastReadMineId" />
+      </ul>
+
+      <div
+        ref="endAnchor"
+        class="h-px w-full shrink-0"
+        aria-hidden="true"
+        data-chat-end
       />
     </div>
-
-    <!-- Keep the skeleton up for the whole load so the newest page never
-         flashes at scrollTop=0 before pinToNewest runs. -->
-    <div v-if="loading" class="space-y-3" aria-busy="true">
-      <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-2/3" />
-      <SkeletonBlock height="h-10" rounded="rounded-2xl" class="mr-8 w-1/2" />
-      <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-3/5" />
-    </div>
-
-    <EmptyState
-      v-else-if="!messages.length"
-      class="my-6"
-      illustration="spark"
-      :title="t('chat.threadEmpty')"
-    />
-
-    <!-- Laid out but hidden until pinToNewest scrolls to the newest page. -->
-    <ul v-else class="space-y-3" :class="{ invisible: !pinReady }" role="list">
-      <slot :last-read-mine-id="lastReadMineId" />
-    </ul>
   </div>
 </template>
