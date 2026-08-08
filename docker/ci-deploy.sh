@@ -19,6 +19,9 @@
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
+# Or via GitHub Actions self-hosted runner (deploy-pi.yml). That workflow
+# repairs corrupt empty .git loose objects before checkout on the Pi.
+#   bash docker/ci-deploy.sh
 #   GIT_SHA=abc1234 bash docker/ci-deploy.sh
 #
 # Also triggered by Actions workflow_dispatch or any master push that touches
