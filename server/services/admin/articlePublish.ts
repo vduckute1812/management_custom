@@ -9,6 +9,7 @@ import {
 } from "~/server/db/admin/pendingArticles";
 import { getCategoryById } from "~/server/db/feed/categories";
 import { createPost } from "~/server/db/feed/posts";
+import { invalidateFeedCachesAfterPostMutation } from "~/server/utils/cacheInvalidate";
 import { DomainError } from "~/server/utils/http";
 import { ArticleStatus, type PendingArticle } from "~/types/article";
 import { PostFormat, PostVisibility } from "~/types/post";
@@ -86,6 +87,13 @@ export async function approveAndPublishArticle(
   if (!updated) {
     throw new DomainError(409, "Article already approved");
   }
+
+  // createPost bypasses postService — bust public + auth feed / upload ACL.
+  await invalidateFeedCachesAfterPostMutation({
+    actorId: adminUserId,
+    visibility: post.visibility,
+    audienceUserIds: post.audienceUserIds,
+  });
 
   return { article: updated, postId: post.id };
 }

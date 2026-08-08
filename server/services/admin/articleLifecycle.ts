@@ -16,6 +16,7 @@ import {
   invalidateAllAuthFeedCaches,
   invalidatePublicFeedCaches,
 } from "~/server/utils/cacheInvalidate";
+import { invalidateAllUploadAccessCaches } from "~/server/db/feed/uploadAccess";
 import { enqueueArticleRewrite } from "~/server/services/admin/articlePipelineJobs";
 
 export async function deleteArticle(
@@ -38,6 +39,7 @@ export async function deleteArticle(
   if (removedPostId) {
     await invalidatePublicFeedCaches();
     await invalidateAllAuthFeedCaches();
+    invalidateAllUploadAccessCaches();
   }
 
   return { deleted: true, removedPostId };
