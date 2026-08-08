@@ -16,7 +16,7 @@ import {
   resetSchema,
   runMigrations,
 } from "../server/db/core/migrator";
-import { getPool } from "../server/db/core/pool";
+import { closePool } from "../server/db/core/pool";
 
 function pad(s: string, n: number): string {
   return s.length >= n ? s : s + " ".repeat(n - s.length);
@@ -98,11 +98,11 @@ async function main() {
     console.error("[migrate] error:", (err as Error).message);
     exit = 1;
   } finally {
-    await getPool()
-      .end()
-      .catch(() => {
-        // Best-effort; the process is about to exit.
-      });
+    // closePool is a no-op when the lazy pool was never opened (DDL path uses
+    // migrateAuth / dedicated connections, not getPool).
+    await closePool().catch(() => {
+      // Best-effort; the process is about to exit.
+    });
   }
   process.exit(exit);
 }

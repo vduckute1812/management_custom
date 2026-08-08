@@ -179,14 +179,15 @@ describe("production hardening invariants", () => {
     );
   });
 
-  it("runs CI migrate as root, not the app DB_USER", () => {
+  it("runs CI migrate with MYSQL_ROOT_PASSWORD, not DB_USER=root", () => {
     const deploy = readFileSync(
       new URL("../docker/ci-deploy.sh", import.meta.url),
       "utf8",
     );
-    expect(deploy).toContain("DB_USER=root");
     expect(deploy).toContain("read_mysql_root_password");
-    expect(deploy).toContain("DB_PASS=${MYSQL_ROOT_PASSWORD}");
+    expect(deploy).toContain("MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}");
+    // Forcing DB_USER=root trips getPool()'s production guard.
+    expect(deploy).not.toMatch(/-e "DB_USER=root"/);
   });
 
   it("keeps LAN MySQL/Redis publishes for Podman DNS workaround", () => {
