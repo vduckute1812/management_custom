@@ -35,3 +35,9 @@ docker/nginx.prod.rendered.conf
 
 # Local upload storage (legacy / unused — files go to Cloudflare R2)
 data/uploads/
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -134,6 +134,18 @@ describe("production hardening invariants", () => {
     expect(compose).toMatch(/host firewall/i);
   });
 
+  it("ships a LAN firewall helper for MySQL/Redis ports", () => {
+    const fw = readFileSync(
+      new URL("../docker/configure-lan-firewall.sh", import.meta.url),
+      "utf8",
+    );
+    expect(fw).toContain("ufw");
+    expect(fw).toContain("3306");
+    expect(fw).toContain("6379");
+    expect(fw).toContain("APPLY");
+    expect(fw).toContain("OpenSSH");
+  });
+
   it("caps unbounded admin/story list queries", () => {
     const stories = readFileSync(
       new URL("../server/db/feed/storiesRead.ts", import.meta.url),

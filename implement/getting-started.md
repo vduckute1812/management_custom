@@ -30,6 +30,13 @@ Optional production cutover to a least-privilege app user (DML only on `rc.*`):
 6. Keep `MYSQL_ROOT_PASSWORD` for migrate/admin one-shots only — the Nitro process should not use root.
 7. **Host firewall:** compose must keep `${LAN_IP}:3306` and `${LAN_IP}:6379` publishes (Podman has no service-name DNS). Restrict who can reach those ports with ufw/nftables (Pi self / trusted LAN only) — do not drop the LAN binds.
 
+   Dry-run then apply on the Pi (requires `ufw`; keeps SSH/80/443/3000 open; allows DB/Redis only from `127.0.0.1`, `LAN_IP`, and optional `EXTRA_ALLOW_CIDRS`):
+
+   ```bash
+   LAN_IP=192.168.1.4 bash docker/configure-lan-firewall.sh
+   APPLY=1 LAN_IP=192.168.1.4 bash docker/configure-lan-firewall.sh
+   ```
+
 Manual SQL reference: [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql).
 
 Until cutover, production may set `ALLOW_ROOT_DB=1` so the app can boot on root; the pool logs a loud warning every start.
@@ -126,18 +133,20 @@ Article pipeline env + Pi Gemini setup: `.env.example` and [`ci-cd.md`](./ci-cd.
 
 ## npm scripts (common)
 
-| Script                 | Purpose                                                          |
-| ---------------------- | ---------------------------------------------------------------- |
-| `npm run dev`          | Development server (`http://localhost:3000`)                     |
-| `npm run build`        | Production build → `.output/`                                    |
-| `npm run migrate`      | Apply pending SQL migrations                                     |
-| `npm run migrate:auth` | Seed superadmin (idempotent)                                     |
-| `npm run check:db`     | Verify schema + migration checksums + user count                 |
-| `npm test`             | Vitest unit tests (auth JWT/guards, schemas, security, markdown) |
-| `npm run test:watch`   | Vitest watch mode                                                |
-| `npm run format`       | Prettier write                                                   |
-| `npm run typecheck`    | `vue-tsc --noEmit` (Vue / TypeScript)                            |
-| `npm run scan:secrets` | Scan repo for accidental secrets                                 |
+| Script                     | Purpose                                                          |
+| -------------------------- | ---------------------------------------------------------------- |
+| `npm run dev`              | Development server (`http://localhost:3000`)                     |
+| `npm run build`            | Production build → `.output/`                                    |
+| `npm run migrate`          | Apply pending SQL migrations                                     |
+| `npm run migrate:auth`     | Seed superadmin (idempotent)                                     |
+| `npm run check:db`         | Verify schema + migration checksums + user count                 |
+| `npm test`                 | Vitest unit tests (auth JWT/guards, schemas, security, markdown) |
+| `npm run test:watch`       | Vitest watch mode                                                |
+| `npm run test:integration` | MySQL integration (`DB_INTEGRATION=1`)                           |
+| `npm run test:e2e`         | Playwright public smoke (needs `npm run build` + MySQL)          |
+| `npm run format`           | Prettier write                                                   |
+| `npm run typecheck`        | `vue-tsc --noEmit` (Vue / TypeScript)                            |
+| `npm run scan:secrets`     | Scan repo for accidental secrets                                 |
 
 Type-check also works as `npx vue-tsc --noEmit -p tsconfig.json` — see below.
 

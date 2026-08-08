@@ -22,7 +22,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 | Charts     | Chart.js                       | Velocity and trend visualizations                                                                                               |
 | Body text  | marked + DOMPurify + KaTeX     | GFM Markdown (#, lists, quotes, tables, code, links) + `$…$` / `$$…$$` math; sanitized for `v-html` (libs lazy-loaded)          |
 | Validation | Zod + `server/schemas`         | Shared request schemas; `parseBody` / `parseQuery` in `server/utils/http.ts`                                                    |
-| Tests      | Vitest                         | `npm test` (DB-free units) + CI MySQL job (`npm run test:integration`). Playwright is a follow-up.                              |
+| Tests      | Vitest + Playwright            | `npm test` (DB-free units) + CI MySQL job (`npm run test:integration`) + Playwright public smoke (`npm run test:e2e`)           |
 
 ## Project facts
 
@@ -319,7 +319,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 
 **Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Story tray composer lives in `FeedStoryComposer`; post SQL is split under `server/db/feed/postQuery/` (barrel `postQueries.ts`), mutations in `feed/posts.ts`, reactions in `feed/postReactions.ts`, comments (+ recount) in `feed/postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat/chat.ts`. Chat SSE connection machinery lives in `composables/chat/chatThreadLive.ts`; `useChat.ts` imports from it.
 
-**Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). GitHub Actions runs that suite in a dedicated job against an ephemeral MySQL 8 service (`rc_test`). Locally, point `DB_*` at a migrated throwaway database — never prod. Playwright smoke remains a follow-up.
+**Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). GitHub Actions runs that suite in a dedicated job against an ephemeral MySQL 8 service (`rc_test`). Locally, point `DB_*` at a migrated throwaway database — never prod. Playwright public-route smoke lives under `e2e/` (`npm run test:e2e` after `npm run build`; CI job starts Nitro against ephemeral MySQL).
 
 ---
 

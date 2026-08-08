@@ -644,5 +644,5 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 ### Later
 
-- Playwright smoke
+- [x] Playwright smoke (public routes; CI job + `e2e/smoke.spec.ts`)
 - True parallel worker concurrency beyond single-job serial worker (article priority tier ships in Phase 35)
