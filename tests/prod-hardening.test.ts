@@ -143,7 +143,7 @@ describe("production hardening invariants", () => {
       "utf8",
     );
     const storyInsights = readFileSync(
-      new URL("../server/db/feed/stories.ts", import.meta.url),
+      new URL("../server/db/feed/storiesInsights.ts", import.meta.url),
       "utf8",
     );
     expect(friends).toContain("ACCEPTED_FRIEND_IDS_MAX");
