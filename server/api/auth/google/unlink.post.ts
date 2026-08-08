@@ -2,7 +2,7 @@
  * POST /api/auth/google/unlink — remove Google from the current account.
  * Refuses if the account has no password (would lock the user out).
  */
-import { AuthProvider } from "../../../../types/auth";
+import { AuthProvider } from "~/types/auth";
 import {
   getUserById,
   unlinkIdentity,

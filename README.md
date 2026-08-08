@@ -94,7 +94,7 @@ Open **Money** (`g m` or the module nav). The ledger at `/money` records income 
 
 ### Friends
 
-Open **Friends** from the Feed/Friends module nav (or command palette). Send and accept friend requests, decline, or unfriend. Friendship is the gate for starting Chat threads and for Feed visibility aimed at specific people — not a public social network.
+Open **Friends** (`g r` or the Feed/Friends module nav / command palette). Send and accept friend requests, decline, or unfriend. Friendship is the gate for starting Chat threads and for Feed visibility aimed at specific people — not a public social network.
 
 ### Edit your profile
 

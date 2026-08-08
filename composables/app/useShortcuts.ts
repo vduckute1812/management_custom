@@ -4,7 +4,7 @@
  * Conventions:
  *   - We never intercept events whose target is an editable element unless the
  *     binding is explicitly platform-level (Mod+K, Esc).
- *   - Two-key "g" sequences (g d, g e, g a) follow the Gmail/Linear pattern.
+ *   - Two-key "g" sequences (g h/d/e/a/f/c/m/r) follow the Gmail/Linear pattern.
  */
 const EDITABLE_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
 

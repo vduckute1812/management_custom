@@ -1,18 +1,4 @@
 /* --- Home hero ambient blobs (brand indigo only) ----------------------- */
-.home-preview-glow {
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.2),
-    rgba(99, 102, 241, 0.05)
-  );
-}
 html[data-theme="dark"] .home-ambient-brand {
   background-color: rgba(99, 102, 241, 0.1) !important;
-}
-html[data-theme="dark"] .home-preview-glow {
-  background: linear-gradient(
-    135deg,
-    rgba(99, 102, 241, 0.18),
-    rgba(99, 102, 241, 0.06)
-  ) !important;
 }

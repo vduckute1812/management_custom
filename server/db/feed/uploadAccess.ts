@@ -1,12 +1,13 @@
 /**
  * Upload ACL: viewer access checks (avatar / post / story / chat).
+ *
+ * Hot path (`resolveUploadForViewer`) loads the row only when ACL passes —
+ * one SQL round-trip for owner / avatar / post / story / chat gates.
  */
-import type { RowDataPacket } from "mysql2/promise";
 import { listAcceptedFriendIds } from "../friends/friendships";
 import { getPool } from "../core/pool";
-import { PostVisibility } from "~/types/post";
+import { PostVisibility, toUploadKind } from "~/types/post";
 import { type UploadRow } from "./uploadShared";
-import { getUploadById } from "./uploadCrud";
 
 /** Short-lived positive ACL decisions (process-local). */
 const UPLOAD_ACL_TTL_MS = 10_000;
@@ -46,32 +47,45 @@ async function cachedFriendIds(viewerId: string): Promise<string[]> {
   return ids;
 }
 
-async function uploadAccessibleToViewer(
-  row: UploadRow,
+function mapUploadRow(row: UploadRow): UploadRow {
+  return { ...row, kind: toUploadKind(row.kind) };
+}
+
+/**
+ * Fetch the upload row only if the viewer may access it.
+ * Anonymous: avatar or public-post attachment.
+ * Authenticated: own upload, avatar, visible post/story, or chat participant.
+ */
+async function fetchUploadIfAccessible(
   viewerId: string | null,
-): Promise<boolean> {
-  if (viewerId && row.user_id === viewerId) return true;
-
+  uploadId: string,
+): Promise<UploadRow | null> {
   const pool = getPool();
-  const uploadId = row.id;
+  const selectCols = `u.id, u.user_id, u.file_name, u.mime, u.kind, u.size_bytes, u.storage_key, u.created_at`;
 
-  // Single round-trip: avatar OR post OR story OR chat (anonymous: avatar/public post).
   if (!viewerId) {
-    const [rows] = await pool.query<RowDataPacket[]>(
-      `SELECT 1 AS ok
-       WHERE EXISTS (
-         SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1
-       )
-       OR EXISTS (
-         SELECT 1
-         FROM post_attachments pa
-         INNER JOIN posts p ON p.id = pa.post_id
-         WHERE pa.upload_id = ? AND p.visibility = ${PostVisibility.Public}
-         LIMIT 1
-       )`,
-      [uploadId, uploadId],
+    const [rows] = await pool.query<UploadRow[]>(
+      `SELECT ${selectCols}
+       FROM uploads u
+       WHERE u.id = ?
+         AND (
+           EXISTS (
+             SELECT 1 FROM users WHERE avatar_upload_id = u.id LIMIT 1
+           )
+           OR EXISTS (
+             SELECT 1
+             FROM post_attachments pa
+             INNER JOIN posts p ON p.id = pa.post_id
+             WHERE pa.upload_id = u.id
+               AND p.visibility = ${PostVisibility.Public}
+             LIMIT 1
+           )
+         )
+       LIMIT 1`,
+      [uploadId],
     );
-    return rows.length > 0;
+    const row = rows[0];
+    return row ? mapUploadRow(row) : null;
   }
 
   const friendIds = await cachedFriendIds(viewerId);
@@ -87,62 +101,67 @@ async function uploadAccessibleToViewer(
       ? "0"
       : `s.user_id IN (${friendIds.map(() => "?").join(",")})`;
 
-  const [rows] = await pool.query<RowDataPacket[]>(
-    `SELECT 1 AS ok
-     WHERE EXISTS (
-       SELECT 1 FROM users WHERE avatar_upload_id = ? LIMIT 1
-     )
-     OR EXISTS (
-       SELECT 1
-       FROM post_attachments pa
-       INNER JOIN posts p ON p.id = pa.post_id
-       WHERE pa.upload_id = ?
-         AND (
-           p.visibility = ${PostVisibility.Public}
-           OR p.user_id = ?
-           OR (
-             p.visibility = ${PostVisibility.Shared}
-             AND p.id IN (
-               SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
+  const [rows] = await pool.query<UploadRow[]>(
+    `SELECT ${selectCols}
+     FROM uploads u
+     WHERE u.id = ?
+       AND (
+         u.user_id = ?
+         OR EXISTS (
+           SELECT 1 FROM users WHERE avatar_upload_id = u.id LIMIT 1
+         )
+         OR EXISTS (
+           SELECT 1
+           FROM post_attachments pa
+           INNER JOIN posts p ON p.id = pa.post_id
+           WHERE pa.upload_id = u.id
+             AND (
+               p.visibility = ${PostVisibility.Public}
+               OR p.user_id = ?
+               OR (
+                 p.visibility = ${PostVisibility.Shared}
+                 AND p.id IN (
+                   SELECT a.post_id FROM post_audience a WHERE a.user_id = ?
+                 )
+               )
+               OR ${friendsPostClause}
              )
-           )
-           OR ${friendsPostClause}
+           LIMIT 1
          )
-       LIMIT 1
-     )
-     OR EXISTS (
-       SELECT 1 FROM stories s
-       WHERE s.upload_id = ?
-         AND s.expires_at > UTC_TIMESTAMP(3)
-         AND (
-           s.user_id = ?
-           OR ${friendsStoryClause}
+         OR EXISTS (
+           SELECT 1 FROM stories s
+           WHERE s.upload_id = u.id
+             AND s.expires_at > UTC_TIMESTAMP(3)
+             AND (
+               s.user_id = ?
+               OR ${friendsStoryClause}
+             )
+           LIMIT 1
          )
-       LIMIT 1
-     )
-     OR EXISTS (
-       SELECT 1
-       FROM chat_messages m
-       INNER JOIN chat_conversations c ON c.id = m.conversation_id
-       WHERE m.upload_id = ?
-         AND (c.user_a_id = ? OR c.user_b_id = ?)
-       LIMIT 1
-     )`,
+         OR EXISTS (
+           SELECT 1
+           FROM chat_messages m
+           INNER JOIN chat_conversations c ON c.id = m.conversation_id
+           WHERE m.upload_id = u.id
+             AND (c.user_a_id = ? OR c.user_b_id = ?)
+           LIMIT 1
+         )
+       )
+     LIMIT 1`,
     [
       uploadId,
-      uploadId,
       viewerId,
       viewerId,
-      ...friendIds,
-      uploadId,
       viewerId,
       ...friendIds,
-      uploadId,
+      viewerId,
+      ...friendIds,
       viewerId,
       viewerId,
     ],
   );
-  return rows.length > 0;
+  const row = rows[0];
+  return row ? mapUploadRow(row) : null;
 }
 
 /**
@@ -156,11 +175,10 @@ export async function canViewerAccessUpload(
   uploadId: string,
 ): Promise<boolean> {
   if (wasUploadAllowedRecently(viewerId, uploadId)) return true;
-  const row = await getUploadById(uploadId);
+  const row = await fetchUploadIfAccessible(viewerId, uploadId);
   if (!row) return false;
-  const allowed = await uploadAccessibleToViewer(row, viewerId);
-  if (allowed) rememberUploadAllow(viewerId, uploadId);
-  return allowed;
+  rememberUploadAllow(viewerId, uploadId);
+  return true;
 }
 
 /**
@@ -171,11 +189,13 @@ export async function resolveUploadForViewer(
   viewerId: string | null,
   uploadId: string,
 ): Promise<UploadRow | null> {
-  const row = await getUploadById(uploadId);
+  if (wasUploadAllowedRecently(viewerId, uploadId)) {
+    // Cache only stores allow/deny — still need the row for the download path.
+    const { getUploadById } = await import("./uploadCrud");
+    return getUploadById(uploadId);
+  }
+  const row = await fetchUploadIfAccessible(viewerId, uploadId);
   if (!row) return null;
-  if (wasUploadAllowedRecently(viewerId, uploadId)) return row;
-  const allowed = await uploadAccessibleToViewer(row, viewerId);
-  if (!allowed) return null;
   rememberUploadAllow(viewerId, uploadId);
   return row;
 }
