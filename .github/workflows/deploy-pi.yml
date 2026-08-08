@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           # Keep local-only files on the self-hosted workspace between runs
-          # (docker/.env.prod, docker/ssl/*, tunnel credentials).
+          # (docker/ssl/*, tunnel credentials). Env secrets come from Doppler.
           clean: false
 
       - name: Ensure uv

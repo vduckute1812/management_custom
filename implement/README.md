@@ -26,7 +26,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`article-spec.md`](./article-spec.md)         | Feature / as-built spec for the RSS → AI rewrite → admin publish pipeline.                                                    |
 | [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, articles, Nuxt 4.5 / Node 26, deploy).                    |
 | [`ci-cd.md`](./ci-cd.md)                       | GitHub-hosted quality gate, Raspberry Pi deploy, deploy-watch, `configure-gemini.sh`.                                         |
-| [`doppler.md`](./doppler.md)                   | **Doppler** for env secrets (`dev` / `prd`), Pi service token, local `dev:doppler`.                                           |
+| [`doppler.md`](./doppler.md)                   | **Doppler-only** env secrets (`prd`); IP→`APP_HOST` sync only.                                                                |
 
 ## Feature specs vs. implementation docs
 
