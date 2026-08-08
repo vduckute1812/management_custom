@@ -13,12 +13,14 @@
   --color-brand-900: #312e81;
 }
 
+@import "./theme-tokens.css";
+@import "./home.css";
+@import "./money.css";
+
 html,
 body,
 #__nuxt {
   height: 100%;
-  background: #f8fafc;
-  color: #0f172a;
   font-family:
     ui-sans-serif,
     system-ui,
@@ -35,174 +37,18 @@ body,
 }
 
 /* -------------------------------------------------------------------------
- * Dark theme.
+ * Dark theme strategy
  *
- * Strategy: rather than touching every Vue component to add `dark:` variants,
- * we override the handful of utility classes the codebase actually uses when
- * `<html data-theme="dark">` is set. This keeps the source markup readable
- * and lets us iterate on the palette in one place. Status / epic chips get
- * tinted, never inverted — color-coded semantics must survive the swap.
+ * Semantic CSS variables live in `theme-tokens.css`. Light and dark share the
+ * same utility remaps (`.bg-white`, `.text-slate-900`, tint chips, …); only
+ * the variable values change under `html[data-theme="dark"]`. Prefer new
+ * tokens over adding `html[data-theme="dark"] .utility { !important }` rules.
+ *
+ * Status / epic chips stay color-coded via `--tint-*` tokens — tinted in dark
+ * mode, never inverted.
  * ----------------------------------------------------------------------- */
 
-html[data-theme="dark"] {
-  color-scheme: dark;
-  background: #0b1220;
-  color: #e2e8f0;
-}
-
-html[data-theme="dark"] body,
-html[data-theme="dark"] #__nuxt {
-  background: #0b1220;
-  color: #e2e8f0;
-}
-
-/* --- Surfaces ----------------------------------------------------------- */
-/* .bg-white / .bg-slate-50 / .to-white → semantic tokens (see below) */
-html[data-theme="dark"] .bg-slate-100 {
-  background-color: #1e293b !important;
-}
-html[data-theme="dark"] .bg-slate-200 {
-  background-color: #334155 !important;
-}
-html[data-theme="dark"] .bg-slate-50\/40 {
-  background-color: rgba(15, 23, 42, 0.4) !important;
-}
-html[data-theme="dark"] .bg-slate-50\/60 {
-  background-color: rgba(15, 23, 42, 0.6) !important;
-}
-html[data-theme="dark"] .bg-white\/70 {
-  background-color: rgba(17, 24, 39, 0.72) !important;
-}
-html[data-theme="dark"] .bg-white\/80 {
-  background-color: rgba(17, 24, 39, 0.85) !important;
-}
-html[data-theme="dark"] .bg-white\/85 {
-  background-color: rgba(17, 24, 39, 0.9) !important;
-}
-html[data-theme="dark"] .bg-white\/90 {
-  background-color: rgba(17, 24, 39, 0.92) !important;
-}
-html[data-theme="dark"] .bg-white\/95 {
-  background-color: rgba(17, 24, 39, 0.95) !important;
-}
-html[data-theme="dark"] .supports-\[backdrop-filter\]\:bg-white\/80 {
-  background-color: rgba(17, 24, 39, 0.8) !important;
-}
-html[data-theme="dark"] .border-white\/80 {
-  border-color: rgba(51, 65, 85, 0.6) !important;
-}
-html[data-theme="dark"] .border-brand-200 {
-  border-color: rgba(99, 102, 241, 0.35) !important;
-}
-html[data-theme="dark"] .border-brand-100 {
-  border-color: rgba(99, 102, 241, 0.25) !important;
-}
-html[data-theme="dark"] .hover\:border-brand-300:hover {
-  border-color: rgba(129, 140, 248, 0.5) !important;
-}
-html[data-theme="dark"] .bg-brand-200\/40 {
-  background-color: rgba(99, 102, 241, 0.12) !important;
-}
-html[data-theme="dark"] .bg-brand-200 {
-  background-color: rgba(99, 102, 241, 0.25) !important;
-}
-html[data-theme="dark"] .from-brand-50 {
-  --tw-gradient-from: rgba(99, 102, 241, 0.12) !important;
-}
-html[data-theme="dark"] .text-brand-300 {
-  color: #a5b4fc !important;
-}
-html[data-theme="dark"] .shadow-slate-900\/10 {
-  --tw-shadow-color: rgba(0, 0, 0, 0.35) !important;
-}
-html[data-theme="dark"] .shadow-brand-600\/20 {
-  --tw-shadow-color: rgba(99, 102, 241, 0.2) !important;
-}
-html[data-theme="dark"] .shadow-brand-200 {
-  --tw-shadow-color: rgba(99, 102, 241, 0.15) !important;
-}
-
-@import "./home.css";
-@import "./money.css";
-
-/* --- Manuscript feed tokens (aligned with ManuscriptStudio) ------------ */
-:root {
-  --mf-paper: #f7f8f6;
-  --mf-border: #d5ddd6;
-  --mf-border-hover: #b9c7bd;
-  --mf-ink: #0f172a;
-  --mf-ink-secondary: #334155;
-  --mf-ink-muted: #64748b;
-  --mf-accent: #3f6f5a;
-  --mf-accent-hover: #345c4a;
-  --mf-accent-soft: #e4efe8;
-  --mf-accent-soft-hover: #d7e8dd;
-  --mf-rule: #cfe0d5;
-  --mf-ring: #e4efe8;
-
-  /* App semantic tokens (layout chrome) */
-  --surface: #ffffff;
-  --surface-muted: #f8fafc;
-  --ink: #0f172a;
-  --ink-muted: #64748b;
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
-}
-
-html[data-theme="dark"] {
-  --mf-paper: #151a17;
-  --mf-border: #2a332e;
-  --mf-border-hover: #3a4540;
-  --mf-ink: #e8eee9;
-  --mf-ink-secondary: #b8c5bc;
-  --mf-ink-muted: #9aaba0;
-  --mf-accent: #86b49a;
-  --mf-accent-hover: #9ec4ae;
-  --mf-accent-soft: #24312a;
-  --mf-accent-soft-hover: #2d3d34;
-  --mf-rule: #3a4540;
-  --mf-ring: #2a332e;
-
-  --surface: #111827;
-  --surface-muted: #0f172a;
-  --ink: #f1f5f9;
-  --ink-muted: #94a3b8;
-  --border: #1e293b;
-  --border-strong: #334155;
-}
-
-/* Layout chrome utilities → semantic tokens (light + dark via vars) */
-.bg-white {
-  background-color: var(--surface);
-}
-.bg-slate-50 {
-  background-color: var(--surface-muted);
-}
-.text-slate-900 {
-  color: var(--ink);
-}
-.text-slate-500 {
-  color: var(--ink-muted);
-}
-/* slate-400 is ~3:1 on white — map to ink-muted (≥4.5:1) for body/muted copy */
-.text-slate-400 {
-  color: var(--ink-muted);
-}
-.border-slate-200 {
-  border-color: var(--border);
-}
-.border-slate-300 {
-  border-color: var(--border-strong);
-}
-.to-white {
-  --tw-gradient-to: var(--surface);
-}
-.from-slate-50 {
-  --tw-gradient-from: var(--surface-muted);
-  --tw-gradient-stops:
-    var(--tw-gradient-from), var(--tw-gradient-to, rgb(248 250 252 / 0));
-}
-
+/* --- Manuscript feed surfaces ------------------------------------------ */
 .manuscript-card {
   background-color: var(--mf-paper) !important;
   border-color: var(--mf-border) !important;
@@ -221,24 +67,16 @@ html[data-theme="dark"] {
   color: var(--mf-ink-secondary);
 }
 
-html[data-theme="dark"] .manuscript-card .text-slate-900 {
-  color: var(--mf-ink) !important;
+.manuscript-card .text-slate-900 {
+  color: var(--mf-ink);
 }
-
-html[data-theme="dark"] .manuscript-card .text-slate-700 {
-  color: var(--mf-ink-secondary) !important;
+.manuscript-card .text-slate-700 {
+  color: var(--mf-ink-secondary);
 }
-
-html[data-theme="dark"] .manuscript-card .text-slate-600 {
-  color: var(--mf-ink-muted) !important;
-}
-
-html[data-theme="dark"] .manuscript-card .text-slate-400 {
-  color: var(--mf-ink-muted) !important;
-}
-
-html[data-theme="dark"] .manuscript-card .text-slate-500 {
-  color: var(--mf-ink-muted) !important;
+.manuscript-card .text-slate-600,
+.manuscript-card .text-slate-500,
+.manuscript-card .text-slate-400 {
+  color: var(--mf-ink-muted);
 }
 
 .manuscript-pill {
@@ -308,322 +146,24 @@ html[data-theme="dark"] .manuscript-card .text-slate-500 {
   color: var(--mf-accent);
 }
 
-html[data-theme="dark"] .feed-manuscript-btn {
-  border-color: rgba(63, 111, 90, 0.45) !important;
-  background-color: rgba(63, 111, 90, 0.18) !important;
-  color: #8ec4a8 !important;
-}
-html[data-theme="dark"] .feed-manuscript-btn:hover {
-  background-color: rgba(63, 111, 90, 0.28) !important;
-}
-html[data-theme="dark"] .feed-manuscript-kicker,
-html[data-theme="dark"] .feed-manuscript-action {
-  color: #8ec4a8 !important;
-}
-
-/* --- Feed category filter chips (mobile) ------------------------------- */
-.feed-category-chip--active {
-  background-color: #0f172a;
-  color: #fff;
-}
-
-html[data-theme="dark"] .feed-category-chip--active {
-  background-color: #334155 !important;
-  color: #f1f5f9 !important;
-}
-
-/* --- Story tray ring offset on dark surfaces --------------------------- */
-html[data-theme="dark"] .story-avatar-ring {
-  --tw-ring-offset-color: var(--surface);
-}
-
-/* --- Brand soft surfaces (calendar today highlight, etc.) -------------- */
-html[data-theme="dark"] .bg-brand-50 {
-  background-color: rgba(99, 102, 241, 0.16) !important;
-}
-html[data-theme="dark"] .bg-brand-50\/30 {
-  background-color: rgba(99, 102, 241, 0.1) !important;
-}
-html[data-theme="dark"] .bg-brand-50\/40 {
-  background-color: rgba(99, 102, 241, 0.14) !important;
-}
-html[data-theme="dark"] .bg-brand-50\/60 {
-  background-color: rgba(99, 102, 241, 0.2) !important;
-}
-html[data-theme="dark"] .bg-brand-100 {
-  background-color: rgba(99, 102, 241, 0.22) !important;
-}
-html[data-theme="dark"] .hover\:bg-brand-50\/30:hover {
-  background-color: rgba(99, 102, 241, 0.14) !important;
-}
-html[data-theme="dark"] .hover\:bg-brand-50:hover {
-  background-color: rgba(99, 102, 241, 0.18) !important;
-}
-html[data-theme="dark"] .text-brand-600 {
-  color: #a5b4fc !important;
-}
-html[data-theme="dark"] .text-brand-700 {
-  color: #c7d2fe !important;
-}
-html[data-theme="dark"] .text-brand-800 {
-  color: #e0e7ff !important;
-}
-
-/* --- Text --------------------------------------------------------------- */
-/* .text-slate-900 / .text-slate-500 → semantic tokens (see below) */
-html[data-theme="dark"] .text-slate-800 {
-  color: #e2e8f0 !important;
-}
-html[data-theme="dark"] .text-slate-700 {
-  color: #cbd5e1 !important;
-}
-html[data-theme="dark"] .text-slate-600 {
-  color: #94a3b8 !important;
-}
-/* Prefer semantic muted token (was hardcoded #64748b — weak on dark surfaces) */
-html[data-theme="dark"] .text-slate-400 {
-  color: var(--ink-muted) !important;
-}
-html[data-theme="dark"] .text-slate-300 {
-  color: #cbd5e1 !important;
-}
-
-/* --- Borders, rings, dividers ------------------------------------------ */
-/* .border-slate-200 / .border-slate-300 → semantic tokens (see below) */
-html[data-theme="dark"] .border-slate-100 {
-  border-color: #1e293b !important;
-}
-html[data-theme="dark"] .ring-slate-200 {
-  --tw-ring-color: #334155 !important;
-}
-html[data-theme="dark"] .ring-slate-200\/80 {
-  --tw-ring-color: rgba(51, 65, 85, 0.85) !important;
-}
-html[data-theme="dark"] .ring-slate-300 {
-  --tw-ring-color: #475569 !important;
-}
-html[data-theme="dark"] .border-slate-200\/80 {
-  border-color: rgba(30, 41, 59, 0.9) !important;
-}
-html[data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #1e293b !important;
-}
-
-/* --- Hover states ------------------------------------------------------- */
-html[data-theme="dark"] .hover\:bg-slate-50:hover {
-  background-color: #1e293b !important;
-}
-html[data-theme="dark"] .hover\:bg-slate-50\/90:hover {
-  background-color: rgba(30, 41, 59, 0.9) !important;
-}
-html[data-theme="dark"] .hover\:bg-slate-100:hover {
-  background-color: #334155 !important;
-}
-html[data-theme="dark"] .hover\:bg-slate-200:hover {
-  background-color: #475569 !important;
-}
-html[data-theme="dark"] .hover\:bg-slate-800:hover {
-  background-color: #475569 !important;
-}
-html[data-theme="dark"] .hover\:bg-white:hover {
-  background-color: #1e293b !important;
-}
-html[data-theme="dark"] .bg-slate-50\/70 {
-  background-color: rgba(15, 23, 42, 0.72) !important;
-}
-
-/* --- Form controls ------------------------------------------------------ */
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
-  background-color: #0f172a;
-  color: #e2e8f0;
-  border-color: #334155;
-}
-html[data-theme="dark"] input::placeholder,
-html[data-theme="dark"] textarea::placeholder {
-  color: #475569;
-}
-html[data-theme="dark"] .focus\:border-brand-500:focus {
-  border-color: #818cf8 !important;
-}
-html[data-theme="dark"] .focus\:ring-brand-200:focus {
-  --tw-ring-color: rgba(165, 180, 252, 0.35) !important;
-}
-html[data-theme="dark"] kbd {
-  background-color: #1e293b !important;
-  color: #cbd5e1 !important;
-}
-html[data-theme="dark"] code {
-  background-color: #1e293b !important;
-  color: #cbd5e1 !important;
-}
-
-/* --- Status chip surfaces (kept color-coded, just tinted) -------------- */
-html[data-theme="dark"] .bg-amber-50 {
-  background-color: rgba(245, 158, 11, 0.14) !important;
-}
-html[data-theme="dark"] .bg-amber-50\/40 {
-  background-color: rgba(245, 158, 11, 0.1) !important;
-}
-html[data-theme="dark"] .bg-amber-100 {
-  background-color: rgba(245, 158, 11, 0.22) !important;
-}
-html[data-theme="dark"] .text-amber-600 {
-  color: #fbbf24 !important;
-}
-html[data-theme="dark"] .text-amber-700 {
-  color: #fcd34d !important;
-}
-html[data-theme="dark"] .text-amber-800 {
-  color: #fde68a !important;
-}
-html[data-theme="dark"] .bg-indigo-100 {
-  background-color: rgba(99, 102, 241, 0.22) !important;
-}
-html[data-theme="dark"] .text-indigo-700 {
-  color: #a5b4fc !important;
-}
-
-html[data-theme="dark"] .bg-emerald-50 {
-  background-color: rgba(16, 185, 129, 0.14) !important;
-}
-html[data-theme="dark"] .bg-emerald-100 {
-  background-color: rgba(16, 185, 129, 0.22) !important;
-}
-html[data-theme="dark"] .hover\:bg-emerald-100:hover {
-  background-color: rgba(16, 185, 129, 0.32) !important;
-}
-html[data-theme="dark"] .text-emerald-600 {
-  color: #34d399 !important;
-}
-html[data-theme="dark"] .text-emerald-700 {
-  color: #6ee7b7 !important;
-}
-html[data-theme="dark"] .text-emerald-800 {
-  color: #a7f3d0 !important;
-}
-
-html[data-theme="dark"] .bg-rose-50 {
-  background-color: rgba(244, 63, 94, 0.14) !important;
-}
-html[data-theme="dark"] .bg-rose-100 {
-  background-color: rgba(244, 63, 94, 0.22) !important;
-}
-html[data-theme="dark"] .hover\:bg-rose-100:hover {
-  background-color: rgba(244, 63, 94, 0.32) !important;
-}
-html[data-theme="dark"] .text-rose-500 {
-  color: #fb7185 !important;
-}
-html[data-theme="dark"] .text-rose-600 {
-  color: #fda4af !important;
-}
-html[data-theme="dark"] .text-rose-700 {
-  color: #fda4af !important;
-}
-html[data-theme="dark"] .text-rose-800 {
-  color: #fecdd3 !important;
-}
-html[data-theme="dark"] .border-rose-200 {
-  border-color: rgba(244, 63, 94, 0.3) !important;
-}
-html[data-theme="dark"] .ring-rose-300 {
-  --tw-ring-color: rgba(244, 63, 94, 0.4) !important;
-}
-html[data-theme="dark"] .ring-emerald-300 {
-  --tw-ring-color: rgba(16, 185, 129, 0.4) !important;
-}
-html[data-theme="dark"] .ring-amber-300 {
-  --tw-ring-color: rgba(245, 158, 11, 0.4) !important;
-}
-html[data-theme="dark"] .ring-brand-300 {
-  --tw-ring-color: rgba(99, 102, 241, 0.4) !important;
-}
-
-/* --- Epic accent surfaces (sky, violet, slate) ------------------------- */
-html[data-theme="dark"] .bg-sky-100 {
-  background-color: rgba(14, 165, 233, 0.22) !important;
-}
-html[data-theme="dark"] .text-sky-700 {
-  color: #7dd3fc !important;
-}
-html[data-theme="dark"] .text-sky-800 {
-  color: #bae6fd !important;
-}
-html[data-theme="dark"] .ring-sky-300 {
-  --tw-ring-color: rgba(14, 165, 233, 0.4) !important;
-}
-
-html[data-theme="dark"] .bg-violet-100 {
-  background-color: rgba(139, 92, 246, 0.22) !important;
-}
-html[data-theme="dark"] .text-violet-700 {
-  color: #c4b5fd !important;
-}
-html[data-theme="dark"] .text-violet-800 {
-  color: #ddd6fe !important;
-}
-html[data-theme="dark"] .ring-violet-300 {
-  --tw-ring-color: rgba(139, 92, 246, 0.4) !important;
-}
-
-html[data-theme="dark"] .ring-rose-200 {
-  --tw-ring-color: rgba(244, 63, 94, 0.3) !important;
-}
-html[data-theme="dark"] .bg-rose-50\/40 {
-  background-color: rgba(244, 63, 94, 0.1) !important;
-}
-
-/* --- Skeleton + miscellany --------------------------------------------- */
-html[data-theme="dark"] .skeleton {
-  background: #1e293b;
-}
-
-/* --- Calendar drag-over highlight -------------------------------------- */
-html[data-theme="dark"] .ring-brand-400 {
-  --tw-ring-color: #818cf8 !important;
-}
-
-/* --- Toast surface stays dark in both modes (good contrast) ----------- */
-/* (no override needed; bg-slate-900 already reads correctly) */
-
-/* --- Scrollbars + selection ------------------------------------------- */
-html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-}
-html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
-}
-html[data-theme="dark"] ::selection {
-  background: rgba(129, 140, 248, 0.35);
-  color: #f1f5f9;
-}
-
-/* --- Make muted month cells still readable ----------------------------- */
-/* Monthly calendar uses .opacity-50 to fade other-month days. On dark
- * surfaces that drops contrast below readable, so bump it slightly. */
-html[data-theme="dark"] [class*="grid-rows-6"] .opacity-50 {
-  opacity: 0.55;
-}
-
+/* --- Scrollbars -------------------------------------------------------- */
 .scrollbar-thin::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: rgba(15, 23, 42, 0.15);
+  background: color-mix(in srgb, var(--ink) 15%, transparent);
   border-radius: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 23, 42, 0.3);
+  background: color-mix(in srgb, var(--ink) 30%, transparent);
 }
 
-/* Always-visible focus ring per accessibility commitment. */
-:focus-visible {
-  outline: 2px solid #818cf8;
-  outline-offset: 2px;
-  border-radius: 6px;
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+}
+html[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
 }
 
 .feed-ambient {
@@ -646,6 +186,12 @@ html[data-theme="dark"] .feed-ambient {
     radial-gradient(circle at 82% 4%, rgba(14, 165, 233, 0.07), transparent 32%);
 }
 
+/* Monthly calendar uses .opacity-50 to fade other-month days. On dark
+ * surfaces that drops contrast below readable, so bump it slightly. */
+html[data-theme="dark"] [class*="grid-rows-6"] .opacity-50 {
+  opacity: 0.55;
+}
+
 /* Skip-to-content link is visually hidden until focused. */
 .skip-link {
   position: fixed;
@@ -653,8 +199,8 @@ html[data-theme="dark"] .feed-ambient {
   left: 8px;
   z-index: 100;
   padding: 8px 12px;
-  background: #1e293b;
-  color: white;
+  background: var(--ink-secondary);
+  color: var(--surface);
   font-size: 13px;
   font-weight: 600;
   border-radius: 8px;
@@ -696,11 +242,13 @@ html[data-theme="dark"] .feed-ambient {
 /* -------------------------------------------------------------------------
  * Compact density.
  *
- * Strategy mirrors the dark-mode approach: a single override layer keyed on
- * `html[data-density="compact"]` rescales the high-traffic padding / gap /
- * min-height utilities the codebase actually uses, so individual components
- * stay readable. Per spec: ~0.75× scale, font size unchanged.
+ * A single override layer keyed on `html[data-density="compact"]` rescales
+ * the high-traffic padding / gap / min-height utilities the codebase actually
+ * uses, so individual components stay readable. Per spec: ~0.75× scale, font
+ * size unchanged. (`!important` is intentional here — density must win over
+ * utility classes; dark theme itself uses semantic tokens instead.)
  * ----------------------------------------------------------------------- */
+
 html[data-density="compact"] .p-2 {
   padding: 0.375rem !important;
 }
