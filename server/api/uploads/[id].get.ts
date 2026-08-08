@@ -28,8 +28,10 @@ export default defineEventHandler(async (event) => {
     const q = getQuery(event);
     const noRedirect = q.redirect === "0" || q.redirect === "false";
 
-    // Brief private cache: repeat views in a feed avoid re-hitting ACL+sign.
-    setHeader(event, "Cache-Control", "private, max-age=60");
+    // Do not browser-cache ACL decisions: unfriend / visibility revoke must
+    // re-check promptly. Process-local allow+row cache (~10s) still coalesces
+    // rapid feed reloads. R2 signed URLs keep their own short TTL.
+    setHeader(event, "Cache-Control", "private, no-store");
 
     if (!noRedirect) {
       const url = await signedUploadUrl(row.storage_key);

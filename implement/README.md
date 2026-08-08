@@ -1,6 +1,12 @@
 # Implementation Documentation
 
-Technical reference for the **Personal Task & Analytics Manager**. The root [`../README.md`](../README.md) describes the product — what the app _is_ and how it _feels_ to use. Everything in this folder describes the engineering: how it's built, where the code lives, and how to run it.
+Technical reference for the **Personal Task & Analytics Manager** codebase.
+Public marketing / SEO surfaces brand the same install as **Da Nang TechX**
+(`public/llms.txt`, hub copy, `dntechx.com`) — one product, two names:
+internal/docs often say “Personal Task & Analytics Manager”; the public site
+says “Da Nang TechX”.
+
+The root [`../README.md`](../README.md) describes the product — what the app _is_ and how it _feels_ to use. Everything in this folder describes the engineering: how it's built, where the code lives, and how to run it.
 
 If you came here to **use** the app, start at the root README. If you came here to **change** the app, start here.
 
@@ -19,7 +25,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`api.md`](./api.md)                           | REST/SSE endpoints under `/api/*` (auth, tasks, feed, stories, chat, uploads, geo, admin, queue, **admin articles/pending**). |
 | [`auth.md`](./auth.md)                         | Roles, HttpOnly cookies, JWT/refresh, client session, profile, bootstrap superadmin, email transport.                         |
 | [`i18n.md`](./i18n.md)                         | Locales, first-visit geo/timezone detection, plural `t()` shape, Day.js / SEO titles.                                         |
-| [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                                          |
+| [`auth-rbac.md`](./auth-rbac.md)               | Original Auth & RBAC feature brief (**implemented** — see [`auth.md`](./auth.md)).                                            |
 | [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                                               |
 | [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                                              |
 | [`friends-spec.md`](./friends-spec.md)         | Feature spec for Friends graph (requests, Chat/Feed ACL gate).                                                                |
