@@ -16,7 +16,20 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Prefer an explicit MGMT_SECRETS_DIR. When the Actions runner has HOME=/root
+# but the workspace lives under /home/<user>/actions-runner, use that user's
+# ~/.config/management (where doppler.token / ssl / tunnel files usually sit).
+if [[ -z "${MGMT_SECRETS_DIR:-}" ]]; then
+  if [[ -n "${GITHUB_WORKSPACE:-}" && "${GITHUB_WORKSPACE}" =~ ^(/home/[^/]+)/ ]]; then
+    _runner_home="${BASH_REMATCH[1]}"
+    if [[ -f "${_runner_home}/.config/management/doppler.token" ]] \
+      || [[ -d "${_runner_home}/.config/management" ]]; then
+      MGMT_SECRETS_DIR="${_runner_home}/.config/management"
+    fi
+  fi
+fi
 SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
+export MGMT_SECRETS_DIR="${SECRETS_DIR}"
 DOCKER_DIR="${ROOT}/docker"
 
 log() { echo "[link-secrets] $*"; }
