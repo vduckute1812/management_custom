@@ -11,7 +11,7 @@ export default defineNuxtConfig({
     url: "https://dntechx.com",
     name: "Da Nang TechX",
     description:
-      "Da Nang TechX — Da Nang Tech R&D and Networking Portal: feed and time management.",
+      "Da Nang TechX — Feed, Time Management, Money, Chat, and Friends on one install.",
     defaultLocale: "en",
   },
   // Only the public hub, feed, and legal pages should be indexed; app/admin
@@ -133,7 +133,7 @@ export default defineNuxtConfig({
         {
           name: "description",
           content:
-            "Da Nang TechX — Da Nang Tech R&D and Networking Portal: feed and time management.",
+            "Da Nang TechX — Feed, Time Management, Money, Chat, and Friends on one install.",
         },
         // Must match Google Auth Platform app name for brand verification.
         { name: "application-name", content: "Da Nang TechX" },

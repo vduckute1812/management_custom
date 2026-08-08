@@ -31,6 +31,7 @@ import {
 } from "~/server/utils/auth";
 import { enqueueVerificationEmail } from "~/server/utils/queue";
 import { DomainError } from "~/server/utils/http";
+import { shouldRevokeFamilyOnRefreshReuse } from "~/server/utils/authRefreshReuse";
 import { issueAuthSession } from "~/server/utils/authSession";
 import {
   clearOAuthStateCookie,
@@ -115,6 +116,9 @@ export type RefreshSessionResult = {
 /**
  * Rotate a presented refresh token. Caller sets cookies and clears them on
  * DomainError 401 (reuse / missing user / race).
+ *
+ * Concurrent-tab races: see `shouldRevokeFamilyOnRefreshReuse` — a freshly
+ * revoked hash does not wipe the winner's family within the grace window.
  */
 export async function refreshAuthSession(
   event: H3Event,
@@ -124,7 +128,7 @@ export async function refreshAuthSession(
   const record = await findActiveRefreshToken(presentedHash);
   if (!record) {
     const prior = await findRefreshTokenByHash(presentedHash);
-    if (prior?.revokedAt) {
+    if (prior?.revokedAt && shouldRevokeFamilyOnRefreshReuse(prior.revokedAt)) {
       await revokeRefreshTokenFamily(prior.familyId);
     }
     throw new DomainError(401, "Refresh token invalid or expired");
