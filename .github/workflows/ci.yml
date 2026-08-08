@@ -88,10 +88,14 @@ jobs:
         run: npm run build
 
   # Public-route Playwright smoke against Nitro preview + ephemeral MySQL.
+  # Use the official Playwright image so Chromium + OS deps are preinstalled
+  # (avoids hanging `playwright install --with-deps` on ubuntu-latest).
   e2e:
     name: Playwright smoke
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    container:
+      image: mcr.microsoft.com/playwright:v1.57.0-jammy
 
     services:
       mysql:
@@ -99,8 +103,7 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: test
           MYSQL_DATABASE: rc_test
-        ports:
-          - 3306:3306
+        # Job runs in a container → reach MySQL by service hostname, not localhost.
         options: >-
           --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -ptest"
           --health-interval=5s
@@ -111,7 +114,7 @@ jobs:
       HUSKY: 0
       npm_config_fund: false
       npm_config_audit: false
-      DB_HOST: 127.0.0.1
+      DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
       DB_PASS: test
@@ -121,6 +124,8 @@ jobs:
       ALLOW_ROOT_DB: "1"
       # Do not set NODE_ENV=production at job level — npm ci would omit
       # devDependencies (husky, playwright, tsx) and fail prepare/e2e.
+      # Browsers ship in the container image; skip any download attempts.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
 
     steps:
       - name: Checkout
@@ -147,9 +152,6 @@ jobs:
         env:
           NODE_ENV: production
         run: npm run build
-
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
 
       - name: Smoke tests
         env:
