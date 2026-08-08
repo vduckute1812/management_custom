@@ -12,6 +12,7 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
+    "dev:doppler": "doppler run --config dev -- nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -22,6 +23,8 @@
     "typecheck": "vue-tsc --noEmit",
     "scan:secrets": "node scripts/scan-secrets.mjs --all",
     "scan:secrets:staged": "node scripts/scan-secrets.mjs --staged",
+    "secrets:pull": "doppler secrets download --no-file --format env-no-quotes > .env",
+    "secrets:pull:prd": "bash docker/fetch-doppler-secrets.sh",
     "migrate": "node --env-file=.env --import tsx scripts/migrate.ts up",
     "migrate:status": "node --env-file=.env --import tsx scripts/migrate.ts status",
     "migrate:reset": "node --env-file=.env --import tsx scripts/migrate.ts reset",
