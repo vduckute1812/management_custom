@@ -89,6 +89,12 @@ export default defineNuxtConfig({
     emitRouteChunkError: "automatic-immediate",
   },
   css: ["~/assets/css/main.css"],
+  // Feature folders under components/ and composables/ — keep auto-import
+  // names based on the file (FeedPostCard, useChat, …), not the folder.
+  components: [{ path: "~/components", pathPrefix: false }],
+  imports: {
+    dirs: ["composables", "composables/**"],
+  },
   vite: {
     plugins: [tailwindcss()],
   },

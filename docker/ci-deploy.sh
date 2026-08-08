@@ -462,7 +462,7 @@ log "syncing public IP (best effort)"
 if bash docker/sync-public-ip.sh; then
   PUBLIC_IP="$(tr -d '[:space:]' < docker/.public-ip)"
 else
-  PUBLIC_IP="${PUBLIC_IP:-$(tr -d '[:space:]' < docker/.public-ip 2>/dev/null || echo 27.79.44.74)}"
+  PUBLIC_IP="${PUBLIC_IP:-$(tr -d '[:space:]' < docker/.public-ip 2>/dev/null || echo 27.79.40.21)}"
   log "WARNING: could not detect public IP — using ${PUBLIC_IP}"
 fi
 

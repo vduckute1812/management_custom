@@ -28,7 +28,7 @@ import {
   upsertTask,
   type UserRecord,
 } from "../server/utils/db";
-import { generateId, nowISO } from "../server/db/ids";
+import { generateId, nowISO } from "../server/db/core/ids";
 
 const PASSWORD = "delete-me-please-1";
 

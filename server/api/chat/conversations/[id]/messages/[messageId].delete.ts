@@ -1,4 +1,4 @@
-import { deleteChatMessage } from "~/server/services/chatService";
+import { deleteChatMessage } from "~/server/services/chat/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
 

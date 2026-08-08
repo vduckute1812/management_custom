@@ -68,7 +68,7 @@ export function requireUser(event: H3Event): AccessTokenClaims {
 export async function requireAdmin(event: H3Event): Promise<AccessTokenClaims> {
   const user = requireUser(event);
   // Re-read role so demotions apply before the access JWT expires (~15m).
-  const { getUserById } = await import("~/server/db/users");
+  const { getUserById } = await import("~/server/db/auth/users");
   const row = await getUserById(user.sub);
   if (!row || !isAdminRole(row.role)) {
     throw createError({
@@ -90,7 +90,7 @@ export async function requireSuperAdmin(
 ): Promise<AccessTokenClaims> {
   const user = requireUser(event);
   // Re-read role so demotions apply before the access JWT expires (~15m).
-  const { getUserById } = await import("~/server/db/users");
+  const { getUserById } = await import("~/server/db/auth/users");
   const row = await getUserById(user.sub);
   if (!row || row.role !== UserRole.Superadmin) {
     throw createError({

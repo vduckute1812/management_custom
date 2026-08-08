@@ -58,11 +58,11 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     │
     ├── server/utils/cache.ts  →  memory | Redis (optional)
     │
-    ├── server/services/*      →  selective workflow orchestration
+    ├── server/services/{feature}/*  →  selective workflow orchestration
     │     (task save, timer, post create, chat send/read, money CRUD,
     │      auth signup/refresh/delete/Google callback, article pipeline, …)
     │
-    ├── server/utils/db.ts  →  server/db/*  ←→  MySQL 8 (`rc`)
+    ├── server/utils/db.ts  →  server/db/{feature}/*  ←→  MySQL 8 (`rc`)
     │     tables: users (+ locale / money_currency / profile via 0010+0028),
     │             auth_* (+ oauth identities 0023, refresh family 0030),
     │             epics, tasks, time_blocks, checklist_items, active_timer,
@@ -79,9 +79,9 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
     └── server/utils/r2.ts  ←→  Cloudflare R2 (when configured)
 ```
 
-- **Connection pool.** `mysql2/promise` pool in `server/db/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
+- **Connection pool.** `mysql2/promise` pool in `server/db/core/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
 - **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0033+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
-- **DB layer.** `server/utils/db.ts` is a **barrel** re-exporting domain modules under `server/db/` (`users`, `epics`, `tasks`, `postQueries` / `postQuery/*`, `posts`, `postReactions`, `postComments`, `stories`, `friendships`, `uploads`, `categories`, `jobs`, `money*`, `chat`, …). Prefer importing from those modules or the barrel — do not grow a monolithic `db.ts`.
+- **DB layer.** Domain SQL is grouped by **feature folder** under `server/db/{core,auth,time,feed,chat,money,friends,admin}/`. `server/utils/db.ts` is a **barrel** over those modules. Prefer importing from the feature path or the barrel — do not grow a monolithic `db.ts`. Migrations stay at `server/db/migrations/` (not under a feature).
 - **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
 - **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction; tokens share a `family_id` so reuse of a revoked hash revokes the whole family (migration **0030**).
 - **CSRF.** Cookie-authenticated mutating `/api/*` requests must present a same-origin `Origin` or `Referer` (production requires one). See `server/middleware/csrf-cookie.ts`.
@@ -128,17 +128,17 @@ Handlers that accept JSON or query parameters should validate through shared Zod
 
 **Integer enums** on task/epic bodies must be numbers — string values are rejected with `400` (no silent fallback to defaults).
 
-**Selective services** (`server/services/`) orchestrate multi-step workflows; keep thin read handlers as-is:
+**Selective services** (`server/services/{feature}/`) orchestrate multi-step workflows; keep thin read handlers as-is:
 
-| Service                     | Responsibility                                                                                       |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `taskService`               | `saveTaskForUser` — ownership guards + upsert                                                        |
-| `timerService`              | `startTimerForUser` / `stopTimerForUser`                                                             |
-| `postService`               | `createPostForUser` + public-feed cache invalidate                                                   |
-| `chatService`               | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out                                   |
-| `moneyService` (+ siblings) | Money ledger / budgets / savings / user-categories workflows                                         |
-| `authService`               | Signup, refresh rotation, account delete, Google OAuth callback orchestration                        |
-| `articleService`            | Daily/manual fetch enqueue, rewrite enqueue, admin CRUD, approve → public manuscript + source footer |
+| Service                           | Responsibility                                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `time/taskService`                | `saveTaskForUser` — ownership guards + upsert                                                        |
+| `time/timerService`               | `startTimerForUser` / `stopTimerForUser`                                                             |
+| `feed/postService`                | `createPostForUser` + public-feed cache invalidate                                                   |
+| `chat/chatService`                | `sendChatMessage` / `markChatConversationRead` + inbox SSE fan-out                                   |
+| `money/moneyService` (+ siblings) | Money ledger / budgets / savings / user-categories workflows                                         |
+| `auth/authService`                | Signup, refresh rotation, account delete, Google OAuth callback orchestration                        |
+| `admin/articleService`            | Daily/manual fetch enqueue, rewrite enqueue, admin CRUD, approve → public manuscript + source footer |
 
 Password-reset / verify-email and admin role policy remain mostly handler-orchestrated; prefer extracting services when touching those flows. Keep thin read handlers as-is.
 
@@ -148,7 +148,7 @@ Add new services only for workflows that span several DB calls or need shared tr
 
 ## Money module
 
-Per-user personal expense ledger (not shared with Feed). Amounts are **minor units** (`BIGINT`); display currency is `users.money_currency` (`MoneyCurrency` TINYINT — VND/USD/CNY/TWD). Schema: migrations **0024–0027** (+ **0028** locale/currency on users). Domain SQL: `server/db/money.ts`, `moneySavings.ts`, `moneyBudgets.ts`, plus user-categories helpers. Client: `/money`, `composables/useMoney*`, Chart.js via lazy `MoneyCharts`. Details: [`database.md`](./database.md#money-migration-0024), [`api.md`](./api.md).
+Per-user personal expense ledger (not shared with Feed). Amounts are **minor units** (`BIGINT`); display currency is `users.money_currency` (`MoneyCurrency` TINYINT — VND/USD/CNY/TWD). Schema: migrations **0024–0027** (+ **0028** locale/currency on users). Domain SQL: `server/db/money/{money,moneySavings,moneyBudgets,moneyUserCategories}.ts`. Client: `/money`, `composables/money/useMoney*`, Chart.js via lazy `MoneyCharts`. Details: [`database.md`](./database.md#money-migration-0024), [`api.md`](./api.md).
 
 ---
 
@@ -213,26 +213,23 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   └── users/directory.get.ts   # people picker for shared visibility + chat + friends
 │   ├── schemas/
 │   │   └── index.ts                 # Shared Zod request schemas (+ auth.ts, friendship.ts, money*, …)
-│   ├── services/
-│   │   ├── taskService.ts           # Task upsert workflow
-│   │   ├── timerService.ts          # Timer start/stop workflow
-│   │   ├── postService.ts           # Post create + cache bust
-│   │   ├── chatService.ts           # Chat send/read + inbox SSE push
-│   │   ├── moneyService.ts          # Money ledger (+ budgets/savings/categories siblings)
-│   │   ├── authService.ts           # Signup / refresh / account delete / Google callback
-│   │   ├── articleService.ts        # Article pipeline orchestration
-│   │   ├── articleFetcher.ts        # RSS/ArXiv fetch, length ranking, page expand
-│   │   └── articleRewriter.ts       # Gemini/OpenAI storytelling rewrite
-│   ├── db/                          # SQL domain modules + migrator + pool
-│   │   ├── chat.ts                  # Barrel over chatConversations / Messages / Reactions / Reads
-│   │   ├── friendships.ts           # Friend request / accept / list (0033)
-│   │   ├── postQueries.ts           # Barrel → postQuery/* (listFeedPosts, getPostById, hydration)
-│   │   ├── postQuery/               # Post read SQL split (select, acl, hydration, cursors, …)
-│   │   ├── posts.ts                 # Post mutations (createPost / updatePost / deletePost)
-│   │   ├── postReactions.ts         # Reaction set / clear
-│   │   ├── postComments.ts          # Comments CRUD + comment_count recount (drift-only when unscoped)
-│   │   ├── pendingArticles.ts       # Article pipeline rows (0031)
-│   │   └── migrations/              # 0001…0033 SQL files
+│   ├── services/                    # Feature folders (time, feed, chat, money, auth, admin)
+│   │   ├── time/                    # taskService, timerService, epicService
+│   │   ├── feed/                    # postService
+│   │   ├── chat/                    # chatService
+│   │   ├── money/                   # moneyService + budgets/savings/categories siblings
+│   │   ├── auth/                    # authService, accountDeletionService
+│   │   └── admin/                   # articleService, articleFetcher, articleRewriter, …
+│   ├── db/                          # Feature-folder SQL + shared migrations
+│   │   ├── core/                    # pool, types, ids, mappers, compute, jobs, migrator, …
+│   │   ├── auth/                    # users (+ user/*), auth-identities, refresh-tokens, …
+│   │   ├── time/                    # epics, tasks, timer
+│   │   ├── feed/                    # posts, postQueries, postQuery/*, stories, uploads, …
+│   │   ├── chat/                    # chat.ts barrel + conversations/messages/reactions/reads
+│   │   ├── money/                   # money, moneySavings, moneyBudgets, moneyUserCategories
+│   │   ├── friends/                 # friendships (0033)
+│   │   ├── admin/                   # admin aggregations, pendingArticles
+│   │   └── migrations/              # 0001…0033 SQL files (not feature-scoped)
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at
@@ -265,6 +262,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── migrate-auth.ts              # Seed superadmin
 │   ├── check-db.ts                  # npm run check:db
 │   ├── scan-secrets.mjs             # Pre-commit secret scanner
+│   ├── migrate-feature-folders.py   # One-shot helper used for this layout (kept for reference)
 │   └── notify-public-ip-change.ts   # Optional ops helper
 ├── pages/
 │   ├── index.vue                    # Public hub (localized category cards + module blurbs)
@@ -276,24 +274,25 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   ├── epics/, analytics.vue, admin/, settings.vue, profile.vue
 │   ├── privacy.vue, terms.vue          # Public legal pages (SSR'd, indexable)
 │   └── login.vue, signup.vue, verify-email.vue, forgot-password, reset-password
-├── components/                      # Flat SFC set (calendars, feed, shell, money, …)
-│   ├── AppHeader.vue, AppFooter.vue, LanguageSwitcher.vue, CommandPalette.vue, …
-│   ├── LegalDocumentView.vue        # Renders a privacy / terms document
-│   ├── PostComposer.vue, PostCard.vue, PostCommentsPanel.vue, StoryTray.vue, …
-│   ├── ChatConversationList.vue, ChatMessageThread.vue, ChatComposer.vue
-│   ├── MoneyCharts.vue, …           # Lazy-loaded ledger charts / modals
-│   └── CalendarDaily.vue, TaskModal.vue, AnalyticsDashboard.vue, …
-├── composables/
-│   ├── useAuth.ts, useApi.ts, useSettings.ts, useToasts.ts, useUiOverlays.ts
-│   ├── useTasks.ts, useEpics.ts, useTimer.ts, useRecurrence.ts, useSchedule.ts
-│   ├── useNotifications.ts, useNow.ts, useExport.ts, useSampleData.ts
-│   ├── usePosts.ts, useStories.ts, useUploads.ts, useCategories.ts
-│   ├── useMoney.ts, useMoneyBudgets.ts, useMoneySavings.ts, …
-│   ├── useManuscriptFont.ts         # Deferred Source Serif 4 for manuscript chrome
-│   ├── useChat.ts                   # DM list / thread / module-scoped SSE singleton / send
-│   ├── useFriends.ts                # Friend requests / list / badge count
-│   ├── useMediaUrl.ts, useUserDirectory.ts, useShortcuts.ts
-│   ├── useLegalDocument.ts          # Privacy / terms text for the active locale
+├── components/                      # Feature folders; Nuxt `pathPrefix: false` keeps SFC names stable
+│   ├── app/                         # AppHeader, AppFooter, CommandPalette, LanguageSwitcher, …
+│   ├── account/                     # Settings*, Profile*, LegalDocumentView, GoogleSignInButton
+│   ├── feed/                        # PostComposer, PostCard, StoryTray, Manuscript*, …
+│   ├── chat/                        # ChatConversationList, ChatMessageThread, ChatComposer, …
+│   ├── money/                       # MoneyCharts, Money* modals / forms
+│   ├── time/                        # CalendarDaily, TaskModal, AnalyticsDashboard, Epic*, …
+│   ├── friends/                     # Friends* UI
+│   └── admin/                       # Admin article review panels / dialogs
+├── composables/                     # Same feature split; `imports.dirs` includes `composables/**`
+│   ├── app/                         # useToasts, useUiOverlays, useShortcuts, useNow, …
+│   ├── account/                     # useAuth, useLegalDocument, useDiscardConfirm
+│   ├── shared/                      # useApi, useSettings, useMediaUrl, useUserDirectory
+│   ├── feed/                        # usePosts, useStories, useUploads, postMutations, …
+│   ├── chat/                        # useChat, chatThreadLive, chatMessageActions
+│   ├── money/                       # useMoney*, …
+│   ├── time/                        # useTasks, useEpics, useTimer, useSchedule, …
+│   ├── friends/                     # useFriends
+│   └── admin/                       # useAdminPendingArticleReview
 ├── middleware/auth.global.ts
 ├── layouts/default.vue
 ├── plugins/
@@ -309,14 +308,16 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 ├── implement/                       # Technical documentation (you are here)
 ├── vitest.config.ts
 ├── .env.example
-└── nuxt.config.ts                   # Hybrid routeRules + @nuxtjs/i18n + @nuxtjs/seo
+└── nuxt.config.ts                   # Hybrid routeRules + feature-folder auto-import + i18n/seo
 ```
 
-**Shared types.** Account identity / roles / OAuth consts live in `types/auth.ts` (`UserRole`, `AuthUser`, `AuthProvider`, …). Task/epic types stay in `types/task.ts`, which **re-exports** the auth surface for backward-compatible imports. Server barrel `server/db/types.ts` re-exports auth from `types/auth.ts`.
+**Feature folders.** Client SFCs and composables, plus server `db/` and `services/`, are grouped by product area (`feed`, `chat`, `money`, `time`, `friends`, `account`/`auth`, `admin`, plus `app`/`shared`/`core`). Auto-import names stay file-based (`PostCard`, `useChat`) via `components.pathPrefix: false` and `imports.dirs: ['composables/**']`. New modules should land in the matching feature folder; cross-feature imports go through `~/server/utils/db` or explicit `~/server/db/{feature}/…` paths.
 
-**Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chatService.ts`.
+**Shared types.** Account identity / roles / OAuth consts live in `types/auth.ts` (`UserRole`, `AuthUser`, `AuthProvider`, …). Task/epic types stay in `types/task.ts`, which **re-exports** the auth surface for backward-compatible imports. Server barrel `server/db/core/types.ts` re-exports auth from `types/auth.ts`.
 
-**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Story tray composer lives in `FeedStoryComposer`; post SQL is split under `server/db/postQuery/` (barrel `postQueries.ts`), mutations in `posts.ts`, reactions in `postReactions.ts`, comments (+ recount) in `postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat.ts`. Chat SSE connection machinery lives in `composables/chatThreadLive.ts`; `useChat.ts` imports from it.
+**Chat live delivery.** Inbox badge/toasts use `GET /api/chat/inbox/stream` (`server/utils/chatInbox.ts` + `plugins/chat-inbox.client.ts`). The open thread uses `GET /api/chat/conversations/:id/stream` (`server/utils/chatThread.ts`); `composables/chat/useChat.ts` keeps a **module-scoped EventSource singleton** so multiple callers share one connection, emits `message` / `read` / `reaction` / `ping`, and falls back to slow REST after repeated stream failures. Send/read orchestration (+ inbox fan-out) lives in `server/services/chat/chatService.ts`.
+
+**Feed first paint.** `/feed` calls `GET /api/feed` once for categories + first posts page + stories (when signed in), then infinite-scrolls older pages via `GET /api/posts?cursor=…`. Story tray composer lives in `FeedStoryComposer`; post SQL is split under `server/db/feed/postQuery/` (barrel `postQueries.ts`), mutations in `feed/posts.ts`, reactions in `feed/postReactions.ts`, comments (+ recount) in `feed/postComments.ts`. Chat SQL is split similarly: `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` behind `server/db/chat/chat.ts`. Chat SSE connection machinery lives in `composables/chat/chatThreadLive.ts`; `useChat.ts` imports from it.
 
 **Testing.** The default Vitest suite (`npm test`) is **DB-free** (JWT, role guards, Zod schemas, pure helpers). MySQL integration lives under `tests/integration/` and is gated by `DB_INTEGRATION=1` (`npm run test:integration`). GitHub Actions runs that suite in a dedicated job against an ephemeral MySQL 8 service (`rc_test`). Locally, point `DB_*` at a migrated throwaway database — never prod. Playwright smoke remains a follow-up.
 
@@ -345,13 +346,13 @@ After deploy, verify `/`, `/feed`, `/privacy`, `/terms`, `/robots.txt`, `/sitema
 
 The privacy policy and terms of service are **content as data**, not markup: `utils/legal/privacy.ts` and `utils/legal/terms.ts` export a `LegalDocumentSet` (`types/legal.ts`) with a title, summary, ISO effective date, intro paragraphs, and ordered sections carrying a stable anchor `id`. `LegalDocId` is an integer const (`Privacy = 0`, `Terms = 1`) per the repo's integer-enum rule.
 
-| Piece                              | Role                                                                                                            |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `utils/legal/index.ts`             | Registry (`LEGAL_DOCUMENTS`, `LEGAL_DOC_PATHS`), `authoredLegalLocale`, `legalDocument` — all pure, so testable |
-| `composables/useLegalDocument.ts`  | Reactive wrapper: resolves the document for the active UI locale, flags the English fallback                    |
-| `components/LegalDocumentView.vue` | Renders any document: header, effective date, language notice, table of contents, sections, contact block       |
-| `pages/privacy.vue` / `terms.vue`  | Thin pages: `useSeoMeta` + the view component                                                                   |
-| `components/AppFooter.vue`         | Footer with the legal links; rendered by `layouts/default.vue` on `/`, `/privacy`, `/terms` only                |
+| Piece                                      | Role                                                                                                            |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `utils/legal/index.ts`                     | Registry (`LEGAL_DOCUMENTS`, `LEGAL_DOC_PATHS`), `authoredLegalLocale`, `legalDocument` — all pure, so testable |
+| `composables/account/useLegalDocument.ts`  | Reactive wrapper: resolves the document for the active UI locale, flags the English fallback                    |
+| `components/account/LegalDocumentView.vue` | Renders any document: header, effective date, language notice, table of contents, sections, contact block       |
+| `pages/privacy.vue` / `terms.vue`          | Thin pages: `useSeoMeta` + the view component                                                                   |
+| `components/app/AppFooter.vue`             | Footer with the legal links; rendered by `layouts/default.vue` on `/`, `/privacy`, `/terms` only                |
 
 The text is authored in **English and Vietnamese**; `zh-CN` / `zh-TW` read the English document and the page says so (`legal.languageFallback`). Each legal page carries its own `LanguageSwitcher`: the header account menu — the only other place it lives — renders for signed-in users only, so without it a visitor could never reach the Vietnamese text, which is the version that prevails. Chrome strings live in the locale JSONs under `legal.*` / `footer.*`; the document bodies deliberately do **not**, so the four locale files stay chrome-sized. `tests/legal.test.ts` enforces that both languages keep the same section ids, dates, and non-empty blocks.
 
@@ -369,7 +370,7 @@ Flow: `LanguageSwitcher` → `useSettings.locale` → `plugins/i18n-locale.clien
 
 ## Pre-task alerts & live "now" indicator
 
-**`useNow`** (`composables/useNow.ts`) — shared reactive Dayjs via `useState`, ticks every 30s, force-refreshes on `visibilitychange`.
+**`useNow`** (`composables/app/useNow.ts`) — shared reactive Dayjs via `useState`, ticks every 30s, force-refreshes on `visibilitychange`.
 
 **Now-line.** `CalendarDaily` draws a horizontal line (+ `HH:mm` gutter badge) when the viewed day is today. `CalendarWeekly` shows a `Now HH:mm` pill on today's column header.
 

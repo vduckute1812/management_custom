@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useAdminPendingArticleReview } from "~/composables/useAdminPendingArticleReview";
+import { useAdminPendingArticleReview } from "~/composables/admin/useAdminPendingArticleReview";
 
 const {
   data,

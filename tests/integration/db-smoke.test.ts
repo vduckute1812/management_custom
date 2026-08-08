@@ -4,7 +4,7 @@
  */
 import type { RowDataPacket } from "mysql2/promise";
 import { describe, expect, it } from "vitest";
-import { recountCommentCounts } from "../../server/db/postComments";
+import { recountCommentCounts } from "../../server/db/feed/postComments";
 import { getPool } from "../../server/utils/db";
 import {
   assertIntegrationDbReady,

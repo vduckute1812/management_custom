@@ -1,5 +1,5 @@
 import { listMessages } from "~/server/utils/db";
-import { markChatConversationRead } from "~/server/services/chatService";
+import { markChatConversationRead } from "~/server/services/chat/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { parseQuery, mapDomainError } from "~/server/utils/http";
 import { chatMessagesQuerySchema } from "~/server/schemas";

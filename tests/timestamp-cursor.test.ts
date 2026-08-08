@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   encodeTimestampCursor,
   parseTimestampCursor,
-} from "../server/db/timestampCursor";
+} from "../server/db/core/timestampCursor";
 
 describe("timestamp cursor", () => {
   it("round-trips a timestamp and stable id", () => {

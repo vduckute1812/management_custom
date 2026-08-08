@@ -1,7 +1,7 @@
 import { requireAdmin, requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { pendingArticleApproveBodySchema } from "~/server/schemas";
-import { approveAndPublishArticle } from "~/server/services/articleService";
+import { approveAndPublishArticle } from "~/server/services/admin/articleService";
 
 /**
  * POST /api/admin/articles/pending/:id/approve

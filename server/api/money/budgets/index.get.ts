@@ -1,7 +1,7 @@
 import { requireUser } from "~/server/utils/authContext";
 import { parseQuery } from "~/server/utils/http";
 import { moneyBudgetsQuerySchema } from "~/server/schemas";
-import { listMoneyBudgetsForUser } from "~/server/services/moneyBudgetsService";
+import { listMoneyBudgetsForUser } from "~/server/services/money/moneyBudgetsService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

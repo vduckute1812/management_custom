@@ -1,7 +1,7 @@
 import { requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { postPatchBodySchema } from "~/server/schemas";
-import { updatePostForUser } from "~/server/services/postService";
+import { updatePostForUser } from "~/server/services/feed/postService";
 import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
 
 export default defineEventHandler(async (event) => {

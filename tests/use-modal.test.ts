@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
-import { listFocusable } from "../composables/useModal";
+import { listFocusable } from "../composables/app/useModal";
 
 describe("listFocusable", () => {
   it("returns focusable controls in document order", () => {

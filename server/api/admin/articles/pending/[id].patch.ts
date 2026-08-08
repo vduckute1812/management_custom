@@ -1,7 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { pendingArticlePatchBodySchema } from "~/server/schemas";
-import { updateArticleForAdmin } from "~/server/services/articleService";
+import { updateArticleForAdmin } from "~/server/services/admin/articleService";
 
 /**
  * PATCH /api/admin/articles/pending/:id

@@ -15,8 +15,8 @@ import {
   migrationStatus,
   resetSchema,
   runMigrations,
-} from "../server/db/migrator";
-import { getPool } from "../server/db/pool";
+} from "../server/db/core/migrator";
+import { getPool } from "../server/db/core/pool";
 
 function pad(s: string, n: number): string {
   return s.length >= n ? s : s + " ".repeat(n - s.length);

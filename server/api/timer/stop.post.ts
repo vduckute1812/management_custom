@@ -1,6 +1,6 @@
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
-import { stopTimerForUser } from "~/server/services/timerService";
+import { stopTimerForUser } from "~/server/services/time/timerService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

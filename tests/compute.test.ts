@@ -3,9 +3,9 @@ import {
   computeTaskSpent,
   computeChecklistProgress,
   toTaskView,
-} from "../server/db/compute";
+} from "../server/db/core/compute";
 import { TaskStatus } from "../types/task";
-import type { Task } from "../server/db/types";
+import type { Task } from "../server/db/core/types";
 
 const baseTask: Task = {
   id: "task-1",

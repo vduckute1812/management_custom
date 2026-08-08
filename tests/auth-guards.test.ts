@@ -9,7 +9,7 @@ import { stubH3Event } from "./helpers/h3";
 
 const getUserById = vi.fn();
 
-vi.mock("../server/db/users", () => ({
+vi.mock("../server/db/auth/users", () => ({
   getUserById: (...args: unknown[]) => getUserById(...args),
 }));
 

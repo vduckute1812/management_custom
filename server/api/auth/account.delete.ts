@@ -26,7 +26,7 @@ import {
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { deleteAccountBodySchema } from "~/server/schemas";
 import { assertAccountRateLimit } from "~/server/rate-limit";
-import { deleteOwnAccount } from "~/server/services/authService";
+import { deleteOwnAccount } from "~/server/services/auth/authService";
 
 export default defineEventHandler(async (event) => {
   const usedCookie = Boolean(

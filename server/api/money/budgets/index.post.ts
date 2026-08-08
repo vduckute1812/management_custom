@@ -1,7 +1,7 @@
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError, parseBody } from "~/server/utils/http";
 import { moneyBudgetUpsertBodySchema } from "~/server/schemas";
-import { upsertMoneyBudgetForUser } from "~/server/services/moneyBudgetsService";
+import { upsertMoneyBudgetForUser } from "~/server/services/money/moneyBudgetsService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

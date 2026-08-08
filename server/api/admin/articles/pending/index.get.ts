@@ -1,7 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { parseQuery, mapDomainError } from "~/server/utils/http";
 import { pendingArticlesQuerySchema } from "~/server/schemas";
-import { listArticlesForAdmin } from "~/server/services/articleService";
+import { listArticlesForAdmin } from "~/server/services/admin/articleService";
 import { ArticleStatus } from "~/types/article";
 
 /**

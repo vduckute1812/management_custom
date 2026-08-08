@@ -13,7 +13,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | File                                           | What's in it                                                                                                                  |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | [`getting-started.md`](./getting-started.md)   | Prerequisites, env vars, `npm` scripts, type-check, SEO endpoints, first-run.                                                 |
-| [`architecture.md`](./architecture.md)         | Tech stack, hybrid SSR topology, auth cookies, validation/services layers, SEO, project structure.                            |
+| [`architecture.md`](./architecture.md)         | Tech stack, hybrid SSR topology, auth cookies, validation/services, **feature-folder layout**, SEO.                           |
 | [`cache-queue.md`](./cache-queue.md)           | **Cache & job queue** system design (memory/Redis cache, MySQL `jobs`, Nitro worker).                                         |
 | [`database.md`](./database.md)                 | Schema DDL + feed/stories/jobs tables, field references, migration policy.                                                    |
 | [`api.md`](./api.md)                           | REST/SSE endpoints under `/api/*` (auth, tasks, feed, stories, chat, uploads, geo, admin, queue, **admin articles/pending**). |

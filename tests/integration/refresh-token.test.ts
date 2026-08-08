@@ -11,7 +11,7 @@ import {
   revokeRefreshTokenFamily,
   rotateRefreshToken,
 } from "../../server/utils/db";
-import { deleteUserAccount } from "../../server/services/accountDeletionService";
+import { deleteUserAccount } from "../../server/services/auth/accountDeletionService";
 import { hashOpaqueToken, nowPlusSeconds } from "../../server/utils/auth";
 import {
   assertIntegrationDbReady,

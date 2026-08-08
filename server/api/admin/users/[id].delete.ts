@@ -10,7 +10,7 @@
 import { UserRole, getUserById } from "~/server/utils/db";
 import { requireSuperAdmin } from "~/server/utils/authContext";
 import { DomainError, mapDomainError } from "~/server/utils/http";
-import { deleteUserAccount } from "~/server/services/accountDeletionService";
+import { deleteUserAccount } from "~/server/services/auth/accountDeletionService";
 
 export default defineEventHandler(async (event) => {
   try {

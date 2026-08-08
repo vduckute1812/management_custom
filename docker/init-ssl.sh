@@ -3,7 +3,7 @@ set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 SSL_DIR="${DIR}/ssl"
-PUBLIC_IP="${PUBLIC_IP:-27.79.44.74}"
+PUBLIC_IP="${PUBLIC_IP:-27.79.40.21}"
 LAN_IP="${LAN_IP:-192.168.1.4}"
 DAYS="${SSL_DAYS:-825}"
 

@@ -51,7 +51,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
       if (legacyRefresh) {
         // Body fallback still accepted by /api/auth/refresh; sets cookies.
         const session = await $fetch<
-          import("~/composables/useAuth").AuthSession
+          import("~/composables/account/useAuth").AuthSession
         >("/api/auth/refresh", {
           method: "POST",
           body: { refreshToken: legacyRefresh },

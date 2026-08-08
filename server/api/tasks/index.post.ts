@@ -1,7 +1,7 @@
 import { requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { taskUpsertBodySchema } from "~/server/schemas";
-import { saveTaskForUser } from "~/server/services/taskService";
+import { saveTaskForUser } from "~/server/services/time/taskService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

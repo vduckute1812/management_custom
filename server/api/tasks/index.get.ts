@@ -2,7 +2,7 @@ import { getAllTasks, toTaskView } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { parseQuery } from "~/server/utils/http";
 import { tasksListQuerySchema } from "~/server/schemas";
-import { encodeTimestampCursor } from "~/server/db/timestampCursor";
+import { encodeTimestampCursor } from "~/server/db/core/timestampCursor";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

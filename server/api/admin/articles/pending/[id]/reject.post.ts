@@ -1,7 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { pendingArticleRejectBodySchema } from "~/server/schemas";
-import { rejectArticle } from "~/server/services/articleService";
+import { rejectArticle } from "~/server/services/admin/articleService";
 
 /**
  * POST /api/admin/articles/pending/:id/reject

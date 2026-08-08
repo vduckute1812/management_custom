@@ -23,9 +23,9 @@ import {
   upsertMoneyTransaction,
   upsertTask,
 } from "../server/utils/db";
-import { deleteUserAccount } from "../server/services/accountDeletionService";
-import { generateId, nowISO } from "../server/db/ids";
-import { isoToDB } from "../server/db/datetime";
+import { deleteUserAccount } from "../server/services/auth/accountDeletionService";
+import { generateId, nowISO } from "../server/db/core/ids";
+import { isoToDB } from "../server/db/core/datetime";
 
 const VICTIM_EMAIL = "cascade-victim@example.com";
 const PEER_EMAIL = "cascade-peer@example.com";
