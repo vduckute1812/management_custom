@@ -62,7 +62,8 @@ function mapUploadRow(row: UploadRow): UploadRow {
 /**
  * Fetch the upload row only if the viewer may access it.
  * Anonymous: avatar or public-post attachment.
- * Authenticated: own upload, avatar, visible post/story, or chat participant.
+ * Authenticated: cheap own/avatar probe first (no friend-id load); on miss,
+ * full post/story/chat EXISTS tree.
  */
 async function fetchUploadIfAccessible(
   viewerId: string | null,
@@ -96,6 +97,23 @@ async function fetchUploadIfAccessible(
     return row ? mapUploadRow(row) : null;
   }
 
+  // Fast path: own upload or any profile avatar — common on feed first paint.
+  // Skip friend-id lookup + the multi-EXISTS tree when this hits.
+  const [cheapRows] = await pool.query<UploadRow[]>(
+    `SELECT ${selectCols}
+     FROM uploads u
+     WHERE u.id = ?
+       AND (
+         u.user_id = ?
+         OR EXISTS (
+           SELECT 1 FROM users WHERE avatar_upload_id = u.id LIMIT 1
+         )
+       )
+     LIMIT 1`,
+    [uploadId, viewerId],
+  );
+  if (cheapRows[0]) return mapUploadRow(cheapRows[0]);
+
   // Use friendshipCache (invalidated on accept/unfriend) — do not layer a
   // second process-local friend list that would outlive graph mutations.
   const friendIds = await listAcceptedFriendIds(viewerId);
@@ -116,11 +134,7 @@ async function fetchUploadIfAccessible(
      FROM uploads u
      WHERE u.id = ?
        AND (
-         u.user_id = ?
-         OR EXISTS (
-           SELECT 1 FROM users WHERE avatar_upload_id = u.id LIMIT 1
-         )
-         OR EXISTS (
+         EXISTS (
            SELECT 1
            FROM post_attachments pa
            INNER JOIN posts p ON p.id = pa.post_id
@@ -160,7 +174,6 @@ async function fetchUploadIfAccessible(
      LIMIT 1`,
     [
       uploadId,
-      viewerId,
       viewerId,
       viewerId,
       ...friendIds,
