@@ -44,6 +44,28 @@ jobs:
     timeout-minutes: 60
 
     steps:
+      # Self-hosted workspace persists across runs. Empty/corrupt loose objects
+      # (often after SD-card power loss) make `actions/checkout` fetch fail with
+      # "loose object … is empty/corrupt". Heal before checkout; secrets live in
+      # ~/.config/management and are re-linked after a successful checkout.
+      - name: Repair corrupt git workspace
+        run: |
+          set -euo pipefail
+          ws="${GITHUB_WORKSPACE:-.}"
+          if [[ ! -d "${ws}/.git" ]]; then
+            echo "No prior .git — fresh checkout will create it"
+            exit 0
+          fi
+          # Drop zero-byte loose objects that break fetch/fsck.
+          find "${ws}/.git/objects" -type f -size 0 -print -delete 2>/dev/null || true
+          if git -C "${ws}" rev-parse --git-dir >/dev/null 2>&1 \
+            && git -C "${ws}" fsck --no-progress --connectivity-only >/dev/null 2>&1; then
+            echo "git workspace OK"
+            exit 0
+          fi
+          echo "Corrupt git detected — removing .git for a clean checkout"
+          rm -rf "${ws}/.git"
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
