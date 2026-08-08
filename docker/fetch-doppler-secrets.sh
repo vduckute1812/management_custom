@@ -92,10 +92,12 @@ if ! grep -vE '^(DOPPLER_PROJECT|DOPPLER_CONFIG|DOPPLER_ENVIRONMENT)=' "${tmp}" 
 fi
 
 if [[ ! -s "${tmp}.clean" ]]; then
-  die "Doppler config ${CONFIG} has no app secrets yet (only meta keys).
+  log "ERROR: Doppler config ${CONFIG} has no app secrets yet (only meta keys).
 Import the Pi env file into Doppler, then re-run:
   doppler secrets upload ~/.config/management/.env.prod --config ${CONFIG}
-Or Dashboard → ${PROJECT} → ${CONFIG} → Import."
+Or Dashboard → ${PROJECT} → ${CONFIG} → Import.
+Falling back to local secrets dir."
+  exit 2
 fi
 
 # Replace any prior symlink/file so we own a materialised env from Doppler.
