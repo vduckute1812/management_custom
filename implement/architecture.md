@@ -43,7 +43,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Runtime topology
 
-Three product modules share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), **Money** (personal expense ledger), and **Chat** (1:1 DMs). Auth and admin sit across all of them.
+Five product areas share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), **Money** (personal expense ledger), **Chat** (1:1 DMs), and **Friends** (social graph). Auth and admin sit across all of them.
 
 ```
 Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
