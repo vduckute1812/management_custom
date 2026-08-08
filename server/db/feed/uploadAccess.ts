@@ -1,41 +1,62 @@
 /**
  * Upload ACL: viewer access checks (avatar / post / story / chat).
  *
- * Hot path (`resolveUploadForViewer`) loads the row only when ACL passes —
- * one SQL round-trip for owner / avatar / post / story / chat gates.
+ * Positive decisions cache the allowed `UploadRow` for a short TTL so the
+ * download hot path (`resolveUploadForViewer`) can skip SQL on repeat hits.
+ * Denies stay uncached (fail closed). Same ~10s staleness window as before.
  */
 import { listAcceptedFriendIds } from "../friends/friendships";
 import { getPool } from "../core/pool";
 import { PostVisibility, toUploadKind } from "~/types/post";
 import { type UploadRow } from "./uploadShared";
 
-/** Short-lived positive ACL decisions (process-local). */
+/** Short-lived positive ACL + row cache (process-local). */
 const UPLOAD_ACL_TTL_MS = 10_000;
-const uploadAclAllowUntil = new Map<string, number>();
+const UPLOAD_ACL_CACHE_MAX = 500;
 
-function rememberUploadAllow(viewerId: string | null, uploadId: string) {
-  uploadAclAllowUntil.set(
-    `${viewerId ?? ""}:${uploadId}`,
-    Date.now() + UPLOAD_ACL_TTL_MS,
-  );
+type CachedAllow = { until: number; row: UploadRow };
+const uploadAclAllowCache = new Map<string, CachedAllow>();
+
+function cacheKey(viewerId: string | null, uploadId: string): string {
+  return `${viewerId ?? ""}:${uploadId}`;
 }
 
-function wasUploadAllowedRecently(
+function cloneUploadRow(row: UploadRow): UploadRow {
+  return { ...row, kind: toUploadKind(row.kind) };
+}
+
+function rememberUploadAllow(
   viewerId: string | null,
   uploadId: string,
-): boolean {
-  const key = `${viewerId ?? ""}:${uploadId}`;
-  const until = uploadAclAllowUntil.get(key);
-  if (!until) return false;
-  if (until <= Date.now()) {
-    uploadAclAllowUntil.delete(key);
-    return false;
+  row: UploadRow,
+) {
+  if (uploadAclAllowCache.size >= UPLOAD_ACL_CACHE_MAX) {
+    const oldest = uploadAclAllowCache.keys().next().value;
+    if (oldest !== undefined) uploadAclAllowCache.delete(oldest);
   }
-  return true;
+  uploadAclAllowCache.set(cacheKey(viewerId, uploadId), {
+    until: Date.now() + UPLOAD_ACL_TTL_MS,
+    row: cloneUploadRow(row),
+  });
+}
+
+/** Cached allowed row, or null on miss / expiry. Cloned so callers cannot mutate cache. */
+function getCachedAllowedUpload(
+  viewerId: string | null,
+  uploadId: string,
+): UploadRow | null {
+  const key = cacheKey(viewerId, uploadId);
+  const hit = uploadAclAllowCache.get(key);
+  if (!hit) return null;
+  if (hit.until <= Date.now()) {
+    uploadAclAllowCache.delete(key);
+    return null;
+  }
+  return cloneUploadRow(hit.row);
 }
 
 function mapUploadRow(row: UploadRow): UploadRow {
-  return { ...row, kind: toUploadKind(row.kind) };
+  return cloneUploadRow(row);
 }
 
 /**
@@ -163,33 +184,35 @@ export async function canViewerAccessUpload(
   viewerId: string | null,
   uploadId: string,
 ): Promise<boolean> {
-  if (wasUploadAllowedRecently(viewerId, uploadId)) return true;
+  if (getCachedAllowedUpload(viewerId, uploadId)) return true;
   const row = await fetchUploadIfAccessible(viewerId, uploadId);
   if (!row) return false;
-  rememberUploadAllow(viewerId, uploadId);
+  rememberUploadAllow(viewerId, uploadId, row);
   return true;
 }
 
 /**
- * Single round-trip helper for the download route: ACL + row, or null when
- * denied / missing (callers map null → 404).
+ * ACL + row for the download route, or null when denied / missing
+ * (callers map null → 404). Cache hits return the row with no SQL.
  */
 export async function resolveUploadForViewer(
   viewerId: string | null,
   uploadId: string,
 ): Promise<UploadRow | null> {
-  if (wasUploadAllowedRecently(viewerId, uploadId)) {
-    // Cache only stores allow/deny — still need the row for the download path.
-    const { getUploadById } = await import("./uploadCrud");
-    return getUploadById(uploadId);
-  }
+  const cached = getCachedAllowedUpload(viewerId, uploadId);
+  if (cached) return cached;
   const row = await fetchUploadIfAccessible(viewerId, uploadId);
   if (!row) return null;
-  rememberUploadAllow(viewerId, uploadId);
+  rememberUploadAllow(viewerId, uploadId, row);
   return row;
 }
 
 /** Test helper — clear process-local positive upload ACL cache. */
 export function _resetUploadAccessCachesForTests() {
-  uploadAclAllowUntil.clear();
+  uploadAclAllowCache.clear();
+}
+
+/** Test helper — positive-cache entry count (bounded map). */
+export function _uploadAccessCacheSizeForTests() {
+  return uploadAclAllowCache.size;
 }

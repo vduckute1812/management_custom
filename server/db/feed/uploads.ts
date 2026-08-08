@@ -17,6 +17,7 @@ export {
   canViewerAccessUpload,
   resolveUploadForViewer,
   _resetUploadAccessCachesForTests,
+  _uploadAccessCacheSizeForTests,
 } from "./uploadAccess";
 export {
   isUploadReferenced,

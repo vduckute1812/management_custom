@@ -75,6 +75,17 @@ Authenticated feed reads **bypass** the cache entirely (viewer ACL is personal).
 Helpers: `server/utils/cacheInvalidate.ts`
 (`invalidateCategoryCaches`, `invalidatePublicFeedCaches`).
 
+### Process-local ACL helpers (not Redis)
+
+Separate from the cache facade — short TTL `Map`s inside the Nitro process:
+
+| Map                                     | TTL | Purpose                                                                                                    | Invalidation                            |
+| --------------------------------------- | --- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Accepted friend ids (`friendshipCache`) | 60s | Feed/story/upload ACL `IN (…)` lists                                                                       | Bust on accept / unfriend               |
+| Upload ACL allow + row (`uploadAccess`) | 10s | `/api/uploads/:id` hot path — positive decisions cache the allowed `UploadRow` so repeat resolves skip SQL | TTL only (denies uncached; fail closed) |
+
+These are intentional per-process caches: wrong answers expire quickly; denies never poison the map.
+
 ### When to add more cache
 
 Good candidates (short TTL + explicit bust):
