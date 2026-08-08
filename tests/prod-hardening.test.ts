@@ -66,6 +66,21 @@ describe("production hardening invariants", () => {
     expect(wf).not.toContain("sync-doppler");
   });
 
+  it("builds REDIS_URL with an encoded password for compose", () => {
+    const lib = readFileSync(
+      new URL("../docker/lib-compose.sh", import.meta.url),
+      "utf8",
+    );
+    const compose = readFileSync(
+      new URL("../docker/docker-compose.prod.yml", import.meta.url),
+      "utf8",
+    );
+    expect(lib).toContain("urllib.parse.quote");
+    expect(lib).toContain("export REDIS_URL");
+    expect(compose).toContain('REDIS_URL: "${REDIS_URL}"');
+    expect(compose).not.toContain("redis://:${REDIS_PASSWORD}@");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });

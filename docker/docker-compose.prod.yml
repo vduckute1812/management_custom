@@ -31,7 +31,7 @@ services:
       # Forces redis even if an old .env.prod left CACHE_DRIVER=memory.
       # NOTE: host.containers.internal → 127.0.0.1 publishes does NOT work on
       # Linux Podman (loopback binds are invisible from the bridge gateway).
-      REDIS_URL: "redis://:${REDIS_PASSWORD}@${LAN_IP:-192.168.1.4}:6379/0"
+      REDIS_URL: "${REDIS_URL}"
       CACHE_DRIVER: "redis"
       # Do NOT default ALLOW_ROOT_DB here. If DB_USER is still root, set
       # ALLOW_ROOT_DB=1 in docker/.env.prod until the app user cutover.
