@@ -1,8 +1,8 @@
 # Personal Task & Analytics Manager
 
-A local-first productivity tool with three surfaces on one install: **Time Management** (plan the week, log sessions, analytics), **Feed** (posts, stories, reactions), and **Chat** (direct messages with emoji and stickers). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
+A local-first productivity tool with five product areas on one install: **Time Management** (plan the week, log sessions, analytics), **Feed** (posts, stories, reactions), **Money** (personal ledger, budgets, savings), **Chat** (direct messages with emoji and stickers), and **Friends** (requests that gate chat and sharing). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
 
-> **Design ethos.** Single-user simplicity for tasks; multi-user safety by default. Epics, tasks, time blocks, and the timer are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Chat is private 1:1 between signed-in members. Admins additionally see a roll-up dashboard across every user.
+> **Design ethos.** Single-user simplicity for tasks and money; multi-user safety by default. Epics, tasks, time blocks, the timer, and the Money ledger are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Chat is private 1:1 between signed-in members who are friends. Admins additionally see a roll-up dashboard across every user.
 
 > Looking for the engineering side — installation, schema, API, code layout? Head to [`implement/`](./implement/README.md). This document is the **product** description; everything code-shaped lives over there.
 
@@ -37,7 +37,7 @@ These five principles are the lens for every product decision. When in doubt, ra
 
 1. **Local & owned.** Primary data lives in a MySQL database you administer. Optional Cloudflare R2 holds feed/story attachments, chat photos/voice notes, and profile avatars when media is enabled — still under your account, not a multi-tenant SaaS. No telemetry. JSON / CSV / iCal export for tasks is one click away in `Settings → Your data`.
 2. **Calm by default.** No gamification badges or dopamine loops. Chat unread counts and opt-in pre-task alerts exist only as practical signals you control — the tool otherwise waits patiently and reports faithfully.
-3. **One screen, one job.** Hub picks a module. Time Management plans on `/tasks`. Feed shares on `/feed`. Chat messages on `/chat`. Analytics reflects. We resist cramming "everything everywhere."
+3. **One screen, one job.** Hub picks a module; the module sidebar keeps you inside that area. Time Management plans on `/tasks`. Feed shares on `/feed`. Money tracks spend on `/money` (budgets `/money/budgets`, savings `/money/savings`). Chat messages on `/chat`. Friends manage the social graph on `/friends`. Analytics reflects. We resist cramming "everything everywhere."
 4. **Keyboard-first.** Every primary action has a shortcut. The mouse is a fallback, not the contract.
 5. **Honest math.** Aggregates are always computed, never stored. If two views show different numbers, the tool is broken — not "eventually consistent."
 
@@ -47,13 +47,14 @@ A useful negative principle: **no gamification.** Streaks, points, and combos wo
 
 ## Who It's For
 
-| Persona               | What they need                                                                      |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| **The Maker**         | A weekly canvas for deep work, with honest data on whether estimates match reality. |
-| **The Researcher**    | Long-running Epics (months) with many small, mixed tasks underneath.                |
-| **The Solo Operator** | Visibility across projects without the ceremony of Jira or Notion databases.        |
+| Persona                | What they need                                                                      |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| **The Maker**          | A weekly canvas for deep work, with honest data on whether estimates match reality. |
+| **The Researcher**     | Long-running Epics (months) with many small, mixed tasks underneath.                |
+| **The Solo Operator**  | Visibility across projects without the ceremony of Jira or Notion databases.        |
+| **The Household lead** | A private money ledger (spend, budgets, savings) next to the weekly plan.           |
 
-Not for: client handoff, billing, or multi-tenant team workflows. Install members can share Feed posts and chat 1:1 with each other.
+Not for: client handoff, invoicing other people, or multi-tenant team workflows. Install members can become Friends, share Feed posts with specific people, and chat 1:1 with each other. Money stays per-account — it is not shared billing.
 
 ---
 
@@ -86,6 +87,14 @@ Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **publi
 ### Chat with other members
 
 Open **Chat** (`g c` or the header link when signed in). Search for a person by name or email, start a 1:1 conversation, and send text, stickers, **photos**, or **voice notes**; emoji from the picker insert into your draft before you send. Images and audio go through the same upload pipeline as the Feed (Cloudflare R2). Scroll up in a thread to load older messages. Long-press a bubble to react with an emoji; chips under the bubble show aggregates. Conversations stay private to the two participants. When the other person has read your messages, a **Read** label appears. Unread counts show on the conversation list and as a badge on **Chat** in the header; new messages also trigger an in-app toast (and a desktop notification if you have granted permission).
+
+### Track money
+
+Open **Money** (`g m` or the module nav). The ledger at `/money` records income and expenses in integer minor units of your profile currency (VND / USD / CNY / TWD — change anytime in Settings; historical amounts are not converted). Built-in and custom categories power filters and charts. **Budgets** (`/money/budgets`) set an overall or per-category monthly cap and show spend vs limit. **Savings** (`/money/savings`) tracks goals with contributions and progress. Export CSV/JSON from the Money toolbar when you need a snapshot outside the app.
+
+### Friends
+
+Open **Friends** from the Feed/Friends module nav (or command palette). Send and accept friend requests, decline, or unfriend. Friendship is the gate for starting Chat threads and for Feed visibility aimed at specific people — not a public social network.
 
 ### Edit your profile
 
@@ -198,13 +207,13 @@ Epics carry an optional `color` (`brand` | `sky` | `emerald` | `amber` | `rose` 
 
 ## Roles & Permissions
 
-| Role         | Sees                                                                       | Can do                                                                                                                                                                             |
-| ------------ | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normal`     | Own epics/tasks/timer; Feed per visibility rules; Chat with other members. | Full Time Management for own data; create/react/comment on the Feed; DM other users.                                                                                               |
-| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.              | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
-| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account.          | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
+| Role         | Sees                                                                                      | Can do                                                                                                                                                                             |
+| ------------ | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normal`     | Own epics/tasks/timer/Money; Feed per visibility rules; Chat with friends; Friends graph. | Full Time Management and Money for own data; create/react/comment on the Feed; DM friends; manage friend requests.                                                                 |
+| `admin`      | Everything `normal` sees, plus a system-wide admin dashboard.                             | Promote/demote other users between `admin` ↔ `normal`, view per-user roll-ups & charts.                                                                                            |
+| `superadmin` | Same as `admin`. Exactly one per install — the bootstrap account.                         | Everything `admin` can, plus owner-only ops (e.g. permanently delete a user). Role is **never assignable through the UI**: seeded by `npm run migrate:auth` and cannot be demoted. |
 
-Time Management is private per account. The Feed is the intentional shared surface (with public guest browse). Chat is private 1:1 between signed-in members. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
+Time Management and Money are private per account. The Feed is the intentional shared surface (with public guest browse). Friends are the social graph for Chat and selective Feed sharing. Chat is private 1:1 between signed-in friends. The superadmin is created once at install time (see [`implement/auth.md`](./implement/auth.md)); after that, admins promote other admins through the app.
 
 ---
 
@@ -214,19 +223,20 @@ A small system on purpose. Fewer choices, more consistency.
 
 ### Color tokens
 
-| Role              | Token             | Notes                          |
-| ----------------- | ----------------- | ------------------------------ |
-| Brand             | `--color-brand-*` | Indigo scale (50–900)          |
-| Surface base      | `slate-50`        | Body background                |
-| Surface elevated  | `white`           | Cards, modals, calendar cells  |
-| Border / hairline | `slate-200`       | Default 1px ring               |
-| Text primary      | `slate-900`       | Body                           |
-| Text secondary    | `slate-500`       | Meta, labels                   |
-| Success           | `emerald-500`     | Done status, positive variance |
-| Warning           | `amber-500`       | In-progress                    |
-| Danger            | `rose-500`        | Overdue, destructive actions   |
+| Role              | Token             | Notes                                                                                              |
+| ----------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| Brand             | `--color-brand-*` | Indigo scale (50–900) — app chrome, CTAs, hub ambient, Money shell                                 |
+| Surface base      | `slate-50`        | Body background                                                                                    |
+| Surface elevated  | `white`           | Cards, modals, calendar cells                                                                      |
+| Border / hairline | `slate-200`       | Default 1px ring                                                                                   |
+| Text primary      | `slate-900`       | Body                                                                                               |
+| Text secondary    | `slate-500`       | Meta, labels                                                                                       |
+| Success           | `emerald-500`     | Done status, positive variance                                                                     |
+| Warning           | `amber-500`       | In-progress                                                                                        |
+| Danger            | `rose-500`        | Overdue, destructive actions                                                                       |
+| Manuscript / Feed | `--mf-*`          | Sage paper/ink/accent **scoped** to manuscript cards and Feed reading surfaces — not global chrome |
 
-**Epic accent colors:** `sky`, `emerald`, `amber`, `rose`, `violet`, `slate`. Each ships as a pre-resolved Tailwind pair (`bg-*-100 text-*-800`) so accent classes are statically detectable at build time.
+**Epic accent colors:** `sky`, `emerald`, `amber`, `rose`, `violet`, `slate`. Each ships as a pre-resolved Tailwind pair (`bg-*-100 text-*-800`) so accent classes are statically detectable at build time. Violet here is an epic chip only — hub ambient and chrome stay brand indigo.
 
 **Contrast.** All text/background pairs target WCAG 2.1 AA (4.5:1 for body, 3:1 for ≥18px). Status pills are tested against their own backgrounds, not the page.
 
@@ -357,6 +367,9 @@ Every screen has four states. The README — and the code — must specify all f
 | Analytics                  | Friendly message: "We'll show velocity after you log a few blocks."                            |
 | Up next sidebar            | Italic "Nothing scheduled. Create your first task!"                                            |
 | Calendar day               | Hint cell "Click to plan a block"                                                              |
+| Money ledger               | CTA to add the first transaction for the month                                                 |
+| Money budgets / savings    | Prompt to create a budget or savings goal                                                      |
+| Friends                    | Empty list with search to find install members                                                 |
 
 ### Loading
 
@@ -399,6 +412,7 @@ Cross-platform: `Mod` = `Cmd` on macOS, `Ctrl` elsewhere.
 | `g a`       | Go to Analytics                         |
 | `g f`       | Go to Feed                              |
 | `g c`       | Go to Chat                              |
+| `g m`       | Go to Money (`/money`)                  |
 
 ### Calendar
 

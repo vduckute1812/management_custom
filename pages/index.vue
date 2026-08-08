@@ -40,7 +40,7 @@ function catLabel(cat: { slug: string; name: string }) {
         class="absolute -left-24 -top-40 h-[30rem] w-[30rem] rounded-full bg-brand-200/40 blur-3xl home-ambient-brand"
       />
       <div
-        class="absolute -right-20 top-10 h-[26rem] w-[26rem] rounded-full bg-violet-100/60 blur-3xl home-ambient-violet"
+        class="absolute -right-20 top-10 h-[26rem] w-[26rem] rounded-full bg-brand-100/50 blur-3xl home-ambient-brand"
       />
       <div
         class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-300 to-transparent"

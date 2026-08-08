@@ -1,9 +1,4 @@
-import type {
-  ChatConversation,
-  ChatMessage,
-  ChatMessageReactionType,
-  ChatSticker,
-} from "~/types/chat";
+import type { ChatConversation, ChatMessage, ChatSticker } from "~/types/chat";
 import { createChatMessageActions } from "~/composables/chat/chatMessageActions";
 import {
   threadLive,
@@ -12,6 +7,8 @@ import {
   applyPeerRead,
   normalizeMessage,
 } from "~/composables/chat/chatThreadLive";
+import { createChatConversationsApi } from "~/composables/chat/chatConversationsApi";
+import { createChatThreadState } from "~/composables/chat/chatThreadState";
 
 export const useChat = () => {
   const { t } = useSafeI18n();
@@ -62,236 +59,6 @@ export const useChat = () => {
     () => conversations.value.find((c) => c.id === activeId.value) ?? null,
   );
 
-  async function refreshConversations() {
-    loadingConversations.value = true;
-    error.value = null;
-    try {
-      const res = await apiFetch<{
-        conversations: ChatConversation[];
-        unreadTotal: number;
-        nextCursor: string | null;
-      }>("/api/chat/conversations", { query: { limit: 50 } });
-      const currentActive = activeId.value
-        ? conversations.value.find((c) => c.id === activeId.value)
-        : null;
-      conversations.value =
-        currentActive &&
-        !res.conversations.some((c) => c.id === currentActive.id)
-          ? [...res.conversations, currentActive]
-          : res.conversations;
-      unreadTotal.value = res.unreadTotal;
-      conversationsNextCursor.value = res.nextCursor;
-      if (activeId.value) {
-        const active = res.conversations.find((c) => c.id === activeId.value);
-        if (active?.peerLastReadAt !== undefined) {
-          peerLastReadAt.value = active.peerLastReadAt;
-          messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-        }
-      }
-    } catch (err) {
-      error.value =
-        (err as { statusMessage?: string })?.statusMessage ||
-        t("chat.failedToLoadConversations");
-      throw err;
-    } finally {
-      loadingConversations.value = false;
-    }
-  }
-
-  async function loadMoreConversations() {
-    if (
-      !conversationsNextCursor.value ||
-      loadingMoreConversations.value ||
-      loadingConversations.value
-    ) {
-      return;
-    }
-    loadingMoreConversations.value = true;
-    try {
-      const res = await apiFetch<{
-        conversations: ChatConversation[];
-        unreadTotal: number;
-        nextCursor: string | null;
-      }>("/api/chat/conversations", {
-        query: { limit: 50, cursor: conversationsNextCursor.value },
-      });
-      const seen = new Set(conversations.value.map((c) => c.id));
-      conversations.value = [
-        ...conversations.value,
-        ...res.conversations.filter((c) => !seen.has(c.id)),
-      ];
-      unreadTotal.value = res.unreadTotal;
-      conversationsNextCursor.value = res.nextCursor;
-    } finally {
-      loadingMoreConversations.value = false;
-    }
-  }
-
-  async function ensureCatalog() {
-    if (stickers.value.length && emoji.value.length) return;
-    const res = await apiFetch<{ stickers: ChatSticker[]; emoji: string[] }>(
-      "/api/chat/catalog",
-    );
-    stickers.value = res.stickers;
-    emoji.value = res.emoji;
-  }
-
-  function touchSidebar(message: ChatMessage) {
-    const conv = conversations.value.find(
-      (c) => c.id === message.conversationId,
-    );
-    if (!conv) return;
-    conv.lastMessage = message;
-    conv.lastMessageAt = message.createdAt;
-    conversations.value = [
-      conv,
-      ...conversations.value.filter((c) => c.id !== conv.id),
-    ];
-  }
-
-  function ingestMessage(message: ChatMessage, opts?: { fromSelf?: boolean }) {
-    if (messages.value.some((m) => m.id === message.id)) return;
-    const normalized = normalizeMessage(message, {
-      fromSelf: opts?.fromSelf,
-      myId: auth.user.value?.id,
-    });
-    const withRead = applyPeerRead(
-      [...messages.value, normalized],
-      peerLastReadAt.value,
-    );
-    messages.value = withRead;
-    touchSidebar(withRead[withRead.length - 1] ?? normalized);
-
-    if (
-      !normalized.mine &&
-      activeId.value &&
-      message.conversationId === activeId.value
-    ) {
-      void apiFetch(`/api/chat/conversations/${activeId.value}/read`, {
-        method: "POST",
-      }).catch(() => undefined);
-      void refreshConversations().catch(() => undefined);
-    }
-  }
-
-  const messageActions = createChatMessageActions({
-    activeId,
-    messages,
-    conversations,
-    sending,
-    apiFetch,
-    ingestMessage,
-  });
-
-  function applyReadEvent(userId: string, lastReadAt: string) {
-    const myId = auth.user.value?.id;
-    if (!myId || userId === myId) return;
-    peerLastReadAt.value = lastReadAt;
-    messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-    const conv = conversations.value.find((c) => c.id === activeId.value);
-    if (conv) conv.peerLastReadAt = lastReadAt;
-  }
-
-  function applyReactionEvent(payload: {
-    messageId: string;
-    conversationId: string;
-    userId: string;
-    reaction: ChatMessageReactionType | null;
-    reactions: Record<ChatMessageReactionType, number>;
-    reactionCount: number;
-  }) {
-    if (activeId.value && payload.conversationId !== activeId.value) {
-      return;
-    }
-    const myId = auth.user.value?.id;
-    messages.value = messages.value.map((m) => {
-      if (m.id !== payload.messageId) return m;
-      return {
-        ...m,
-        reactions: payload.reactions,
-        reactionCount: payload.reactionCount,
-        myReaction:
-          myId && payload.userId === myId ? payload.reaction : m.myReaction,
-      };
-    });
-  }
-
-  function applyDeletedEvent(payload: {
-    messageId: string;
-    conversationId: string;
-  }) {
-    if (activeId.value && payload.conversationId !== activeId.value) {
-      return;
-    }
-    messages.value = messages.value.filter((m) => m.id !== payload.messageId);
-
-    const conv = conversations.value.find(
-      (c) => c.id === payload.conversationId,
-    );
-    if (conv?.lastMessage?.id === payload.messageId) {
-      const remaining = messages.value;
-      conv.lastMessage =
-        remaining.length > 0 ? (remaining[remaining.length - 1] ?? null) : null;
-    }
-  }
-
-  async function pollNewMessages() {
-    if (!activeId.value) return;
-    const last = messages.value[messages.value.length - 1];
-    if (!last) {
-      await openConversation(activeId.value);
-      return;
-    }
-    try {
-      const res = await apiFetch<{
-        messages: ChatMessage[];
-        hasMore: boolean;
-        peerLastReadAt: string | null;
-      }>(`/api/chat/conversations/${activeId.value}/messages`, {
-        query: { limit: 50, after: last.id },
-      });
-      if (res.peerLastReadAt !== undefined) {
-        peerLastReadAt.value = res.peerLastReadAt;
-      }
-      messages.value = applyPeerRead(messages.value, peerLastReadAt.value);
-
-      if (!res.messages.length) return;
-
-      const existing = new Set(messages.value.map((m) => m.id));
-      const fresh = res.messages.filter((m) => !existing.has(m.id));
-      for (const msg of fresh) {
-        ingestMessage(msg);
-      }
-    } catch {
-      // Fallback / catch-up failures are non-fatal
-    }
-  }
-
-  // Keep singleton handlers pointed at this call's closures (shared useState).
-  threadLive.onMessage = (message) => ingestMessage(message);
-  threadLive.onRead = (userId, lastReadAt) =>
-    applyReadEvent(userId, lastReadAt);
-  threadLive.onReaction = (payload) => applyReactionEvent(payload);
-  threadLive.onDeleted = (payload) => applyDeletedEvent(payload);
-  threadLive.onCatchUp = () => pollNewMessages();
-
-  async function startConversation(peerUserId: string) {
-    const res = await apiFetch<{ conversation: ChatConversation }>(
-      "/api/chat/conversations",
-      { method: "POST", body: { peerUserId } },
-    );
-    const existing = conversations.value.find(
-      (c) => c.id === res.conversation.id,
-    );
-    if (!existing) {
-      conversations.value = [res.conversation, ...conversations.value];
-    } else {
-      Object.assign(existing, res.conversation);
-    }
-    await openConversation(res.conversation.id);
-    return res.conversation;
-  }
-
   async function openConversation(id: string) {
     activeId.value = id;
     loadingMessages.value = true;
@@ -331,6 +98,51 @@ export const useChat = () => {
     // Always retarget when live is on — works across page + inbox plugin calls.
     if (threadLive.enabled) connectThreadStream(id);
   }
+
+  const conversationsApi = createChatConversationsApi({
+    conversations,
+    unreadTotal,
+    conversationsNextCursor,
+    activeId,
+    peerLastReadAt,
+    messages,
+    loadingConversations,
+    loadingMoreConversations,
+    stickers,
+    emoji,
+    error,
+    apiFetch,
+    t,
+    openConversation,
+  });
+
+  const threadState = createChatThreadState({
+    conversations,
+    messages,
+    activeId,
+    peerLastReadAt,
+    myId: () => auth.user.value?.id,
+    apiFetch,
+    refreshConversations: conversationsApi.refreshConversations,
+    openConversation,
+  });
+
+  const messageActions = createChatMessageActions({
+    activeId,
+    messages,
+    conversations,
+    sending,
+    apiFetch,
+    ingestMessage: threadState.ingestMessage,
+  });
+
+  // Keep singleton handlers pointed at this call's closures (shared useState).
+  threadLive.onMessage = (message) => threadState.ingestMessage(message);
+  threadLive.onRead = (userId, lastReadAt) =>
+    threadState.applyReadEvent(userId, lastReadAt);
+  threadLive.onReaction = (payload) => threadState.applyReactionEvent(payload);
+  threadLive.onDeleted = (payload) => threadState.applyDeletedEvent(payload);
+  threadLive.onCatchUp = () => threadState.pollNewMessages();
 
   async function loadOlderMessages() {
     if (
@@ -409,16 +221,16 @@ export const useChat = () => {
     stickers,
     emoji,
     error,
-    refreshConversations,
-    loadMoreConversations,
-    ensureCatalog,
-    startConversation,
+    refreshConversations: conversationsApi.refreshConversations,
+    loadMoreConversations: conversationsApi.loadMoreConversations,
+    ensureCatalog: conversationsApi.ensureCatalog,
+    startConversation: conversationsApi.startConversation,
     openConversation,
     loadOlderMessages,
     ...messageActions,
     startPolling,
     stopPolling,
     closeConversation,
-    pollNewMessages,
+    pollNewMessages: threadState.pollNewMessages,
   };
 };

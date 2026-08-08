@@ -47,7 +47,9 @@ const submitting = ref(false);
 const errorMsg = ref<string | null>(null);
 const deleteConfirmOpen = ref(false);
 const rootEl = ref<HTMLElement | null>(null);
-const amountInput = ref<HTMLInputElement | null>(null);
+const formFields = ref<{
+  amountInputEl: () => HTMLInputElement | null;
+} | null>(null);
 const fid = useId();
 
 watch(
@@ -82,7 +84,7 @@ watch(
 const isOpen = computed(() => props.open);
 useModal(isOpen, {
   container: rootEl,
-  initialFocus: amountInput,
+  initialFocus: () => formFields.value?.amountInputEl() ?? null,
   onClose: () => {
     if (deleteConfirmOpen.value) deleteConfirmOpen.value = false;
     else emit("close");
@@ -172,147 +174,30 @@ async function onDelete() {
           @mousedown.stop
         >
           <div :inert="deleteConfirmOpen">
-            <header
-              class="flex items-center justify-between border-b border-slate-200 px-6 py-4"
-            >
-              <h2
-                id="budget-modal-title"
-                class="text-lg font-semibold text-slate-900"
-              >
-                {{
-                  form.id
-                    ? $t("money.budgets.modal.editTitle")
-                    : $t("money.budgets.modal.newTitle")
-                }}
-              </h2>
-              <button
-                type="button"
-                class="text-slate-400 transition hover:text-slate-700"
-                :aria-label="$t('money.budgets.modal.close')"
-                @click="emit('close')"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  class="h-5 w-5"
-                >
-                  <path d="M6 6l12 12M6 18L18 6" stroke-linecap="round" />
-                </svg>
-              </button>
-            </header>
-
-            <form class="space-y-4 px-6 py-5" @submit.prevent="onSubmit">
-              <div class="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
-                  :class="
-                    form.scope === MoneyBudgetScope.Overall
-                      ? 'money-chip--active ring-1'
-                      : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-                  "
-                  :aria-pressed="form.scope === MoneyBudgetScope.Overall"
-                  @click="form.scope = MoneyBudgetScope.Overall"
-                >
-                  {{ $t("money.budgets.scope.overall") }}
-                </button>
-                <button
-                  type="button"
-                  class="rounded-lg px-3 py-2 text-sm font-semibold ring-1 transition"
-                  :class="
-                    form.scope === MoneyBudgetScope.Category
-                      ? 'money-chip--active ring-1'
-                      : 'bg-white text-slate-600 ring-slate-200 hover:bg-slate-50'
-                  "
-                  :aria-pressed="form.scope === MoneyBudgetScope.Category"
-                  @click="form.scope = MoneyBudgetScope.Category"
-                >
-                  {{ $t("money.budgets.scope.category") }}
-                </button>
-              </div>
-
-              <div v-if="form.scope === MoneyBudgetScope.Category">
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="`${fid}-cat`"
-                >
-                  {{ $t("money.budgets.modal.category") }}
-                </label>
-                <MoneyCategorySelect
-                  :id="`${fid}-cat`"
-                  :model-value="form.categoryPick"
-                  mode="expense"
-                  allow-create
-                  @update:model-value="
-                    (v) => {
-                      if (v != null) form.categoryPick = v;
-                    }
-                  "
-                />
-              </div>
-
-              <div>
-                <label
-                  class="mb-1 block text-xs font-medium text-slate-600"
-                  :for="`${fid}-amt`"
-                >
-                  {{ $t("money.budgets.modal.amount") }}
-                </label>
-                <input
-                  :id="`${fid}-amt`"
-                  ref="amountInput"
-                  v-model="form.amountText"
-                  type="text"
-                  inputmode="numeric"
-                  required
-                  :placeholder="$t('money.budgets.modal.amountPlaceholder')"
-                  class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
-                />
-              </div>
-
-              <p
-                v-if="errorMsg"
-                class="rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700"
-                role="alert"
-              >
-                {{ errorMsg }}
-              </p>
-
-              <div class="flex items-center justify-between gap-2 pt-1">
-                <button
-                  v-if="form.id"
-                  type="button"
-                  class="text-xs font-semibold text-rose-600 hover:text-rose-700"
-                  :disabled="submitting"
-                  @click="deleteConfirmOpen = true"
-                >
-                  {{ $t("money.budgets.modal.delete") }}
-                </button>
-                <div v-else />
-                <div class="flex gap-2">
-                  <button
-                    type="button"
-                    class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                    @click="emit('close')"
-                  >
-                    {{ $t("money.budgets.modal.cancel") }}
-                  </button>
-                  <button
-                    type="submit"
-                    class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                    :disabled="submitting"
-                  >
-                    {{
-                      submitting
-                        ? $t("money.budgets.modal.saving")
-                        : $t("money.budgets.modal.save")
-                    }}
-                  </button>
-                </div>
-              </div>
+            <MoneyBudgetModalHeader
+              :budget-id="form.id"
+              @close="emit('close')"
+            />
+            <form @submit.prevent="onSubmit">
+              <MoneyBudgetModalForm
+                ref="formFields"
+                :scope="form.scope"
+                :category-pick="form.categoryPick"
+                :amount-text="form.amountText"
+                :amount-input-id="`${fid}-amt`"
+                :category-input-id="`${fid}-cat`"
+                :error-msg="errorMsg"
+                @update:scope="form.scope = $event"
+                @update:category-pick="form.categoryPick = $event"
+                @update:amount-text="form.amountText = $event"
+              />
+              <MoneyBudgetModalFooter
+                :budget-id="form.id"
+                :submitting="submitting"
+                @cancel="emit('close')"
+                @delete="deleteConfirmOpen = true"
+                @save="onSubmit"
+              />
             </form>
           </div>
 
