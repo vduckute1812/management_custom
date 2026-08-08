@@ -216,7 +216,9 @@ defineExpose({ scrollToBottom });
       />
     </div>
 
-    <div v-if="loading && !messages.length" class="space-y-3" aria-busy="true">
+    <!-- Keep the skeleton up for the whole load so the newest page never
+         flashes at scrollTop=0 before pinToNewest runs. -->
+    <div v-if="loading" class="space-y-3" aria-busy="true">
       <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-2/3" />
       <SkeletonBlock height="h-10" rounded="rounded-2xl" class="mr-8 w-1/2" />
       <SkeletonBlock height="h-10" rounded="rounded-2xl" class="ml-8 w-3/5" />
