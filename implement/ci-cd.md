@@ -89,6 +89,10 @@ If the Pi secrets file predates Redis auth and the key is missing/empty,
 `docker/link-secrets.sh` (and `mgmt_compose`) mint one with `openssl rand`
 into the canonical secrets file — no manual SSH step.
 
+If `DB_USER` is still `root`, the same helpers set `ALLOW_ROOT_DB=1` so
+production `pool.ts` will start (with a logged warning). Prefer cutting over
+to the least-privilege `mgmt` user via `docker/mysql-create-app-user.sql`.
+
 ### 4. Trigger a deploy
 
 - Push to `master`, or
