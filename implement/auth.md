@@ -110,7 +110,7 @@ Settings → Danger zone opens `DeleteAccountModal`: the user must type their ow
 - **Password reset** — same one-shot opaque-token pattern as verification, stored in `auth_password_resets` (1-hour TTL). `POST /api/auth/forgot-password` always returns `{ ok: true }` (no account enumeration); email is sent only when the account exists and is verified. `POST /api/auth/reset-password` consumes the token, updates `password_hash`, and revokes all refresh sessions — the user signs in manually afterward. Client pages: `/forgot-password`, `/reset-password?token=…`.
 - **Signup password policy** — shared `utils/passwordPolicy.ts`: min 8 chars + lower + upper + digit + special. Enforced on the client (confirm field + checklist) and again on `POST /api/auth/signup` and `POST /api/auth/reset-password`.
 
-The client (`composables/useApi.ts`) auto-attaches the access token on every request (and always sends credentials), proactively refreshes it within 30 s of expiry via the cookie, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
+The client (`composables/shared/useApi.ts`) auto-attaches the access token on every request (and always sends credentials), proactively refreshes it within 30 s of expiry via the cookie, and on a 401 attempts one refresh-and-retry before bouncing to `/login?redirect=…`. A single in-flight `_refreshInFlight` promise coalesces concurrent refresh attempts so a burst of expired-token requests only causes one refresh round-trip.
 
 ---
 

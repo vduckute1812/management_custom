@@ -1,6 +1,6 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
-import { regenerateArticle } from "~/server/services/articleService";
+import { regenerateArticle } from "~/server/services/admin/articleService";
 
 /**
  * POST /api/admin/articles/pending/:id/regenerate

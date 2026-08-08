@@ -15,7 +15,7 @@ import {
   purgeOldJobs,
   purgeSensitiveEmailJobs,
   requeueStaleJobs,
-} from "../db/jobs";
+} from "../db/core/jobs";
 import { processJob } from "../utils/queue";
 
 function envBool(name: string, fallback: boolean): boolean {
@@ -62,7 +62,7 @@ export default defineNitroPlugin((nitroApp) => {
         // nobody opens the tray. Run inline (cheap SELECT) rather than
         // enqueueing a self-job that needs another tick.
         try {
-          const { purgeExpiredStories } = await import("../db/stories");
+          const { purgeExpiredStories } = await import("../db/feed/stories");
           const purged = await purgeExpiredStories();
           if (purged.stories > 0 || purged.uploads > 0) {
             console.info(
@@ -79,11 +79,11 @@ export default defineNitroPlugin((nitroApp) => {
         // they are the fastest-growing tables in the system.
         try {
           const { purgeExpiredRefreshTokens } =
-            await import("../db/refresh-tokens");
+            await import("../db/auth/refresh-tokens");
           const { purgeStaleEmailVerifications } =
-            await import("../db/email-verifications");
+            await import("../db/auth/email-verifications");
           const { purgeStalePasswordResets } =
-            await import("../db/password-resets");
+            await import("../db/auth/password-resets");
           const refresh = await purgeExpiredRefreshTokens();
           const verify = await purgeStaleEmailVerifications();
           const reset = await purgeStalePasswordResets();
@@ -104,7 +104,8 @@ export default defineNitroPlugin((nitroApp) => {
         maintenanceTicks += 1;
         if (maintenanceTicks % 15 === 0) {
           try {
-            const { recountCommentCounts } = await import("../db/postComments");
+            const { recountCommentCounts } =
+              await import("../db/feed/postComments");
             const fixed = await recountCommentCounts();
             if (fixed > 0) {
               console.info(`[queue] comment_count drift fixed posts=${fixed}`);
@@ -119,7 +120,7 @@ export default defineNitroPlugin((nitroApp) => {
         // Daily article pipeline — enqueue once after ARTICLES_FETCH_HOUR_UTC.
         try {
           const { maybeScheduleDailyArticleFetch } =
-            await import("../services/articleService");
+            await import("../services/admin/articleService");
           await maybeScheduleDailyArticleFetch();
         } catch (err) {
           console.warn(

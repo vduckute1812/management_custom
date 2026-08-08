@@ -1,6 +1,6 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { cacheDriverName } from "~/server/utils/cache";
-import { countJobsByStatus } from "~/server/db/jobs";
+import { countJobsByStatus } from "~/server/db/core/jobs";
 
 /**
  * GET /api/admin/queue — admin only.

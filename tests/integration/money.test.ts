@@ -9,15 +9,15 @@ import {
   getMoneySavingsGoalById,
   listMoneySavingsGoals,
   upsertMoneySavingsGoal,
-} from "../../server/db/moneySavings";
+} from "../../server/db/money/moneySavings";
 import {
   copyMoneyBudgetsFromMonth,
   deleteMoneyBudget,
   listMoneyBudgets,
   upsertMoneyBudget,
-} from "../../server/db/moneyBudgets";
+} from "../../server/db/money/moneyBudgets";
 import { createUser } from "../../server/utils/db";
-import { deleteUserAccount } from "../../server/services/accountDeletionService";
+import { deleteUserAccount } from "../../server/services/auth/accountDeletionService";
 import {
   MoneyBudgetScope,
   MoneyCategory,

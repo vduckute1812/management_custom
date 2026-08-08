@@ -15,7 +15,7 @@ describe("production hardening invariants", () => {
     "utf8",
   );
   const pool = readFileSync(
-    new URL("../server/db/pool.ts", import.meta.url),
+    new URL("../server/db/core/pool.ts", import.meta.url),
     "utf8",
   );
   const ci = readFileSync(
@@ -59,23 +59,23 @@ describe("production hardening invariants", () => {
 
   it("caps unbounded admin/story list queries", () => {
     const stories = readFileSync(
-      new URL("../server/db/storiesRead.ts", import.meta.url),
+      new URL("../server/db/feed/storiesRead.ts", import.meta.url),
       "utf8",
     );
     const admin = readFileSync(
-      new URL("../server/db/admin.ts", import.meta.url),
+      new URL("../server/db/admin/admin.ts", import.meta.url),
       "utf8",
     );
     const savings = readFileSync(
-      new URL("../server/db/moneySavings.ts", import.meta.url),
+      new URL("../server/db/money/moneySavings.ts", import.meta.url),
       "utf8",
     );
     const tasks = readFileSync(
-      new URL("../server/db/tasks.ts", import.meta.url),
+      new URL("../server/db/time/tasks.ts", import.meta.url),
       "utf8",
     );
     const categories = readFileSync(
-      new URL("../server/db/moneyUserCategories.ts", import.meta.url),
+      new URL("../server/db/money/moneyUserCategories.ts", import.meta.url),
       "utf8",
     );
     expect(stories).toContain("STORIES_TRAY_MAX");
@@ -86,11 +86,11 @@ describe("production hardening invariants", () => {
     expect(tasks).toContain("TASKS_UNSCOPED_MAX");
     expect(categories).toContain("MONEY_USER_CATEGORIES_MAX");
     const friends = readFileSync(
-      new URL("../server/db/friendships.ts", import.meta.url),
+      new URL("../server/db/friends/friendships.ts", import.meta.url),
       "utf8",
     );
     const storyInsights = readFileSync(
-      new URL("../server/db/stories.ts", import.meta.url),
+      new URL("../server/db/feed/stories.ts", import.meta.url),
       "utf8",
     );
     expect(friends).toContain("ACCEPTED_FRIEND_IDS_MAX");

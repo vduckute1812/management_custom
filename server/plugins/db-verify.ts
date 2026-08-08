@@ -1,4 +1,4 @@
-import { verifyMigrationsApplied } from "../db/migrator";
+import { verifyMigrationsApplied } from "../db/core/migrator";
 
 /**
  * Nitro server plugin: verify the database schema is up-to-date before

@@ -1,9 +1,9 @@
 import { cpus, freemem, loadavg, totalmem, type } from "node:os";
 import { hrtime } from "node:process";
 import { statfs } from "node:fs/promises";
-import { getPool } from "~/server/db/pool";
-import { migrationStatus } from "~/server/db/migrator";
-import { countJobsByStatus } from "~/server/db/jobs";
+import { getPool } from "~/server/db/core/pool";
+import { migrationStatus } from "~/server/db/core/migrator";
+import { countJobsByStatus } from "~/server/db/core/jobs";
 import { cacheDriverName } from "~/server/utils/cache";
 import type { SystemSnapshot } from "~/types/system";
 

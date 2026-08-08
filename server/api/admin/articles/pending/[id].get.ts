@@ -1,6 +1,6 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
-import { getArticleForAdmin } from "~/server/services/articleService";
+import { getArticleForAdmin } from "~/server/services/admin/articleService";
 
 /**
  * GET /api/admin/articles/pending/:id

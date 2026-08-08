@@ -136,7 +136,7 @@ Daily schedule: the job worker’s ~2 min maintenance tick calls `maybeScheduleD
 
 Enqueue helpers live in `server/utils/queue.ts`
 (`enqueueVerificationEmail`, `enqueuePasswordResetEmail`, `enqueueEmailSend`, `enqueueCacheInvalidate`, `enqueueMediaPurgeExpired`).
-Domain helpers for the article pipeline live in `server/services/articleService.ts`.
+Domain helpers for the article pipeline live in `server/services/admin/articleService.ts`.
 
 ### Worker
 

@@ -1,7 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { pendingArticleBulkDeleteBodySchema } from "~/server/schemas";
-import { deleteArticles } from "~/server/services/articleService";
+import { deleteArticles } from "~/server/services/admin/articleService";
 
 /**
  * POST /api/admin/articles/pending/bulk-delete

@@ -4,6 +4,8 @@ Schema, field references, and the conventions every row obeys. Paired with [`arc
 
 All relational data lives in the local MySQL database `rc`. The schema is owned by a SQL-file migration system rooted at `server/db/migrations/` and applied by `npm run migrate` — the server itself never auto-creates or alters tables. On boot, a Nitro plugin (`server/plugins/db-verify.ts`) calls `verifyMigrationsApplied()` and aborts the process if anything is pending or has drifted, so the app and the schema can never get out of step silently.
 
+**Domain SQL layout.** Query modules live under feature folders: `server/db/{core,auth,time,feed,chat,money,friends,admin}/`. The runtime barrel `server/utils/db.ts` re-exports the public surface; migrations stay at `server/db/migrations/` (not feature-scoped). See [`architecture.md`](./architecture.md#project-structure).
+
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
 **Migrations on disk today:** `0001_initial` → … → `0030_refresh_token_family` → `0031_pending_articles` → `0032_app_settings`.
@@ -13,7 +15,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 | File / Symbol                        | Role                                                                                 |
 | ------------------------------------ | ------------------------------------------------------------------------------------ |
 | `server/db/migrations/NNNN_name.sql` | Plain SQL files, applied in lexical order. `0001_initial.sql` is the baseline.       |
-| `server/db/migrator.ts`              | Discovery, status, apply (with `GET_LOCK('schema_migrations', 30)`), checksum drift. |
+| `server/db/core/migrator.ts`         | Discovery, status, apply (with `GET_LOCK('schema_migrations', 30)`), checksum drift. |
 | `schema_migrations` table            | `id`, `name`, `checksum` (SHA-256), `applied_at`, `duration_ms`.                     |
 | `npm run migrate`                    | Apply all pending migrations.                                                        |
 | `npm run migrate:status`             | Show applied vs pending vs drift.                                                    |
@@ -40,7 +42,7 @@ closed domain set. Do not add new string-token enums for closed domains.
 In source, each enum is exported as a `const` object plus a numeric union:
 
 ```ts
-// types/task.ts (mirrored verbatim in server/db/types.ts)
+// types/task.ts (mirrored verbatim in server/db/core/types.ts)
 export const TaskStatus = { Todo: 0, InProgress: 1, Done: 2 } as const;
 export type TaskStatus = (typeof TaskStatus)[keyof typeof TaskStatus];
 ```
@@ -304,7 +306,7 @@ CREATE TABLE active_timer (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
-> **Note:** `epic.estimatedHours`, `epic.spentHours`, `epic.progress`, and `task.spentHours`, `task.checklistProgress` are **never stored** — they are always computed at read time in `server/db/compute.ts` (re-exported through `server/utils/db.ts`) and attached to the response by the API.
+> **Note:** `epic.estimatedHours`, `epic.spentHours`, `epic.progress`, and `task.spentHours`, `task.checklistProgress` are **never stored** — they are always computed at read time in `server/db/core/compute.ts` (re-exported through `server/utils/db.ts`) and attached to the response by the API.
 
 ### Pending articles (migration `0031`)
 
@@ -323,7 +325,7 @@ Automated content pipeline rows awaiting admin review before publish.
 | `published_post_id`                                 | FK → `posts`           | Set on approve                                             |
 | `source_published_at` / `published_at`              | `DATETIME(3)`          | Source date + approve time                                 |
 
-Fetch sources and category mapping live in `server/services/articleFetcher.ts`
+Fetch sources and category mapping live in `server/services/admin/articleFetcher.ts`
 (`ARTICLE_FEED_SOURCES` — IEEE Spectrum, Electronics Weekly, ScienceDaily
 Engineering, MIT Technology Review, Ars Technica, ArXiv queries, Quanta,
 Nature, ACM Queue, Wired Science). URL dedupe uses `url_hash` (SHA-256 of
@@ -451,13 +453,13 @@ Canonical DDL lives in the migration files; this section is the as-built map.
 | `story_views`      | Viewer rollup                                                                                                                                                                                                                                                                                                                                                                                    |
 | `story_reactions`  | Reactions on stories; `reaction` is `TINYINT` (`ReactionType`)                                                                                                                                                                                                                                                                                                                                   |
 
-Wire DTOs: `~/types/post.ts`, `~/types/story.ts`, `~/types/friendship.ts`. Domain SQL: `server/db/posts.ts` (mutations), `server/db/postQueries.ts` (reads + ACL), `server/db/friendships.ts`, `server/db/postReactions.ts`, `server/db/postComments.ts`, `server/db/stories.ts`, `server/db/uploads.ts`, `server/db/categories.ts`.
+Wire DTOs: `~/types/post.ts`, `~/types/story.ts`, `~/types/friendship.ts`. Domain SQL: `server/db/feed/posts.ts` (mutations), `server/db/feed/postQueries.ts` (reads + ACL), `server/db/friends/friendships.ts`, `server/db/feed/postReactions.ts`, `server/db/feed/postComments.ts`, `server/db/feed/stories.ts`, `server/db/feed/uploads.ts`, `server/db/feed/categories.ts`.
 
 **Visibility ACL (authenticated).** A viewer sees a post when it is Public, they authored it, it is Shared and they are in `post_audience`, or it is Friends and they have an Accepted friendship with the author. Guests see Public only. Default create/share visibility is Friends (`3`); admin article approve stays Public.
 
 **Media cleanup.** Deleting a post/story, replacing/clearing a profile avatar, or deleting a user removes orphaned `uploads` rows and their Cloudflare R2 objects (`purgeOrphanedUploads` / pre-delete key sweep on `deleteUser`, including legacy `stories.media_storage_key` values with no `upload_id`). Expired stories are filtered out of the tray by `expires_at`; physical delete + R2 sweep runs in the job worker (~2 min) via `purgeExpiredStories` (also available as `media.purgeExpired`). An upload stays alive while referenced by `post_attachments`, a non-expired story, or `users.avatar_upload_id`. See [`api.md`](./api.md#uploads-r2).
 
-**Account hard-delete.** `deleteUser` (`server/db/users.ts`) — used by both `DELETE /api/auth/account` and `DELETE /api/admin/users/:id` — relies on MySQL `ON DELETE CASCADE` for every table with a user FK, then also: deletes `jobs` whose `payload.to` matches the account email (the queue has no `user_id`), recounts `posts.comment_count` on posts the user commented on, sweeps R2 for upload + legacy story keys, and busts the anonymous public-feed cache. Share posts owned by _other_ users that pointed at the deleted originals keep their row with `shared_post_id` SET NULL.
+**Account hard-delete.** `deleteUser` (`server/db/auth/users.ts`) — used by both `DELETE /api/auth/account` and `DELETE /api/admin/users/:id` — relies on MySQL `ON DELETE CASCADE` for every table with a user FK, then also: deletes `jobs` whose `payload.to` matches the account email (the queue has no `user_id`), recounts `posts.comment_count` on posts the user commented on, sweeps R2 for upload + legacy story keys, and busts the anonymous public-feed cache. Share posts owned by _other_ users that pointed at the deleted originals keep their row with `shared_post_id` SET NULL.
 
 **Manuscripts.** `format = 1` (`PostFormat.Manuscript`) requires a non-empty `title`; body is `MEDIUMTEXT` (migration `0007`). Writing desk: `/feed/write`. Multilingual manuscripts use one row per locale sharing `translation_group_id` with `content_locale` in `en`/`vi`/`zh-CN`/`zh-TW` (migration `0011`).
 
@@ -480,7 +482,7 @@ Direct 1:1 messages between signed-in users. Spec: [`chat-spec.md`](./chat-spec.
 
 Migration `0014` extends `uploads.kind` with `audio` and adds `chat_messages.upload_id` / `duration_ms`. Migration `0015` adds `unread_count` and `last_message_id` (backfilled) so list/badge queries avoid correlated `COUNT(*)` / last-message subqueries. Migration `0017` adds message reactions as `TINYINT`. Migration `0018` converts legacy post/story `ENUM` reaction strings to the same `TINYINT` `ReactionType` constants. Migration `0019` converts post visibility/format and upload/attachment kind to `TINYINT` consts. Chat participants may fetch attached uploads via `canViewerAccessUpload`. Orphan purge treats `chat_messages.upload_id` as a live reference.
 
-Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat.ts` (barrel) → `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` (+ `chatShared`). Deleting a user cascades conversations and messages.
+Wire DTOs + sticker catalog: `~/types/chat.ts`. Shared reaction consts: `~/types/reaction.ts`. Domain SQL: `server/db/chat/chat.ts` (barrel) → `chatConversations` / `chatMessages` / `chatReactions` / `chatReads` (+ `chatShared`). Deleting a user cascades conversations and messages.
 
 ---
 
@@ -492,7 +494,7 @@ Per-user expense ledger. Spec: [`money-spec.md`](./money-spec.md).
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `money_transactions` | Ledger rows: `occurred_on` (DATE), `amount_minor` (BIGINT ≥ 0), `direction` (`Out=0`/`In=1`), `category` (`Food=0`…`Other=10`), optional `note` |
 
-Wire DTOs: `~/types/money.ts`. Domain SQL: `server/db/money.ts`. Deleting a user cascades their transactions.
+Wire DTOs: `~/types/money.ts`. Domain SQL: `server/db/money/money.ts`. Deleting a user cascades their transactions.
 
 ## Money savings (migration 0025)
 
@@ -501,7 +503,7 @@ Wire DTOs: `~/types/money.ts`. Domain SQL: `server/db/money.ts`. Deleting a user
 | `money_savings_goals`         | Goals: `title`, `target_minor`, `status` (`Active=0`/`Completed=1`/`Archived=2`), optional `target_date`/`note` |
 | `money_savings_contributions` | Deposits toward a goal (`amount_minor` ≥ 0); cascade-delete with goal                                           |
 
-Saved amount is `SUM(contributions)` derived on read via a `LEFT JOIN` aggregate (not a correlated subquery per goal). Domain SQL: `server/db/moneySavings.ts`.
+Saved amount is `SUM(contributions)` derived on read via a `LEFT JOIN` aggregate (not a correlated subquery per goal). Domain SQL: `server/db/money/moneySavings.ts`.
 
 ## Money budgets (migration 0026)
 
@@ -519,7 +521,7 @@ Month copy (`copyMoneyBudgetsFromMonth`) uses one multi-row `INSERT … ON DUPLI
 
 Ledger + budgets columns: exactly one of builtin `category` or `user_category_id`. Budget unique slot uses generated `slot_key`.
 
-Domain SQL: `server/db/moneyBudgets.ts`.
+Domain SQL: `server/db/money/moneyBudgets.ts`.
 
 ---
 
@@ -531,7 +533,7 @@ Domain SQL: `server/db/moneyBudgets.ts`.
 
 Statuses: `pending` → `processing` → `completed`, or retry as `pending`, or `dead` after max attempts. Claimed with `FOR UPDATE SKIP LOCKED`. See [`cache-queue.md`](./cache-queue.md).
 
-Domain module: `server/db/jobs.ts`. Worker: `server/plugins/job-worker.ts`.
+Domain module: `server/db/core/jobs.ts`. Worker: `server/plugins/job-worker.ts`.
 
 ---
 

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   visibilityClause,
   visibilityClauseParams,
-} from "../server/db/postQuery/acl";
+} from "../server/db/feed/postQuery/acl";
 import { PostVisibility } from "../types/post";
 
 describe("visibilityClause", () => {

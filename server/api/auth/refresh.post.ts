@@ -19,7 +19,7 @@ import {
   setAccessCookie,
   setRefreshCookie,
 } from "~/server/utils/refreshCookie";
-import { refreshAuthSession } from "~/server/services/authService";
+import { refreshAuthSession } from "~/server/services/auth/authService";
 
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, refreshBodySchema);

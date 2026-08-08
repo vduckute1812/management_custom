@@ -1,7 +1,7 @@
 import { requireAdmin } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
 import { pendingArticleFetchBodySchema } from "~/server/schemas";
-import { enqueueArticleFetch } from "~/server/services/articleService";
+import { enqueueArticleFetch } from "~/server/services/admin/articleService";
 
 /**
  * POST /api/admin/articles/pending/fetch

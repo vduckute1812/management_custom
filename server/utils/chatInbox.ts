@@ -8,8 +8,8 @@
  * Multi-process deploys only see subscribers on the same process (same limit
  * as the in-memory rate-limit store). Redis pub/sub can be added later.
  */
-import type { ChatUnreadPreview } from "~/server/db/chat";
-import { getUnreadInbox } from "~/server/db/chat";
+import type { ChatUnreadPreview } from "~/server/db/chat/chat";
+import { getUnreadInbox } from "~/server/db/chat/chat";
 
 export type ChatInboxPayload = {
   unreadTotal: number;

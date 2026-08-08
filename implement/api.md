@@ -135,7 +135,7 @@ Install-wide post directories (`post_categories`). List is **public** so the hub
 | `PATCH`  | `/api/categories/:id` | Admin  | Rename / reorder.                                                          |
 | `DELETE` | `/api/categories/:id` | Admin  | Delete directory; posts keep `category_id` cleared (`ON DELETE SET NULL`). |
 
-Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*`). Domain: `server/db/categories.ts`.  
+Seeded slugs are localized on the client (`CATEGORY_I18N_KEYS` → `categories.*`). Domain: `server/db/feed/categories.ts`.  
 `GET` is **cached** (~60s); admin mutations bust the cache.
 
 ---
@@ -187,7 +187,7 @@ Manuscripts may be multilingual: each locale is its own post row sharing `transl
 
 **`PATCH /api/posts/:id` body:** send the full editable state (`body` required; `title`, numeric `visibility` defaulting to Friends=`3` if omitted, `audienceUserIds`, `attachmentIds`, `categoryId`, `fontFamily`, `textColor`). Does **not** accept `format`, `contentLocale`, or `translationGroupId`.
 
-DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/posts.ts` (mutations), `postQueries.ts` (reads), `postReactions.ts`, `postComments.ts`.  
+DTOs: `~/types/post.ts` (`FeedBootstrap`, `FeedPage`, `Post`, …). Domain: `server/db/feed/posts.ts` (mutations), `postQueries.ts` (reads), `postReactions.ts`, `postComments.ts`.  
 `GET /api/feed` is the Feed page first-paint call. Later pages / infinite scroll use `GET /api/posts?cursor=…`. Anonymous public post pages are cached briefly (~20s); authenticated feeds are never cached. Public create/share/update/delete busts that cache. Details: [`cache-queue.md`](./cache-queue.md).
 
 ---
@@ -204,7 +204,7 @@ Facebook-style request → accept graph. Status: `Pending=0` \| `Accepted=1`. Fr
 | `POST`   | `/api/friends/:id/accept`     | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
 | `DELETE` | `/api/friends/:id`            | Required | Cancel / decline / unfriend. Returns `{ ok: true }`.                                                 |
 
-DTO: `~/types/friendship.ts`. Domain: `server/db/friendships.ts`. UI: `/friends`.
+DTO: `~/types/friendship.ts`. Domain: `server/db/friends/friendships.ts`. UI: `/friends`.
 
 ---
 
@@ -223,7 +223,7 @@ DTO: `~/types/friendship.ts`. Domain: `server/db/friendships.ts`. UI: `/friends`
 | `DELETE` | `/api/stories/:id/reactions` | Required | Clear reaction. Same response shape.                                                                                         |
 | `GET`    | `/api/stories/:id/insights`  | Required | Owner-only viewers + reactions rollup (`{ insights }`).                                                                      |
 
-DTOs: `~/types/story.ts`. Domain: `server/db/stories.ts`.
+DTOs: `~/types/story.ts`. Domain: `server/db/feed/stories.ts`.
 
 ---
 
@@ -248,7 +248,7 @@ Requires `R2_*` env configuration. Files are stored in Cloudflare R2; the API re
 - User **changes or clears their avatar** → previous `avatar_upload_id` is orphan-purged when unused elsewhere
 - Admin **deletes a user** → CASCADE removes DB rows; storage keys are deleted from R2 afterwards
 
-Orphan check: an upload is kept while referenced by `post_attachments`, a **non-expired** story, `users.avatar_upload_id`, or `chat_messages.upload_id`. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/uploads.ts` and `server/db/stories.ts`. Profile avatars are intentionally **public** via `canViewerAccessUpload` so anonymous feed readers can load author photos. Chat media is private to conversation participants.
+Orphan check: an upload is kept while referenced by `post_attachments`, a **non-expired** story, `users.avatar_upload_id`, or `chat_messages.upload_id`. See `purgeOrphanedUploads` / `purgeExpiredStories` in `server/db/feed/uploads.ts` and `server/db/feed/stories.ts`. Profile avatars are intentionally **public** via `canViewerAccessUpload` so anonymous feed readers can load author photos. Chat media is private to conversation participants.
 
 ---
 

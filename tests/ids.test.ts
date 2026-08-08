@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateId } from "../server/db/ids";
+import { generateId } from "../server/db/core/ids";
 import { newClientId } from "../utils/clientId";
 
 /**

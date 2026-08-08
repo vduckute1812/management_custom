@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldFetchMoreLocaleRows } from "../server/db/postQuery/hydration";
+import { shouldFetchMoreLocaleRows } from "../server/db/feed/postQuery/hydration";
 
 describe("locale feed pagination", () => {
   it("continues after a full batch collapses below the target", () => {

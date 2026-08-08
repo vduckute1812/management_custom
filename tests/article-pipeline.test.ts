@@ -15,13 +15,13 @@ import { ensureSourceAttribution } from "../utils/articleAttribution";
 import {
   redactSecrets,
   targetReadingMinutes,
-} from "../server/services/articleRewriter";
+} from "../server/services/admin/articleRewriter";
 import {
   ARTICLE_FEED_SOURCES,
   extractMainTextFromHtml,
   selectLongestItems,
   sameRegistrableHint,
-} from "../server/services/articleFetcher";
+} from "../server/services/admin/articleFetcher";
 import { rateLimitScope, resolvePolicy } from "../server/rate-limit/policies";
 
 describe("article status / pipeline constants", () => {

@@ -1,5 +1,5 @@
-import { getPool } from "~/server/db/pool";
-import { migrationStatus } from "~/server/db/migrator";
+import { getPool } from "~/server/db/core/pool";
+import { migrationStatus } from "~/server/db/core/migrator";
 
 /**
  * Public liveness/readiness probe for deploy health checks.

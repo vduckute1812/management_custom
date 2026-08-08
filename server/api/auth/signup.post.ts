@@ -13,7 +13,7 @@
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { signupBodySchema } from "~/server/schemas";
 import { assertAccountRateLimit } from "~/server/rate-limit";
-import { signupAccount } from "~/server/services/authService";
+import { signupAccount } from "~/server/services/auth/authService";
 
 export default defineEventHandler(async (event) => {
   const body = await parseBody(event, signupBodySchema);

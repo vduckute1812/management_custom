@@ -1,7 +1,7 @@
 import { requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { postShareBodySchema } from "~/server/schemas";
-import { sharePostForUser } from "~/server/services/postService";
+import { sharePostForUser } from "~/server/services/feed/postService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

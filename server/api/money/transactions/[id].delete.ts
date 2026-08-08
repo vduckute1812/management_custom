@@ -1,6 +1,6 @@
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
-import { deleteMoneyTransactionForUser } from "~/server/services/moneyService";
+import { deleteMoneyTransactionForUser } from "~/server/services/money/moneyService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);

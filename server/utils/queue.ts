@@ -9,7 +9,7 @@
  * The Nitro plugin `server/plugins/job-worker.ts` claims and runs jobs.
  */
 
-import { enqueueJob, type JobRow } from "~/server/db/jobs";
+import { enqueueJob, type JobRow } from "~/server/db/core/jobs";
 import {
   sendMail,
   sendPasswordResetEmail,
@@ -157,7 +157,7 @@ export async function processJob(job: JobRow): Promise<void> {
       return;
     }
     case JobTypes.MediaPurgeExpired: {
-      const { purgeExpiredStories } = await import("~/server/db/stories");
+      const { purgeExpiredStories } = await import("~/server/db/feed/stories");
       const result = await purgeExpiredStories();
       if (result.stories > 0 || result.uploads > 0) {
         console.info(
@@ -168,7 +168,7 @@ export async function processJob(job: JobRow): Promise<void> {
     }
     case JobTypes.ArticlesFetch: {
       const { runArticleFetchJob } =
-        await import("~/server/services/articleService");
+        await import("~/server/services/admin/articleService");
       const result = await runArticleFetchJob();
       console.info(
         `[queue] articles.fetch fetched=${result.fetched} inserted=${result.inserted} skipped=${result.skipped} rewriteQueued=${result.rewriteQueued} errors=${result.errors.length}`,
@@ -186,7 +186,7 @@ export async function processJob(job: JobRow): Promise<void> {
         throw new Error("articles.rewrite: missing articleId");
       }
       const { runArticleRewriteJob } =
-        await import("~/server/services/articleService");
+        await import("~/server/services/admin/articleService");
       const article = await runArticleRewriteJob(articleId);
       console.info(
         `[queue] articles.rewrite id=${article.id} status=${article.status}`,

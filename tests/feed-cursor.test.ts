@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { encodeFeedCursor, parseFeedCursor } from "../server/db/postQueries";
+import {
+  encodeFeedCursor,
+  parseFeedCursor,
+} from "../server/db/feed/postQueries";
 
 describe("feed cursor", () => {
   it("round-trips createdAt|id", () => {

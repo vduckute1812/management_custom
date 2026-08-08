@@ -266,7 +266,7 @@ Pi-friendly caching and background work without making Redis mandatory.
 Signed-in 1:1 messaging between install members. Spec: [`chat-spec.md`](./chat-spec.md).
 
 - [x] Migration `0013_chat`: `chat_conversations`, `chat_messages`, `chat_conversation_reads`
-- [x] DB module `server/db/chat.ts` + Zod schemas; API under `/api/chat/*`
+- [x] DB module `server/db/chat/chat.ts` + Zod schemas; API under `/api/chat/*`
 - [x] Message kinds: text / emoji / sticker (integer enums); built-in sticker catalog
 - [x] UI `/chat` — conversation list, thread, emoji + sticker pickers, ~3.5s polling
 - [x] Nav + shortcuts (`g c`) + command palette; directory search returns avatars
@@ -434,15 +434,15 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 - [x] `implement/architecture.md` synced: Money module, OAuth, CSRF/HSTS, migrations through **0030**, posts split, `authService`
 - [x] Auth types canonical in `types/auth.ts` (`UserRole` / `AuthUser` / OAuth consts); `types/task.ts` re-exports for BC
-- [x] `server/db/posts.ts` list/CRUD only; reactions → `postReactions.ts`; comments → `postComments.ts`
-- [x] `server/services/authService.ts` — signup, refresh rotation, account delete, Google callback
+- [x] `server/db/feed/posts.ts` list/CRUD only; reactions → `postReactions.ts`; comments → `postComments.ts`
+- [x] `server/services/auth/authService.ts` — signup, refresh rotation, account delete, Google callback
 
 ## Phase 29 — Sprint F (DB quality / structure)
 
 - [x] Savings goals: `saved_minor` via `LEFT JOIN` aggregate (not correlated SUM per row)
 - [x] Budget month copy: multi-row `INSERT … ON DUPLICATE KEY UPDATE` (skip archived custom categories)
 - [x] Worker comment recount: drift-only UPDATE (JOIN vs live COUNT); log when rows fixed
-- [x] `server/db/chat.ts` split → conversations / messages / reactions / reads (+ shared helpers)
+- [x] `server/db/chat/chat.ts` split → conversations / messages / reactions / reads (+ shared helpers)
 - [x] MySQL integration scaffold: `tests/integration/*` gated by `DB_INTEGRATION=1` (`npm run test:integration`)
 
 ## Phase 30 — Sprint G (integration CI)
@@ -459,7 +459,7 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 ## Phase 32 — Sprint I (chat message deletion)
 
-- [x] `deleteMessage(userId, conversationId, messageId)` in `server/db/chatMessages.ts`: sender-only hard delete, last_message_id pointer update, unread recount for both participants, orphan upload purge
+- [x] `deleteMessage(userId, conversationId, messageId)` in `server/db/chat/chatMessages.ts`: sender-only hard delete, last_message_id pointer update, unread recount for both participants, orphan upload purge
 - [x] `ChatThreadDeletedEvent` added to `server/utils/chatThread.ts` union; `deleteChatMessage` service + SSE fan-out
 - [x] `DELETE /api/chat/conversations/:id/messages/:messageId` — sender-only, `404` for non-sender / missing
 - [x] `useChat`: SSE `deleted` listener removes message and updates sidebar; `deleteMessage()` exported with optimistic removal
@@ -478,7 +478,7 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 ## Phase 34 — Sprint K (structure / clean-code splits)
 
-- [x] `server/db/postQuery/` sub-modules (`types`, `normalizers`, `acl`, `cursors`, `select`, `hydration`, `queries`); `postQueries.ts` barrel; `posts.ts` facade re-exports read helpers for sibling modules
+- [x] `server/db/feed/postQuery/` sub-modules (`types`, `normalizers`, `acl`, `cursors`, `select`, `hydration`, `queries`); `postQueries.ts` barrel; `posts.ts` facade re-exports read helpers for sibling modules
 - [x] `composables/chatThreadLive.ts` — module-scoped SSE connection, reconnect, REST fallback, `applyPeerRead`, `normalizeMessage`
 - [x] `useChat.ts` wires `chatThreadLive`; public API unchanged (747 → ~530 lines)
 - [x] `components/SettingsDangerZone.vue` — delete-account section carved from `pages/settings.vue`
@@ -634,6 +634,13 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 ### Sprint V — Structure polish
 
 - [x] Extract `TaskModalSchedule` / `TaskModalFooter`; `AdminSystemMetrics`
+
+## Phase 36 — Feature-folder layout
+
+- [x] Move `components/`, `composables/`, `server/db/`, and `server/services/` into feature folders (`feed`, `chat`, `money`, `time`, `friends`, `account`/`auth`, `admin`, `app`/`shared`/`core`)
+- [x] Nuxt auto-import: `components.pathPrefix: false` + `imports.dirs: ['composables/**']` so SFC/composable names stay file-based
+- [x] `server/utils/db.ts` barrel over `server/db/{feature}/*`; migrations remain at `server/db/migrations/`
+- [x] Docs: `implement/architecture.md` project structure + map updates in README / database / auth / i18n
 
 ### Later
 

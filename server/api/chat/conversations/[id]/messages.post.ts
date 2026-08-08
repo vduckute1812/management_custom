@@ -1,4 +1,4 @@
-import { sendChatMessage } from "~/server/services/chatService";
+import { sendChatMessage } from "~/server/services/chat/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { parseBody, mapDomainError } from "~/server/utils/http";
 import { chatSendBodySchema } from "~/server/schemas";

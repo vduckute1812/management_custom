@@ -1,5 +1,5 @@
 import { clearChatMessageReaction } from "~/server/utils/db";
-import { publishChatMessageReaction } from "~/server/services/chatService";
+import { publishChatMessageReaction } from "~/server/services/chat/chatService";
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError } from "~/server/utils/http";
 

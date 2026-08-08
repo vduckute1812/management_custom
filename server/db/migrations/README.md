@@ -1,6 +1,6 @@
 # Migrations
 
-Forward-only SQL migrations applied by `server/db/migrator.ts` and the
+Forward-only SQL migrations applied by `server/db/core/migrator.ts` and the
 `npm run migrate` CLI. The `schema_migrations` table tracks every
 applied file by id + SHA-256 checksum.
 
