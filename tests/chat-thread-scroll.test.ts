@@ -5,6 +5,7 @@ import {
   isChatNearTopForOlder,
   isChatStuckToBottom,
   restoreChatScrollAfterPrepend,
+  scrollTopForLastMessage,
 } from "../utils/chatThreadScroll";
 
 describe("chatThreadScroll", () => {
@@ -86,5 +87,11 @@ describe("chatThreadScroll", () => {
 
   it("restores scroll position after prepending older messages", () => {
     expect(restoreChatScrollAfterPrepend(2000, 1000, 50)).toBe(1050);
+  });
+
+  it("computes scrollTop that keeps the last message at the bottom", () => {
+    expect(scrollTopForLastMessage(400, 600)).toBe(0);
+    expect(scrollTopForLastMessage(600, 600)).toBe(0);
+    expect(scrollTopForLastMessage(1200, 600)).toBe(600);
   });
 });

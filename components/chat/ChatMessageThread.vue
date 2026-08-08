@@ -199,50 +199,52 @@ defineExpose({ scrollToBottom });
 </script>
 
 <template>
-  <ChatMessageThreadScroller
-    ref="threadScroller"
-    :messages="messages"
-    :has-more="hasMore"
-    :loading="loading"
-    :loading-more="loadingMore"
-    :peer-last-read-at="peerLastReadAt"
-    @load-more="emit('loadMore')"
-    @scroll="onScroll"
-  >
-    <template #default="{ lastReadMineId }">
-      <ChatMessageBubble
-        v-for="msg in messages"
-        :key="msg.id"
-        :message="msg"
-        :highlighted="isMessageHighlighted(msg.id)"
-        :show-read-receipt="msg.id === lastReadMineId"
-        @bubble-pointerdown="onBubblePointerDown"
-        @bubble-pointermove="onBubblePointerMove"
-        @bubble-pointerup="onBubblePointerUp"
-        @bubble-pointerleave="onBubblePointerLeave"
-        @bubble-pointercancel="onBubblePointerCancel"
-        @reaction-click="onReactionChipClick"
-      />
-    </template>
-  </ChatMessageThreadScroller>
+  <div class="flex min-h-0 flex-1 flex-col">
+    <ChatMessageThreadScroller
+      ref="threadScroller"
+      :messages="messages"
+      :has-more="hasMore"
+      :loading="loading"
+      :loading-more="loadingMore"
+      :peer-last-read-at="peerLastReadAt"
+      @load-more="emit('loadMore')"
+      @scroll="onScroll"
+    >
+      <template #default="{ lastReadMineId }">
+        <ChatMessageBubble
+          v-for="msg in messages"
+          :key="msg.id"
+          :message="msg"
+          :highlighted="isMessageHighlighted(msg.id)"
+          :show-read-receipt="msg.id === lastReadMineId"
+          @bubble-pointerdown="onBubblePointerDown"
+          @bubble-pointermove="onBubblePointerMove"
+          @bubble-pointerup="onBubblePointerUp"
+          @bubble-pointerleave="onBubblePointerLeave"
+          @bubble-pointercancel="onBubblePointerCancel"
+          @reaction-click="onReactionChipClick"
+        />
+      </template>
+    </ChatMessageThreadScroller>
 
-  <ChatMessageThreadReactionPicker
-    :message-id="pickerForId"
-    :messages="messages"
-    :anchor-rect="pickerAnchorRect"
-    :mine="pickerMine"
-    @react="onPickerReact"
-    @clear-react="onPickerClearReact"
-    @delete-request="onDeleteRequest"
-    @close="closePicker"
-  />
+    <ChatMessageThreadReactionPicker
+      :message-id="pickerForId"
+      :messages="messages"
+      :anchor-rect="pickerAnchorRect"
+      :mine="pickerMine"
+      @react="onPickerReact"
+      @clear-react="onPickerClearReact"
+      @delete-request="onDeleteRequest"
+      @close="closePicker"
+    />
 
-  <ConfirmDialog
-    :open="!!pendingDeleteId"
-    :title="t('chat.deleteMessage')"
-    :description="t('chat.deleteConfirm')"
-    :confirm-label="t('chat.deleteMessage')"
-    @cancel="pendingDeleteId = null"
-    @confirm="confirmDelete"
-  />
+    <ConfirmDialog
+      :open="!!pendingDeleteId"
+      :title="t('chat.deleteMessage')"
+      :description="t('chat.deleteConfirm')"
+      :confirm-label="t('chat.deleteMessage')"
+      @cancel="pendingDeleteId = null"
+      @confirm="confirmDelete"
+    />
+  </div>
 </template>
