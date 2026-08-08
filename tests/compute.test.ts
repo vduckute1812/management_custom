@@ -3,9 +3,10 @@ import {
   computeTaskSpent,
   computeChecklistProgress,
   toTaskView,
+  toEpicViewFromRollup,
 } from "../server/db/core/compute";
 import { TaskStatus } from "../types/task";
-import type { Task } from "../server/db/core/types";
+import type { Epic, Task } from "../server/db/core/types";
 
 const baseTask: Task = {
   id: "task-1",
@@ -148,5 +149,43 @@ describe("toTaskView — light path", () => {
     };
     const view = toTaskView(fullTask);
     expect(view.spentHours).toBe(1.5);
+  });
+});
+
+describe("toEpicViewFromRollup", () => {
+  const epic: Epic = {
+    id: "epic-1",
+    title: "Epic",
+    status: TaskStatus.Todo,
+    color: "brand",
+    tags: [],
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  it("returns zeroed hours when rollup is missing or empty", () => {
+    expect(toEpicViewFromRollup(epic, undefined).taskCount).toBe(0);
+    expect(
+      toEpicViewFromRollup(epic, {
+        taskCount: 0,
+        estimatedHours: 0,
+        spentHours: 0,
+        progress: 0,
+      }).estimatedHours,
+    ).toBe(0);
+  });
+
+  it("copies rollup aggregates onto the epic view", () => {
+    const view = toEpicViewFromRollup(epic, {
+      taskCount: 3,
+      estimatedHours: 10,
+      spentHours: 4.5,
+      progress: 40,
+    });
+    expect(view.taskCount).toBe(3);
+    expect(view.estimatedHours).toBe(10);
+    expect(view.spentHours).toBe(4.5);
+    expect(view.progress).toBe(40);
+    expect(view.id).toBe("epic-1");
   });
 });

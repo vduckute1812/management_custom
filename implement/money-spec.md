@@ -40,11 +40,11 @@ Never store category/direction as strings.
 
 ## API (Sprint 1)
 
-| Method   | Path                          | Body / query                                                                             |
-| -------- | ----------------------------- | ---------------------------------------------------------------------------------------- |
-| `GET`    | `/api/money/transactions`     | `yearMonth=YYYY-MM` (default: current local calendar month) → `{ transactions, totals }` |
-| `POST`   | `/api/money/transactions`     | Upsert `{ id?, occurredOn, amountMinor, direction, category, note? }`                    |
-| `DELETE` | `/api/money/transactions/:id` | Ownership 404                                                                            |
+| Method   | Path                          | Body / query                                                                                                                                                                                |
+| -------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/money/transactions`     | `yearMonth=YYYY-MM` (default: current local calendar month), `limit` (1–200, default 100), optional `cursor` → first page `{ transactions, totals, nextCursor }`; later pages omit `totals` |
+| `POST`   | `/api/money/transactions`     | Upsert `{ id?, occurredOn, amountMinor, direction, category, note? }`                                                                                                                       |
+| `DELETE` | `/api/money/transactions/:id` | Ownership 404                                                                                                                                                                               |
 
 Cross-user ids → **404** (not 403).
 

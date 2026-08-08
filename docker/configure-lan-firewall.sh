@@ -27,11 +27,13 @@ log() { echo "[lan-firewall] $*"; }
 die() { echo "[lan-firewall] ERROR: $*" >&2; exit 1; }
 
 if [[ -f "${ENV_FILE}" ]]; then
-  # shellcheck disable=SC1090
-  set -a
-  # shellcheck disable=SC1091
-  source "${ENV_FILE}"
-  set +a
+  # Read LAN_IP only — do not bash-source the full env (SMTP_FROM etc. break).
+  if [[ -z "${LAN_IP:-}" ]]; then
+    LAN_IP="$(
+      grep -E '^LAN_IP=' "${ENV_FILE}" 2>/dev/null | head -n1 | cut -d= -f2- \
+        | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || true
+    )"
+  fi
 fi
 
 LAN_IP="${LAN_IP:-}"
@@ -74,6 +76,16 @@ for cidr in "${EXTRA[@]}"; do
   [[ -n "${cidr}" ]] || continue
   allow_db_from "${cidr}"
 done
+
+# Drop prior world-denies so a re-run cannot leave DENY above ALLOW
+# (ufw first-match order). Then append denys after the allows above.
+if [[ "${APPLY}" == "1" ]]; then
+  ufw --force delete deny 3306/tcp >/dev/null 2>&1 || true
+  ufw --force delete deny 6379/tcp >/dev/null 2>&1 || true
+else
+  log "DRY-RUN: ufw --force delete deny 3306/tcp (if present)"
+  log "DRY-RUN: ufw --force delete deny 6379/tcp (if present)"
+fi
 
 # Deny everyone else on DB/Redis (must come after allow rules).
 run ufw deny 3306/tcp comment "mgmt-mysql-deny-world"

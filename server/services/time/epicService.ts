@@ -8,11 +8,11 @@ import {
 } from "~/types/task";
 import {
   generateId,
-  getAllTasks,
   getEpicById,
   getPool,
+  listEpicTaskRollups,
   nowISO,
-  toEpicView,
+  toEpicViewFromRollup,
   upsertEpic,
 } from "~/server/utils/db";
 import { DomainError } from "~/server/utils/http";
@@ -85,7 +85,7 @@ export async function upsertEpicForUser(userId: string, body: EpicUpsertBody) {
   const epic = materializeEpic(body, existing);
 
   await upsertEpic(userId, epic);
-  const tasks = await getAllTasks(userId);
+  const rollups = await listEpicTaskRollups(userId, [epic.id]);
 
-  return { epic: toEpicView(epic, tasks), created };
+  return { epic: toEpicViewFromRollup(epic, rollups.get(epic.id)), created };
 }

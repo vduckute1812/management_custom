@@ -89,3 +89,33 @@ export function computeEpicHours(
 export function toEpicView(epic: Epic, tasks: Task[]): EpicView {
   return { ...epic, ...computeEpicHours(epic, tasks) };
 }
+
+/** List/detail path when hours come from `listEpicTaskRollups` (no task rows). */
+export function toEpicViewFromRollup(
+  epic: Epic,
+  rollup:
+    | {
+        taskCount: number;
+        estimatedHours: number;
+        spentHours: number;
+        progress: number;
+      }
+    | undefined,
+): EpicView {
+  if (!rollup || rollup.taskCount === 0) {
+    return {
+      ...epic,
+      estimatedHours: 0,
+      spentHours: 0,
+      progress: 0,
+      taskCount: 0,
+    };
+  }
+  return {
+    ...epic,
+    estimatedHours: rollup.estimatedHours,
+    spentHours: rollup.spentHours,
+    progress: rollup.progress,
+    taskCount: rollup.taskCount,
+  };
+}

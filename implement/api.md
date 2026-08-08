@@ -295,11 +295,11 @@ Message `kind` is the same integer-enum convention as the rest of the API (`Chat
 
 Signed-in per-user ledger. Spec: [`money-spec.md`](./money-spec.md). Amounts are integer **minor units** of the caller's display currency (`MoneyCurrency`: VND đồng / USD·CNY·TWD cents; `amountMinor` ≥ 0). Changing currency does **not** convert historical rows. `direction` / `category` are integer enums (`MoneyDirection`, `MoneyCategory` in `types/money.ts`).
 
-| Method   | Endpoint                      | Auth     | Description                                                                                                                                      |
-| -------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET`    | `/api/money/transactions`     | Required | Query `yearMonth=YYYY-MM` (default: caller's local calendar month). Returns `{ transactions, totals }` with `inMinor` / `outMinor` / `netMinor`. |
-| `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                             |
-| `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                 |
+| Method   | Endpoint                      | Auth     | Description                                                                                                                                                                                                                                                                                   |
+| -------- | ----------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/money/transactions`     | Required | Query `yearMonth=YYYY-MM` (default: caller's local calendar month), `limit` (1–200, default 100), optional `cursor`. First page returns `{ transactions, totals, nextCursor }` with `inMinor` / `outMinor` / `netMinor`. Later pages omit `totals` and return `{ transactions, nextCursor }`. |
+| `POST`   | `/api/money/transactions`     | Required | Upsert body `{ id?, occurredOn, amountMinor, direction, category, note? }`. Cross-user `id` → `404`.                                                                                                                                                                                          |
+| `DELETE` | `/api/money/transactions/:id` | Required | Ownership `404`.                                                                                                                                                                                                                                                                              |
 
 Client page: `/money` (month navigator + totals + category/daily charts + filtered list + modal + CSV/JSON export). Nav shortcut `g m`. Savings: `/money/savings`.
 

@@ -31,7 +31,7 @@ Let Accepted friends message each other privately from `/chat`, without requirin
 ## UX
 
 1. Header **Chat** link (signed-in only) and shortcut `g c`
-2. Left: conversation list + “New chat” people search (`GET /api/users/directory`)
+2. Left: conversation list + “New chat” filter over **Accepted friends** (local search; not install-wide `GET /api/users/directory`)
 3. Right: message thread + composer with emoji / sticker panels
 4. Emoji clicks **insert into the draft**; stickers / images / voice notes send immediately
 5. Image picker + in-browser voice recorder (max ~2 minutes; needs mic permission + R2)
