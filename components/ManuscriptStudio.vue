@@ -7,11 +7,6 @@ import type {
   UploadRecord,
 } from "~/types/post";
 import { PostFormat, PostVisibility, UploadKind } from "~/types/post";
-import {
-  POST_BODY_MAX_MANUSCRIPT,
-  POST_TITLE_MAX,
-} from "~/utils/postBodyLimits";
-import { estimateReadingMinutes } from "~/utils/manuscript";
 import { resolveUploadRule } from "~/utils/uploadPolicy";
 import {
   markdownImageForUpload,
@@ -74,7 +69,6 @@ const emit = defineEmits<{
 }>();
 
 const { t, locale } = useI18n();
-const auth = useAuth();
 const { validateFile } = useUploads();
 const { pushToast } = useToasts();
 
@@ -96,8 +90,10 @@ const visibility = ref<PostVisibility>(
 const categoryId = ref(props.initial?.categoryId || "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "serif");
 const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
-const titleEl = ref<HTMLInputElement | null>(null);
-const bodyEl = ref<HTMLTextAreaElement | null>(null);
+const paperRef = ref<{
+  focus: () => void;
+  insertAtCursor: (snippet: string) => void;
+} | null>(null);
 
 const {
   audience,
@@ -125,16 +121,6 @@ const availableLocales = computed(() =>
   ),
 );
 
-const readingMinutes = computed(() =>
-  estimateReadingMinutes(body.value, title.value),
-);
-
-const wordCount = computed(() => {
-  const text = `${title.value} ${body.value}`.trim();
-  if (!text) return 0;
-  return text.split(/\s+/).filter(Boolean).length;
-});
-
 const canSubmit = computed(
   () =>
     title.value.trim().length > 0 &&
@@ -149,29 +135,8 @@ function removeAttachment(id: string) {
   body.value = stripMarkdownImagesForUpload(body.value, id);
 }
 
-function insertAtCursor(snippet: string) {
-  const el = bodyEl.value;
-  if (!el) {
-    body.value += snippet;
-    return;
-  }
-  const start = el.selectionStart ?? body.value.length;
-  const end = el.selectionEnd ?? start;
-  const before = body.value.slice(0, start);
-  const after = body.value.slice(end);
-  const padBefore = before.length === 0 || before.endsWith("\n") ? "" : "\n";
-  const padAfter = after.startsWith("\n") ? "" : "\n";
-  const text = `${padBefore}${snippet}${padAfter}`;
-  body.value = before + text + after;
-  nextTick(() => {
-    const pos = start + text.length;
-    el.focus();
-    el.setSelectionRange(pos, pos);
-  });
-}
-
 function insertLatex(block = false) {
-  insertAtCursor(block ? "$$\nE = mc^2\n$$" : "$E = mc^2$");
+  paperRef.value?.insertAtCursor(block ? "$$\nE = mc^2\n$$" : "$E = mc^2$");
 }
 
 async function onImagesSelected(e: Event) {
@@ -194,7 +159,7 @@ async function onImagesSelected(e: Event) {
 
   const uploaded = await uploadFiles(accepted);
   for (const record of uploaded) {
-    insertAtCursor(markdownImageForUpload(record));
+    paperRef.value?.insertAtCursor(markdownImageForUpload(record));
   }
 }
 
@@ -228,41 +193,10 @@ function clear() {
 }
 
 function focus() {
-  (titleEl.value || bodyEl.value)?.focus();
+  paperRef.value?.focus();
 }
 
 defineExpose({ clear, focus });
-
-onMounted(() => {
-  nextTick(() => titleEl.value?.focus());
-});
-
-const bodyStyle = computed(() => ({
-  fontFamily:
-    fontFamily.value === "default"
-      ? undefined
-      : fontFamily.value === "mono"
-        ? "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-        : fontFamily.value === "serif" || fontFamily.value === "georgia"
-          ? '"Source Serif 4", "Libertinus Serif", Georgia, "Times New Roman", serif'
-          : fontFamily.value === "comic"
-            ? "Comic Sans MS, cursive"
-            : undefined,
-  color:
-    textColor.value === "default"
-      ? undefined
-      : textColor.value === "slate"
-        ? "#334155"
-        : textColor.value === "brand"
-          ? "#1d4ed8"
-          : textColor.value === "rose"
-            ? "#e11d48"
-            : textColor.value === "emerald"
-              ? "#059669"
-              : textColor.value === "amber"
-                ? "#d97706"
-                : undefined,
-}));
 </script>
 
 <template>
@@ -275,57 +209,15 @@ const bodyStyle = computed(() => ({
     />
 
     <div class="manuscript-studio__layout">
-      <section
-        class="manuscript-studio__paper"
-        :aria-label="$t('manuscript.canvasAria')"
-      >
-        <label class="sr-only" for="manuscript-title">{{
-          $t("manuscript.titleLabel")
-        }}</label>
-        <input
-          id="manuscript-title"
-          ref="titleEl"
-          v-model="title"
-          type="text"
-          :maxlength="POST_TITLE_MAX"
-          class="manuscript-studio__title"
-          :placeholder="$t('manuscript.titlePlaceholder')"
-          :disabled="submitting"
-          autocomplete="off"
-        />
-
-        <div class="manuscript-studio__meta-line">
-          <span>{{
-            auth.user.value?.name || auth.user.value?.email || $t("nav.account")
-          }}</span>
-          <span aria-hidden="true">·</span>
-          <span>{{
-            $t("manuscript.readingTime", { count: readingMinutes })
-          }}</span>
-          <span aria-hidden="true">·</span>
-          <span>{{ $t("manuscript.wordCount", { count: wordCount }) }}</span>
-        </div>
-
-        <label class="sr-only" for="manuscript-body">{{
-          $t("manuscript.bodyLabel")
-        }}</label>
-        <textarea
-          id="manuscript-body"
-          ref="bodyEl"
-          v-model="body"
-          rows="28"
-          :maxlength="POST_BODY_MAX_MANUSCRIPT"
-          class="manuscript-studio__body"
-          :placeholder="$t('manuscript.bodyPlaceholder')"
-          :disabled="submitting"
-          :style="bodyStyle"
-          @keydown.meta.enter.prevent="onSubmit"
-          @keydown.ctrl.enter.prevent="onSubmit"
-        />
-        <p class="manuscript-studio__format-hint">
-          {{ $t("manuscript.formatHint") }}
-        </p>
-      </section>
+      <ManuscriptStudioPaper
+        ref="paperRef"
+        v-model:title="title"
+        v-model:body="body"
+        :submitting="submitting"
+        :font-family="fontFamily"
+        :text-color="textColor"
+        @submit="onSubmit"
+      />
 
       <ManuscriptStudioSettings
         v-model:content-locale="contentLocale"
@@ -380,98 +272,6 @@ const bodyStyle = computed(() => ({
   }
 }
 
-.manuscript-studio__paper {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.25rem;
-  border: 1px solid var(--ms-rule);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 28%),
-    var(--ms-paper);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 18px 40px rgba(26, 31, 28, 0.06);
-  padding: 1.25rem 1.15rem 1.5rem;
-  animation: manuscript-rise 420ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (min-width: 640px) {
-  .manuscript-studio__paper {
-    padding: 1.75rem 1.85rem 2rem;
-  }
-}
-
-.manuscript-studio__paper::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: linear-gradient(180deg, var(--ms-accent), transparent 70%);
-  opacity: 0.85;
-}
-
-.manuscript-studio__title {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-size: clamp(1.55rem, 3vw, 2.35rem);
-  font-weight: 600;
-  letter-spacing: -0.025em;
-  line-height: 1.2;
-  color: var(--ms-ink);
-  outline: none;
-}
-
-.manuscript-studio__title::placeholder {
-  color: #9aa89f;
-}
-
-.manuscript-studio__meta-line {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin: 0.85rem 0 1.15rem;
-  font-size: 0.75rem;
-  color: var(--ms-muted);
-}
-
-.manuscript-studio__body {
-  width: 100%;
-  min-height: 68vh;
-  resize: vertical;
-  border: 0;
-  background: transparent;
-  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
-  font-size: 1.05rem;
-  line-height: 1.85;
-  color: var(--ms-ink);
-  outline: none;
-}
-
-.manuscript-studio__body::placeholder {
-  color: #9aa89f;
-}
-
-.manuscript-studio__format-hint {
-  margin: 0.65rem 0 0;
-  font-family: "Source Sans 3", system-ui, sans-serif;
-  font-size: 0.78rem;
-  line-height: 1.45;
-  color: #6b7c72;
-}
-
-@keyframes manuscript-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 html[data-theme="dark"] .manuscript-studio {
   --ms-ink: #e8eee9;
   --ms-muted: #9aaba0;
@@ -480,9 +280,5 @@ html[data-theme="dark"] .manuscript-studio {
   --ms-rule: #2a332e;
   --ms-accent: #86b49a;
   --ms-accent-soft: #24312a;
-}
-
-html[data-theme="dark"] .manuscript-studio__paper {
-  background: #171d1a;
 }
 </style>

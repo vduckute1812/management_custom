@@ -89,6 +89,6 @@ describe("production hardening invariants", () => {
 
   it("runs lint and dependency audit in CI", () => {
     expect(ci).toContain("npm run lint");
-    expect(ci).toContain("npm audit --omit=dev");
+    expect(ci).toContain("npm-prod-audit.mjs");
   });
 });

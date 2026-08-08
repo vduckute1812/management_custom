@@ -29,7 +29,8 @@
     "check:db": "node --env-file=.env --import tsx scripts/check-db.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:integration": "DB_INTEGRATION=1 vitest run tests/integration"
+    "test:integration": "DB_INTEGRATION=1 vitest run tests/integration",
+    "audit:prod": "node scripts/npm-prod-audit.mjs"
   },
   "lint-staged": {
     "*.{js,mjs,cjs,ts,vue}": [
@@ -84,7 +85,8 @@
   },
   "overrides": {
     "@intlify/vue-i18n-extensions": "9.0.0",
-    "glob": "^13.0.6"
+    "glob": "^13.0.6",
+    "nanoid": "^3.3.18"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,

@@ -4,7 +4,6 @@ import type { FriendshipRow } from "~/types/friendship";
 const { t } = useI18n();
 const auth = useAuth();
 const { pushToast } = useToasts();
-const { mediaUrl } = useMediaUrl();
 
 useSeoMeta({
   title: () => t("seo.friends"),
@@ -72,13 +71,9 @@ watch(
   },
 );
 
-function onUserQueryInput() {
-  searchDebounced(userQuery.value);
-}
-
-function peerInitial(row: FriendshipRow) {
-  const name = row.peer.name || row.peer.email;
-  return name.trim().charAt(0).toUpperCase() || "?";
+function onUserQueryUpdate(value: string) {
+  userQuery.value = value;
+  searchDebounced(value);
 }
 
 async function onRequest(userId: string) {
@@ -144,14 +139,7 @@ async function confirmUnfriend() {
 
 <template>
   <div class="mx-auto max-w-2xl space-y-8 px-4 py-6 sm:px-0">
-    <header class="space-y-1">
-      <h1 class="text-2xl font-bold tracking-tight text-slate-900">
-        {{ $t("friends.title") }}
-      </h1>
-      <p class="text-sm text-slate-600">
-        {{ $t("friends.pageDescription") }}
-      </p>
-    </header>
+    <FriendsPageHeader />
 
     <InlineErrorAlert
       v-if="loadError"
@@ -160,272 +148,46 @@ async function confirmUnfriend() {
       @retry="loadOverview"
     />
 
-    <section class="space-y-3" aria-labelledby="friends-find-heading">
-      <h2
-        id="friends-find-heading"
-        class="text-sm font-semibold text-slate-800"
-      >
-        {{ $t("friends.findPeople") }}
-      </h2>
-      <label class="sr-only" for="friends-search">{{
-        $t("friends.searchLabel")
-      }}</label>
-      <input
-        id="friends-search"
-        v-model="userQuery"
-        type="search"
-        autocomplete="off"
-        class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-        :placeholder="$t('friends.searchPlaceholder')"
-        @input="onUserQueryInput"
-      />
-      <SkeletonList v-if="searching" :rows="3" />
-      <ul
-        v-else-if="searchHits.length"
-        class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
-      >
-        <li
-          v-for="user in searchHits"
-          :key="user.id"
-          class="flex items-center gap-3 px-3 py-2.5"
-        >
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 text-xs font-bold text-white"
-          >
-            <img
-              v-if="user.avatarUrl"
-              :src="mediaUrl(user.avatarUrl)"
-              alt=""
-              class="h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            <span v-else>{{ (user.name || "?").charAt(0).toUpperCase() }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-slate-900">
-              {{ user.name || $t("friends.addFriend") }}
-            </p>
-          </div>
-          <button
-            v-if="!knownPeerIds.has(user.id)"
-            type="button"
-            class="shrink-0 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-            :disabled="busyId === user.id"
-            :aria-busy="busyId === user.id"
-            @click="onRequest(user.id)"
-          >
-            {{ $t("friends.addFriend") }}
-          </button>
-          <span v-else class="shrink-0 text-xs font-medium text-slate-500">
-            {{ $t("friends.alreadyConnected") }}
-          </span>
-        </li>
-      </ul>
-    </section>
+    <FriendsFindPanel
+      :user-query="userQuery"
+      :searching="searching"
+      :search-hits="searchHits"
+      :known-peer-ids="knownPeerIds"
+      :busy-id="busyId"
+      @update:user-query="onUserQueryUpdate"
+      @request="onRequest"
+    />
 
-    <section
+    <FriendsIncomingPanel
       v-if="incoming.length"
-      class="space-y-3"
-      aria-labelledby="friends-incoming-heading"
-    >
-      <h2
-        id="friends-incoming-heading"
-        class="text-sm font-semibold text-slate-800"
-      >
-        {{ $t("friends.incoming") }}
-        <span class="ml-1 text-slate-400">({{ incoming.length }})</span>
-      </h2>
-      <ul
-        class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
-      >
-        <li
-          v-for="row in incoming"
-          :key="row.id"
-          class="flex flex-wrap items-center gap-3 px-3 py-2.5"
-        >
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 text-xs font-bold text-white"
-          >
-            <img
-              v-if="row.peer.avatarUrl"
-              :src="mediaUrl(row.peer.avatarUrl)"
-              alt=""
-              class="h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            <span v-else>{{ peerInitial(row) }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-slate-900">
-              {{ row.peer.name }}
-            </p>
-          </div>
-          <div class="flex shrink-0 gap-2">
-            <button
-              type="button"
-              class="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-              :disabled="busyId === row.id"
-              @click="onAccept(row.id)"
-            >
-              {{ $t("friends.accept") }}
-            </button>
-            <button
-              type="button"
-              class="rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-              :disabled="busyId === row.id"
-              @click="onRemove(row.id, 'decline')"
-            >
-              {{ $t("friends.decline") }}
-            </button>
-          </div>
-        </li>
-      </ul>
-      <button
-        v-if="incomingNextCursor"
-        type="button"
-        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-        :disabled="loadingMoreIncoming"
-        :aria-busy="loadingMoreIncoming"
-        @click="loadMoreIncoming"
-      >
-        {{ $t("common.loadMore") }}
-      </button>
-    </section>
+      :incoming="incoming"
+      :busy-id="busyId"
+      :incoming-next-cursor="incomingNextCursor"
+      :loading-more-incoming="loadingMoreIncoming"
+      @accept="onAccept"
+      @decline="(id: string) => onRemove(id, 'decline')"
+      @load-more="loadMoreIncoming"
+    />
 
-    <section
+    <FriendsOutgoingPanel
       v-if="outgoing.length"
-      class="space-y-3"
-      aria-labelledby="friends-outgoing-heading"
-    >
-      <h2
-        id="friends-outgoing-heading"
-        class="text-sm font-semibold text-slate-800"
-      >
-        {{ $t("friends.outgoing") }}
-      </h2>
-      <ul
-        class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
-      >
-        <li
-          v-for="row in outgoing"
-          :key="row.id"
-          class="flex items-center gap-3 px-3 py-2.5"
-        >
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-500 text-xs font-bold text-white"
-          >
-            <img
-              v-if="row.peer.avatarUrl"
-              :src="mediaUrl(row.peer.avatarUrl)"
-              alt=""
-              class="h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            <span v-else>{{ peerInitial(row) }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-semibold text-slate-900">
-              {{ row.peer.name }}
-            </p>
-            <p class="truncate text-xs text-slate-500">
-              {{ $t("friends.pending") }}
-            </p>
-          </div>
-          <button
-            type="button"
-            class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-            :disabled="busyId === row.id"
-            @click="onRemove(row.id, 'cancel')"
-          >
-            {{ $t("friends.cancelRequest") }}
-          </button>
-        </li>
-      </ul>
-      <button
-        v-if="outgoingNextCursor"
-        type="button"
-        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-        :disabled="loadingMoreOutgoing"
-        :aria-busy="loadingMoreOutgoing"
-        @click="loadMoreOutgoing"
-      >
-        {{ $t("common.loadMore") }}
-      </button>
-    </section>
+      :outgoing="outgoing"
+      :busy-id="busyId"
+      :outgoing-next-cursor="outgoingNextCursor"
+      :loading-more-outgoing="loadingMoreOutgoing"
+      @cancel="(id: string) => onRemove(id, 'cancel')"
+      @load-more="loadMoreOutgoing"
+    />
 
-    <section class="space-y-3" aria-labelledby="friends-list-heading">
-      <h2
-        id="friends-list-heading"
-        class="text-sm font-semibold text-slate-800"
-      >
-        {{ $t("friends.yourFriends") }}
-        <span v-if="!loading" class="ml-1 text-slate-400"
-          >({{ friends.length }})</span
-        >
-      </h2>
-      <SkeletonList v-if="loading" :rows="4" />
-      <EmptyState
-        v-else-if="!friends.length"
-        :title="$t('friends.empty')"
-        illustration="spark"
-      />
-      <ul
-        v-else
-        class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
-      >
-        <li
-          v-for="row in friends"
-          :key="row.id"
-          class="flex flex-wrap items-center gap-2 px-3 py-2.5 sm:gap-3"
-        >
-          <div
-            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-brand-600 text-xs font-bold text-white"
-          >
-            <img
-              v-if="row.peer.avatarUrl"
-              :src="mediaUrl(row.peer.avatarUrl)"
-              alt=""
-              class="h-full w-full object-cover"
-              loading="lazy"
-              decoding="async"
-            />
-            <span v-else>{{ peerInitial(row) }}</span>
-          </div>
-          <div class="min-w-0 flex-1 basis-32">
-            <p class="truncate text-sm font-semibold text-slate-900">
-              {{ row.peer.name }}
-            </p>
-          </div>
-          <NuxtLink
-            :to="{ path: '/chat', query: { with: row.peer.id } }"
-            class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
-          >
-            {{ $t("friends.message") }}
-          </NuxtLink>
-          <button
-            type="button"
-            class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-50"
-            :disabled="busyId === row.id"
-            @click="requestUnfriend(row)"
-          >
-            {{ $t("friends.unfriend") }}
-          </button>
-        </li>
-      </ul>
-      <button
-        v-if="friendsNextCursor"
-        type="button"
-        class="rounded-lg px-3 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-        :disabled="loadingMoreFriends"
-        :aria-busy="loadingMoreFriends"
-        @click="loadMoreFriends"
-      >
-        {{ $t("common.loadMore") }}
-      </button>
-    </section>
+    <FriendsListPanel
+      :friends="friends"
+      :loading="loading"
+      :busy-id="busyId"
+      :friends-next-cursor="friendsNextCursor"
+      :loading-more-friends="loadingMoreFriends"
+      @unfriend="requestUnfriend"
+      @load-more="loadMoreFriends"
+    />
 
     <ConfirmDialog
       :open="!!pendingUnfriend"

@@ -6,15 +6,9 @@ import type {
   PostTextColor,
   UploadRecord,
 } from "~/types/post";
-import {
-  POST_FONT_FAMILIES,
-  POST_TEXT_COLORS,
-  PostFormat,
-  PostVisibility,
-} from "~/types/post";
+import { PostFormat, PostVisibility } from "~/types/post";
 import { POST_BODY_MAX_UPDATE } from "~/utils/postBodyLimits";
-import { UPLOAD_ACCEPT_ATTR, UPLOAD_MAX_PER_POST } from "~/utils/uploadPolicy";
-import { categoryDisplayName } from "~/utils/categoryLabel";
+import { UPLOAD_ACCEPT_ATTR } from "~/utils/uploadPolicy";
 
 const props = defineProps<{
   submitting?: boolean;
@@ -49,12 +43,8 @@ const emit = defineEmits<{
   ): void;
 }>();
 
-const { t, te } = useI18n();
+const { t } = useI18n();
 const auth = useAuth();
-
-function catLabel(cat: PostCategory) {
-  return categoryDisplayName(cat, t, te);
-}
 
 const body = ref(props.initial?.body ?? "");
 const visibility = ref<PostVisibility>(
@@ -63,7 +53,10 @@ const visibility = ref<PostVisibility>(
 const categoryId = ref(props.initial?.categoryId ?? "");
 const fontFamily = ref<PostFontFamily>(props.initial?.fontFamily ?? "default");
 const textColor = ref<PostTextColor>(props.initial?.textColor ?? "default");
-const textareaEl = ref<HTMLTextAreaElement | null>(null);
+const editor = ref<{
+  focus: () => void;
+  insertAtCursor: (snippet: string) => void;
+} | null>(null);
 
 const {
   audience,
@@ -96,29 +89,8 @@ const canSubmit = computed(
     (visibility.value !== PostVisibility.Shared || audience.value.length > 0),
 );
 
-function insertAtCursor(snippet: string) {
-  const el = textareaEl.value;
-  if (!el) {
-    body.value += snippet;
-    return;
-  }
-  const start = el.selectionStart ?? body.value.length;
-  const end = el.selectionEnd ?? start;
-  const before = body.value.slice(0, start);
-  const after = body.value.slice(end);
-  const padBefore = before.length === 0 || before.endsWith("\n") ? "" : "\n";
-  const padAfter = after.startsWith("\n") ? "" : "\n";
-  const text = `${padBefore}${snippet}${padAfter}`;
-  body.value = before + text + after;
-  nextTick(() => {
-    const pos = start + text.length;
-    el.focus();
-    el.setSelectionRange(pos, pos);
-  });
-}
-
 function insertLatex(block = false) {
-  insertAtCursor(block ? "$$\nE = mc^2\n$$" : "$E = mc^2$");
+  editor.value?.insertAtCursor(block ? "$$\nE = mc^2\n$$" : "$E = mc^2$");
 }
 
 function onSubmit() {
@@ -146,7 +118,7 @@ function clear() {
 }
 
 function focus() {
-  textareaEl.value?.focus();
+  editor.value?.focus();
 }
 
 defineExpose({ clear, focus });
@@ -187,292 +159,61 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
     class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow focus-within:shadow-md"
     @submit.prevent="onSubmit"
   >
-    <div
-      class="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5 sm:px-5"
-    >
-      <UserAvatar
-        :name="auth.user.value?.name"
-        :email="auth.user.value?.email"
-        :avatar-url="auth.user.value?.avatarUrl"
-        size="md"
-      />
-      <div class="min-w-0">
-        <p class="truncate text-sm font-semibold text-slate-900">
-          {{ userLabel }}
-        </p>
-        <p class="text-[11px] text-slate-400">
-          {{ visibilityLabel }}
-        </p>
-      </div>
-      <NuxtLink
-        to="/feed/write"
-        class="ml-auto inline-flex items-center gap-1.5 rounded-full feed-manuscript-chip px-2.5 py-1 text-[10px] font-semibold transition"
-      >
-        {{ $t("manuscript.openStudioChip") }}
-      </NuxtLink>
-    </div>
+    <PostComposerHeader
+      :name="auth.user.value?.name"
+      :email="auth.user.value?.email"
+      :avatar-url="auth.user.value?.avatarUrl"
+      :user-label="userLabel"
+      :visibility-label="visibilityLabel"
+    />
 
     <div class="space-y-3 p-4 sm:p-5">
-      <label class="sr-only" for="post-composer">{{
-        $t("feed.composer.writeAPost")
-      }}</label>
-      <textarea
-        id="post-composer"
-        ref="textareaEl"
+      <PostComposerEditor
+        ref="editor"
         v-model="body"
-        rows="4"
-        :maxlength="POST_BODY_MAX_UPDATE"
-        class="min-h-[6.5rem] w-full resize-y rounded-xl border-0 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-900 ring-1 ring-inset ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-200"
-        :placeholder="placeholder || $t('feed.composer.placeholder')"
-        :disabled="submitting"
-        :style="{
-          fontFamily:
-            fontFamily === 'default'
-              ? undefined
-              : fontFamily === 'mono'
-                ? 'ui-monospace, monospace'
-                : fontFamily === 'serif' || fontFamily === 'georgia'
-                  ? 'Georgia, serif'
-                  : fontFamily === 'comic'
-                    ? 'Comic Sans MS, cursive'
-                    : undefined,
-          color:
-            textColor === 'default'
-              ? undefined
-              : textColor === 'slate'
-                ? '#334155'
-                : textColor === 'brand'
-                  ? '#1d4ed8'
-                  : textColor === 'rose'
-                    ? '#e11d48'
-                    : textColor === 'emerald'
-                      ? '#059669'
-                      : textColor === 'amber'
-                        ? '#d97706'
-                        : undefined,
-        }"
-        @keydown.meta.enter.prevent="onSubmit"
-        @keydown.ctrl.enter.prevent="onSubmit"
+        :placeholder="placeholder"
+        :submitting="submitting"
+        :font-family="fontFamily"
+        :text-color="textColor"
+        @submit="onSubmit"
       />
-      <p class="text-xs leading-5 text-slate-500">
-        {{ $t("feed.composer.formatHint") }}
-      </p>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <label class="sr-only" for="post-category">{{
-          $t("feed.composer.category")
-        }}</label>
-        <select
-          id="post-category"
-          v-model="categoryId"
-          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-        >
-          <option value="">
-            {{ $t("feed.composer.noCategory") }}
-          </option>
-          <option v-for="cat in categories || []" :key="cat.id" :value="cat.id">
-            {{ catLabel(cat) }}
-          </option>
-        </select>
+      <PostComposerToolbar
+        v-model:category-id="categoryId"
+        v-model:font-family="fontFamily"
+        v-model:text-color="textColor"
+        :categories="categories"
+        :font-labels="fontLabels"
+        :color-labels="colorLabels"
+        @insert-inline-latex="insertLatex(false)"
+        @insert-block-latex="insertLatex(true)"
+      />
 
-        <label class="sr-only" for="post-font">{{
-          $t("feed.composer.font")
-        }}</label>
-        <select
-          id="post-font"
-          v-model="fontFamily"
-          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-        >
-          <option v-for="f in POST_FONT_FAMILIES" :key="f" :value="f">
-            {{ fontLabels[f] }}
-          </option>
-        </select>
+      <PostComposerAttachments
+        :attachments="attachments"
+        @remove="removeAttachment"
+      />
 
-        <label class="sr-only" for="post-color">{{
-          $t("feed.composer.textColor")
-        }}</label>
-        <select
-          id="post-color"
-          v-model="textColor"
-          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-        >
-          <option v-for="c in POST_TEXT_COLORS" :key="c" :value="c">
-            {{ colorLabels[c] }}
-          </option>
-        </select>
+      <PostComposerFooter
+        v-model:visibility="visibility"
+        :visibility-options="visibilityOptions"
+        :uploading="uploading"
+        :attachment-count="attachments.length"
+        :can-submit="canSubmit"
+        :submit-label="submitLabel"
+        :submitting="submitting"
+        @attach-click="fileInput?.click()"
+      />
 
-        <button
-          type="button"
-          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          :title="$t('feed.composer.insertInlineLatex')"
-          @click="insertLatex(false)"
-        >
-          {{ $t("feed.composer.latexInline") }}
-        </button>
-        <button
-          type="button"
-          class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-          :title="$t('feed.composer.insertBlockLatex')"
-          @click="insertLatex(true)"
-        >
-          {{ $t("feed.composer.latexBlock") }}
-        </button>
-      </div>
-
-      <div v-if="attachments.length" class="flex flex-wrap gap-2">
-        <div
-          v-for="att in attachments"
-          :key="att.id"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700"
-        >
-          <span class="truncate max-w-[10rem]">{{ att.fileName }}</span>
-          <button
-            type="button"
-            class="text-slate-400 hover:text-rose-600"
-            :aria-label="
-              $t('feed.composer.removeAttachment', { name: att.fileName })
-            "
-            @click="removeAttachment(att.id)"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-
-      <div
-        class="flex flex-col gap-3 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between"
-      >
-        <div class="flex flex-wrap items-center gap-2">
-          <label class="sr-only" for="post-visibility">{{
-            $t("feed.composer.visibility")
-          }}</label>
-          <select
-            id="post-visibility"
-            v-model.number="visibility"
-            class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-200"
-          >
-            <option
-              v-for="opt in visibilityOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
-
-          <button
-            type="button"
-            class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            :disabled="uploading || attachments.length >= UPLOAD_MAX_PER_POST"
-            @click="fileInput?.click()"
-          >
-            {{
-              uploading
-                ? $t("feed.composer.uploading")
-                : $t("feed.composer.attach")
-            }}
-          </button>
-          <input
-            ref="fileInput"
-            type="file"
-            class="hidden"
-            multiple
-            :accept="UPLOAD_ACCEPT_ATTR"
-            @change="onFilesSelected"
-          />
-        </div>
-
-        <button
-          type="submit"
-          class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-brand-200 transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow disabled:pointer-events-none disabled:opacity-50"
-          :disabled="!canSubmit"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            class="h-4 w-4"
-            aria-hidden="true"
-          >
-            <path d="m4 4 16 8-16 8 3-8-3-8Z" stroke-linejoin="round" />
-            <path d="M7 12h13" stroke-linecap="round" />
-          </svg>
-          {{ submitLabel || $t("feed.composer.post") }}
-        </button>
-      </div>
-
-      <div
+      <PostComposerAudience
         v-if="visibility === PostVisibility.Shared"
-        class="space-y-2 rounded-lg border border-slate-100 bg-slate-50/80 p-3"
-      >
-        <label
-          class="block text-xs font-medium text-slate-600"
-          for="audience-search"
-        >
-          {{ $t("feed.composer.shareWith") }}
-        </label>
-        <div v-if="audience.length" class="flex flex-wrap gap-1.5">
-          <span
-            v-for="u in audience"
-            :key="u.id"
-            class="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-medium text-brand-800"
-          >
-            {{ u.name || u.email }}
-            <button
-              type="button"
-              class="text-brand-600 hover:text-rose-600"
-              :aria-label="
-                $t('feed.composer.removePerson', { name: u.name || u.email })
-              "
-              @click="removeAudience(u.id)"
-            >
-              ×
-            </button>
-          </span>
-        </div>
-        <input
-          id="audience-search"
-          v-model="audienceQuery"
-          type="search"
-          autocomplete="off"
-          class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
-          :placeholder="$t('feed.composer.searchPeople')"
-          aria-describedby="audience-hint"
-        />
-        <p id="audience-hint" class="sr-only">
-          {{ $t("feed.composer.audienceHint") }}
-        </p>
-        <ul
-          v-if="audienceQuery.trim() && (searching || results.length)"
-          class="max-h-40 overflow-auto rounded-lg border border-slate-200 bg-white divide-y divide-slate-100"
-          role="listbox"
-        >
-          <li v-if="searching" class="px-3 py-2 text-xs text-slate-400">
-            {{ $t("feed.composer.searching") }}
-          </li>
-          <li
-            v-for="u in results.filter(
-              (r) => !audience.some((a) => a.id === r.id),
-            )"
-            :key="u.id"
-          >
-            <button
-              type="button"
-              class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
-              role="option"
-              @click="pickAudience(u)"
-            >
-              <span class="font-medium text-slate-800">{{
-                u.name || u.email
-              }}</span>
-              <span v-if="u.name" class="block text-[11px] text-slate-500">{{
-                u.email
-              }}</span>
-            </button>
-          </li>
-        </ul>
-      </div>
+        v-model="audienceQuery"
+        :audience="audience"
+        :results="results"
+        :searching="searching"
+        @pick="pickAudience"
+        @remove="removeAudience"
+      />
 
       <p class="text-[11px] text-slate-400 tabular-nums">
         {{
@@ -482,6 +223,15 @@ const colorLabels = computed<Record<PostTextColor, string>>(() => ({
           })
         }}
       </p>
+
+      <input
+        ref="fileInput"
+        type="file"
+        class="hidden"
+        multiple
+        :accept="UPLOAD_ACCEPT_ATTR"
+        @change="onFilesSelected"
+      />
     </div>
   </form>
 </template>
