@@ -10,14 +10,14 @@ afterEach(() => {
 
 describe("secretBox", () => {
   it("round-trips a token", () => {
-    process.env.JWT_SECRET = "test-secret-at-least-16";
+    process.env.JWT_SECRET = "test-secret-at-least-32-chars!!!";
     const sealed = sealSecret("raw-action-token");
     expect(sealed).not.toContain("raw-action-token");
     expect(openSecret(sealed)).toBe("raw-action-token");
   });
 
   it("rejects tampered ciphertext", () => {
-    process.env.JWT_SECRET = "test-secret-at-least-16";
+    process.env.JWT_SECRET = "test-secret-at-least-32-chars!!!";
     const sealed = sealSecret("token");
     const replacement = sealed[2] === "A" ? "B" : "A";
     const tweaked = `${sealed.slice(0, 2)}${replacement}${sealed.slice(3)}`;

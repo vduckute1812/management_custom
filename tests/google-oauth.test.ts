@@ -24,7 +24,7 @@ describe("oauth state", () => {
   const prev = process.env.JWT_SECRET;
 
   beforeEach(() => {
-    process.env.JWT_SECRET = "test-jwt-secret-at-least-16";
+    process.env.JWT_SECRET = "test-jwt-secret-at-least-32-chars!!";
   });
 
   afterEach(() => {

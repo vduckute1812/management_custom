@@ -7,7 +7,7 @@ import {
   type AccessTokenClaims,
 } from "../server/utils/auth";
 
-const SECRET = "test-jwt-secret-at-least-16";
+const SECRET = "test-jwt-secret-at-least-32-chars!!";
 const ISSUER = "management-app";
 
 const claims: AccessTokenClaims = {
@@ -78,8 +78,8 @@ describe("access JWT", () => {
     expect(() => verifyAccessToken(token)).toThrow(/invalid token claims/i);
   });
 
-  it("requires JWT_SECRET >= 16 chars", () => {
-    process.env.JWT_SECRET = "short";
+  it("requires JWT_SECRET >= 32 chars", () => {
+    process.env.JWT_SECRET = "short-but-over-sixteen!";
     expect(() => signAccessToken(claims)).toThrow(/JWT_SECRET/);
     process.env.JWT_SECRET = SECRET;
   });

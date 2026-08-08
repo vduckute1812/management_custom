@@ -5,7 +5,7 @@ import { attachUserFromHeader } from "../server/utils/authContext";
 import { ACCESS_COOKIE } from "../server/utils/refreshCookie";
 import { stubH3Event } from "./helpers/h3";
 
-const SECRET = "test-jwt-secret-at-least-16";
+const SECRET = "test-jwt-secret-at-least-32-chars!!";
 
 describe("attachUserFromHeader", () => {
   const prev = process.env.JWT_SECRET;

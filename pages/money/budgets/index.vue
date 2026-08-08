@@ -235,7 +235,7 @@ function onExportJson() {
         />
         <div
           v-else-if="isLoading && !month?.budgets.length"
-          class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
+          class="rounded-xl bg-white/70 p-2"
           :aria-busy="true"
           :aria-label="$t('money.budgets.loading')"
         >
@@ -258,7 +258,7 @@ function onExportJson() {
           <li v-for="budget in month?.budgets" :key="budget.id">
             <button
               type="button"
-              class="w-full rounded-2xl bg-white/90 px-4 py-4 text-left shadow-sm ring-1 ring-slate-200/80 transition hover:bg-white hover:ring-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+              class="w-full rounded-xl bg-transparent px-3 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
               @click="openEdit(budget)"
             >
               <div class="flex items-start justify-between gap-3">

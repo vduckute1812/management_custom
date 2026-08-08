@@ -8,29 +8,16 @@ defineProps<{
 
 <template>
   <div
-    class="relative overflow-hidden rounded-2xl px-4 py-3.5 ring-1"
+    class="px-1 py-2 sm:px-2"
     :class="{
-      'bg-gradient-to-br from-slate-50 to-white ring-slate-200/80':
-        !tone || tone === 'neutral',
-      'bg-gradient-to-br from-emerald-50 to-white ring-emerald-100':
-        tone === 'in',
-      'bg-gradient-to-br from-rose-50 to-white ring-rose-100': tone === 'out',
-      'bg-gradient-to-br from-amber-50 to-white ring-amber-100':
-        tone === 'warn',
+      'border-l-2 border-slate-300 pl-3': !tone || tone === 'neutral',
+      'border-l-2 border-emerald-500 pl-3': tone === 'in',
+      'border-l-2 border-rose-500 pl-3': tone === 'out',
+      'border-l-2 border-amber-500 pl-3': tone === 'warn',
     }"
   >
-    <div
-      class="pointer-events-none absolute -right-4 -top-4 h-16 w-16 rounded-full opacity-40 blur-2xl"
-      :class="{
-        'bg-slate-300': !tone || tone === 'neutral',
-        'bg-emerald-300': tone === 'in',
-        'bg-rose-300': tone === 'out',
-        'bg-amber-300': tone === 'warn',
-      }"
-      aria-hidden="true"
-    />
     <p
-      class="relative text-[11px] font-semibold uppercase tracking-[0.08em]"
+      class="text-[11px] font-semibold uppercase tracking-[0.08em]"
       :class="{
         'text-slate-500': !tone || tone === 'neutral',
         'text-emerald-700/80': tone === 'in',
@@ -41,7 +28,7 @@ defineProps<{
       {{ label }}
     </p>
     <p
-      class="relative mt-1.5 text-lg font-semibold tabular-nums tracking-tight sm:text-xl"
+      class="mt-1 text-lg font-semibold tabular-nums tracking-tight sm:text-xl"
       :class="{
         'text-slate-900': !tone || tone === 'neutral',
         'text-emerald-900': tone === 'in',

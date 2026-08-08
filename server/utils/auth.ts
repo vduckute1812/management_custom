@@ -39,9 +39,10 @@ export interface AccessTokenClaims {
 
 function getSecret(): string {
   const raw = process.env.JWT_SECRET;
-  if (!raw || raw.length < 16) {
+  // HS256 needs enough entropy; 32 chars is a practical floor for prod secrets.
+  if (!raw || raw.length < 32) {
     throw new Error(
-      "JWT_SECRET must be set (>=16 chars). Set it in your .env file.",
+      "JWT_SECRET must be set (>=32 chars). Set it in your .env file.",
     );
   }
   return raw;

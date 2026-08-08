@@ -119,7 +119,7 @@ jobs:
       DB_USER: root
       DB_PASS: test
       DB_NAME: rc_test
-      JWT_SECRET: ci-e2e-test-secret-min-16chars
+      JWT_SECRET: ci-e2e-test-secret-min-32chars-ok
       COOKIE_SECURE: "false"
       ALLOW_ROOT_DB: "1"
       # Do not set NODE_ENV=production at job level — npm ci would omit
@@ -199,7 +199,7 @@ jobs:
       DB_PASS: test
       DB_NAME: rc_test
       # Pool helpers / auth utils may read this; not used for signing in IT.
-      JWT_SECRET: ci-integration-test-secret-min-16chars
+      JWT_SECRET: ci-integration-test-secret-min-32chars
 
     steps:
       - name: Checkout

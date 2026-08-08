@@ -1,13 +1,13 @@
-import { listIncomingFriendRequests } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { mapDomainError, parseQuery } from "~/server/utils/http";
 import { friendshipPageQuerySchema } from "~/server/schemas";
+import { listIncomingFriendRequestsForUser } from "~/server/services/friends/friendService";
 
 export default defineEventHandler(async (event) => {
   const user = requireUser(event);
   const query = parseQuery(event, friendshipPageQuerySchema);
   try {
-    return await listIncomingFriendRequests(user.sub, query);
+    return await listIncomingFriendRequestsForUser(user.sub, query);
   } catch (err) {
     mapDomainError(err);
   }

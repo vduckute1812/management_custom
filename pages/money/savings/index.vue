@@ -172,7 +172,7 @@ function onExportJson() {
         />
         <div
           v-else-if="isLoading && !goals.length"
-          class="rounded-2xl bg-white/70 p-2 ring-1 ring-slate-200/80"
+          class="rounded-xl bg-white/70 p-2"
           :aria-busy="true"
           :aria-label="$t('money.savings.loading')"
         >
