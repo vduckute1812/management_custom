@@ -22,6 +22,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 | [`auth-rbac.md`](./auth-rbac.md)               | Original feature spec for Authentication & RBAC (the "what was asked for" document).                                          |
 | [`cache-queue-spec.md`](./cache-queue-spec.md) | Feature spec for Cache & Queue.                                                                                               |
 | [`chat-spec.md`](./chat-spec.md)               | Feature spec for direct chat (emoji + stickers).                                                                              |
+| [`friends-spec.md`](./friends-spec.md)         | Feature spec for Friends graph (requests, Chat/Feed ACL gate).                                                                |
 | [`money-spec.md`](./money-spec.md)             | Feature spec for Money (ledger, savings, budgets, client export).                                                             |
 | [`article-spec.md`](./article-spec.md)         | Feature / as-built spec for the RSS → AI rewrite → admin publish pipeline.                                                    |
 | [`roadmap.md`](./roadmap.md)                   | Phase-by-phase engineering progress (auth, feed, chat, cache/queue, articles, Nuxt 4.5 / Node 26, deploy).                    |
@@ -33,7 +34,7 @@ If you came here to **use** the app, start at the root README. If you came here 
 Two kinds of file live here side-by-side:
 
 - **Implementation docs** (`architecture.md`, `database.md`, `api.md`, `auth.md`, `i18n.md`, `getting-started.md`, `cache-queue.md`, `roadmap.md`, `ci-cd.md`) — the **as-built** reference. Always describes what currently exists in the code.
-- **Feature specs** (`auth-rbac.md`, `cache-queue-spec.md`, `chat-spec.md`, `money-spec.md`, `article-spec.md`, plus future per-feature spec files) — the **as-asked** / as-built product record for a given feature.
+- **Feature specs** (`auth-rbac.md`, `cache-queue-spec.md`, `chat-spec.md`, `friends-spec.md`, `money-spec.md`, `article-spec.md`) — the **as-asked** / as-built product record for a given feature.
 
 When a new feature lands, drop its spec in next to `auth-rbac.md` (one file per feature) and update the implementation docs above to match the new shape.
 

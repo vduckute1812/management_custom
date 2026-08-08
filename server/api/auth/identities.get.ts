@@ -1,7 +1,7 @@
 /**
  * GET /api/auth/identities — linked OAuth providers for the current user.
  */
-import { AuthProvider } from "../../../types/auth";
+import { AuthProvider } from "~/types/auth";
 import { getUserById, listIdentitiesForUser } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 

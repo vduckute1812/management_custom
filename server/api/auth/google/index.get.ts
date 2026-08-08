@@ -4,7 +4,7 @@
  * Query: intent=login|link (default login), redirect=/path
  * Link intent requires an authenticated session.
  */
-import { AuthOAuthIntent } from "../../../../types/auth";
+import { AuthOAuthIntent } from "~/types/auth";
 import { getOptionalUser } from "~/server/utils/authContext";
 import {
   buildGoogleAuthorizeUrl,
