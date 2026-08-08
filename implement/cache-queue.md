@@ -65,11 +65,11 @@ Nitro API routes
 
 ### What we cache today
 
-| Key                         | TTL | Source                                                                | Invalidation                                                                                                                                           |
-| --------------------------- | --- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `categories:list`           | 60s | `GET /api/categories`                                                 | Admin category create / patch / delete                                                                                                                 |
-| `feed:public:{hash}`        | 20s | `GET /api/posts` / feed bootstrap **without** auth                    | Public post create / share / update / delete; category mutations                                                                                       |
-| `feed:auth:{userId}:{hash}` | 10s | Same endpoints **with** auth (posts page only; stories stay uncached) | Public writes bust all auth prefixes; private writes bust actor (+ audience); friendship accept/unfriend busts both users; category mutations bust all |
+| Key                         | TTL | Source                                                                | Invalidation                                                                                                                                                                                                                 |
+| --------------------------- | --- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `categories:list`           | 60s | `GET /api/categories`                                                 | Admin category create / patch / delete                                                                                                                                                                                       |
+| `feed:public:{hash}`        | 20s | `GET /api/posts` / feed bootstrap **without** auth                    | Public post create / share / update / delete; category mutations                                                                                                                                                             |
+| `feed:auth:{userId}:{hash}` | 10s | Same endpoints **with** auth (posts page only; stories stay uncached) | Public writes bust all auth prefixes + upload ACL; Friends writes bust actor + accepted friends; Shared writes bust actor + previous/next audience; friendship accept/unfriend busts both users; category mutations bust all |
 
 Helpers: `server/utils/cacheInvalidate.ts`
 (`invalidateCategoryCaches`, `invalidatePublicFeedCaches`,

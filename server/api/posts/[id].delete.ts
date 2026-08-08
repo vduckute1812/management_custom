@@ -5,6 +5,7 @@ import {
   invalidateAllAuthFeedCaches,
   invalidatePublicFeedCaches,
 } from "~/server/utils/cacheInvalidate";
+import { invalidateAllUploadAccessCaches } from "~/server/db/feed/uploadAccess";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -21,6 +22,7 @@ export default defineEventHandler(async (event) => {
     // Visibility unknown after delete — drop anonymous + auth slices eagerly.
     await invalidatePublicFeedCaches();
     await invalidateAllAuthFeedCaches();
+    invalidateAllUploadAccessCaches();
     return { ok: true };
   } catch (err) {
     mapDomainError(err);
