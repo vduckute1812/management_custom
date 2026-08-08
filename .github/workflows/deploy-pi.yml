@@ -99,6 +99,17 @@ jobs:
           DOPPLER_CONFIG: ${{ vars.DOPPLER_CONFIG }}
         run: |
           set -euo pipefail
+          # Self-hosted runner may have HOME=/root while the install (and
+          # ~/.config/management/doppler.token) lives under /home/<user>.
+          if [[ -z "${MGMT_SECRETS_DIR:-}" ]]; then
+            if [[ "${GITHUB_WORKSPACE}" =~ ^(/home/[^/]+)/ ]]; then
+              _home="${BASH_REMATCH[1]}"
+              if [[ -e "${_home}/.config/management" ]]; then
+                export MGMT_SECRETS_DIR="${_home}/.config/management"
+                export HOME="${_home}"
+              fi
+            fi
+          fi
           export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
           # Repo vars may arrive empty — fall back to script defaults.
           export DOPPLER_PROJECT="${DOPPLER_PROJECT:-management_custom}"
@@ -111,8 +122,19 @@ jobs:
           DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
           DOPPLER_PROJECT: ${{ vars.DOPPLER_PROJECT }}
           DOPPLER_CONFIG: ${{ vars.DOPPLER_CONFIG }}
+          MGMT_SECRETS_DIR: ${{ vars.MGMT_SECRETS_DIR }}
         run: |
           set -euo pipefail
+          if [[ -z "${MGMT_SECRETS_DIR:-}" ]]; then
+            if [[ "${GITHUB_WORKSPACE}" =~ ^(/home/[^/]+)/ ]]; then
+              _home="${BASH_REMATCH[1]}"
+              if [[ -e "${_home}/.config/management" ]]; then
+                export MGMT_SECRETS_DIR="${_home}/.config/management"
+                export HOME="${_home}"
+              fi
+            fi
+          fi
+          export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
           export GIT_SHA
           GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
           export DOPPLER_PROJECT="${DOPPLER_PROJECT:-management_custom}"

@@ -39,16 +39,47 @@ REQUIRED_KEYS=(
 log() { echo "[doppler] $*"; }
 die() { echo "[doppler] ERROR: $*" >&2; exit 1; }
 
+# When the Actions runner process has HOME=/root (or another mismatch) but the
+# workspace still lives under /home/<user>/actions-runner, prefer that user's
+# secrets dir so Pi deploys keep working without a GitHub DOPPLER_TOKEN secret.
+runner_login_home() {
+  local ws="${GITHUB_WORKSPACE:-}"
+  if [[ -n "${ws}" && "${ws}" =~ ^(/home/[^/]+)/ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+  return 1
+}
+
 resolve_token() {
   if [[ -n "${DOPPLER_TOKEN:-}" ]]; then
     return 0
   fi
-  if [[ -f "${TOKEN_FILE}" ]]; then
-    # shellcheck disable=SC2155
-    export DOPPLER_TOKEN="$(tr -d '[:space:]' < "${TOKEN_FILE}")"
-    [[ -n "${DOPPLER_TOKEN}" ]] || die "empty token file: ${TOKEN_FILE}"
-    return 0
+
+  local candidates=("${TOKEN_FILE}")
+  local login_home=""
+  if login_home="$(runner_login_home)"; then
+    candidates+=("${login_home}/.config/management/doppler.token")
   fi
+  # Deduplicate while preserving order.
+  local seen="" c
+  for c in "${candidates[@]}"; do
+    case " ${seen} " in
+      *" ${c} "*) continue ;;
+    esac
+    seen="${seen} ${c}"
+    if [[ -f "${c}" ]]; then
+      # shellcheck disable=SC2155
+      export DOPPLER_TOKEN="$(tr -d '[:space:]' < "${c}")"
+      [[ -n "${DOPPLER_TOKEN}" ]] || die "empty token file: ${c}"
+      # Keep file-secret links (ssl/tunnel) on the same secrets dir.
+      if [[ -z "${MGMT_SECRETS_DIR:-}" ]]; then
+        export MGMT_SECRETS_DIR="$(dirname "${c}")"
+      fi
+      log "using token file ${c}"
+      return 0
+    fi
+  done
   return 1
 }
 

@@ -61,8 +61,10 @@ describe("production hardening invariants", () => {
     expect(link).toContain("Doppler secrets required");
     expect(fetch).toContain("secrets download");
     expect(fetch).toContain("DOPPLER_TOKEN");
+    expect(fetch).toContain("runner_login_home");
     expect(wf).toContain("secrets.DOPPLER_TOKEN");
     expect(wf).toContain("install-doppler-cli.sh");
+    expect(wf).toContain("/home/");
     expect(wf).not.toContain("sync-doppler");
   });
 
