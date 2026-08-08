@@ -108,6 +108,30 @@ describe("production hardening invariants", () => {
     );
     expect(sql).toContain("CREATE USER IF NOT EXISTS 'mgmt'");
     expect(sql).toContain("GRANT SELECT, INSERT, UPDATE, DELETE ON `rc`.*");
+    expect(sql).not.toMatch(/GRANT ALL/i);
+    expect(sql).not.toMatch(/\bCREATE\b.*ON `rc`/i);
+
+    const apply = readFileSync(
+      new URL("../docker/apply-mysql-app-user.sh", import.meta.url),
+      "utf8",
+    );
+    const verify = readFileSync(
+      new URL("../docker/verify-mysql-app-user.sh", import.meta.url),
+      "utf8",
+    );
+    expect(apply).toContain("CREATE USER IF NOT EXISTS");
+    expect(apply).toContain("GRANT SELECT, INSERT, UPDATE, DELETE");
+    expect(apply).toContain("CHANGE_ME");
+    expect(verify).toContain("CREATE TABLE");
+    expect(verify).toContain("ALLOW_ROOT_DB");
+  });
+
+  it("keeps LAN MySQL/Redis publishes for Podman DNS workaround", () => {
+    expect(compose).toContain("127.0.0.1:3306:3306");
+    expect(compose).toContain("${LAN_IP:-192.168.1.4}:3306:3306");
+    expect(compose).toContain("127.0.0.1:6379:6379");
+    expect(compose).toContain("${LAN_IP:-192.168.1.4}:6379:6379");
+    expect(compose).toMatch(/host firewall/i);
   });
 
   it("caps unbounded admin/story list queries", () => {

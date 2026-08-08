@@ -21,12 +21,16 @@ CREATE DATABASE rc DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 Optional production cutover to a least-privilege app user (DML only on `rc.*`):
 
-1. Edit the password in [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql) (`CHANGE_ME`).
-2. Apply as root against the live volume (see comments in that file for `podman exec` on the Pi).
+1. Ensure `MYSQL_ROOT_PASSWORD` and the desired app `DB_PASS` are in `docker/.env.prod` (or exported).
+2. On the Pi: `bash docker/apply-mysql-app-user.sh` then `bash docker/verify-mysql-app-user.sh`
+   (scripts refuse `CHANGE_ME` / empty passwords; optional `MYSQL_APP_USER_HOST`, default `%`).
 3. Set `DB_USER=mgmt` and `DB_PASS=<same password>` in Doppler `prd` (and local `.env` if used).
 4. **Remove** `ALLOW_ROOT_DB` from Doppler / compose env.
 5. Redeploy; confirm logs no longer warn about root.
 6. Keep `MYSQL_ROOT_PASSWORD` for migrate/admin one-shots only — the Nitro process should not use root.
+7. **Host firewall:** compose must keep `${LAN_IP}:3306` and `${LAN_IP}:6379` publishes (Podman has no service-name DNS). Restrict who can reach those ports with ufw/nftables (Pi self / trusted LAN only) — do not drop the LAN binds.
+
+Manual SQL reference: [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql).
 
 Until cutover, production may set `ALLOW_ROOT_DB=1` so the app can boot on root; the pool logs a loud warning every start.
 
