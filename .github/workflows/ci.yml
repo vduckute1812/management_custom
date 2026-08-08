@@ -65,7 +65,7 @@ jobs:
 
       - name: Audit production dependencies
         if: ${{ !cancelled() }}
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/npm-prod-audit.mjs
 
       - name: Check formatting
         if: ${{ !cancelled() }}

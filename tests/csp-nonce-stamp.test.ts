@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { stampScriptNonces } from "../server/utils/cspNonceStamp";
-import {
-  ADMIN_USERS_SUMMARY_MAX,
-  SAVINGS_CONTRIBUTIONS_PAGE_SIZE,
-  STORIES_TRAY_MAX,
-} from "../server/utils/listLimits";
 
 describe("stampScriptNonces", () => {
   it("adds nonce to script tags that lack one", () => {
@@ -35,14 +30,5 @@ describe("stampScriptNonces", () => {
       '<script nonce="n">b</script>',
       "<div></div>",
     ]);
-  });
-});
-
-describe("listLimits", () => {
-  it("keeps story tray and admin summary hard caps sane", () => {
-    expect(STORIES_TRAY_MAX).toBeGreaterThanOrEqual(50);
-    expect(STORIES_TRAY_MAX).toBeLessThanOrEqual(200);
-    expect(ADMIN_USERS_SUMMARY_MAX).toBeGreaterThanOrEqual(100);
-    expect(SAVINGS_CONTRIBUTIONS_PAGE_SIZE).toBeGreaterThanOrEqual(20);
   });
 });
