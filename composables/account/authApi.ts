@@ -1,4 +1,4 @@
-import type { AuthUser } from "~/types/task";
+import type { AuthUser } from "~/types/auth";
 import type { AppLocale } from "~/types/locale";
 import type { MoneyCurrency } from "~/types/money";
 import {

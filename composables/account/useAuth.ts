@@ -1,4 +1,4 @@
-import { UserRole, type AuthUser } from "~/types/task";
+import { UserRole, type AuthUser } from "~/types/auth";
 import { isAppLocale, type AppLocale } from "~/types/locale";
 import {
   hydrateAuthFromStorage,

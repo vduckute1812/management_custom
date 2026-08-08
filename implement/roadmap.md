@@ -650,6 +650,12 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 - [x] Playwright `e2e/auth-gate.spec.ts` — protected routes + `/api/auth/me` 401
 - [x] Money UI: strip decorative stat-card gradients/rings on budgets/savings
 
+## Phase 44 — Quality Sprint 3 (audit P2)
+
+- [x] Account/auth client imports use `~/types/auth` (task BC re-exports marked deprecated)
+- [x] Migration `0037_chat_message_created_id_index` for keyset `(created_at, id)`
+- [x] Admin system monitor/logs use shared `InlineErrorAlert` + retry
+
 ## Phase 36 — Feature-folder layout
 
 - [x] Move `components/`, `composables/`, `server/db/`, and `server/services/` into feature folders (`feed`, `chat`, `money`, `time`, `friends`, `account`/`auth`, `admin`, `app`/`shared`/`core`)

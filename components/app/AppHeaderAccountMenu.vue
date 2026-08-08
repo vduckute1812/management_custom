@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ROLE_I18N_KEYS } from "~/types/task";
+import { ROLE_I18N_KEYS } from "~/types/auth";
 import type { AuthUser } from "~/types/auth";
 
 const props = defineProps<{
