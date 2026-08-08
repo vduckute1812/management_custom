@@ -208,7 +208,7 @@ defineExpose({ scrollToBottom });
     class="min-h-0 flex-1 overflow-y-auto px-3 py-3 sm:px-4"
     @scroll="onScroll"
   >
-    <div v-if="hasMore" ref="loadOlderSentinel">
+    <div v-if="hasMore && pinReady" ref="loadOlderSentinel">
       <ChatMessageThreadLoadOlder
         :has-more="hasMore"
         :loading-more="loadingMore"
