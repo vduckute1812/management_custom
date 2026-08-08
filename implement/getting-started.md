@@ -20,7 +20,15 @@ CREATE DATABASE rc DEFAULT CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
 Optional production cutover to a least-privilege app user (DML only on `rc.*`):
-edit the password in [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql), apply it as root, then set `DB_USER`/`DB_PASS` and drop `ALLOW_ROOT_DB`. Keep root for migrate/admin only.
+
+1. Edit the password in [`docker/mysql-create-app-user.sql`](../docker/mysql-create-app-user.sql) (`CHANGE_ME`).
+2. Apply as root against the live volume (see comments in that file for `podman exec` on the Pi).
+3. Set `DB_USER=mgmt` and `DB_PASS=<same password>` in Doppler `prd` (and local `.env` if used).
+4. **Remove** `ALLOW_ROOT_DB` from Doppler / compose env.
+5. Redeploy; confirm logs no longer warn about root.
+6. Keep `MYSQL_ROOT_PASSWORD` for migrate/admin one-shots only — the Nitro process should not use root.
+
+Until cutover, production may set `ALLOW_ROOT_DB=1` so the app can boot on root; the pool logs a loud warning every start.
 
 ## Configure the connection
 
