@@ -119,8 +119,15 @@ describe("production hardening invariants", () => {
       new URL("../server/db/admin/admin.ts", import.meta.url),
       "utf8",
     );
-    const savings = readFileSync(
-      new URL("../server/db/money/moneySavings.ts", import.meta.url),
+    const savingsGoals = readFileSync(
+      new URL("../server/db/money/moneySavingsGoals.ts", import.meta.url),
+      "utf8",
+    );
+    const savingsContrib = readFileSync(
+      new URL(
+        "../server/db/money/moneySavingsContributions.ts",
+        import.meta.url,
+      ),
       "utf8",
     );
     const tasks = readFileSync(
@@ -133,9 +140,9 @@ describe("production hardening invariants", () => {
     );
     expect(stories).toContain("STORIES_TRAY_MAX");
     expect(admin).toContain("ADMIN_USERS_SUMMARY_MAX");
-    expect(savings).toContain("SAVINGS_CONTRIBUTIONS_PAGE_SIZE");
-    expect(savings).toContain("SAVINGS_GOALS_MAX");
-    expect(savings).toContain("nextCursor");
+    expect(savingsGoals).toContain("SAVINGS_GOALS_MAX");
+    expect(savingsContrib).toContain("SAVINGS_CONTRIBUTIONS_PAGE_SIZE");
+    expect(savingsContrib).toContain("nextCursor");
     expect(tasks).toContain("TASKS_UNSCOPED_MAX");
     expect(categories).toContain("MONEY_USER_CATEGORIES_MAX");
     const friends = readFileSync(
