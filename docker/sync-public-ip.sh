@@ -83,6 +83,13 @@ notify_ip_change() {
     echo "[ip] skipping email notification — missing ${ENV_FILE}"
     return 0
   fi
+  # CI / self-hosted runner workspace has no app node_modules (tsx lives in the
+  # production image only). Skip quietly — IP/TLS sync already succeeded above.
+  if [[ ! -d "${ROOT}/node_modules/tsx" ]] \
+    && ! node --input-type=module -e "import('tsx')" >/dev/null 2>&1; then
+    echo "[ip] skipping notification email — tsx not installed on host (OK for CI)"
+    return 0
+  fi
   if node --env-file="${ENV_FILE}" --import tsx "${ROOT}/scripts/notify-public-ip-change.ts" \
     "${old_ip}" "${CURRENT}" "${LAN_IP}"; then
     echo "[ip] notification email sent"
