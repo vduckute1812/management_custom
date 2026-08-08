@@ -231,7 +231,8 @@ defineExpose({ scrollToBottom });
       :title="t('chat.threadEmpty')"
     />
 
-    <ul v-else class="space-y-3" role="list">
+    <!-- Laid out but hidden until pinToNewest scrolls to the newest page. -->
+    <ul v-else class="space-y-3" :class="{ invisible: !pinReady }" role="list">
       <slot :last-read-mine-id="lastReadMineId" />
     </ul>
   </div>
