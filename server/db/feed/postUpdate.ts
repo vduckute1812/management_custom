@@ -38,7 +38,7 @@ export async function updatePost(
     textColor?: PostTextColor | null;
   },
 ): Promise<{
-  post: import("../../../types/post").Post;
+  post: import("~/types/post").Post;
   previousVisibility: PostVisibility;
 }> {
   const pool = getPool();

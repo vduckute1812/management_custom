@@ -1,6 +1,6 @@
 import { DomainError } from "~/server/utils/http";
-import type { Post, PostReactionType } from "../../../types/post";
-import { POST_REACTION_TYPES } from "../../../types/post";
+import type { Post, PostReactionType } from "~/types/post";
+import { POST_REACTION_TYPES } from "~/types/post";
 import { isoToDB } from "../core/datetime";
 import { nowISO } from "../core/ids";
 import { getPool } from "../core/pool";

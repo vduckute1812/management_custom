@@ -41,7 +41,7 @@ export async function createPost(
     contentLocale?: string | null;
     translationGroupId?: string | null;
   },
-): Promise<import("../../../types/post").Post> {
+): Promise<import("~/types/post").Post> {
   const pool = getPool();
   const id = generateId("post");
   const now = nowISO();

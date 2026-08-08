@@ -1,7 +1,7 @@
-# Money — expense ledger & savings
+# Money — expense ledger, budgets & savings
 
-As-built / target spec for the **Money** module (`/money`). Sprint 0–1 ships
-the ledger; later sprints add savings goals and budgets.
+As-built spec for the **Money** module (`/money`, `/money/budgets`, `/money/savings`).
+The ledger, monthly budgets, savings goals, and user categories all ship.
 
 ## Product shape
 

@@ -6,7 +6,7 @@ import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import {
   AppSettingKey,
   type AppSettingKey as AppSettingKeyValue,
-} from "../../../types/appSettings";
+} from "~/types/appSettings";
 import { isoToDB } from "../core/datetime";
 import { nowISO } from "../core/ids";
 import { getPool } from "../core/pool";

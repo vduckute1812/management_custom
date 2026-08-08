@@ -501,6 +501,9 @@ The engineering side of the project lives in [`implement/`](./implement/README.m
 | UI languages, plural `t()`, SEO titles             | [`implement/i18n.md`](./implement/i18n.md)                       |
 | Original Authentication & RBAC feature spec        | [`implement/auth-rbac.md`](./implement/auth-rbac.md)             |
 | Direct chat feature spec                           | [`implement/chat-spec.md`](./implement/chat-spec.md)             |
+| Friends graph feature spec                         | [`implement/friends-spec.md`](./implement/friends-spec.md)       |
+| Money ledger feature spec                          | [`implement/money-spec.md`](./implement/money-spec.md)           |
+| Doppler secrets (prod)                             | [`implement/doppler.md`](./implement/doppler.md)                 |
 | Phase-by-phase engineering progress                | [`implement/roadmap.md`](./implement/roadmap.md)                 |
 | Cache & durable job queue                          | [`implement/cache-queue.md`](./implement/cache-queue.md)         |
 | Raspberry Pi CI/CD deploy + rollback               | [`implement/ci-cd.md`](./implement/ci-cd.md)                     |

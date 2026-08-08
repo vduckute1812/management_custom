@@ -7,10 +7,7 @@ import type {
 import { dbToISO, isoToDB } from "./datetime";
 import { generateId, nowISO } from "./ids";
 import { getPool } from "./pool";
-import {
-  JobStatus,
-  type JobStatus as JobStatusValue,
-} from "../../../types/job";
+import { JobStatus, type JobStatus as JobStatusValue } from "~/types/job";
 
 export type { JobStatusValue as JobStatus };
 

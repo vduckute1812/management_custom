@@ -3,7 +3,7 @@ import { roundHours } from "../core/compute";
 import { dbToISO } from "../core/datetime";
 import { getPool } from "../core/pool";
 import { TaskStatus, type UserRole } from "../core/types";
-import { resolveDisplayName } from "../../../utils/displayName";
+import { resolveDisplayName } from "~/utils/displayName";
 import { ADMIN_USERS_SUMMARY_MAX } from "../../utils/listLimits";
 
 // `TaskStatus` is simultaneously a runtime const object (`TaskStatus.Done === 2`)

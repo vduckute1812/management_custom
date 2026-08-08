@@ -1,5 +1,5 @@
-import { FriendshipStatus } from "../../../../types/friendship";
-import { PostVisibility } from "../../../../types/post";
+import { FriendshipStatus } from "~/types/friendship";
+import { PostVisibility } from "~/types/post";
 
 /**
  * ACL for authenticated viewers:

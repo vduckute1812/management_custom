@@ -1,6 +1,6 @@
 import type { RowDataPacket } from "mysql2/promise";
-import type { PostAuthor } from "../../../../types/post";
-import { resolveDisplayName } from "../../../../utils/displayName";
+import type { PostAuthor } from "~/types/post";
+import { resolveDisplayName } from "~/utils/displayName";
 import { avatarUrlFromUploadId } from "../../core/mappers";
 import { getPool } from "../../core/pool";
 

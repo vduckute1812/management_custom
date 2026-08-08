@@ -3,18 +3,14 @@ import { dbToISO } from "../core/datetime";
 import { listAcceptedFriendIds } from "../friends/friendships";
 import { avatarUrlFromUploadId } from "../core/mappers";
 import { getPool } from "../core/pool";
-import { resolveDisplayName } from "../../../utils/displayName";
-import type { PostAuthor, PostReactionType } from "../../../types/post";
-import { POST_REACTION_TYPES } from "../../../types/post";
+import { resolveDisplayName } from "~/utils/displayName";
+import type { PostAuthor, PostReactionType } from "~/types/post";
+import { POST_REACTION_TYPES } from "~/types/post";
 import {
   emptyReactions as emptyReactionCounts,
   toReactionType,
-} from "../../../types/reaction";
-import type {
-  Story,
-  StoryAuthorGroup,
-  StoriesTray,
-} from "../../../types/story";
+} from "~/types/reaction";
+import type { Story, StoryAuthorGroup, StoriesTray } from "~/types/story";
 import { STORIES_TRAY_MAX } from "../../utils/listLimits";
 
 export interface StoryRow extends RowDataPacket {

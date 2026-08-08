@@ -5,7 +5,7 @@ import {
   type ArticleStatus as ArticleStatusValue,
   type PendingArticle,
   type PendingArticleListItem,
-} from "../../../types/article";
+} from "~/types/article";
 import { DomainError } from "~/server/utils/http";
 import { hashArticleUrl } from "~/server/utils/articleUrlHash";
 import { normalizeArticleUrl, isSafeHttpUrl } from "~/utils/articleUrl";

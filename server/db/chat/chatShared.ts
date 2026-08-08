@@ -14,7 +14,7 @@ import {
 } from "~/types/chat";
 import { UploadKind, toUploadKind } from "~/types/post";
 import { toReactionType } from "~/types/reaction";
-import { resolveDisplayName } from "../../../utils/displayName";
+import { resolveDisplayName } from "~/utils/displayName";
 import { dbToISO } from "../core/datetime";
 import { avatarUrlFromUploadId } from "../core/mappers";
 import { getPool } from "../core/pool";

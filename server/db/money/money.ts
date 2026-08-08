@@ -7,7 +7,7 @@ import {
   type MoneyDirection as MoneyDirectionT,
   type MoneyTransaction,
   type MoneyUserCategory,
-} from "../../../types/money";
+} from "~/types/money";
 import { dbToISO, isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";

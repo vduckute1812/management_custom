@@ -1,6 +1,6 @@
-import type { PostFontFamily, PostTextColor } from "../../../../types/post";
-import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "../../../../types/post";
-import { isContentLocale } from "../../../../utils/contentLocale";
+import type { PostFontFamily, PostTextColor } from "~/types/post";
+import { POST_FONT_FAMILIES, POST_TEXT_COLORS } from "~/types/post";
+import { isContentLocale } from "~/utils/contentLocale";
 
 export function normalizeFontFamily(
   value: string | null | undefined,

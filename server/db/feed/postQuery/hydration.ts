@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { dbToISO } from "../../core/datetime";
 import { avatarUrlFromUploadId } from "../../core/mappers";
 import { getPool } from "../../core/pool";
-import { resolveDisplayName } from "../../../../utils/displayName";
+import { resolveDisplayName } from "~/utils/displayName";
 import type {
   Post,
   PostAttachment,
@@ -11,19 +11,19 @@ import type {
   PostReactionType,
   PostTranslationRef,
   SharedPostPreview,
-} from "../../../../types/post";
+} from "~/types/post";
 import {
   POST_REACTION_TYPES,
   UploadKind,
   toPostFormat,
   toPostVisibility,
   toUploadKind,
-} from "../../../../types/post";
+} from "~/types/post";
 import {
   emptyReactions as emptyReactionCounts,
   toReactionType,
-} from "../../../../types/reaction";
-import { CONTENT_LOCALES } from "../../../../utils/contentLocale";
+} from "~/types/reaction";
+import { CONTENT_LOCALES } from "~/utils/contentLocale";
 import {
   normalizeContentLocale,
   normalizeFontFamily,

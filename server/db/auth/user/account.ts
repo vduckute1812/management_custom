@@ -3,9 +3,9 @@ import {
   defaultMoneyCurrencyForLocale,
   isAppLocale,
   type AppLocale,
-} from "../../../../types/locale";
-import { isMoneyCurrency, type MoneyCurrency } from "../../../../types/money";
-import { resolveDisplayName } from "../../../../utils/displayName";
+} from "~/types/locale";
+import { isMoneyCurrency, type MoneyCurrency } from "~/types/money";
+import { resolveDisplayName } from "~/utils/displayName";
 import { isoToDB } from "../../core/datetime";
 import { generateId, nowISO } from "../../core/ids";
 import { getPool } from "../../core/pool";

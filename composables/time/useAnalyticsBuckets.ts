@@ -177,3 +177,38 @@ export function useAnalyticsEpicBreakdown(epics: MaybeRefOrGetter<Epic[]>) {
       .sort((a, b) => (b.epic.spentHours ?? 0) - (a.epic.spentHours ?? 0)),
   );
 }
+
+export interface AnalyticsTaggedRow {
+  tag: string;
+  count: number;
+  estimated: number;
+  spent: number;
+}
+
+/** Per-tag rollup of task count / estimate / spend (untagged bucket included). */
+export function useAnalyticsTaggedBreakdown(tasks: MaybeRefOrGetter<Task[]>) {
+  return computed<AnalyticsTaggedRow[]>(() => {
+    const map = new Map<
+      string,
+      { count: number; estimated: number; spent: number }
+    >();
+    for (const task of toValue(tasks)) {
+      const tags = task.tags?.length ? task.tags : ["untagged"];
+      for (const tag of tags) {
+        const entry = map.get(tag) ?? { count: 0, estimated: 0, spent: 0 };
+        entry.count += 1;
+        entry.estimated += task.estimatedHours ?? 0;
+        entry.spent += task.spentHours ?? 0;
+        map.set(tag, entry);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([tag, v]) => ({
+        tag,
+        count: v.count,
+        estimated: Math.round(v.estimated * 10) / 10,
+        spent: Math.round(v.spent * 10) / 10,
+      }))
+      .sort((a, b) => b.spent - a.spent);
+  });
+}

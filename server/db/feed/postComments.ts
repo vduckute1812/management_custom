@@ -1,7 +1,7 @@
 import { DomainError } from "~/server/utils/http";
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
-import type { PostComment } from "../../../types/post";
-import { resolveDisplayName } from "../../../utils/displayName";
+import type { PostComment } from "~/types/post";
+import { resolveDisplayName } from "~/utils/displayName";
 import { dbToISO, isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";

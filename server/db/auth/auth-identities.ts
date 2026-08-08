@@ -3,7 +3,7 @@ import {
   AuthProvider,
   isAuthProvider,
   type AuthProvider as AuthProviderT,
-} from "../../../types/auth";
+} from "~/types/auth";
 import { isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
