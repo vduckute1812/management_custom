@@ -364,7 +364,7 @@ html[data-density="compact"] aside nav a {
   }
 }
 .skeleton {
-  background: #e2e8f0;
+  background: var(--skeleton);
   border-radius: 6px;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }

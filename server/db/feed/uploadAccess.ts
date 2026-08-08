@@ -5,7 +5,7 @@
  * download hot path (`resolveUploadForViewer`) can skip SQL on repeat hits.
  * Denies stay uncached (fail closed). Same ~10s staleness window as before.
  */
-import { listAcceptedFriendIds } from "../friends/friendships";
+import { listAcceptedFriendIds } from "../friends/friendshipCache";
 import { getPool } from "../core/pool";
 import { PostVisibility, toUploadKind } from "~/types/post";
 import { type UploadRow } from "./uploadShared";
@@ -210,6 +210,15 @@ export async function resolveUploadForViewer(
 /** Test helper — clear process-local positive upload ACL cache. */
 export function _resetUploadAccessCachesForTests() {
   uploadAclAllowCache.clear();
+}
+
+/** Drop cached allows for a viewer (call on friendship graph changes). */
+export function invalidateUploadAccessCacheForViewer(viewerId: string) {
+  if (!viewerId) return;
+  const prefix = `${viewerId}:`;
+  for (const key of uploadAclAllowCache.keys()) {
+    if (key.startsWith(prefix)) uploadAclAllowCache.delete(key);
+  }
 }
 
 /** Test helper — positive-cache entry count (bounded map). */

@@ -16,6 +16,7 @@ export {
 export {
   canViewerAccessUpload,
   resolveUploadForViewer,
+  invalidateUploadAccessCacheForViewer,
   _resetUploadAccessCachesForTests,
   _uploadAccessCacheSizeForTests,
 } from "./uploadAccess";

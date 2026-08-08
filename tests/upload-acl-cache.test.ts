@@ -9,13 +9,14 @@ vi.mock("../server/db/core/pool", () => ({
   getPool: () => ({ query }),
 }));
 
-vi.mock("../server/db/friends/friendships", () => ({
+vi.mock("../server/db/friends/friendshipCache", () => ({
   listAcceptedFriendIds: (...args: unknown[]) => listAcceptedFriendIds(...args),
 }));
 
 const {
   canViewerAccessUpload,
   resolveUploadForViewer,
+  invalidateUploadAccessCacheForViewer,
   _resetUploadAccessCachesForTests,
   _uploadAccessCacheSizeForTests,
 } = await import("../server/db/feed/uploadAccess");
@@ -121,5 +122,19 @@ describe("upload ACL positive row cache", () => {
     await resolveUploadForViewer("user_a", "upl_1");
     await resolveUploadForViewer("user_b", "upl_1");
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it("invalidateUploadAccessCacheForViewer drops only that viewer", async () => {
+    query.mockResolvedValue([[sampleRow()]]);
+    await resolveUploadForViewer("user_a", "upl_1");
+    await resolveUploadForViewer("user_b", "upl_1");
+    invalidateUploadAccessCacheForViewer("user_a");
+    expect(_uploadAccessCacheSizeForTests()).toBe(1);
+
+    query.mockClear();
+    await resolveUploadForViewer("user_b", "upl_1");
+    expect(query).not.toHaveBeenCalled();
+    await resolveUploadForViewer("user_a", "upl_1");
+    expect(query).toHaveBeenCalledTimes(1);
   });
 });

@@ -36,6 +36,7 @@ Let signed-in members request, accept, decline, and unfriend peers on one instal
 
 - `friendships` — ordered pair `(requester_id, addressee_id)`, unique undirected pair constraint, `status` TINYINT, timestamps
 - Process-local cache of accepted friend ids for feed/story/upload ACL `IN (…)` lists (`listAcceptedFriendIds` + invalidate on mutate)
+- On accept / unfriend, also bust per-viewer upload ACL allow+row cache so friends-visibility media cannot ride a stale allow
 
 Migrations: `0033_friendships.sql`, `0034_friendship_list_indexes.sql`.
 
