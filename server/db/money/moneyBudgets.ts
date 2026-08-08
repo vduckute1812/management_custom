@@ -7,7 +7,7 @@ import {
   type MoneyBudget,
   type MoneyBudgetScope as MoneyBudgetScopeT,
   type MoneyCategory,
-} from "../../../types/money";
+} from "~/types/money";
 import { dbToISO, isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -16,7 +16,7 @@ import {
   getMoneyUserCategoryById,
   mapMoneyUserCategoriesById,
 } from "./moneyUserCategories";
-import { yearMonthRange } from "../../../utils/money";
+import { yearMonthRange } from "~/utils/money";
 import { MONEY_BUDGETS_MONTH_MAX } from "../../utils/listLimits";
 
 interface BudgetRow extends RowDataPacket {

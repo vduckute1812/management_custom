@@ -3,8 +3,8 @@ import type { RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "../../core/datetime";
 import { listAcceptedFriendIds } from "../../friends/friendships";
 import { getPool } from "../../core/pool";
-import type { Post } from "../../../../types/post";
-import { isContentLocale } from "../../../../utils/contentLocale";
+import type { Post } from "~/types/post";
+import { isContentLocale } from "~/utils/contentLocale";
 import {
   visibilityClause,
   visibilityClauseParams,

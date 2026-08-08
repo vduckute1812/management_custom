@@ -43,6 +43,17 @@ your own dev box**:
 2. Once a migration is in someone else's DB, you must add a corrective
    follow-up migration instead.
 
+## Duplicate sequence prefixes
+
+Two files may share the same `NNNN` prefix when they landed in parallel
+(e.g. `0028_list_pagination_indexes.sql` and `0028_user_locale_currency.sql`).
+The migrator identity is the **full stem** (`0028_list_…`, `0028_user_…`),
+and apply order is still lexical. That is fine and intentional.
+
+**Do not renumber** an already-applied file to “fix” a duplicate prefix —
+checksums would drift on every environment. Prefer unique `NNNN` for _new_
+migrations going forward.
+
 ## Transactional caveat
 
 MySQL **does not** support transactional DDL. Statements inside one

@@ -43,7 +43,7 @@ How the app is wired end-to-end. Pairs with [`database.md`](./database.md), [`ap
 
 ## Runtime topology
 
-Three product modules share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), **Money** (personal expense ledger), and **Chat** (1:1 DMs). Auth and admin sit across all of them.
+Five product areas share one install: **Feed** (posts/stories), **Time Management** (tasks/epics/calendar), **Money** (personal expense ledger), **Chat** (1:1 DMs), and **Friends** (social graph). Auth and admin sit across all of them.
 
 ```
 Browser (Vue 3 — hybrid SSR on `/` + `/feed`, SPA elsewhere)
@@ -80,7 +80,7 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 ```
 
 - **Connection pool.** `mysql2/promise` pool in `server/db/core/pool.ts`, created lazily via `getPool()` and reused for the server's lifetime. Pool size defaults to 10 (`DB_CONNECTION_LIMIT`).
-- **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0033+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
+- **Schema ownership.** Versioned SQL in `server/db/migrations/` (**0001…0035+**), applied by `npm run migrate`. Nitro plugin `server/plugins/db-verify.ts` aborts boot if any migration is pending or checksum-drifted. See [`database.md`](./database.md#migration-system).
 - **DB layer.** Domain SQL is grouped by **feature folder** under `server/db/{core,auth,time,feed,chat,money,friends,admin}/`. `server/utils/db.ts` is a **barrel** over those modules. Prefer importing from the feature path or the barrel — do not grow a monolithic `db.ts`. Migrations stay at `server/db/migrations/` (not under a feature).
 - **Request validation.** Shared Zod schemas live in `server/schemas/`; handlers use `parseBody` / `parseQuery` from `server/utils/http.ts`. Invalid enum values are rejected with `400` (no silent fallback).
 - **Auth cookies.** Refresh token is HttpOnly `mgmt_rt` (never localStorage). Access JWT is returned for in-memory Bearer use and mirrored as HttpOnly `mgmt_at` so same-origin `<img>` media loads authenticate without `?access_token=` in the URL. Refresh rotation is a single MySQL transaction; tokens share a `family_id` so reuse of a revoked hash revokes the whole family (migration **0030**).
@@ -96,18 +96,18 @@ Nuxt 4.5 / Nitro API Routes (/server/api/...)
 
 ## Modules & routes (client)
 
-| Area            | Routes                                                                      | Auth                                                                                     |
-| --------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Hub             | `/`                                                                         | Public (localized category cards → `/feed?category=…`)                                   |
-| Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login          |
-| Friends         | `/friends`                                                                  | Authenticated — requests, accept/decline, unfriend                                       |
-| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                            |
-| Money           | `/money`, `/money/savings`, `/money/budgets`                                | Authenticated — personal ledger (transactions, budgets, savings, categories)             |
-| Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account` |
-| Admin           | `/admin`, `/admin/articles/pending`, `/admin/articles/pending/:id`          | Admin / superadmin — users/queue/system + article pipeline review                        |
-| Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                                       |
-| Chat            | `/chat`                                                                     | Authenticated                                                                            |
-| Legal           | `/privacy`, `/terms`                                                        | Public, SSR'd and indexable                                                              |
+| Area            | Routes                                                                      | Auth                                                                                             |
+| --------------- | --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Hub             | `/`                                                                         | Public (localized category cards → `/feed?category=…`)                                           |
+| Feed            | `/feed`, `/feed/write`, `/feed/edit/:id`                                    | Public browse; write/edit desks require login; compose/react/comment need login                  |
+| Friends         | `/friends`                                                                  | Authenticated — requests, accept/decline, unfriend. Spec: [`friends-spec.md`](./friends-spec.md) |
+| Time Management | `/tasks` (calendar dashboard), `/epics`, `/epics/:id`, `/analytics`         | Authenticated                                                                                    |
+| Money           | `/money`, `/money/savings`, `/money/budgets`                                | Authenticated — personal ledger (transactions, budgets, savings, categories)                     |
+| Account         | `/settings`, `/profile`                                                     | Authenticated; Settings → Danger zone deletes the account via `DELETE /api/auth/account`         |
+| Admin           | `/admin`, `/admin/articles/pending`, `/admin/articles/pending/:id`          | Admin / superadmin — users/queue/system + article pipeline review                                |
+| Auth forms      | `/login`, `/signup`, `/verify-email`, `/forgot-password`, `/reset-password` | Public; authed users bounce to `/`                                                               |
+| Chat            | `/chat`                                                                     | Authenticated                                                                                    |
+| Legal           | `/privacy`, `/terms`                                                        | Public, SSR'd and indexable                                                                      |
 
 Global guard: `middleware/auth.global.ts`.
 
@@ -229,7 +229,7 @@ All authenticated API calls use `apiFetch` (`credentials: 'include'` + Bearer wh
 │   │   ├── money/                   # money, moneySavings, moneyBudgets, moneyUserCategories
 │   │   ├── friends/                 # friendships (0033)
 │   │   ├── admin/                   # admin aggregations, pendingArticles
-│   │   └── migrations/              # 0001…0033 SQL files (not feature-scoped)
+│   │   └── migrations/              # 0001…0035 SQL files (not feature-scoped)
 │   ├── rate-limit/                  # Per-IP rate limit module (policies + in-memory store)
 │   ├── middleware/
 │   │   ├── auth.ts                  # Hydrates context.user from Bearer / mgmt_at

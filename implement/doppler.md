@@ -25,8 +25,10 @@ Doppler download when the router IP changes).
 `JWT_SECRET`, `DB_HOST`, `DB_USER`, `DB_PASS`, `DB_NAME`, `MYSQL_ROOT_PASSWORD`,
 `REDIS_PASSWORD`
 
-Also set whatever else the app needs (`APP_BASE_URL`, OAuth, SMTP, R2, LLM,
-`ALLOW_ROOT_DB` if still on `DB_USER=root`, …).
+Also set whatever else the app needs (`APP_BASE_URL`, OAuth, SMTP, R2, LLM, …).
+If `DB_USER` is still `root`, set `ALLOW_ROOT_DB=1` only as a temporary bridge —
+then cut over to `mgmt` via `docker/mysql-create-app-user.sql` and **delete**
+`ALLOW_ROOT_DB` from Doppler (see [`getting-started.md`](./getting-started.md)).
 
 Edit in the Doppler dashboard or:
 

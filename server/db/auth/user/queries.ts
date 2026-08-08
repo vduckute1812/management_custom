@@ -2,7 +2,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { rowToUser, type UserRow } from "../../core/mappers";
 import { getPool } from "../../core/pool";
 import type { UserRecord } from "../../core/types";
-import { ADMIN_USERS_SUMMARY_MAX } from "../../../utils/listLimits";
+import { ADMIN_USERS_SUMMARY_MAX } from "~/server/utils/listLimits";
 
 export async function getUserByEmail(
   email: string,

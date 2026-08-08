@@ -1,7 +1,7 @@
 /**
- * Server-side re-exports of the shared domain types so server code never has
- * to import via the `~/types/task` alias (which the Nitro build doesn't
- * expose at runtime).
+ * Server-side re-exports of shared domain types for DB mappers and callers
+ * that prefer a single import site. Prefer `~/types/…` for new modules —
+ * Nuxt/Nitro resolves the alias (see chat/friends/money feature folders).
  *
  * Every enum is encoded as a small integer end-to-end (TS, JSON wire format,
  * MySQL `TINYINT UNSIGNED`). See `~/types/task.ts` for task/epic enums and
@@ -15,7 +15,7 @@
  * There are no `numberTo*` / `*ToNumber` translation helpers anymore —
  * the TS type IS the integer.
  */
-import { TaskStatus } from "../../../types/task";
+import { TaskStatus } from "~/types/task";
 
 export {
   TaskStatus,
@@ -43,7 +43,7 @@ export {
   type EpicColor,
   type EpicColorClasses,
   type CalendarView,
-} from "../../../types/task";
+} from "~/types/task";
 
 export {
   UserRole,
@@ -53,12 +53,9 @@ export {
   ROLE_LABELS,
   type AuthUser,
   type AdminUserSummary,
-} from "../../../types/auth";
+} from "~/types/auth";
 
-import type {
-  Task as _SharedTask,
-  Epic as _SharedEpic,
-} from "../../../types/task";
+import type { Task as _SharedTask, Epic as _SharedEpic } from "~/types/task";
 
 /**
  * Server-side `Task` extends the shared shape with `userId`. The field is
@@ -97,10 +94,10 @@ export const VALID_COLORS: string[] = [
  * Aliases kept for legacy callers; new code should prefer TASK_PRIORITIES /
  * TASK_STATUSES / RECURRENCE_RULES / USER_ROLES.
  */
-export { TASK_PRIORITIES as VALID_PRIORITIES } from "../../../types/task";
-export { TASK_STATUSES as VALID_STATUSES } from "../../../types/task";
-export { RECURRENCE_RULES as VALID_RECURRENCE_RULES } from "../../../types/task";
-export { USER_ROLES as VALID_USER_ROLES } from "../../../types/auth";
+export { TASK_PRIORITIES as VALID_PRIORITIES } from "~/types/task";
+export { TASK_STATUSES as VALID_STATUSES } from "~/types/task";
+export { RECURRENCE_RULES as VALID_RECURRENCE_RULES } from "~/types/task";
+export { USER_ROLES as VALID_USER_ROLES } from "~/types/auth";
 
 // -------------------------------------------------------------------------
 // View-side / API-shape decorations (computed; never persisted)
@@ -122,7 +119,7 @@ export interface EpicView extends _SharedEpic {
 // Server-only auth shapes
 // -------------------------------------------------------------------------
 
-import type { AuthUser as _AuthUser } from "../../../types/auth";
+import type { AuthUser as _AuthUser } from "~/types/auth";
 
 /** Same as AuthUser but with the password hash — server-internal only. */
 export interface UserRecord extends _AuthUser {

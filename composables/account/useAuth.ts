@@ -1,11 +1,14 @@
 import { UserRole, type AuthUser } from "~/types/task";
+import { isAppLocale, type AppLocale } from "~/types/locale";
 import {
-  defaultMoneyCurrencyForLocale,
-  isAppLocale,
-  type AppLocale,
-} from "~/types/locale";
-import { isMoneyCurrency } from "~/types/money";
-import { nameFromEmail } from "~/utils/displayName";
+  hydrateAuthFromStorage,
+  normalizeAuthUser,
+  persistAuthSession,
+  type AuthSession,
+} from "~/composables/account/authSessionStorage";
+import * as authApi from "~/composables/account/authApi";
+
+export type { AuthSession } from "~/composables/account/authSessionStorage";
 
 /**
  * Auth state for the client. Owns:
@@ -16,41 +19,7 @@ import { nameFromEmail } from "~/utils/displayName";
  *
  * On boot the client POSTs `/api/auth/refresh` with credentials; a valid
  * cookie restores the session without a refresh secret in JS.
- */
-export interface AuthSession {
-  user: AuthUser;
-  accessToken: string;
-  accessExpiresAt: string;
-  /** Present only for legacy responses; ignored by the cookie-based client. */
-  refreshToken?: string;
-  refreshExpiresAt?: string;
-}
-
-const KEYS = {
-  user: "auth:user",
-  accessToken: "auth:accessToken",
-  accessExpiresAt: "auth:accessExpiresAt",
-  /** Cleared on hydrate — legacy localStorage refresh secrets. */
-  refreshToken: "auth:refreshToken",
-  hasSession: "auth:hasSession",
-} as const;
-
-const CREDENTIALS = { credentials: "include" as const };
-
-/** Normalize legacy cached AuthUser shapes missing locale / moneyCurrency / name. */
-function normalizeAuthUser(raw: AuthUser): AuthUser {
-  const locale: AppLocale = isAppLocale(raw.locale) ? raw.locale : "en";
-  const moneyCurrency = isMoneyCurrency(raw.moneyCurrency)
-    ? raw.moneyCurrency
-    : defaultMoneyCurrencyForLocale(locale);
-  const name =
-    typeof raw.name === "string" && raw.name.trim()
-      ? raw.name.trim()
-      : nameFromEmail(raw.email);
-  return { ...raw, name, locale, moneyCurrency };
-}
-
-/**
+ *
  * Public routes (`/`, `/feed`) are selectively SSR'd for Google. Auth still
  * hydrates on the client, so the server always renders the guest chrome.
  * `sessionUiReady` stays false until after client mount on those pages so
@@ -71,41 +40,31 @@ export const useAuth = () => {
   const sessionUiReady = useState<boolean>("auth:sessionUiReady", () => false);
 
   function persist() {
-    if (!import.meta.client) return;
-    try {
-      const ls = window.localStorage;
-      if (user.value) ls.setItem(KEYS.user, JSON.stringify(user.value));
-      else ls.removeItem(KEYS.user);
-      // Access token stays in memory only — page reload rehydrates via cookie.
-      ls.removeItem(KEYS.accessToken);
-      ls.removeItem(KEYS.accessExpiresAt);
-      ls.removeItem(KEYS.refreshToken);
-      if (hasRefreshSession.value) ls.setItem(KEYS.hasSession, "1");
-      else ls.removeItem(KEYS.hasSession);
-    } catch {
-      // Quota errors / privacy modes — non-fatal.
-    }
+    persistAuthSession({
+      user: user.value,
+      hasRefreshSession: hasRefreshSession.value,
+    });
   }
 
   function hydrateFromStorage() {
     if (!import.meta.client) return;
     try {
-      const ls = window.localStorage;
-      // Drop any legacy secrets that older builds left behind.
-      ls.removeItem(KEYS.accessToken);
-      ls.removeItem(KEYS.accessExpiresAt);
-      ls.removeItem(KEYS.refreshToken);
-      hasRefreshSession.value = ls.getItem(KEYS.hasSession) === "1";
-      const u = ls.getItem(KEYS.user);
-      const parsed = u ? (JSON.parse(u) as AuthUser) : null;
-      if (parsed && typeof parsed.role !== "number") {
-        user.value = null;
-        ls.removeItem(KEYS.user);
-      } else {
-        user.value = parsed ? normalizeAuthUser(parsed) : null;
-      }
+      const hydrated = hydrateAuthFromStorage();
+      hasRefreshSession.value = hydrated.hasRefreshSession;
+      user.value = hydrated.user;
     } catch {
       clearSession();
+    }
+  }
+
+  function applyAccountLocale(locale: AuthUser["locale"]) {
+    if (import.meta.client && isAppLocale(locale)) {
+      try {
+        const { update } = useSettings();
+        update("locale", locale);
+      } catch {
+        // Settings may be unavailable during early boot — non-fatal.
+      }
     }
   }
 
@@ -115,15 +74,7 @@ export const useAuth = () => {
     accessExpiresAt.value = session.accessExpiresAt;
     hasRefreshSession.value = true;
     persist();
-    // Keep device language aligned with the account (emails use AuthUser.locale).
-    if (import.meta.client && isAppLocale(user.value.locale)) {
-      try {
-        const { update } = useSettings();
-        update("locale", user.value.locale);
-      } catch {
-        // Settings may be unavailable during early boot — non-fatal.
-      }
-    }
+    applyAccountLocale(user.value.locale);
   }
 
   function clearSession() {
@@ -135,11 +86,7 @@ export const useAuth = () => {
   }
 
   async function login(email: string, password: string): Promise<AuthUser> {
-    const session = await $fetch<AuthSession>("/api/auth/login", {
-      method: "POST",
-      body: { email, password },
-      ...CREDENTIALS,
-    });
+    const session = await authApi.authLogin(email, password);
     setSession(session);
     return session.user;
   }
@@ -150,44 +97,24 @@ export const useAuth = () => {
     name: string;
     locale?: AppLocale;
   }): Promise<{ user: AuthUser; verificationSent: boolean }> {
-    return await $fetch("/api/auth/signup", {
-      method: "POST",
-      body: input,
-      ...CREDENTIALS,
-    });
+    return await authApi.authSignup(input);
   }
 
   async function verifyEmail(token: string): Promise<AuthUser> {
-    const data = await $fetch<{ ok: boolean; user: AuthUser }>(
-      "/api/auth/verify-email",
-      { method: "POST", body: { token }, ...CREDENTIALS },
-    );
-    return data.user;
+    return await authApi.authVerifyEmail(token);
   }
 
   async function requestPasswordReset(email: string): Promise<void> {
-    await $fetch("/api/auth/forgot-password", {
-      method: "POST",
-      body: { email },
-      ...CREDENTIALS,
-    });
+    await authApi.authRequestPasswordReset(email);
   }
 
   async function resetPassword(token: string, password: string): Promise<void> {
-    await $fetch("/api/auth/reset-password", {
-      method: "POST",
-      body: { token, password },
-      ...CREDENTIALS,
-    });
+    await authApi.authResetPassword(token, password);
   }
 
   async function refresh(): Promise<AuthSession> {
     try {
-      const session = await $fetch<AuthSession>("/api/auth/refresh", {
-        method: "POST",
-        body: {},
-        ...CREDENTIALS,
-      });
+      const session = await authApi.authRefresh();
       setSession(session);
       return session;
     } catch (err) {
@@ -199,25 +126,10 @@ export const useAuth = () => {
   async function fetchMe(): Promise<AuthUser | null> {
     if (!accessToken.value && !hasRefreshSession.value) return null;
     try {
-      const { user: fresh } = await $fetch<{ user: AuthUser }>("/api/auth/me", {
-        headers: accessToken.value
-          ? { Authorization: `Bearer ${accessToken.value}` }
-          : undefined,
-        ...CREDENTIALS,
-      });
+      const fresh = await authApi.authFetchMe(accessToken.value);
       user.value = normalizeAuthUser(fresh);
       persist();
-      if (import.meta.client && isAppLocale(user.value.locale)) {
-        try {
-          const { update } = useSettings();
-          update("locale", user.value.locale);
-        } catch (error: unknown) {
-          console.warn(
-            "[auth] Could not apply the account locale:",
-            error instanceof Error ? error.message : "Unknown error",
-          );
-        }
-      }
+      applyAccountLocale(user.value.locale);
       return fresh;
     } catch (error: unknown) {
       console.warn(
@@ -235,17 +147,7 @@ export const useAuth = () => {
     job?: string | null;
     location?: string | null;
   }): Promise<AuthUser> {
-    const { user: fresh } = await $fetch<{ user: AuthUser }>(
-      "/api/auth/profile",
-      {
-        method: "PATCH",
-        body: input,
-        headers: accessToken.value
-          ? { Authorization: `Bearer ${accessToken.value}` }
-          : undefined,
-        ...CREDENTIALS,
-      },
-    );
+    const fresh = await authApi.authUpdateProfile(accessToken.value, input);
     user.value = normalizeAuthUser(fresh);
     persist();
     return fresh;
@@ -255,17 +157,7 @@ export const useAuth = () => {
     locale?: AppLocale;
     moneyCurrency?: import("~/types/money").MoneyCurrency;
   }): Promise<AuthUser> {
-    const { user: fresh } = await $fetch<{ user: AuthUser }>(
-      "/api/auth/preferences",
-      {
-        method: "PATCH",
-        body: input,
-        headers: accessToken.value
-          ? { Authorization: `Bearer ${accessToken.value}` }
-          : undefined,
-        ...CREDENTIALS,
-      },
-    );
+    const fresh = await authApi.authUpdatePreferences(accessToken.value, input);
     user.value = normalizeAuthUser(fresh);
     persist();
     return fresh;
@@ -273,14 +165,7 @@ export const useAuth = () => {
 
   async function logout(opts?: { everywhere?: boolean }) {
     try {
-      await $fetch("/api/auth/logout", {
-        method: "POST",
-        body: { everywhere: opts?.everywhere ?? false },
-        headers: accessToken.value
-          ? { Authorization: `Bearer ${accessToken.value}` }
-          : undefined,
-        ...CREDENTIALS,
-      });
+      await authApi.authLogout(accessToken.value, opts);
     } catch {
       // Network errors shouldn't trap the user — destroy local state regardless.
     }

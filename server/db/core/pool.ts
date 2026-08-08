@@ -26,11 +26,16 @@ export function getPool(): Pool {
   if (process.env.NODE_ENV === "production" && user === "root") {
     if (process.env.ALLOW_ROOT_DB === "1") {
       console.error(
-        "[db] WARNING: DB_USER=root allowed via ALLOW_ROOT_DB=1. Prefer a least-privilege app account.",
+        "[db] WARNING: DB_USER=root allowed via ALLOW_ROOT_DB=1. " +
+          "Cut over to the least-privilege `mgmt` account " +
+          "(docker/mysql-create-app-user.sql), set DB_USER/DB_PASS, " +
+          "then remove ALLOW_ROOT_DB.",
       );
     } else {
       throw new Error(
-        "Refusing to start with DB_USER=root in production. Set a least-privilege DB_USER/DB_PASS, or ALLOW_ROOT_DB=1 to override.",
+        "Refusing to start with DB_USER=root in production. " +
+          "Apply docker/mysql-create-app-user.sql, set DB_USER/DB_PASS, " +
+          "or set ALLOW_ROOT_DB=1 only as a temporary override.",
       );
     }
   }

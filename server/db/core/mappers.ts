@@ -15,9 +15,9 @@ import {
   type TimeBlock,
   type UserRecord,
 } from "./types";
-import { toAppLocale } from "../../../types/locale";
-import { toMoneyCurrency } from "../../../types/money";
-import { resolveDisplayName } from "../../../utils/displayName";
+import { toAppLocale } from "~/types/locale";
+import { toMoneyCurrency } from "~/types/money";
+import { resolveDisplayName } from "~/utils/displayName";
 
 // MySQL returns enum-typed TINYINT columns as `number`. These helpers narrow
 // the raw value back to its enum union and pin out-of-range values to the

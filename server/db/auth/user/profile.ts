@@ -1,8 +1,8 @@
 import { DomainError } from "~/server/utils/http";
 import type { ResultSetHeader } from "mysql2/promise";
-import { isAppLocale, type AppLocale } from "../../../../types/locale";
-import { isMoneyCurrency, type MoneyCurrency } from "../../../../types/money";
-import { UploadKind } from "../../../../types/post";
+import { isAppLocale, type AppLocale } from "~/types/locale";
+import { isMoneyCurrency, type MoneyCurrency } from "~/types/money";
+import { UploadKind } from "~/types/post";
 import { isoToDB } from "../../core/datetime";
 import { nowISO } from "../../core/ids";
 import { rowToUser, type UserRow } from "../../core/mappers";

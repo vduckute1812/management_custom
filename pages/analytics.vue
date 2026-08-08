@@ -7,6 +7,7 @@ import {
   STATUS_COLORS,
   STATUS_I18N_KEYS,
 } from "~/types/task";
+import { useAnalyticsTaggedBreakdown } from "~/composables/time/useAnalyticsBuckets";
 
 dayjs.extend(isoWeek);
 
@@ -52,30 +53,7 @@ usePageShortcuts([
   { key: "3", handler: () => (granularity.value = "month") },
 ]);
 
-const taggedBreakdown = computed(() => {
-  const map = new Map<
-    string,
-    { count: number; estimated: number; spent: number }
-  >();
-  for (const task of tasks.value) {
-    const tags = task.tags?.length ? task.tags : ["untagged"];
-    for (const tag of tags) {
-      const entry = map.get(tag) ?? { count: 0, estimated: 0, spent: 0 };
-      entry.count += 1;
-      entry.estimated += task.estimatedHours ?? 0;
-      entry.spent += task.spentHours ?? 0;
-      map.set(tag, entry);
-    }
-  }
-  return Array.from(map.entries())
-    .map(([tag, v]) => ({
-      tag,
-      count: v.count,
-      estimated: Math.round(v.estimated * 10) / 10,
-      spent: Math.round(v.spent * 10) / 10,
-    }))
-    .sort((a, b) => b.spent - a.spent);
-});
+const taggedBreakdown = useAnalyticsTaggedBreakdown(tasks);
 
 const isEmpty = computed(
   () =>

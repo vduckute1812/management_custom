@@ -204,7 +204,7 @@ Facebook-style request → accept graph. Status: `Pending=0` \| `Accepted=1`. Fr
 | `POST`   | `/api/friends/:id/accept`     | Required | Addressee accepts a pending request. Returns `{ friendship }`.                                       |
 | `DELETE` | `/api/friends/:id`            | Required | Cancel / decline / unfriend. Returns `{ ok: true }`.                                                 |
 
-DTO: `~/types/friendship.ts`. Domain: `server/db/friends/friendships.ts`. UI: `/friends`.
+DTO: `~/types/friendship.ts`. Domain: `server/db/friends/`. UI: `/friends`. Spec: [`friends-spec.md`](./friends-spec.md).
 
 ---
 

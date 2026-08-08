@@ -1,5 +1,5 @@
 import type { RowDataPacket } from "mysql2/promise";
-import type { PostFormat, PostVisibility } from "../../../../types/post";
+import type { PostFormat, PostVisibility } from "~/types/post";
 
 export interface PostRow extends RowDataPacket {
   id: string;

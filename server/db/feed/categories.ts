@@ -3,7 +3,7 @@ import type { RowDataPacket } from "mysql2/promise";
 import { isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
-import type { PostCategory } from "../../../types/post";
+import type { PostCategory } from "~/types/post";
 
 interface CategoryRow extends RowDataPacket {
   id: string;

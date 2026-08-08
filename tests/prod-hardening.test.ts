@@ -139,7 +139,7 @@ describe("production hardening invariants", () => {
     expect(tasks).toContain("TASKS_UNSCOPED_MAX");
     expect(categories).toContain("MONEY_USER_CATEGORIES_MAX");
     const friends = readFileSync(
-      new URL("../server/db/friends/friendships.ts", import.meta.url),
+      new URL("../server/db/friends/friendshipCache.ts", import.meta.url),
       "utf8",
     );
     const storyInsights = readFileSync(

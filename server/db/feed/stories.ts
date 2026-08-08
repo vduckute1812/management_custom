@@ -26,14 +26,10 @@ export {
   storyVisibilityClause,
   storyVisibilityParams,
 } from "./storiesRead";
-import type { PostReactionType } from "../../../types/post";
-import { POST_REACTION_TYPES, UploadKind } from "../../../types/post";
-import { toReactionType } from "../../../types/reaction";
-import type {
-  Story,
-  StoryInsights,
-  StoryViewerEntry,
-} from "../../../types/story";
+import type { PostReactionType } from "~/types/post";
+import { POST_REACTION_TYPES, UploadKind } from "~/types/post";
+import { toReactionType } from "~/types/reaction";
+import type { Story, StoryInsights, StoryViewerEntry } from "~/types/story";
 
 const STORY_TTL_MS = 24 * 60 * 60 * 1000;
 

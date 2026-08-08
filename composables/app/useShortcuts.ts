@@ -115,6 +115,12 @@ export const useShortcuts = () => {
         router.push("/money");
         return;
       }
+      if (key === "r") {
+        e.preventDefault();
+        consumeG();
+        router.push("/friends");
+        return;
+      }
       // Any other key cancels the pending sequence.
       consumeG();
     }
