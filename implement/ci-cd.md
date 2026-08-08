@@ -8,12 +8,12 @@ Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproje
 
 ### Build-time knobs (why deploys got faster)
 
-| Change                                                                  | Effect                                                             |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Keep `:builder-cache`; skip `system prune` unless free disk &lt; ~4 GiB | Reuses apk + `npm ci` layers when `package-lock.json` is unchanged |
-| Slim runtime image (no full `node_modules` COPY)                        | Removes the multi-minute SD-card copy after every Nuxt build       |
-| Tighter `.dockerignore`                                                 | Smaller `COPY . .` context                                         |
-| Workflow `paths-ignore` for docs/tests                                  | Docs-only master pushes skip the Pi job                            |
+| Change                                                                                           | Effect                                                                                  |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Keep `:builder-cache`; prune dangling every deploy; `system prune` only if free disk &lt; ~4 GiB | Reuses apk + `npm ci` layers; stops `<none>` layer pile-up that hung Pi `podman images` |
+| Slim runtime image (no full `node_modules` COPY)                                                 | Removes the multi-minute SD-card copy after every Nuxt build                            |
+| Tighter `.dockerignore`                                                                          | Smaller `COPY . .` context                                                              |
+| Workflow `paths-ignore` for docs/tests                                                           | Docs-only master pushes skip the Pi job                                                 |
 
 Overrides: `MGMT_PRUNE_AGGRESSIVE=1` forces a full prune; `MGMT_DISK_FREE_MIN_GIB` (default `4`) sets the low-disk threshold.
 
@@ -29,7 +29,7 @@ Overrides: `MGMT_PRUNE_AGGRESSIVE=1` forces a full prune; `MGMT_DISK_FREE_MIN_GI
 8. Redis up (cache); then recreates **only the app** (`--no-deps --force-recreate app`); nginx stays up for Cloudflare Tunnel; health-check `http://${LAN_IP}:3000/`.
 9. Renders `nginx.prod.conf.template` → `nginx.prod.rendered.conf` (`LAN_IP`) and reloads nginx so bind-mounted edits take effect.
 10. **If health fails** → retag `:previous` → `:latest`, recreate app, fail the job.
-11. **After a healthy deploy** → refresh `:builder-cache`, drop old SHA tags / stopped containers. Keeps `:latest` / `:previous` / new SHA / `:builder-cache`; **never** deletes named volumes.
+11. **After a healthy deploy** → refresh `:builder-cache`, drop old SHA tags, dangling `<none>` layers, and stopped containers (filtered app-image listing — never a full `podman images` walk). Keeps `:latest` / `:previous` / new SHA / `:builder-cache`; **never** deletes named volumes / never `image prune -a`.
 
 Chat SSE (`/api/chat/inbox/stream`, `/api/chat/conversations/:id/stream`) needs the dedicated nginx locations in `nginx.prod.conf.template` (HTTP/1.1, `proxy_buffering off`, long read timeout). Without them, long-lived EventSource connections 504 behind Cloudflare. Podman on this Pi has no compose service-name DNS, so nginx proxies to `http://${LAN_IP}:3000` (not `http://app:3000`). MySQL/Redis also publish on `${LAN_IP}` for the same reason (loopback-only + `host.containers.internal` does not reach `127.0.0.1` publishes from Linux Podman bridge).
 
@@ -129,8 +129,9 @@ uv run podman-compose -f docker/docker-compose.prod.yml up -d --force-recreate a
 | `MGMT_IMAGE`             | `localhost/mgmt-app-prod`                | App image name                                                                                                                                                                                                    |
 | `MGMT_HEALTH_URL`        | `http://${LAN_IP}:3000/api/health`       | Post-deploy probe (requires HTTP 200)                                                                                                                                                                             |
 | `MGMT_HEALTH_RETRIES`    | `30`                                     | Probe attempts                                                                                                                                                                                                    |
-| `MGMT_DISK_FREE_MIN_GIB` | `4`                                      | Below this, prune also wipes build cache                                                                                                                                                                          |
-| `MGMT_PRUNE_AGGRESSIVE`  | `0`                                      | `1` = always prune dangling + system leftovers                                                                                                                                                                    |
+| `MGMT_DISK_FREE_MIN_GIB` | `4`                                      | Below this, also run `system prune` (build cache leftovers)                                                                                                                                                       |
+| `MGMT_PRUNE_AGGRESSIVE`  | `0`                                      | `1` = always run `system prune` leftovers (dangling prune already runs every deploy)                                                                                                                              |
+| `MGMT_APP_TAG_SOFT_MAX`  | `8`                                      | Warn + re-sweep if more than this many app SHA tags remain outside the keep set                                                                                                                                   |
 | `LAN_IP`                 | `192.168.1.4`                            | Pi LAN bind for app/mysql/redis publish + nginx upstream (`docker/nginx.prod.conf.template` → `nginx.prod.rendered.conf`), trusted-proxy list, migrate `DB_HOST` rewrite, app `REDIS_URL`, and deploy output URLs |
 
 ## Workflow file

@@ -11,11 +11,14 @@
 #      restores the `:previous` image tag.
 #   4. If the new container fails its health check, we retag the previous
 #      image as :latest and recreate the app.
-#   5. Prunes *old app SHA tags* and stopped containers around the build.
-#      Keeps :latest / :previous / the new SHA / :builder-cache (layer cache
-#      for apk + npm ci). Avoids `system prune` / builder-cache wipe on every
-#      deploy — that was forcing cold npm ci (~6 min) on the Pi. Aggressive
-#      prune only runs when free disk is critically low. Never touches volumes.
+#   5. Prunes *old app SHA tags*, dangling intermediates, and stopped
+#      containers around each build. Keeps :latest / :previous / the new SHA /
+#      :builder-cache (layer cache for apk + npm ci). Lists only our app image
+#      refs (filtered) so Podman never walks hundreds of leftover tags.
+#      Dangling prune runs every deploy — skipping it previously let `<none>`
+#      layers pile up (~100+) until `podman images` hung the Pi. Aggressive
+#      `system prune` still only when free disk is critically low. Never
+#      touches volumes / never `image prune -a` (would drop :previous).
 #
 # Usage (from repo root, on the Pi):
 #   bash docker/ci-deploy.sh
@@ -74,8 +77,11 @@ LATEST_TAG="${IMAGE}:latest"
 PREV_TAG="${IMAGE}:previous"
 # Tagged builder stage so apk + npm ci layers survive post-deploy cleanup.
 BUILDER_CACHE_TAG="${IMAGE}:builder-cache"
-# Only run aggressive prune (dangling + system) below this free space (GiB).
+# Only run aggressive system prune below this free space (GiB).
 DISK_FREE_MIN_GIB="${MGMT_DISK_FREE_MIN_GIB:-4}"
+# Soft cap on leftover *app* tags (excluding keep set). If higher after a
+# normal prune pass, force another dangling sweep + log a warning.
+APP_TAG_SOFT_MAX="${MGMT_APP_TAG_SOFT_MAX:-8}"
 
 log() { echo "[ci-deploy] $*"; }
 die() { echo "[ci-deploy] ERROR: $*" >&2; exit 1; }
@@ -117,6 +123,9 @@ disk_free_gib() {
 #
 # Extra keep refs can be passed as args (e.g. prune_image_storage "${NEW_TAG}").
 # Set aggressive=1 via env MGMT_PRUNE_AGGRESSIVE=1 or when free disk is low.
+#
+# Always removes dangling `<none>` layers — those piled up to 100+ on the Pi
+# when prune was disk-gated only, and a full `podman images` walk hung deploy.
 prune_image_storage() {
   local free_gib aggressive=false
   free_gib="$(disk_free_gib)"
@@ -124,7 +133,7 @@ prune_image_storage() {
     aggressive=true
   fi
 
-  log "pruning old app tags / stopped containers (free=${free_gib}G; aggressive=${aggressive})"
+  log "pruning old app tags / dangling / stopped containers (free=${free_gib}G; aggressive=${aggressive})"
   df -h / /var/tmp "${TMPDIR:-/tmp}" 2>/dev/null | awk 'NR==1 || /\/$|tmp/' || df -h /
 
   local keep_ref
@@ -137,6 +146,40 @@ prune_image_storage() {
     [[ -n "${keep_ref}" ]] && KEEP["${keep_ref}"]=1
   done
 
+  # Short name without localhost/ — Podman sometimes lists either form.
+  local image_short="${IMAGE##*/}"
+
+  # Filtered listing only — never walk the full image store (was ~164 refs and
+  # hung the Pi for 20+ minutes on `podman images`).
+  list_app_image_refs() {
+    if [[ "${RUNTIME}" == "podman" ]]; then
+      {
+        podman images --filter "reference=${IMAGE}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+        podman images --filter "reference=${image_short}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+      } | awk 'NF && !seen[$0]++'
+    else
+      {
+        docker images --filter "reference=${IMAGE}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+        docker images --filter "reference=${image_short}" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
+      } | awk 'NF && !seen[$0]++'
+    fi
+  }
+
+  count_app_tags_outside_keep() {
+    local ref repo tag n=0
+    while IFS= read -r ref; do
+      [[ -z "${ref}" || "${ref}" == *":<none>" ]] && continue
+      repo="${ref%:*}"
+      tag="${ref##*:}"
+      [[ "${repo}" == "${IMAGE}" || "${repo}" == "${image_short}" ]] || continue
+      [[ -n "${KEEP[${ref}]+x}" ]] && continue
+      [[ -n "${KEEP[${IMAGE}:${tag}]+x}" ]] && continue
+      [[ -n "${KEEP[${image_short}:${tag}]+x}" ]] && continue
+      n=$((n + 1))
+    done < <(list_app_image_refs)
+    echo "${n}"
+  }
+
   remove_old_app_tags() {
     local ref repo tag
     while IFS= read -r ref; do
@@ -144,19 +187,14 @@ prune_image_storage() {
       repo="${ref%:*}"
       tag="${ref##*:}"
       # Only touch tags of our app image repo.
-      [[ "${repo}" == "${IMAGE}" || "${repo}" == "${IMAGE##*/}" ]] || continue
+      [[ "${repo}" == "${IMAGE}" || "${repo}" == "${image_short}" ]] || continue
       [[ -n "${KEEP[${ref}]+x}" ]] && continue
       # Also match when listing omits the localhost/ prefix.
       [[ -n "${KEEP[${IMAGE}:${tag}]+x}" ]] && continue
+      [[ -n "${KEEP[${image_short}:${tag}]+x}" ]] && continue
       log "removing old image ${ref}"
       "${RUNTIME}" rmi -f "${ref}" >/dev/null 2>&1 || true
-    done < <(
-      if [[ "${RUNTIME}" == "podman" ]]; then
-        podman images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
-      else
-        docker images --format '{{.Repository}}:{{.Tag}}' 2>/dev/null || true
-      fi
-    )
+    done < <(list_app_image_refs)
   }
 
   remove_dangling_images() {
@@ -187,12 +225,24 @@ prune_image_storage() {
   fi
 
   remove_old_app_tags
+  # Every deploy: drop untagged intermediates from multi-stage builds.
+  remove_dangling_images
 
-  # Aggressive mode only: wipe dangling intermediates + unused networks.
-  # Skipping this on healthy disks preserves builder layer cache (apk/npm ci).
-  if [[ "${aggressive}" == true ]]; then
-    log "disk low or MGMT_PRUNE_AGGRESSIVE=1 — pruning dangling images + system leftovers"
+  local leftover
+  leftover="$(count_app_tags_outside_keep)"
+  if (( leftover > APP_TAG_SOFT_MAX )); then
+    log "WARNING: ${leftover} app tags remain outside keep set (soft max ${APP_TAG_SOFT_MAX}) — sweeping again"
+    remove_old_app_tags
     remove_dangling_images
+    leftover="$(count_app_tags_outside_keep)"
+    log "after re-sweep: ${leftover} leftover app tags"
+  else
+    log "app tags outside keep set: ${leftover}"
+  fi
+
+  # Aggressive mode: unused networks / build cache leftovers (not image prune -a).
+  if [[ "${aggressive}" == true ]]; then
+    log "disk low or MGMT_PRUNE_AGGRESSIVE=1 — pruning system leftovers"
     if [[ "${RUNTIME}" == "podman" ]]; then
       podman system prune -f >/dev/null 2>&1 || true
     else
@@ -492,7 +542,7 @@ else
 fi
 
 # Free old SHA tags *after* snapshotting :previous so rollback stays available.
-# Does not wipe builder layer cache unless disk is critically low.
+# Always drops dangling `<none>` layers; filtered listing avoids full-store walks.
 prune_image_storage
 
 # ── Build (failure here leaves the running stack untouched) ──────────────
@@ -569,7 +619,3 @@ echo "  Cache:  ${BUILDER_CACHE_TAG}"
 echo "  Libs:   uv sync + image npm ci (layer-cached)"
 echo "  DB:     migrations applied before app switch"
 echo "  Redis:  ${LAN_IP}:6379 (app cache; fail-open to memory)"
-
-# retrigger deploy after runner _work heal 2026-08-08
-
-# retrigger deploy after podman image prune 2026-08-08T14:39Z

@@ -83,6 +83,24 @@ describe("production hardening invariants", () => {
     expect(compose).not.toContain("redis://:${REDIS_PASSWORD}@");
   });
 
+  it("ci-deploy prunes dangling every run and lists app images filtered", () => {
+    const deploy = readFileSync(
+      new URL("../docker/ci-deploy.sh", import.meta.url),
+      "utf8",
+    );
+    expect(deploy).toContain("prune_image_storage");
+    expect(deploy).toContain("list_app_image_refs");
+    expect(deploy).toContain('--filter "reference=${IMAGE}"');
+    expect(deploy).toContain("remove_dangling_images");
+    expect(deploy).toContain("APP_TAG_SOFT_MAX");
+    // Must not walk the entire image store (hung Pi with ~164 tags).
+    expect(deploy).not.toMatch(
+      /podman images --format '\{\{\.Repository\}\}:\{\{\.Tag\}\}'/,
+    );
+    // Never wipe :previous via prune -a (comments may mention it as forbidden).
+    expect(deploy).not.toMatch(/^\s*[^#\n]*image prune -a/m);
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });
