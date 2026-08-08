@@ -85,6 +85,7 @@ link_or_copy_tree "${SECRETS_DIR}/cloudflared" "${DOCKER_DIR}/cloudflared" || tr
 source "${ROOT}/docker/lib-compose.sh"
 mgmt_ensure_redis_password "${DOCKER_DIR}/.env.prod" \
   || die "could not ensure REDIS_PASSWORD in ${DOCKER_DIR}/.env.prod"
+mgmt_ensure_allow_root_db "${DOCKER_DIR}/.env.prod" || true
 mgmt_link_compose_dotenv || true
 
 log "secrets ready (from ${SECRETS_DIR})"

@@ -41,6 +41,19 @@ describe("production hardening invariants", () => {
     expect(link).toContain("mgmt_ensure_redis_password");
   });
 
+  it("bridges ALLOW_ROOT_DB when Pi still uses DB_USER=root", () => {
+    const lib = readFileSync(
+      new URL("../docker/lib-compose.sh", import.meta.url),
+      "utf8",
+    );
+    const link = readFileSync(
+      new URL("../docker/link-secrets.sh", import.meta.url),
+      "utf8",
+    );
+    expect(lib).toContain("mgmt_ensure_allow_root_db");
+    expect(link).toContain("mgmt_ensure_allow_root_db");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });

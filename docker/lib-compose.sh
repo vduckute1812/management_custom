@@ -158,6 +158,48 @@ mgmt_ensure_redis_password() {
   echo "[deploy] generated REDIS_PASSWORD in ${realf} (len=${#pw})"
 }
 
+# Production refuses DB_USER=root unless ALLOW_ROOT_DB=1 (see pool.ts).
+# Older Pi secrets still use root for the Nitro process; set the override
+# once so migrate + app can boot. Prefer cutting over to the `mgmt` user
+# via docker/mysql-create-app-user.sql when convenient.
+mgmt_ensure_allow_root_db() {
+  local envf realf user allow
+  envf="${1:-}"
+  if [[ -z "${envf}" ]]; then
+    envf="$(mgmt_repo_root)/docker/.env.prod"
+  fi
+  [[ -f "${envf}" ]] || return 0
+  realf="$(mgmt_prod_env_file)"
+  [[ -f "${realf}" ]] || realf="${envf}"
+
+  user="$(mgmt_env_get "${realf}" DB_USER)"
+  if [[ -z "${user}" && "${realf}" != "${envf}" ]]; then
+    user="$(mgmt_env_get "${envf}" DB_USER)"
+  fi
+  user="${user:-root}"
+  if [[ "${user}" != "root" ]]; then
+    return 0
+  fi
+
+  allow="$(mgmt_env_get "${realf}" ALLOW_ROOT_DB)"
+  if [[ -z "${allow}" && "${realf}" != "${envf}" ]]; then
+    allow="$(mgmt_env_get "${envf}" ALLOW_ROOT_DB)"
+  fi
+  if [[ "${allow}" == "1" ]]; then
+    export ALLOW_ROOT_DB=1
+    return 0
+  fi
+
+  if grep -qE '^ALLOW_ROOT_DB=' "${realf}" 2>/dev/null; then
+    sed -i 's|^ALLOW_ROOT_DB=.*|ALLOW_ROOT_DB=1|' "${realf}"
+  else
+    printf '\n# Temporary: DB_USER=root still in use — prefer docker/mysql-create-app-user.sql\nALLOW_ROOT_DB=1\n' \
+      >> "${realf}"
+  fi
+  export ALLOW_ROOT_DB=1
+  echo "[deploy] WARNING: set ALLOW_ROOT_DB=1 in ${realf} (DB_USER=root). Cut over to DB_USER=mgmt when possible."
+}
+
 # Export KEY=VAL from docker/.env.prod for compose *interpolation*
 # (${REDIS_PASSWORD:?…} in docker-compose.prod.yml). Service `env_file:`
 # only injects into containers after YAML is already resolved — without this,
@@ -208,6 +250,7 @@ mgmt_compose() {
   # Export so compose `${LAN_IP:-…}` port binds + nginx render agree.
   export LAN_IP="${LAN_IP:-192.168.1.4}"
   mgmt_ensure_redis_password "${root}/docker/.env.prod" || return 1
+  mgmt_ensure_allow_root_db "${root}/docker/.env.prod" || return 1
   mgmt_link_compose_dotenv
   mgmt_export_prod_env "${root}/docker/.env.prod"
   if [[ -z "${REDIS_PASSWORD:-}" ]]; then
