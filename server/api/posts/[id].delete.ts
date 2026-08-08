@@ -1,7 +1,10 @@
 import { deletePost } from "~/server/utils/db";
 import { requireUser } from "~/server/utils/authContext";
 import { DomainError, mapDomainError } from "~/server/utils/http";
-import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import {
+  invalidateAllAuthFeedCaches,
+  invalidatePublicFeedCaches,
+} from "~/server/utils/cacheInvalidate";
 
 export default defineEventHandler(async (event) => {
   try {
@@ -15,8 +18,9 @@ export default defineEventHandler(async (event) => {
     if (!ok) {
       throw new DomainError(404, "Post not found");
     }
-    // Deleted posts may have been public; drop anonymous slices eagerly.
+    // Visibility unknown after delete — drop anonymous + auth slices eagerly.
     await invalidatePublicFeedCaches();
+    await invalidateAllAuthFeedCaches();
     return { ok: true };
   } catch (err) {
     mapDomainError(err);

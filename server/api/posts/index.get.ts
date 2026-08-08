@@ -9,8 +9,9 @@ import { isContentLocale } from "~/utils/contentLocale";
  * Feed listing. Authenticated users see public + own + shared-with-me posts.
  * Anonymous visitors only receive posts with `visibility: public`.
  *
- * Public (anonymous) pages are cached briefly — ACL for signed-in users is
- * viewer-specific and is never cached.
+ * Public (anonymous) pages are cached briefly. Signed-in pages use a
+ * viewer-scoped short TTL cache (`feed:auth:{userId}:…`) — never shared
+ * across users.
  *
  * Optional `locale` prefers that content language for multilingual manuscripts.
  */
@@ -31,5 +32,9 @@ export default defineEventHandler(async (event) => {
     );
   }
 
-  return listFeedPosts(user.sub, { cursor, limit, categoryId, locale });
+  return cacheGetOrSet(
+    CacheKeys.feedAuth(user.sub, cursor, categoryId, locale, limit),
+    CacheTTL.feedAuth,
+    () => listFeedPosts(user.sub, { cursor, limit, categoryId, locale }),
+  );
 });

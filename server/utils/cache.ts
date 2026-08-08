@@ -264,10 +264,23 @@ export const CacheKeys = {
     limit: number | null = null,
   ) => `feed:public:${cacheKeyHash({ cursor, categoryId, locale, limit })}`,
   feedPublicPrefix: () => "feed:public:",
+  /** Viewer-scoped auth feed page. `userId` is outside the hash for prefix bust. */
+  feedAuth: (
+    userId: string,
+    cursor: string | null,
+    categoryId: string | null,
+    locale: string | null = null,
+    limit: number | null = null,
+  ) =>
+    `feed:auth:${userId}:${cacheKeyHash({ cursor, categoryId, locale, limit })}`,
+  feedAuthPrefix: (userId: string) => `feed:auth:${userId}:`,
+  feedAuthAllPrefix: () => "feed:auth:",
 } as const;
 
 /** Default TTLs (seconds). Short enough that admin edits feel fresh. */
 export const CacheTTL = {
   categories: 60,
   feedPublic: 20,
+  /** Shorter than public — viewer ACL / friendship can change. */
+  feedAuth: 10,
 } as const;
