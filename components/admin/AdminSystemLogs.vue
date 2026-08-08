@@ -61,9 +61,13 @@ function levelClass(level: string): string {
         </button>
       </div>
     </div>
-    <p v-if="error" class="text-xs text-rose-600 px-3 py-2 bg-rose-50">
-      {{ error }}
-    </p>
+    <InlineErrorAlert
+      v-if="error"
+      class="m-2"
+      :message="error"
+      :retry-label="$t('common.retry')"
+      @retry="emit('reload')"
+    />
     <div
       class="max-h-64 overflow-auto bg-slate-950 text-[11px] font-mono leading-relaxed"
     >

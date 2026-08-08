@@ -101,6 +101,31 @@ describe("production hardening invariants", () => {
     expect(deploy).not.toMatch(/^\s*[^#\n]*image prune -a/m);
   });
 
+  it("ships chat message created_at+id keyset index", () => {
+    const sql = readFileSync(
+      new URL(
+        "../server/db/migrations/0037_chat_message_created_id_index.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("idx_chat_messages_conversation_created_id");
+    expect(sql).toContain("created_at, id");
+  });
+
+  it("keeps account auth imports on ~/types/auth", () => {
+    for (const rel of [
+      "../composables/account/useAuth.ts",
+      "../composables/account/authApi.ts",
+      "../composables/account/authSessionStorage.ts",
+      "../components/app/AppHeaderAccountMenu.vue",
+    ]) {
+      const src = readFileSync(new URL(rel, import.meta.url), "utf8");
+      expect(src).not.toMatch(/from ["']~\/types\/task["']/);
+      expect(src).toMatch(/from ["']~\/types\/auth["']/);
+    }
+  });
+
   it("ships friendship ACL updated_at indexes", () => {
     const sql = readFileSync(
       new URL(

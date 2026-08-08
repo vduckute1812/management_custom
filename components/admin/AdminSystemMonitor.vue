@@ -196,12 +196,12 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <p
+    <InlineErrorAlert
       v-if="error"
-      class="text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-md px-3 py-2"
-    >
-      {{ error }}
-    </p>
+      :message="error"
+      :retry-label="$t('common.retry')"
+      @retry="load({ manual: true })"
+    />
 
     <SkeletonList v-else-if="!snapshot && loading" :rows="3" variant="card" />
 

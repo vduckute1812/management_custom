@@ -9,7 +9,9 @@
  *   - shipped as `number` in API responses, JSON exports, and JWT claims,
  *   - consumed in TS code as named constants (e.g. `TaskStatus.Done`).
  *
- * Account roles / `AuthUser` live in `types/auth.ts` (re-exported here for BC).
+ * Account roles / `AuthUser` live in `types/auth.ts`. Prefer importing from
+ * there; the re-exports below are temporary BC for Time/admin callers still
+ * on `~/types/task`.
  *
  * Each enum is defined as a `const` object plus a numeric union type. This
  * pattern gives autocomplete (`TaskStatus.Done`) without TypeScript's
@@ -148,9 +150,10 @@ export const RECURRENCE_UNIT_LABEL: Record<RecurrenceRule, string> = {
 };
 
 // -------------------------------------------------------------------------
-// Auth (re-exported from types/auth.ts for backward-compatible imports)
+// Auth (temporary BC re-exports — prefer `~/types/auth` for new code)
 // -------------------------------------------------------------------------
 
+/** @deprecated Import from `~/types/auth` instead. */
 export {
   UserRole,
   USER_ROLES,

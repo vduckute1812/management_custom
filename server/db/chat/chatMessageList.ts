@@ -1,5 +1,8 @@
 /**
  * Chat message listing (cursor pagination).
+ *
+ * Keyset uses `(created_at, id)` — covered by migration
+ * `0037_chat_message_created_id_index`.
  */
 import { DomainError } from "~/server/utils/http";
 import type { RowDataPacket } from "mysql2/promise";
