@@ -25,6 +25,10 @@ Cloudflare Tunnel credentials) stay on the Pi under `~/.config/management`.
      --project management_custom --config prd
    ```
 
+   `prd` must contain real app keys (not only `DOPPLER_*`). Until then,
+   `fetch-doppler-secrets.sh` fails closed and `link-secrets` falls back to
+   the local secrets file.
+
 3. Copy a subset into `dev` (or start from `.env.example`) and set local
    `DB_HOST` / weaker secrets as needed.
 
