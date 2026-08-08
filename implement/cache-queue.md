@@ -15,10 +15,10 @@ and [`api.md`](./api.md). The original ask is captured in
 | Never block user mutations on SMTP | Verification mail is **enqueued**, not sent inline                                          |
 | Fail open                          | Redis outages fall back to memory; cache misses hit MySQL                                   |
 | No new mandatory service locally   | App boots with zero Redis in dev; worker runs inside Nitro                                  |
-| Safe ACL                           | Only **anonymous public** feed pages are cached — never per-user feeds                      |
+| Safe ACL                           | Anonymous public feed is cached; signed-in feed uses **viewer-scoped** keys only            |
 
 Negative goals: no distributed locks beyond MySQL `SKIP LOCKED`, no separate
-worker container (yet), no cache of authenticated feed timelines.
+worker container (yet), no cross-viewer reuse of authenticated feed payloads.
 
 ---
 
@@ -65,15 +65,16 @@ Nitro API routes
 
 ### What we cache today
 
-| Key                  | TTL | Source                            | Invalidation                                                     |
-| -------------------- | --- | --------------------------------- | ---------------------------------------------------------------- |
-| `categories:list`    | 60s | `GET /api/categories`             | Admin category create / patch / delete                           |
-| `feed:public:{hash}` | 20s | `GET /api/posts` **without** auth | Public post create / share / update / delete; category mutations |
-
-Authenticated feed reads **bypass** the cache entirely (viewer ACL is personal).
+| Key                         | TTL | Source                                                                | Invalidation                                                                                                                                           |
+| --------------------------- | --- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `categories:list`           | 60s | `GET /api/categories`                                                 | Admin category create / patch / delete                                                                                                                 |
+| `feed:public:{hash}`        | 20s | `GET /api/posts` / feed bootstrap **without** auth                    | Public post create / share / update / delete; category mutations                                                                                       |
+| `feed:auth:{userId}:{hash}` | 10s | Same endpoints **with** auth (posts page only; stories stay uncached) | Public writes bust all auth prefixes; private writes bust actor (+ audience); friendship accept/unfriend busts both users; category mutations bust all |
 
 Helpers: `server/utils/cacheInvalidate.ts`
-(`invalidateCategoryCaches`, `invalidatePublicFeedCaches`).
+(`invalidateCategoryCaches`, `invalidatePublicFeedCaches`,
+`invalidateAllAuthFeedCaches`, `invalidateAuthFeedCachesForViewer`,
+`invalidateFeedCachesAfterPostMutation`).
 
 ### Process-local ACL helpers (not Redis)
 

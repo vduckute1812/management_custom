@@ -5,7 +5,10 @@ import {
 } from "~/server/db/feed/uploads";
 import { listStoryStorageKeysForUser } from "~/server/db/feed/stories";
 import { recountCommentCounts } from "~/server/db/feed/postComments";
-import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import {
+  invalidateAllAuthFeedCaches,
+  invalidatePublicFeedCaches,
+} from "~/server/utils/cacheInvalidate";
 
 /**
  * Hard-delete an account and clean up resources that foreign-key cascades
@@ -31,5 +34,6 @@ export async function deleteUserAccount(id: string): Promise<boolean> {
     await purgeR2StorageKeys(storageKeys);
   }
   await invalidatePublicFeedCaches();
+  await invalidateAllAuthFeedCaches();
   return true;
 }

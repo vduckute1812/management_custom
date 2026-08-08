@@ -40,7 +40,11 @@ export default defineEventHandler(async (event): Promise<FeedBootstrap> => {
         () => listFeedPosts(null, { cursor, limit, categoryId, locale }),
       );
     }
-    return listFeedPosts(user.sub, { cursor, limit, categoryId, locale });
+    return cacheGetOrSet(
+      CacheKeys.feedAuth(user.sub, cursor, categoryId, locale, limit),
+      CacheTTL.feedAuth,
+      () => listFeedPosts(user.sub, { cursor, limit, categoryId, locale }),
+    );
   };
 
   if (!user) {

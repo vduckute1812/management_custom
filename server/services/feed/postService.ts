@@ -1,5 +1,5 @@
 import { createPost, getPostById, updatePost } from "~/server/utils/db";
-import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import { invalidateFeedCachesAfterPostMutation } from "~/server/utils/cacheInvalidate";
 import { DomainError } from "~/server/utils/http";
 import type { PostFontFamily, PostTextColor } from "~/types/post";
 import { PostFormat, PostVisibility } from "~/types/post";
@@ -40,9 +40,11 @@ export async function createPostForUser(
 ) {
   try {
     const post = await createPost(userId, input);
-    if (post.visibility === PostVisibility.Public) {
-      await invalidatePublicFeedCaches();
-    }
+    await invalidateFeedCachesAfterPostMutation({
+      actorId: userId,
+      touchesPublic: post.visibility === PostVisibility.Public,
+      audienceUserIds: input.audienceUserIds,
+    });
     return { post };
   } catch (err: unknown) {
     wrapPostMutationError(err, "Failed to create post");
@@ -93,12 +95,13 @@ export async function updatePostForUser(
       fontFamily: input.fontFamily,
       textColor: input.textColor,
     });
-    if (
-      previousVisibility === PostVisibility.Public ||
-      post.visibility === PostVisibility.Public
-    ) {
-      await invalidatePublicFeedCaches();
-    }
+    await invalidateFeedCachesAfterPostMutation({
+      actorId: userId,
+      touchesPublic:
+        previousVisibility === PostVisibility.Public ||
+        post.visibility === PostVisibility.Public,
+      audienceUserIds: input.audienceUserIds,
+    });
     return { post };
   } catch (err: unknown) {
     wrapPostMutationError(err, "Failed to update post");
@@ -122,9 +125,11 @@ export async function sharePostForUser(
       audienceUserIds: input.audienceUserIds,
       sharedPostId,
     });
-    if (post.visibility === PostVisibility.Public) {
-      await invalidatePublicFeedCaches();
-    }
+    await invalidateFeedCachesAfterPostMutation({
+      actorId: userId,
+      touchesPublic: post.visibility === PostVisibility.Public,
+      audienceUserIds: input.audienceUserIds,
+    });
     return { post };
   } catch (err: unknown) {
     const statusCode = (err as { statusCode?: number })?.statusCode;

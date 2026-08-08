@@ -12,7 +12,10 @@ import { deletePostById } from "~/server/db/feed/posts";
 import { DomainError } from "~/server/utils/http";
 import { ArticleStatus, type PendingArticle } from "~/types/article";
 import { llmConfigured } from "~/server/services/admin/articleRewriter";
-import { invalidatePublicFeedCaches } from "~/server/utils/cacheInvalidate";
+import {
+  invalidateAllAuthFeedCaches,
+  invalidatePublicFeedCaches,
+} from "~/server/utils/cacheInvalidate";
 import { enqueueArticleRewrite } from "~/server/services/admin/articlePipelineJobs";
 
 export async function deleteArticle(
@@ -34,6 +37,7 @@ export async function deleteArticle(
 
   if (removedPostId) {
     await invalidatePublicFeedCaches();
+    await invalidateAllAuthFeedCaches();
   }
 
   return { deleted: true, removedPostId };

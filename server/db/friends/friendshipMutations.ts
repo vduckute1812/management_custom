@@ -14,13 +14,16 @@ import { getPool } from "../core/pool";
 import { findPairRow, loadFriendshipForUser } from "./friendshipShared";
 import { invalidateAcceptedFriendIdsCache } from "./friendshipCache";
 import { invalidateUploadAccessCacheForViewer } from "../feed/uploadAccess";
+import { invalidateAuthFeedCachesForViewer } from "~/server/utils/cacheInvalidate";
 
-function invalidateFriendshipAclCaches(userA: string, userB: string) {
+async function invalidateFriendshipAclCaches(userA: string, userB: string) {
   invalidateAcceptedFriendIdsCache(userA);
   invalidateAcceptedFriendIdsCache(userB);
   // Friends-visibility media may have been positively cached for either party.
   invalidateUploadAccessCacheForViewer(userA);
   invalidateUploadAccessCacheForViewer(userB);
+  await invalidateAuthFeedCachesForViewer(userA);
+  await invalidateAuthFeedCachesForViewer(userB);
 }
 
 export async function requestFriendship(
@@ -108,7 +111,7 @@ export async function acceptFriendship(
       FriendshipStatus.Pending,
     ],
   );
-  invalidateFriendshipAclCaches(
+  await invalidateFriendshipAclCaches(
     String(row.requester_id),
     String(row.addressee_id),
   );
@@ -139,7 +142,7 @@ export async function deleteFriendship(
     throw new DomainError(404, "Friendship not found");
   }
   if (pair) {
-    invalidateFriendshipAclCaches(
+    await invalidateFriendshipAclCaches(
       String(pair.requester_id),
       String(pair.addressee_id),
     );
