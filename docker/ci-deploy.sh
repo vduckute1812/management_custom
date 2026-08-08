@@ -569,3 +569,5 @@ echo "  Cache:  ${BUILDER_CACHE_TAG}"
 echo "  Libs:   uv sync + image npm ci (layer-cached)"
 echo "  DB:     migrations applied before app switch"
 echo "  Redis:  ${LAN_IP}:6379 (app cache; fail-open to memory)"
+
+# retrigger deploy after runner _work heal 2026-08-08
