@@ -19,18 +19,37 @@ ENV_FILE="${DOCKER_DIR}/.env.prod"
 log() { echo "[mysql-app-user] $*"; }
 die() { echo "[mysql-app-user] ERROR: $*" >&2; exit 1; }
 
-load_env_file() {
+# Load only keys we need from KEY=VAL lines (see apply-mysql-app-user.sh).
+# CLI/exported vars win over the file.
+load_env_keys() {
   [[ -f "${ENV_FILE}" ]] || return 0
-  # shellcheck disable=SC1090
-  set -a
-  # shellcheck disable=SC1091
-  source "${ENV_FILE}"
-  set +a
+  local line key val
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ -z "${line}" || "${line}" != *=* ]] && continue
+    key="${line%%=*}"
+    val="${line#*=}"
+    if [[ "${val}" =~ ^\"(.*)\"$ ]]; then
+      val="${BASH_REMATCH[1]}"
+      val="${val//\\\"/\"}"
+    elif [[ "${val}" =~ ^\'(.*)\'$ ]]; then
+      val="${BASH_REMATCH[1]}"
+    fi
+    case "${key}" in
+      DB_USER|DB_PASS|DB_NAME|MYSQL_ROOT_PASSWORD|MYSQL_APP_USER_HOST|MYSQL_CONTAINER)
+        if [[ ! -v "${key}" ]]; then
+          printf -v "${key}" '%s' "${val}"
+          export "${key?}"
+        fi
+        ;;
+    esac
+  done < "${ENV_FILE}"
 }
 
-load_env_file
+load_env_keys
 
 DB_USER="${DB_USER:-mgmt}"
+DB_PASS="${DB_PASS:-}"
 DB_NAME="${DB_NAME:-rc}"
 MYSQL_APP_USER_HOST="${MYSQL_APP_USER_HOST:-%}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-mgmt-mysql-prod}"

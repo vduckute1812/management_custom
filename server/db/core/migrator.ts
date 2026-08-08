@@ -152,10 +152,22 @@ export async function discoverMigrations(): Promise<MigrationFile[]> {
 // -------------------------------------------------------------------------
 
 async function readApplied(conn: Connection): Promise<AppliedMigration[]> {
-  await conn.query(SCHEMA_MIGRATIONS_DDL);
-  const [rows] = await conn.query<RowDataPacket[]>(
-    "SELECT id, name, checksum, applied_at, duration_ms FROM schema_migrations ORDER BY id ASC",
-  );
+  // Do NOT CREATE here — status/verify/health run as the least-privilege app
+  // user (mgmt). Ensuring schema_migrations exists is runMigrations()' job
+  // (via MYSQL_ROOT_PASSWORD / migrateAuth).
+  let rows: RowDataPacket[];
+  try {
+    const [result] = await conn.query<RowDataPacket[]>(
+      "SELECT id, name, checksum, applied_at, duration_ms FROM schema_migrations ORDER BY id ASC",
+    );
+    rows = result;
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === "ER_NO_SUCH_TABLE") {
+      return [];
+    }
+    throw err;
+  }
   return rows.map((r) => ({
     id: String(r.id),
     name: String(r.name),
@@ -165,6 +177,10 @@ async function readApplied(conn: Connection): Promise<AppliedMigration[]> {
   }));
 }
 
+/**
+ * Status/verify for the live app: use the runtime pool (mgmt). DDL ensure
+ * belongs only in runMigrations().
+ */
 export async function migrationStatus(): Promise<MigrationStatus> {
   const files = await discoverMigrations();
   const pool = getPool();
@@ -275,16 +291,20 @@ export async function resetSchema(): Promise<string[]> {
       "Refusing to drop schema. Set MIGRATE_RESET_CONFIRM=yes to confirm.",
     );
   }
-  const pool = getPool();
+  const conn = await mysql.createConnection(migrateConnectionOptions());
   const dropped: string[] = [];
-  await pool.query("SET FOREIGN_KEY_CHECKS = 0");
   try {
+    await conn.query("SET FOREIGN_KEY_CHECKS = 0");
     for (const t of KNOWN_TABLES_DROP_ORDER) {
-      await pool.query(`DROP TABLE IF EXISTS \`${t}\``);
+      await conn.query(`DROP TABLE IF EXISTS \`${t}\``);
       dropped.push(t);
     }
   } finally {
-    await pool.query("SET FOREIGN_KEY_CHECKS = 1");
+    try {
+      await conn.query("SET FOREIGN_KEY_CHECKS = 1");
+    } finally {
+      await conn.end();
+    }
   }
   return dropped;
 }
@@ -293,21 +313,47 @@ export async function resetSchema(): Promise<string[]> {
 // Internals
 // -------------------------------------------------------------------------
 
-async function openMultiStatementConnection(): Promise<Connection> {
-  return await mysql.createConnection({
-    host: process.env.DB_HOST || "127.0.0.1",
-    port: Number(process.env.DB_PORT || 3306),
+/**
+ * Credentials for DDL / schema work. Prefer MYSQL_ROOT_PASSWORD so the
+ * least-privilege app user (mgmt) can stay DML-only. Falls back to DB_*.
+ */
+function migrateAuth(): { user: string; password: string } {
+  const rootPass = process.env.MYSQL_ROOT_PASSWORD;
+  if (rootPass) {
+    return { user: "root", password: rootPass };
+  }
+  return {
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASS ?? process.env.DB_PASSWORD ?? "",
+  };
+}
+
+function migrateConnectionOptions(
+  extra: { multipleStatements?: boolean } = {},
+) {
+  const auth = migrateAuth();
+  return {
+    host: process.env.DB_HOST || "127.0.0.1",
+    port: Number(process.env.DB_PORT || 3306),
+    user: auth.user,
+    password: auth.password,
     database: process.env.DB_NAME || "rc",
-    // Enabled only for the migration runner so a SQL file with N
-    // statements can be sent as one query. The main runtime pool keeps
-    // this OFF (the default) so app-level queries can never be coerced
-    // into multi-statement injection.
-    multipleStatements: true,
-    dateStrings: true,
-    timezone: "Z",
-  });
+    dateStrings: true as const,
+    timezone: "Z" as const,
+    ...extra,
+  };
+}
+
+async function openMultiStatementConnection(): Promise<Connection> {
+  return await mysql.createConnection(
+    migrateConnectionOptions({
+      // Enabled only for the migration runner so a SQL file with N
+      // statements can be sent as one query. The main runtime pool keeps
+      // this OFF (the default) so app-level queries can never be coerced
+      // into multi-statement injection.
+      multipleStatements: true,
+    }),
+  );
 }
 
 async function withAdvisoryLock<T>(

@@ -142,8 +142,51 @@ describe("production hardening invariants", () => {
     expect(apply).toContain("CREATE USER IF NOT EXISTS");
     expect(apply).toContain("GRANT SELECT, INSERT, UPDATE, DELETE");
     expect(apply).toContain("CHANGE_ME");
+    // Must not bash-source .env.prod (SMTP_FROM etc. break unquoted downloads).
+    expect(apply).toContain("load_env_keys");
+    expect(apply).not.toMatch(/\bsource\b.*\.env\.prod/);
     expect(verify).toContain("CREATE TABLE");
     expect(verify).toContain("ALLOW_ROOT_DB");
+    expect(verify).toContain("load_env_keys");
+  });
+
+  it("downloads Doppler secrets in quoted env format", () => {
+    const fetch = readFileSync(
+      new URL("../docker/fetch-doppler-secrets.sh", import.meta.url),
+      "utf8",
+    );
+    expect(fetch).toContain("--format env");
+    expect(fetch).not.toContain("env-no-quotes");
+  });
+
+  it("runs boot migrations as root when MYSQL_ROOT_PASSWORD is set", () => {
+    const entry = readFileSync(
+      new URL("../docker/entrypoint.prod.sh", import.meta.url),
+      "utf8",
+    );
+    expect(entry).toContain("scripts/migrate.ts up");
+    const migrator = readFileSync(
+      new URL("../server/db/core/migrator.ts", import.meta.url),
+      "utf8",
+    );
+    expect(migrator).toContain("MYSQL_ROOT_PASSWORD");
+    expect(migrator).toContain("migrateAuth");
+    expect(migrator).toContain('user: "root"');
+    // Status/verify must not CREATE as the DML-only app user.
+    expect(migrator).toContain("ER_NO_SUCH_TABLE");
+    expect(migrator).toMatch(
+      /async function readApplied\([\s\S]*?ER_NO_SUCH_TABLE[\s\S]*?^}/m,
+    );
+  });
+
+  it("runs CI migrate as root, not the app DB_USER", () => {
+    const deploy = readFileSync(
+      new URL("../docker/ci-deploy.sh", import.meta.url),
+      "utf8",
+    );
+    expect(deploy).toContain("DB_USER=root");
+    expect(deploy).toContain("read_mysql_root_password");
+    expect(deploy).toContain("DB_PASS=${MYSQL_ROOT_PASSWORD}");
   });
 
   it("keeps LAN MySQL/Redis publishes for Podman DNS workaround", () => {

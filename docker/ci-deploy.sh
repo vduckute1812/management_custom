@@ -404,17 +404,12 @@ wait_redis() {
 }
 
 read_mysql_root_password() {
-  # Secret lives only in the gitignored docker/.env.prod: prefer an explicit
-  # MYSQL_ROOT_PASSWORD, otherwise reuse DB_PASS (the app connects as root).
-  MYSQL_ROOT_PASSWORD=""
-  if [[ -f docker/.env.prod ]]; then
-    MYSQL_ROOT_PASSWORD="$(grep -E '^MYSQL_ROOT_PASSWORD=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
-    if [[ -z "${MYSQL_ROOT_PASSWORD}" ]]; then
-      MYSQL_ROOT_PASSWORD="$(grep -E '^DB_PASS=' docker/.env.prod | head -n1 | cut -d= -f2- || true)"
-    fi
-  fi
+  # Secret lives only in the gitignored docker/.env.prod. Prefer an explicit
+  # MYSQL_ROOT_PASSWORD for migrate/admin; do not fall back to DB_PASS once
+  # the app uses least-privilege `mgmt` (DB_PASS is no longer root).
+  MYSQL_ROOT_PASSWORD="$(mgmt_env_get docker/.env.prod MYSQL_ROOT_PASSWORD)"
   [[ -n "${MYSQL_ROOT_PASSWORD}" ]] \
-    || die "MYSQL_ROOT_PASSWORD/DB_PASS not found in docker/.env.prod"
+    || die "MYSQL_ROOT_PASSWORD not found in docker/.env.prod (required for migrate/admin)"
   export MYSQL_ROOT_PASSWORD
 }
 
@@ -444,15 +439,19 @@ run_migrations() {
   # getaddrinfo ENOTFOUND. Only rewrite loopback / broken hosts that cannot
   # work in-container (incl. host.containers.internal from a bad Sprint B cut).
   local db_host
-  db_host="$(grep -E '^DB_HOST=' docker/.env.prod 2>/dev/null | head -n1 | cut -d= -f2- | tr -d '[:space:]' || true)"
+  db_host="$(mgmt_env_get docker/.env.prod DB_HOST | tr -d '[:space:]')"
   case "${db_host}" in
     ""|127.0.0.1|localhost|mysql|host.containers.internal) db_host="${LAN_IP}" ;;
   esac
   log "migrate DB_HOST=${db_host}"
 
   # -T: no pseudo-TTY (GitHub Actions has no TTY; avoids podman-compose warning).
+  # Migrate as root (DDL); the live app process uses least-privilege DB_USER.
+  read_mysql_root_password
   if ! mgmt_compose run --rm --no-deps -T \
     -e "DB_HOST=${db_host}" \
+    -e "DB_USER=root" \
+    -e "DB_PASS=${MYSQL_ROOT_PASSWORD}" \
     app \
     node --import tsx scripts/migrate.ts up; then
     return 1
