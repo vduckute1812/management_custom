@@ -6,6 +6,7 @@ import {
   MoneySavingsGoalStatus,
   type MoneySavingsContribution,
 } from "~/types/money";
+import { DomainError } from "~/server/utils/http";
 import { isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -79,9 +80,7 @@ export async function addMoneySavingsContribution(
 ): Promise<MoneySavingsContribution> {
   const goal = await getMoneySavingsGoalById(userId, input.goalId);
   if (!goal) {
-    const err = new Error("NOT_FOUND");
-    (err as { code?: string }).code = "NOT_FOUND";
-    throw err;
+    throw new DomainError(404, "Savings goal not found");
   }
   const pool = getPool();
   const now = nowISO();

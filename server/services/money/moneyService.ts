@@ -52,29 +52,15 @@ export async function upsertMoneyTransactionForUser(
   userId: string,
   body: UpsertBody,
 ): Promise<{ transaction: MoneyTransaction; created: boolean }> {
-  try {
-    return await upsertMoneyTransaction(userId, {
-      id: body.id,
-      occurredOn: body.occurredOn,
-      amountMinor: body.amountMinor,
-      direction: body.direction,
-      category: body.category,
-      userCategoryId: body.userCategoryId,
-      note: body.note,
-    });
-  } catch (err: unknown) {
-    const code = (err as { code?: string }).code;
-    if (code === "NOT_FOUND") {
-      throw new DomainError(404, "Transaction not found");
-    }
-    if (code === "CATEGORY_REQUIRED") {
-      throw new DomainError(400, "Provide category or userCategoryId");
-    }
-    if (code === "USER_CATEGORY_NOT_FOUND") {
-      throw new DomainError(404, "Category not found");
-    }
-    throw err;
-  }
+  return upsertMoneyTransaction(userId, {
+    id: body.id,
+    occurredOn: body.occurredOn,
+    amountMinor: body.amountMinor,
+    direction: body.direction,
+    category: body.category,
+    userCategoryId: body.userCategoryId,
+    note: body.note,
+  });
 }
 
 export async function deleteMoneyTransactionForUser(

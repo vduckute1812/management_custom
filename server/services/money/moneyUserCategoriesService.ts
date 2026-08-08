@@ -22,20 +22,13 @@ export async function upsertMoneyUserCategoryForUser(
   userId: string,
   body: UpsertBody,
 ): Promise<{ category: MoneyUserCategory; created: boolean }> {
-  try {
-    return await upsertMoneyUserCategory(userId, {
-      id: body.id,
-      name: body.name,
-      emoji: body.emoji,
-      color: body.color,
-      direction: body.direction,
-    });
-  } catch (err: unknown) {
-    if ((err as { code?: string }).code === "NOT_FOUND") {
-      throw new DomainError(404, "Category not found");
-    }
-    throw err;
-  }
+  return upsertMoneyUserCategory(userId, {
+    id: body.id,
+    name: body.name,
+    emoji: body.emoji,
+    color: body.color,
+    direction: body.direction,
+  });
 }
 
 export async function archiveMoneyUserCategoryForUser(

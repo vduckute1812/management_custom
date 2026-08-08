@@ -36,31 +36,14 @@ export async function upsertMoneyBudgetForUser(
   userId: string,
   body: UpsertBody,
 ): Promise<{ budget: MoneyBudget; created: boolean }> {
-  try {
-    return await upsertMoneyBudget(userId, {
-      id: body.id,
-      yearMonth: body.yearMonth,
-      scope: body.scope,
-      category: body.category,
-      userCategoryId: body.userCategoryId,
-      amountMinor: body.amountMinor,
-    });
-  } catch (err: unknown) {
-    const code = (err as { code?: string }).code;
-    if (code === "NOT_FOUND") {
-      throw new DomainError(404, "Budget not found");
-    }
-    if (code === "CATEGORY_REQUIRED") {
-      throw new DomainError(400, "Category budget requires category");
-    }
-    if (code === "USER_CATEGORY_NOT_FOUND") {
-      throw new DomainError(404, "Category not found");
-    }
-    if (code === "CONFLICT") {
-      throw new DomainError(409, "Budget already exists for this slot");
-    }
-    throw err;
-  }
+  return upsertMoneyBudget(userId, {
+    id: body.id,
+    yearMonth: body.yearMonth,
+    scope: body.scope,
+    category: body.category,
+    userCategoryId: body.userCategoryId,
+    amountMinor: body.amountMinor,
+  });
 }
 
 export async function deleteMoneyBudgetForUser(

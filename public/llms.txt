@@ -1,18 +1,21 @@
 # Da Nang TechX
 
-> Da Nang Tech R&D and Networking Portal — public feed and time management for the Da Nang tech community.
+> Da Nang Tech R&D and Networking Portal — Feed, Time Management, Money, Chat, and Friends on one install.
 
-Public surfaces are crawlable. Signed-in app routes (tasks, epics, analytics, admin, settings, profile, auth forms, chat) are private and should not be treated as documentation.
+Public surfaces are crawlable. Signed-in app routes (tasks, epics, analytics, admin, settings, profile, auth forms, chat, friends, money) are private and should not be treated as documentation.
 
 ## Pages
 
-- [Home](https://dntechx.com/): Public hub for Da Nang TechX.
+- [Home](https://dntechx.com/): Public hub for Da Nang TechX (five modules overview).
 - [Feed](https://dntechx.com/feed): Public manuscript feed of community posts and R&D notes.
 - [Privacy Policy](https://dntechx.com/privacy): What the service collects, who processes it, and how long it is kept.
 - [Terms of Service](https://dntechx.com/terms): Rules for using the service, content ownership, and acceptable use.
 - [Sitemap](https://dntechx.com/sitemap.xml): Machine-readable list of indexable URLs.
 - [Robots](https://dntechx.com/robots.txt): Crawl rules for public vs private surfaces.
 
-## Optional
+## Optional (signed-in, noindex)
 
-- [Chat](https://dntechx.com/chat): Private messaging (requires sign-in; noindex).
+- [Chat](https://dntechx.com/chat): Private messaging between Accepted friends.
+- [Friends](https://dntechx.com/friends): Friend requests and Accepted graph.
+- [Money](https://dntechx.com/money): Personal ledger, savings, and budgets.
+- [Time](https://dntechx.com/tasks): Calendar, epics, and analytics.
