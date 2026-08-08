@@ -139,6 +139,16 @@ describe("upload ACL positive row cache", () => {
     await resolveUploadForViewer("user_a", "upl_1");
     expect(query).toHaveBeenCalledTimes(1);
   });
+
+  it("invalidateAllUploadAccessCaches clears every viewer", async () => {
+    const { invalidateAllUploadAccessCaches } =
+      await import("../server/db/feed/uploadAccess");
+    query.mockResolvedValue([[sampleRow()]]);
+    await resolveUploadForViewer("user_a", "upl_1");
+    await resolveUploadForViewer("user_b", "upl_1");
+    invalidateAllUploadAccessCaches();
+    expect(_uploadAccessCacheSizeForTests()).toBe(0);
+  });
 });
 
 describe("upload ACL cheap own/avatar path", () => {

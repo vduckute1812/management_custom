@@ -42,8 +42,8 @@ export async function createPostForUser(
     const post = await createPost(userId, input);
     await invalidateFeedCachesAfterPostMutation({
       actorId: userId,
-      touchesPublic: post.visibility === PostVisibility.Public,
-      audienceUserIds: input.audienceUserIds,
+      visibility: post.visibility,
+      audienceUserIds: post.audienceUserIds,
     });
     return { post };
   } catch (err: unknown) {
@@ -97,10 +97,10 @@ export async function updatePostForUser(
     });
     await invalidateFeedCachesAfterPostMutation({
       actorId: userId,
-      touchesPublic:
-        previousVisibility === PostVisibility.Public ||
-        post.visibility === PostVisibility.Public,
-      audienceUserIds: input.audienceUserIds,
+      previousVisibility,
+      visibility: post.visibility,
+      previousAudienceUserIds: existing.audienceUserIds,
+      audienceUserIds: post.audienceUserIds,
     });
     return { post };
   } catch (err: unknown) {
@@ -127,8 +127,8 @@ export async function sharePostForUser(
     });
     await invalidateFeedCachesAfterPostMutation({
       actorId: userId,
-      touchesPublic: post.visibility === PostVisibility.Public,
-      audienceUserIds: input.audienceUserIds,
+      visibility: post.visibility,
+      audienceUserIds: post.audienceUserIds,
     });
     return { post };
   } catch (err: unknown) {

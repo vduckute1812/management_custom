@@ -234,6 +234,21 @@ export function invalidateUploadAccessCacheForViewer(viewerId: string) {
   }
 }
 
+/** Drop cached allows for many viewers (post visibility / audience revoke). */
+export function invalidateUploadAccessCacheForViewers(viewerIds: string[]) {
+  for (const id of viewerIds) {
+    invalidateUploadAccessCacheForViewer(id);
+  }
+}
+
+/**
+ * Drop every positive upload ACL entry (public visibility transitions —
+ * anonymous and authenticated viewers may have cached allows).
+ */
+export function invalidateAllUploadAccessCaches() {
+  uploadAclAllowCache.clear();
+}
+
 /** Test helper — positive-cache entry count (bounded map). */
 export function _uploadAccessCacheSizeForTests() {
   return uploadAclAllowCache.size;
