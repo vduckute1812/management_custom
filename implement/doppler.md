@@ -48,6 +48,17 @@ Store it **one or both** of:
 - GitHub → Settings → Secrets and variables → Actions → `DOPPLER_TOKEN`
 - On the Pi: `~/.config/management/doppler.token` (mode `600`)
 
+For the **first import** from the Pi file into Doppler, use a write-capable
+token and either:
+
+```bash
+# On the Pi
+bash docker/sync-env-to-doppler.sh
+```
+
+or **Actions → Sync secrets to Doppler → Run workflow** (reads the Pi
+`~/.config/management/.env.prod` and uploads to config `prd`).
+
 Optional repo **variables**: `DOPPLER_PROJECT`, `DOPPLER_CONFIG` (defaults
 `management_custom` / `prd`).
 
@@ -70,10 +81,10 @@ The Deploy workflow installs the CLI automatically when missing.
 3. Still links `ssl/` + `cloudflared/` from the local secrets dir.
 4. Ensures `REDIS_PASSWORD` / `ALLOW_ROOT_DB` bridges for older configs.
 
-Service tokens are **read-only**. Edit secrets in the Doppler dashboard (or
-`doppler secrets set KEY=value --config prd`). After changing `prd`, re-run
-**Deploy (Raspberry Pi)** (or push a `docker/**` change) so the Pi refreshes
-`docker/.env.prod` before recreate.
+Service tokens are usually **read-only**; use a write-capable token (or the
+dashboard / `doppler secrets set`) when changing values. After changing `prd`,
+re-run **Deploy (Raspberry Pi)** (or push a `docker/**` change) so the Pi
+refreshes `docker/.env.prod` before recreate.
 
 ## Local development
 
@@ -91,6 +102,7 @@ npm run dev
 | --------------------------------- | ---------------------------------------- |
 | `docker/install-doppler-cli.sh`   | Install CLI                              |
 | `docker/fetch-doppler-secrets.sh` | Download `prd` → `docker/.env.prod`      |
+| `docker/sync-env-to-doppler.sh`   | Upload local `.env.prod` → Doppler `prd` |
 | `docker/link-secrets.sh`          | Doppler-or-local + file secrets          |
 | `npm run dev:doppler`             | `doppler run --config dev -- nuxt dev`   |
 | `npm run secrets:pull`            | Download current Doppler config → `.env` |
