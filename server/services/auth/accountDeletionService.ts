@@ -9,6 +9,7 @@ import {
   invalidateAllAuthFeedCaches,
   invalidatePublicFeedCaches,
 } from "~/server/utils/cacheInvalidate";
+import { invalidateAllUploadAccessCaches } from "~/server/db/feed/uploadAccess";
 
 /**
  * Hard-delete an account and clean up resources that foreign-key cascades
@@ -35,5 +36,6 @@ export async function deleteUserAccount(id: string): Promise<boolean> {
   }
   await invalidatePublicFeedCaches();
   await invalidateAllAuthFeedCaches();
+  invalidateAllUploadAccessCaches();
   return true;
 }
