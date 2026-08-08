@@ -260,6 +260,8 @@ The preference is persisted locally and applied **before any CSS paints**, so da
 
 Language preference lives in the same local settings blob (`Settings → Language`). It does not affect the URL and does not travel with the account to another browser.
 
+**Token strategy.** Surfaces, ink, borders, brand soft fills, and status/epic tints live as CSS variables in [`assets/css/theme-tokens.css`](./assets/css/theme-tokens.css). Light and dark share the same utility remaps (`.bg-white`, `.text-slate-900`, tint chips, …); only the variable values change under `html[data-theme="dark"]`. Prefer new tokens over adding `html[data-theme="dark"] .utility { !important }` rules. Compact density and print styles may still use `!important` where utility specificity requires it.
+
 Status and epic colors are _tinted_ in dark mode, never inverted — color-coded semantics must survive the swap.
 
 ### Typography
@@ -486,7 +488,7 @@ A few choices that look opinionated and aren't accidents.
 - **Skeletons over spinners.** Spinners say "loading"; skeletons say "you're about to see _this much_ content," which is calmer.
 - **Three views, not five.** Day, Week, Month. We resisted Quarter and Agenda — they're rarely useful and they add UI weight that costs every user every day.
 - **In-app alerts only by default; desktop pop-ups are opt-in.** A calm tool doesn't ambush you with OS pop-ups, but a silent calendar is no better than no calendar. The compromise: a non-intrusive in-app toast fires 5 min before each scheduled block by default (no permission prompt, no system surface — only visible when the app is open). Granting browser Notification permission is an explicit upgrade that adds the matching desktop pop-up; the alert is otherwise identical. The whole feature is one toggle in `Settings → Pre-task alerts`.
-- **Dark mode is a global override, not per-component variants.** New components inherit dark mode automatically as long as they use the standard color vocabulary; we don't sprinkle `dark:` prefixes through every file.
+- **Dark mode is semantic tokens, not an `!important` wall.** Palette values live in `assets/css/theme-tokens.css`; utilities remap to those variables so light and dark share one class vocabulary. New components inherit the theme as long as they use that vocabulary — we don't sprinkle `dark:` prefixes through every file, and we don't add per-utility dark `!important` overrides.
 - **Language is a device preference, not a URL.** Same model as theme and density: stored in local settings, no `/en/...` prefixes, no server-side user locale. Switching language rewrites chrome only — user content stays as authored.
 - **One active timer.** Letting two tasks both report as "in session" makes `spentHours` ambiguous. Single-active is honest, and the start endpoint auto-finalizes the previous one so switching never loses time.
 - **Public SEO without indexing private chrome.** `@nuxtjs/seo` publishes `/robots.txt` + `/sitemap.xml` for the hub, Feed, and legal pages (`/`, `/feed`, `/privacy`, `/terms`); Time Management / admin / auth forms / Chat / Friends / Money stay disallowed. Public routes are selectively SSR'd so crawlers get real HTML; the rest of the app stays a client SPA.

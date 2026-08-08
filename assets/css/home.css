@@ -1,4 +1,9 @@
-/* --- Home hero ambient blobs (brand indigo only) ----------------------- */
+/* --- Home hero ambient blobs (brand indigo; dark via tokens) ----------- */
+/*
+ * Light: Tailwind `bg-brand-*` opacity utilities paint the blobs.
+ * Dark: higher-specificity theme rule softens them via `--brand-soft-30`
+ * (same cascade slot as before, without `!important`).
+ */
 html[data-theme="dark"] .home-ambient-brand {
-  background-color: rgba(99, 102, 241, 0.1) !important;
+  background-color: var(--brand-soft-30);
 }
