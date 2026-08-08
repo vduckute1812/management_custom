@@ -28,6 +28,19 @@ describe("production hardening invariants", () => {
     expect(compose).toContain("REDIS_PASSWORD:?");
   });
 
+  it("auto-mints REDIS_PASSWORD into Pi secrets when missing", () => {
+    const lib = readFileSync(
+      new URL("../docker/lib-compose.sh", import.meta.url),
+      "utf8",
+    );
+    const link = readFileSync(
+      new URL("../docker/link-secrets.sh", import.meta.url),
+      "utf8",
+    );
+    expect(lib).toContain("mgmt_ensure_redis_password");
+    expect(link).toContain("mgmt_ensure_redis_password");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });

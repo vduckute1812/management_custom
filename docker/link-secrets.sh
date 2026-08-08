@@ -78,4 +78,13 @@ link_or_copy_file "${SECRETS_DIR}/cloudflared.env" "${DOCKER_DIR}/cloudflared.en
 link_or_copy_tree "${SECRETS_DIR}/ssl" "${DOCKER_DIR}/ssl" || true
 link_or_copy_tree "${SECRETS_DIR}/cloudflared" "${DOCKER_DIR}/cloudflared" || true
 
+# Compose needs REDIS_PASSWORD in process env for ${REDIS_PASSWORD:?…}
+# interpolation (redis --requirepass). Mint once into the secrets file when
+# older Pi envs predate Redis auth.
+# shellcheck source=docker/lib-compose.sh
+source "${ROOT}/docker/lib-compose.sh"
+mgmt_ensure_redis_password "${DOCKER_DIR}/.env.prod" \
+  || die "could not ensure REDIS_PASSWORD in ${DOCKER_DIR}/.env.prod"
+mgmt_link_compose_dotenv || true
+
 log "secrets ready (from ${SECRETS_DIR})"

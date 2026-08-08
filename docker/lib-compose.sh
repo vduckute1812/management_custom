@@ -78,6 +78,86 @@ mgmt_runtime() {
   fi
 }
 
+# Resolve docker/.env.prod (may be a symlink into ~/.config/management).
+mgmt_prod_env_file() {
+  local root envf
+  root="$(mgmt_repo_root)"
+  envf="${root}/docker/.env.prod"
+  if [[ -L "${envf}" ]]; then
+    # Prefer the canonical secrets path so upserts persist across checkouts.
+    readlink -f "${envf}" 2>/dev/null || realpath "${envf}" 2>/dev/null || echo "${envf}"
+    return 0
+  fi
+  echo "${envf}"
+}
+
+mgmt_env_unquote() {
+  local val="$1"
+  if [[ "${#val}" -ge 2 && "${val}" == \"*\" ]]; then
+    val="${val:1:${#val}-2}"
+  elif [[ "${#val}" -ge 2 && "${val}" == \'*\' ]]; then
+    val="${val:1:${#val}-2}"
+  fi
+  printf '%s' "${val}"
+}
+
+# Read KEY from an env file (first match). Empty if missing.
+mgmt_env_get() {
+  local envf="$1" key="$2" line val
+  [[ -f "${envf}" ]] || return 0
+  line="$(grep -E "^${key}=" "${envf}" 2>/dev/null | head -n1 || true)"
+  [[ -n "${line}" ]] || return 0
+  val="${line#*=}"
+  val="${val%$'\r'}"
+  mgmt_env_unquote "${val}"
+}
+
+# Compose interpolates ${REDIS_PASSWORD:?…} from process env / dotenv — not from
+# service env_file. Older Pi secrets predate Redis auth; mint a password once
+# into the canonical secrets file so unattended deploys can start redis.
+mgmt_ensure_redis_password() {
+  local envf realf existing pw
+  envf="${1:-}"
+  if [[ -z "${envf}" ]]; then
+    envf="$(mgmt_repo_root)/docker/.env.prod"
+  fi
+  [[ -f "${envf}" ]] || {
+    echo "[deploy] ERROR: missing ${envf} (need REDIS_PASSWORD for compose)" >&2
+    return 1
+  }
+  realf="$(mgmt_prod_env_file)"
+  [[ -f "${realf}" ]] || realf="${envf}"
+
+  existing="$(mgmt_env_get "${realf}" REDIS_PASSWORD)"
+  if [[ -z "${existing}" && "${realf}" != "${envf}" ]]; then
+    existing="$(mgmt_env_get "${envf}" REDIS_PASSWORD)"
+  fi
+  if [[ -n "${existing}" ]]; then
+    export REDIS_PASSWORD="${existing}"
+    return 0
+  fi
+
+  if command -v openssl >/dev/null 2>&1; then
+    pw="$(openssl rand -base64 32 | tr -d '\n')"
+  else
+    pw="$(head -c 48 /dev/urandom | base64 | tr -d '\n' | head -c 43)"
+  fi
+  [[ -n "${pw}" ]] || {
+    echo "[deploy] ERROR: could not generate REDIS_PASSWORD" >&2
+    return 1
+  }
+
+  if grep -qE '^REDIS_PASSWORD=' "${realf}" 2>/dev/null; then
+    # Replace empty placeholder (REDIS_PASSWORD= / REDIS_PASSWORD="").
+    sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${pw}|" "${realf}"
+  else
+    printf '\n# Auto-generated for docker-compose.prod.yml redis --requirepass\nREDIS_PASSWORD=%s\n' \
+      "${pw}" >> "${realf}"
+  fi
+  export REDIS_PASSWORD="${pw}"
+  echo "[deploy] generated REDIS_PASSWORD in ${realf} (len=${#pw})"
+}
+
 # Export KEY=VAL from docker/.env.prod for compose *interpolation*
 # (${REDIS_PASSWORD:?…} in docker-compose.prod.yml). Service `env_file:`
 # only injects into containers after YAML is already resolved — without this,
@@ -88,22 +168,36 @@ mgmt_export_prod_env() {
   [[ -f "${envf}" ]] || return 0
   while IFS= read -r line || [[ -n "${line}" ]]; do
     line="${line%$'\r'}"
+    # Allow optional "export " prefix from some secret templates.
+    line="${line/#export /}"
     case "${line}" in
       '' | \#*) continue ;;
     esac
     [[ "${line}" == *=* ]] || continue
     key="${line%%=*}"
+    key="${key%"${key##*[![:space:]]}"}"
+    key="${key#"${key%%[![:space:]]*}"}"
     val="${line#*=}"
-    # Trim optional surrounding quotes.
-    if [[ "${#val}" -ge 2 && "${val}" == \"*\" ]]; then
-      val="${val:1:${#val}-2}"
-    elif [[ "${#val}" -ge 2 && "${val}" == \'*\' ]]; then
-      val="${val:1:${#val}-2}"
-    fi
+    val="$(mgmt_env_unquote "${val}")"
     # Only export valid shell identifiers.
     [[ "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
     export "${key}=${val}"
   done < "${envf}"
+}
+
+# podman-compose / docker compose also load a dotenv named `.env` next to the
+# compose file (or in cwd). Keep docker/.env → .env.prod so interpolation
+# works even if a caller forgets to export.
+mgmt_link_compose_dotenv() {
+  local root docker_dir
+  root="$(mgmt_repo_root)"
+  docker_dir="${root}/docker"
+  [[ -f "${docker_dir}/.env.prod" ]] || return 0
+  if [[ -e "${docker_dir}/.env" || -L "${docker_dir}/.env" ]]; then
+    return 0
+  fi
+  ln -sfn .env.prod "${docker_dir}/.env"
+  echo "[deploy] linked docker/.env → .env.prod (compose interpolation)"
 }
 
 mgmt_compose() {
@@ -113,7 +207,13 @@ mgmt_compose() {
   mgmt_compose_cmd || return 1
   # Export so compose `${LAN_IP:-…}` port binds + nginx render agree.
   export LAN_IP="${LAN_IP:-192.168.1.4}"
+  mgmt_ensure_redis_password "${root}/docker/.env.prod" || return 1
+  mgmt_link_compose_dotenv
   mgmt_export_prod_env "${root}/docker/.env.prod"
+  if [[ -z "${REDIS_PASSWORD:-}" ]]; then
+    echo "[deploy] ERROR: REDIS_PASSWORD still empty after export from docker/.env.prod" >&2
+    return 1
+  fi
   mgmt_render_nginx || return 1
   (cd "${root}" && "${COMPOSE_ARR[@]}" -f "${file}" "$@")
 }

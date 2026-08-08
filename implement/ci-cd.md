@@ -84,6 +84,11 @@ cp docker/cloudflared.env ~/.config/management/cloudflared.env   # if you use it
 
 Required at minimum: `~/.config/management/.env.prod`
 
+`REDIS_PASSWORD` is required for compose interpolation (`redis --requirepass`).
+If the Pi secrets file predates Redis auth and the key is missing/empty,
+`docker/link-secrets.sh` (and `mgmt_compose`) mint one with `openssl rand`
+into the canonical secrets file — no manual SSH step.
+
 ### 4. Trigger a deploy
 
 - Push to `master`, or
