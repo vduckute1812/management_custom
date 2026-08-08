@@ -11,7 +11,8 @@ test.describe("public smoke", () => {
 
   test("hub renders header + login CTA", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("header")).toBeVisible();
+    // App chrome uses role=banner; pages may also have a content <header>.
+    await expect(page.getByRole("banner")).toBeVisible();
     await expect(
       page.getByRole("link", { name: /login|đăng nhập|登录/i }),
     ).toBeVisible();
@@ -19,7 +20,7 @@ test.describe("public smoke", () => {
 
   test("feed page loads", async ({ page }) => {
     await page.goto("/feed");
-    await expect(page.locator("header")).toBeVisible();
+    await expect(page.getByRole("banner")).toBeVisible();
     await expect(page).not.toHaveURL(/\/login/);
   });
 
