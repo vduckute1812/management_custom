@@ -79,10 +79,10 @@ Helpers: `server/utils/cacheInvalidate.ts`
 
 Separate from the cache facade — short TTL `Map`s inside the Nitro process:
 
-| Map                                     | TTL | Purpose                                                                                                    | Invalidation                                                                                                                |
-| --------------------------------------- | --- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Accepted friend ids (`friendshipCache`) | 60s | Feed/story/upload ACL `IN (…)` lists                                                                       | Bust on accept / unfriend                                                                                                   |
-| Upload ACL allow + row (`uploadAccess`) | 10s | `/api/uploads/:id` hot path — positive decisions cache the allowed `UploadRow` so repeat resolves skip SQL | TTL; also bust per viewer on accept / unfriend. Denies uncached. Download responses use `Cache-Control: private, no-store`. |
+| Map                                     | TTL | Purpose                                                                                                                                                                           | Invalidation                                                                                                                |
+| --------------------------------------- | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Accepted friend ids (`friendshipCache`) | 60s | Feed/story/upload ACL `IN (…)` lists                                                                                                                                              | Bust on accept / unfriend                                                                                                   |
+| Upload ACL allow + row (`uploadAccess`) | 10s | `/api/uploads/:id` hot path — positive row cache on allow; authenticated miss uses cheap own/avatar probe before full post/story/chat `EXISTS` (friend ids only after cheap miss) | TTL; also bust per viewer on accept / unfriend. Denies uncached. Download responses use `Cache-Control: private, no-store`. |
 
 These are intentional per-process caches: wrong answers expire quickly; denies never poison the map.
 

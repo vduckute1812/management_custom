@@ -84,7 +84,9 @@ describe("upload ACL positive row cache", () => {
       canViewerAccessUpload("user_stranger", "upl_missing"),
     ).resolves.toBe(false);
     expect(_uploadAccessCacheSizeForTests()).toBe(0);
-    expect(query).toHaveBeenCalledTimes(2);
+    // Authenticated miss: cheap own/avatar probe + full EXISTS tree, twice.
+    expect(query).toHaveBeenCalledTimes(4);
+    expect(listAcceptedFriendIds).toHaveBeenCalled();
   });
 
   it("expires after TTL and re-queries", async () => {
@@ -136,5 +138,48 @@ describe("upload ACL positive row cache", () => {
     expect(query).not.toHaveBeenCalled();
     await resolveUploadForViewer("user_a", "upl_1");
     expect(query).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("upload ACL cheap own/avatar path", () => {
+  beforeEach(() => {
+    _resetUploadAccessCachesForTests();
+    query.mockReset();
+    listAcceptedFriendIds.mockReset();
+    listAcceptedFriendIds.mockResolvedValue(["friend_1"]);
+  });
+
+  afterEach(() => {
+    _resetUploadAccessCachesForTests();
+  });
+
+  it("resolves own upload with one SQL and no friend-id lookup", async () => {
+    query.mockResolvedValueOnce([
+      [sampleRow({ user_id: "user_owner" } as Partial<UploadRow>)],
+    ]);
+
+    const row = await resolveUploadForViewer("user_owner", "upl_1");
+    expect(row).toMatchObject({ id: "upl_1", user_id: "user_owner" });
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(listAcceptedFriendIds).not.toHaveBeenCalled();
+    const sql = String(query.mock.calls[0]?.[0] ?? "");
+    expect(sql).toContain("u.user_id = ?");
+    expect(sql).not.toContain("post_attachments");
+  });
+
+  it("falls through to full EXISTS when cheap path misses", async () => {
+    query
+      .mockResolvedValueOnce([[]]) // cheap own/avatar miss
+      .mockResolvedValueOnce([
+        [sampleRow({ user_id: "friend_1" } as Partial<UploadRow>)],
+      ]); // full allow
+
+    const row = await resolveUploadForViewer("user_viewer", "upl_1");
+    expect(row).toMatchObject({ id: "upl_1" });
+    expect(query).toHaveBeenCalledTimes(2);
+    expect(listAcceptedFriendIds).toHaveBeenCalledWith("user_viewer");
+    const fullSql = String(query.mock.calls[1]?.[0] ?? "");
+    expect(fullSql).toContain("post_attachments");
+    expect(fullSql).toContain("chat_messages");
   });
 });
