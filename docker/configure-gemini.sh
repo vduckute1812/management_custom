@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # Upsert Gemini / LLM env into the Pi secrets .env.prod.
 #
+# When production keys live in Doppler, prefer:
+#   doppler secrets set GEMINI_API_KEY=… --project management_custom --config prd
+# then re-run Deploy. This script still patches the local/cached .env.prod.
+#
 # Usage (on the Pi):
 #   GEMINI_API_KEY=… bash docker/configure-gemini.sh
 #

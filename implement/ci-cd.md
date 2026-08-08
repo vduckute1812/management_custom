@@ -65,12 +65,14 @@ cd ~/actions-runner   # or the --dir you chose
 ./svc.sh status
 ```
 
-### 3. Local secrets on the Pi (required)
+### 3. Secrets on the Pi (Doppler or local file)
 
-The Actions checkout does **not** include gitignored files. Keep production
-secrets once under `~/.config/management` (or set repo variable / env
-`MGMT_SECRETS_DIR`). CI runs `docker/link-secrets.sh` to materialize them into
-`docker/` before deploy.
+**Preferred:** manage env keys in Doppler (see [`doppler.md`](./doppler.md)).
+Put a read-only Service Token in GitHub Actions secret `DOPPLER_TOKEN` and/or
+`~/.config/management/doppler.token`. Deploy runs `docker/link-secrets.sh`,
+which downloads config `prd` into `docker/.env.prod`.
+
+**Fallback:** keep a local file when Doppler is not configured:
 
 ```bash
 mkdir -p ~/.config/management
@@ -82,16 +84,21 @@ cp -a docker/cloudflared ~/.config/management/cloudflared
 cp docker/cloudflared.env ~/.config/management/cloudflared.env   # if you use it
 ```
 
-Required at minimum: `~/.config/management/.env.prod`
+TLS / Cloudflare Tunnel **files** always live under `~/.config/management`
+(or `MGMT_SECRETS_DIR`) — only `KEY=VAL` env secrets move to Doppler.
+
+Required at minimum: Doppler `prd` secrets **or** `~/.config/management/.env.prod`
 
 `REDIS_PASSWORD` is required for compose interpolation (`redis --requirepass`).
-If the Pi secrets file predates Redis auth and the key is missing/empty,
+If the env file predates Redis auth and the key is missing/empty,
 `docker/link-secrets.sh` (and `mgmt_compose`) mint one with `openssl rand`
-into the canonical secrets file — no manual SSH step.
+into the local file. With Doppler, also add that value to config `prd` so the
+next download does not drop it.
 
 If `DB_USER` is still `root`, the same helpers set `ALLOW_ROOT_DB=1` so
 production `pool.ts` will start (with a logged warning). Prefer cutting over
 to the least-privilege `mgmt` user via `docker/mysql-create-app-user.sql`.
+With Doppler, set `ALLOW_ROOT_DB=1` (or cut over `DB_USER`) in the dashboard.
 
 ### 4. Trigger a deploy
 

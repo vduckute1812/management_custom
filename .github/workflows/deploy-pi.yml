@@ -82,21 +82,40 @@ jobs:
           fi
           uv --version
 
+      - name: Ensure Doppler CLI
+        run: |
+          set -euo pipefail
+          bash docker/install-doppler-cli.sh
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          command -v doppler >/dev/null 2>&1 && doppler --version || true
+
       - name: Link Pi secrets into workspace
         env:
           # Override via repo variable if secrets live elsewhere under $HOME.
           MGMT_SECRETS_DIR: ${{ vars.MGMT_SECRETS_DIR }}
+          # Prefer Doppler when configured (repo secret or Pi token file).
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ vars.DOPPLER_PROJECT }}
+          DOPPLER_CONFIG: ${{ vars.DOPPLER_CONFIG }}
         run: |
           set -euo pipefail
           export MGMT_SECRETS_DIR="${MGMT_SECRETS_DIR:-${HOME}/.config/management}"
+          # Repo vars may arrive empty — fall back to script defaults.
+          export DOPPLER_PROJECT="${DOPPLER_PROJECT:-management_custom}"
+          export DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
           bash docker/link-secrets.sh
 
       - name: Deploy (build, migrate DB, restart, health-check)
         env:
           FULL_SHA: ${{ github.sha }}
+          DOPPLER_TOKEN: ${{ secrets.DOPPLER_TOKEN }}
+          DOPPLER_PROJECT: ${{ vars.DOPPLER_PROJECT }}
+          DOPPLER_CONFIG: ${{ vars.DOPPLER_CONFIG }}
         run: |
           set -euo pipefail
           export GIT_SHA
           GIT_SHA="$(git rev-parse --short "${FULL_SHA}")"
+          export DOPPLER_PROJECT="${DOPPLER_PROJECT:-management_custom}"
+          export DOPPLER_CONFIG="${DOPPLER_CONFIG:-prd}"
           # ci-deploy.sh syncs uv, builds (layer-cached npm ci), migrates, switches the app.
           bash docker/ci-deploy.sh

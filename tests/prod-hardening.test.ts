@@ -54,6 +54,26 @@ describe("production hardening invariants", () => {
     expect(link).toContain("mgmt_ensure_allow_root_db");
   });
 
+  it("prefers Doppler for production env secrets", () => {
+    const link = readFileSync(
+      new URL("../docker/link-secrets.sh", import.meta.url),
+      "utf8",
+    );
+    const fetch = readFileSync(
+      new URL("../docker/fetch-doppler-secrets.sh", import.meta.url),
+      "utf8",
+    );
+    const wf = readFileSync(
+      new URL("../.github/workflows/deploy-pi.yml", import.meta.url),
+      "utf8",
+    );
+    expect(link).toContain("fetch-doppler-secrets.sh");
+    expect(fetch).toContain("secrets download");
+    expect(fetch).toContain("DOPPLER_TOKEN");
+    expect(wf).toContain("secrets.DOPPLER_TOKEN");
+    expect(wf).toContain("install-doppler-cli.sh");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });

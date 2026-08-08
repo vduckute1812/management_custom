@@ -24,7 +24,9 @@ edit the password in [`docker/mysql-create-app-user.sql`](../docker/mysql-create
 
 ## Configure the connection
 
-Copy `.env.example` to `.env` and adjust as needed. The interesting groups:
+Copy `.env.example` to `.env` and adjust as needed — or use Doppler
+(`doppler setup`, then `npm run secrets:pull` / `npm run dev:doppler`; see
+[`doppler.md`](./doppler.md)). The interesting groups:
 
 ```env
 # MySQL

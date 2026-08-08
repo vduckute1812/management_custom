@@ -1,0 +1,6 @@
+# Default project/config for local `doppler setup` / `doppler run`.
+# Production Pi deploy uses DOPPLER_TOKEN (+ optional DOPPLER_PROJECT /
+# DOPPLER_CONFIG). Override anytime with CLI flags or env.
+setup:
+  project: management_custom
+  config: dev

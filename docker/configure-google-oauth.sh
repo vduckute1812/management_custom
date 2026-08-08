@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Upsert Google OAuth env into the Pi secrets .env.prod.
 #
+# When production keys live in Doppler, prefer:
+#   doppler secrets set GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… \
+#     --project management_custom --config prd
+# then re-run Deploy so the Pi refreshes docker/.env.prod. This script still
+# patches the local/cached .env.prod for emergency / offline use.
+#
 # Usage:
 #   GOOGLE_CLIENT_ID=… GOOGLE_CLIENT_SECRET=… bash docker/configure-google-oauth.sh
 #
