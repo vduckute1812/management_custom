@@ -26,6 +26,7 @@ export async function listAcceptedFriendIds(userId: string): Promise<string[]> {
 
   const pool = getPool();
   // Newest friendships first so ACL prefers active peers if the soft cap hits.
+  // Covered by 0036 (requester/addressee + status + updated_at + id).
   const [rows] = await pool.query<RowDataPacket[]>(
     `SELECT IF(requester_id = ?, addressee_id, requester_id) AS peer_id
      FROM friendships

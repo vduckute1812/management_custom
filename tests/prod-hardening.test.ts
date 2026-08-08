@@ -101,6 +101,19 @@ describe("production hardening invariants", () => {
     expect(deploy).not.toMatch(/^\s*[^#\n]*image prune -a/m);
   });
 
+  it("ships friendship ACL updated_at indexes", () => {
+    const sql = readFileSync(
+      new URL(
+        "../server/db/migrations/0036_friendship_acl_updated_indexes.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    expect(sql).toContain("idx_friendships_requester_status_updated_id");
+    expect(sql).toContain("idx_friendships_addressee_status_updated_id");
+    expect(sql).toContain("updated_at");
+  });
+
   it("does not force ALLOW_ROOT_DB=1 in compose", () => {
     expect(compose).not.toMatch(/ALLOW_ROOT_DB:\s*"1"/);
   });
@@ -208,6 +221,7 @@ describe("production hardening invariants", () => {
     expect(fw).toContain("6379");
     expect(fw).toContain("APPLY");
     expect(fw).toContain("OpenSSH");
+    expect(fw).toContain("delete deny 3306");
   });
 
   it("caps unbounded admin/story list queries", () => {

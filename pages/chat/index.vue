@@ -172,7 +172,7 @@ function backToList() {
 
 <template>
   <div
-    class="mx-auto flex h-[calc(100dvh-3.5rem)] max-w-[1600px] flex-col px-0 sm:px-4 sm:py-4"
+    class="mx-auto flex h-[calc(100dvh-3.5rem-5rem-env(safe-area-inset-bottom,0px))] max-w-[1600px] flex-col px-0 sm:h-[calc(100dvh-3.5rem)] sm:px-4 sm:py-4"
   >
     <div
       class="flex min-h-0 flex-1 overflow-hidden border-slate-200 bg-white sm:rounded-2xl sm:border sm:shadow-sm"

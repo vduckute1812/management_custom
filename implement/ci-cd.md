@@ -1,6 +1,8 @@
-# CI/CD (Raspberry Pi)
+# CI/CD
 
-Production deploys run **on the Pi itself** via a GitHub Actions self-hosted runner. Builds stay native (ARM), reuse your existing `podman` stack, and never need SSH keys in GitHub.
+**GitHub-hosted CI** (`.github/workflows/ci.yml`) runs on every PR / `master` push: format, lint, typecheck, Vitest, production build, MySQL integration tests, and Playwright smoke (`e2e/smoke.spec.ts`).
+
+**Production deploys** run **on the Pi itself** via a GitHub Actions self-hosted runner (`deploy-pi.yml`). Builds stay native (ARM), reuse your existing `podman` stack, and never need SSH keys in GitHub.
 
 Compose is invoked with **`uv run podman-compose`** from the repo root (`pyproject.toml`). There is no Poetry/pyenv absolute path.
 

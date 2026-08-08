@@ -8,7 +8,7 @@ All relational data lives in the local MySQL database `rc`. The schema is owned 
 
 **Ownership.** Time-management rows (`epics`, `tasks`, …) always carry a `user_id` and are filtered by it. Feed rows (`posts`, `stories`, `uploads`, …) also carry author `user_id`, but **reads** may be public/shared via visibility ACLs. Install-wide reference data (`post_categories`) has no `user_id`. Binary payloads for attachments live in **Cloudflare R2** when configured; MySQL stores metadata + `storage_key` only.
 
-**Migrations on disk today:** `0001_initial` → … → `0033_friendships` → `0034_friendship_list_indexes` → `0035_posts_visibility_created_index`.
+**Migrations on disk today:** `0001_initial` → … → `0033_friendships` → `0034_friendship_list_indexes` → `0035_posts_visibility_created_index` → `0036_friendship_acl_updated_indexes`.
 
 ## Migration system
 

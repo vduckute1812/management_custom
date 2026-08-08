@@ -2,7 +2,7 @@
 
 A local-first productivity tool with five product areas on one install: **Time Management** (plan the week, log sessions, analytics), **Feed** (posts, stories, reactions), **Money** (personal ledger, budgets, savings), **Chat** (direct messages with emoji and stickers), and **Friends** (requests that gate chat and sharing). Built to run on your own machine, with first-class JSON / CSV / iCal export for task data.
 
-> **Design ethos.** Single-user simplicity for tasks and money; multi-user safety by default. Epics, tasks, time blocks, the timer, and the Money ledger are always private to the account. The Feed is install-shared with explicit visibility (`public` / `private` / `shared`). Chat is private 1:1 between signed-in members who are friends. Admins additionally see a roll-up dashboard across every user.
+> **Design ethos.** Single-user simplicity for tasks and money; multi-user safety by default. Epics, tasks, time blocks, the timer, and the Money ledger are always private to the account. The Feed is install-shared with explicit visibility (`public` / `friends` / `private` / `shared`). Chat is private 1:1 between signed-in members who are friends. Admins additionally see a roll-up dashboard across every user.
 
 > Looking for the engineering side — installation, schema, API, code layout? Head to [`implement/`](./implement/README.md). This document is the **product** description; everything code-shaped lives over there.
 
@@ -82,7 +82,7 @@ The "now" indicator ticks every 30 seconds and snaps forward when the tab regain
 
 ### Share on the Feed
 
-Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. Scroll the stream to load older pages. On phones (or coarse pointers), the reaction picker opens as a compact sheet. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
+Open **Feed** (`g f` or Home → category cards / Feed). Guests can read **public** posts. Signed-in users can post with categories, optional LaTeX, styled text, attachments (when R2 is configured), and visibility (`public` / `friends` / `only me` / `specific people`). Stories last 24 hours with viewers and reactions for the author. Scroll the stream to load older pages. On phones (or coarse pointers), the reaction picker opens as a compact sheet. The hub lists core tech directories with labels that follow the UI language. On wide screens the Feed uses a two-column layout (post stream + sticky category filter); filters collapse to a horizontal chip row on smaller viewports. Author avatars and titles from **Profile** appear next to posts and stories when set.
 
 ### Chat with other members
 
@@ -94,7 +94,7 @@ Open **Money** (`g m` or the module nav). The ledger at `/money` records income 
 
 ### Friends
 
-Open **Friends** (`g r` or the Feed/Friends module nav / command palette). Send and accept friend requests, decline, or unfriend. Friendship is the gate for starting Chat threads and for Feed visibility aimed at specific people — not a public social network.
+Open **Friends** (`g r` or the Feed/Friends module nav / command palette). Send and accept friend requests, decline, or unfriend. Friendship is the gate for starting Chat threads and for Feed visibility **Friends** (and selective Shared audiences) — not a public social network.
 
 ### Edit your profile
 

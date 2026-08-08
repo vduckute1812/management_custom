@@ -21,7 +21,11 @@ export {
 } from "../db/core/types";
 export { closePool, getPool } from "../db/core/pool";
 export { generateId, nowISO } from "../db/core/ids";
-export { toEpicView, toTaskView } from "../db/core/compute";
+export {
+  toEpicView,
+  toEpicViewFromRollup,
+  toTaskView,
+} from "../db/core/compute";
 export { toAuthUser } from "../db/core/mappers";
 // CLI-only migrator symbols stay available for scripts / integration helpers.
 export { migrationStatus, verifyMigrationsApplied } from "../db/core/migrator";
@@ -38,8 +42,10 @@ export {
   deleteTask,
   getAllTasks,
   getTaskById,
+  listEpicTaskRollups,
   upsertTask,
 } from "../db/time/tasks";
+export type { EpicTaskRollup } from "../db/time/tasks";
 export { getActiveTimer, setActiveTimer } from "../db/time/timer";
 
 /* --- auth --------------------------------------------------------------- */

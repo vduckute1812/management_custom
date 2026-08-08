@@ -635,6 +635,14 @@ Per-user VND ledger. Spec: [`money-spec.md`](./money-spec.md).
 
 - [x] Extract `TaskModalSchedule` / `TaskModalFooter`; `AdminSystemMetrics`
 
+## Phase 42 — Quality Sprint 1 (audit P1)
+
+- [x] Migration `0036_friendship_acl_updated_indexes` for accepted-friend ACL `ORDER BY updated_at`
+- [x] Epics list uses SQL task rollups (`listEpicTaskRollups`) instead of hydrating up to 2000 task rows
+- [x] Chat mobile height accounts for `AppMobileModuleNav` + safe-area
+- [x] Docs drift: money transaction cursor, chat New Chat friends-only, README Friends visibility
+- [x] LAN firewall helper reads `LAN_IP` without bash-sourcing full `.env.prod`; re-runs delete+reappend world-denys so ALLOW stays above DENY; applied on Pi (`APPLY=1`)
+
 ## Phase 36 — Feature-folder layout
 
 - [x] Move `components/`, `composables/`, `server/db/`, and `server/services/` into feature folders (`feed`, `chat`, `money`, `time`, `friends`, `account`/`auth`, `admin`, `app`/`shared`/`core`)
