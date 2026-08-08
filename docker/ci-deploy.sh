@@ -446,12 +446,13 @@ run_migrations() {
   log "migrate DB_HOST=${db_host}"
 
   # -T: no pseudo-TTY (GitHub Actions has no TTY; avoids podman-compose warning).
-  # Migrate as root (DDL); the live app process uses least-privilege DB_USER.
+  # Keep DB_USER=mgmt (app user). DDL uses MYSQL_ROOT_PASSWORD via migrateAuth()
+  # in server/db/core/migrator.ts — do NOT force DB_USER=root (getPool refuses
+  # root in production without ALLOW_ROOT_DB).
   read_mysql_root_password
   if ! mgmt_compose run --rm --no-deps -T \
     -e "DB_HOST=${db_host}" \
-    -e "DB_USER=root" \
-    -e "DB_PASS=${MYSQL_ROOT_PASSWORD}" \
+    -e "MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}" \
     app \
     node --import tsx scripts/migrate.ts up; then
     return 1
