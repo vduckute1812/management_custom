@@ -80,7 +80,8 @@ services:
     ports:
       - "127.0.0.1:6379:6379"
       # LAN publish required: app container reaches Redis via ${LAN_IP} (no
-      # compose DNS). Prefer host firewall if you need to block other LAN clients.
+      # compose DNS). Do not drop this bind — use the host firewall to limit
+      # which LAN clients may connect (same rule as MySQL 3306).
       - "${LAN_IP:-192.168.1.4}:6379:6379"
     healthcheck:
       test:
@@ -103,8 +104,10 @@ services:
     # Secrets (MYSQL_ROOT_PASSWORD) come from the gitignored docker/.env.prod.
     # Prefer a dedicated app user (DB_USER/DB_PASS) for the Nitro process;
     # keep MYSQL_ROOT_PASSWORD for admin/migrate until that cutover is done.
-    # One-shot on an existing volume: docker/mysql-create-app-user.sql
-    # See .env.example and implement/getting-started.md.
+    # Cutover: bash docker/apply-mysql-app-user.sh && bash docker/verify-mysql-app-user.sh
+    # (or docker/mysql-create-app-user.sql). See implement/getting-started.md.
+    # Do NOT remove the LAN 3306 publish below — Podman has no service DNS;
+    # restrict blast radius with the host firewall, not by loopback-only binds.
     env_file:
       - .env.prod
     environment:

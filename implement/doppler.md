@@ -27,8 +27,10 @@ Doppler download when the router IP changes).
 
 Also set whatever else the app needs (`APP_BASE_URL`, OAuth, SMTP, R2, LLM, …).
 If `DB_USER` is still `root`, set `ALLOW_ROOT_DB=1` only as a temporary bridge —
-then cut over to `mgmt` via `docker/mysql-create-app-user.sql` and **delete**
-`ALLOW_ROOT_DB` from Doppler (see [`getting-started.md`](./getting-started.md)).
+then cut over with `bash docker/apply-mysql-app-user.sh` +
+`bash docker/verify-mysql-app-user.sh` and **delete** `ALLOW_ROOT_DB` from Doppler
+(see [`getting-started.md`](./getting-started.md)). Keep LAN MySQL/Redis publishes;
+tighten exposure with the host firewall.
 
 Edit in the Doppler dashboard or:
 

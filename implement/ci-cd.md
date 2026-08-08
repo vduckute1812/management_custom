@@ -33,6 +33,8 @@ Overrides: `MGMT_PRUNE_AGGRESSIVE=1` forces a full prune; `MGMT_DISK_FREE_MIN_GI
 
 Chat SSE (`/api/chat/inbox/stream`, `/api/chat/conversations/:id/stream`) needs the dedicated nginx locations in `nginx.prod.conf.template` (HTTP/1.1, `proxy_buffering off`, long read timeout). Without them, long-lived EventSource connections 504 behind Cloudflare. Podman on this Pi has no compose service-name DNS, so nginx proxies to `http://${LAN_IP}:3000` (not `http://app:3000`). MySQL/Redis also publish on `${LAN_IP}` for the same reason (loopback-only + `host.containers.internal` does not reach `127.0.0.1` publishes from Linux Podman bridge).
 
+**LAN MySQL/Redis + firewall.** Keep both `127.0.0.1:` and `${LAN_IP}:` publishes for `3306` / `6379` in `docker-compose.prod.yml`. Removing the LAN binds breaks app + migrate on this Podman network. Restrict blast radius with host firewall (ufw/nftables) so only the Pi (and optionally trusted LAN admin hosts) can reach those ports. App-user cutover: `bash docker/apply-mysql-app-user.sh` → `bash docker/verify-mysql-app-user.sh` → Doppler `DB_USER=mgmt` / delete `ALLOW_ROOT_DB` (see [`getting-started.md`](./getting-started.md)).
+
 Manual entrypoint: `bash docker/deploy.sh` (same script).
 
 ## One-time Pi setup
