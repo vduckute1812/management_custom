@@ -62,6 +62,11 @@ export const useChat = () => {
   async function openConversation(id: string) {
     activeId.value = id;
     loadingMessages.value = true;
+    // Drop the previous thread immediately so the scroller can pin to the
+    // newest page of this conversation instead of flashing older history.
+    messages.value = [];
+    messagesHasMore.value = false;
+    peerLastReadAt.value = null;
     error.value = null;
     try {
       const res = await apiFetch<{
@@ -71,6 +76,8 @@ export const useChat = () => {
       }>(`/api/chat/conversations/${id}/messages`, {
         query: { limit: 40 },
       });
+      // Stale response if the user switched conversations mid-flight.
+      if (activeId.value !== id) return;
       peerLastReadAt.value = res.peerLastReadAt ?? null;
       messages.value = applyPeerRead(
         res.messages.map((m) =>
@@ -88,13 +95,17 @@ export const useChat = () => {
         }
       }
     } catch (err) {
+      if (activeId.value !== id) return;
       error.value =
         (err as { statusMessage?: string })?.statusMessage ||
         t("chat.failedToLoadMessages");
       throw err;
     } finally {
-      loadingMessages.value = false;
+      if (activeId.value === id) {
+        loadingMessages.value = false;
+      }
     }
+    if (activeId.value !== id) return;
     // Always retarget when live is on — works across page + inbox plugin calls.
     if (threadLive.enabled) connectThreadStream(id);
   }
