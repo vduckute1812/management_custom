@@ -31,21 +31,14 @@ export async function upsertMoneySavingsGoalForUser(
   userId: string,
   body: GoalUpsert,
 ): Promise<{ goal: MoneySavingsGoal; created: boolean }> {
-  try {
-    return await upsertMoneySavingsGoal(userId, {
-      id: body.id,
-      title: body.title,
-      targetMinor: body.targetMinor,
-      status: body.status ?? MoneySavingsGoalStatus.Active,
-      targetDate: body.targetDate,
-      note: body.note,
-    });
-  } catch (err: unknown) {
-    if ((err as { code?: string }).code === "NOT_FOUND") {
-      throw new DomainError(404, "Savings goal not found");
-    }
-    throw err;
-  }
+  return upsertMoneySavingsGoal(userId, {
+    id: body.id,
+    title: body.title,
+    targetMinor: body.targetMinor,
+    status: body.status ?? MoneySavingsGoalStatus.Active,
+    targetDate: body.targetDate,
+    note: body.note,
+  });
 }
 
 export async function deleteMoneySavingsGoalForUser(
@@ -88,24 +81,17 @@ export async function addMoneySavingsContributionForUser(
   contribution: MoneySavingsContribution;
   goal: MoneySavingsGoal;
 }> {
-  try {
-    const contribution = await addMoneySavingsContribution(userId, {
-      goalId,
-      occurredOn: body.occurredOn,
-      amountMinor: body.amountMinor,
-      note: body.note,
-    });
-    const goal = await getMoneySavingsGoalById(userId, goalId);
-    if (!goal) {
-      throw new DomainError(404, "Savings goal not found");
-    }
-    return { contribution, goal };
-  } catch (err: unknown) {
-    if ((err as { code?: string }).code === "NOT_FOUND") {
-      throw new DomainError(404, "Savings goal not found");
-    }
-    throw err;
+  const contribution = await addMoneySavingsContribution(userId, {
+    goalId,
+    occurredOn: body.occurredOn,
+    amountMinor: body.amountMinor,
+    note: body.note,
+  });
+  const goal = await getMoneySavingsGoalById(userId, goalId);
+  if (!goal) {
+    throw new DomainError(404, "Savings goal not found");
   }
+  return { contribution, goal };
 }
 
 export async function deleteMoneySavingsContributionForUser(

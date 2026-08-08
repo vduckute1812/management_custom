@@ -4,6 +4,7 @@ import {
   type MoneyDirection,
   type MoneyUserCategory,
 } from "~/types/money";
+import { DomainError } from "~/server/utils/http";
 import { dbToISO, isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -146,9 +147,7 @@ export async function upsertMoneyUserCategory(
       return { category: updated, created: false };
     }
     if (await moneyUserCategoryIdExists(input.id)) {
-      const err = new Error("NOT_FOUND");
-      (err as { code?: string }).code = "NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Category not found");
     }
   }
 

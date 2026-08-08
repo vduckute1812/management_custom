@@ -2,6 +2,7 @@
  * Shared row shape + mappers for money budgets.
  */
 import type { RowDataPacket } from "mysql2/promise";
+import { DomainError } from "~/server/utils/http";
 import {
   MoneyBudgetScope,
   budgetProgress,
@@ -93,7 +94,5 @@ export function resolveBudgetCategory(input: UpsertMoneyBudgetInput): {
   if (input.category != null) {
     return { category: input.category, userCategoryId: null };
   }
-  const err = new Error("CATEGORY_REQUIRED");
-  (err as { code?: string }).code = "CATEGORY_REQUIRED";
-  throw err;
+  throw new DomainError(400, "Category budget requires category");
 }

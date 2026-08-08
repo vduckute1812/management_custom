@@ -8,6 +8,7 @@ import {
   type MoneyTransaction,
   type MoneyUserCategory,
 } from "~/types/money";
+import { DomainError } from "~/server/utils/http";
 import { dbToISO, isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -241,9 +242,7 @@ function resolveCategoryColumns(input: UpsertMoneyTransactionInput): {
   if (input.category != null) {
     return { category: input.category, userCategoryId: null };
   }
-  const err = new Error("CATEGORY_REQUIRED");
-  (err as { code?: string }).code = "CATEGORY_REQUIRED";
-  throw err;
+  throw new DomainError(400, "Provide category or userCategoryId");
 }
 
 export async function upsertMoneyTransaction(
@@ -259,9 +258,7 @@ export async function upsertMoneyTransaction(
     const { getMoneyUserCategoryById } = await import("./moneyUserCategories");
     const custom = await getMoneyUserCategoryById(userId, cols.userCategoryId);
     if (!custom || custom.archivedAt) {
-      const err = new Error("USER_CATEGORY_NOT_FOUND");
-      (err as { code?: string }).code = "USER_CATEGORY_NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Category not found");
     }
   }
 
@@ -290,9 +287,7 @@ export async function upsertMoneyTransaction(
       return { transaction: updated, created: false };
     }
     if (await moneyTransactionIdExists(input.id)) {
-      const err = new Error("NOT_FOUND");
-      (err as { code?: string }).code = "NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Transaction not found");
     }
   }
 

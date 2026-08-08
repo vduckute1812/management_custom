@@ -3,6 +3,7 @@
  */
 import type { ResultSetHeader, RowDataPacket } from "mysql2/promise";
 import { MoneyBudgetScope, type MoneyBudget } from "~/types/money";
+import { DomainError } from "~/server/utils/http";
 import { isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -114,9 +115,7 @@ export async function upsertMoneyBudget(
   if (cols.userCategoryId) {
     const custom = await getMoneyUserCategoryById(userId, cols.userCategoryId);
     if (!custom || custom.archivedAt) {
-      const err = new Error("USER_CATEGORY_NOT_FOUND");
-      (err as { code?: string }).code = "USER_CATEGORY_NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Category not found");
     }
   }
 
@@ -144,9 +143,7 @@ export async function upsertMoneyBudget(
       return { budget: updated, created: false };
     }
     if (await moneyBudgetIdExists(input.id)) {
-      const err = new Error("NOT_FOUND");
-      (err as { code?: string }).code = "NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Budget not found");
     }
   }
 
@@ -202,9 +199,7 @@ export async function upsertMoneyBudget(
   } catch (err: unknown) {
     const code = (err as { code?: string }).code;
     if (code === "ER_DUP_ENTRY") {
-      const conflict = new Error("CONFLICT");
-      (conflict as { code?: string }).code = "CONFLICT";
-      throw conflict;
+      throw new DomainError(409, "Budget already exists for this slot");
     }
     throw err;
   }

@@ -6,6 +6,7 @@ import {
   type MoneySavingsGoal,
   type MoneySavingsGoalStatus as MoneySavingsGoalStatusT,
 } from "~/types/money";
+import { DomainError } from "~/server/utils/http";
 import { isoToDB } from "../core/datetime";
 import { generateId, nowISO } from "../core/ids";
 import { getPool } from "../core/pool";
@@ -114,9 +115,7 @@ export async function upsertMoneySavingsGoal(
       return { goal: updated, created: false };
     }
     if (await moneySavingsGoalIdExists(input.id)) {
-      const err = new Error("NOT_FOUND");
-      (err as { code?: string }).code = "NOT_FOUND";
-      throw err;
+      throw new DomainError(404, "Savings goal not found");
     }
   }
 
