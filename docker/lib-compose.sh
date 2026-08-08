@@ -78,6 +78,34 @@ mgmt_runtime() {
   fi
 }
 
+# Export KEY=VAL from docker/.env.prod for compose *interpolation*
+# (${REDIS_PASSWORD:?…} in docker-compose.prod.yml). Service `env_file:`
+# only injects into containers after YAML is already resolved — without this,
+# newer podman-compose fails with "required variable REDIS_PASSWORD is missing".
+mgmt_export_prod_env() {
+  local envf="$1"
+  local line key val
+  [[ -f "${envf}" ]] || return 0
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line%$'\r'}"
+    case "${line}" in
+      '' | \#*) continue ;;
+    esac
+    [[ "${line}" == *=* ]] || continue
+    key="${line%%=*}"
+    val="${line#*=}"
+    # Trim optional surrounding quotes.
+    if [[ "${#val}" -ge 2 && "${val}" == \"*\" ]]; then
+      val="${val:1:${#val}-2}"
+    elif [[ "${#val}" -ge 2 && "${val}" == \'*\' ]]; then
+      val="${val:1:${#val}-2}"
+    fi
+    # Only export valid shell identifiers.
+    [[ "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+    export "${key}=${val}"
+  done < "${envf}"
+}
+
 mgmt_compose() {
   local root file
   root="$(mgmt_repo_root)"
@@ -85,6 +113,7 @@ mgmt_compose() {
   mgmt_compose_cmd || return 1
   # Export so compose `${LAN_IP:-…}` port binds + nginx render agree.
   export LAN_IP="${LAN_IP:-192.168.1.4}"
+  mgmt_export_prod_env "${root}/docker/.env.prod"
   mgmt_render_nginx || return 1
   (cd "${root}" && "${COMPOSE_ARR[@]}" -f "${file}" "$@")
 }
